@@ -1,11 +1,11 @@
 import { planById, capabilities } from '../../src/config.js';
-import { sendJson, sendText, readJsonBody } from '../../src/lib/http.js';
+import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { createCharge } from '../../src/lib/coinbase.js';
 
 // Dormant unless Coinbase credentials are configured; the storefront hides
 // its CTA behind the same capability flag.
-export default async function handler(req, res) {
+export default guard(async function handler(req, res) {
   if (req.method !== 'POST') {
     sendText(res, 405, 'method not allowed');
     return;
@@ -27,4 +27,4 @@ export default async function handler(req, res) {
   }
   const charge = await createCharge({ plan, discordId: uid });
   sendJson(res, 200, { url: charge.hosted_url });
-}
+});

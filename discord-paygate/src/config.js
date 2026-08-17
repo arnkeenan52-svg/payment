@@ -42,6 +42,8 @@ export const config = {
   // Discord server itself (DISCORD_GUILD_NAME, e.g. Tradeleaks).
   platform: env('PLATFORM_NAME', 'Ripley'),
   brand: 'Tradeleaks',
+  // Discord user id of the store owner: unlocks the /diagnostics view.
+  ownerDiscordId: env('OWNER_DISCORD_ID'),
   port: num('PORT', 4000),
   publicBaseUrl: env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`).replace(/\/$/, ''),
   sessionSecret: env('SESSION_SECRET', 'change-me'),
@@ -57,7 +59,9 @@ export const config = {
     clientSecret: env('DISCORD_CLIENT_SECRET'),
     botToken: env('DISCORD_BOT_TOKEN'),
     guildId: env('DISCORD_GUILD_ID'),
-    guildName: env('DISCORD_GUILD_NAME', 'your Discord server'),
+    // Optional display override; when empty the live guild name from Discord
+    // is used, and an unknown name is NEVER rendered as placeholder content.
+    guildName: env('DISCORD_GUILD_NAME'),
     apiBase: env('DISCORD_API_BASE', 'https://discord.com/api/v10').replace(/\/$/, ''),
   },
   stripe: {

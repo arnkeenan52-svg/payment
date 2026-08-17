@@ -4,6 +4,7 @@
   ],
   "rewrites": [
     { "source": "/receipt", "destination": "/receipt.html" },
+    { "source": "/diagnostics", "destination": "/diagnostics.html" },
     { "source": "/auth/login", "destination": "/api/auth/login" },
     { "source": "/auth/callback", "destination": "/api/auth/callback" },
     { "source": "/auth/logout", "destination": "/api/auth/logout" },

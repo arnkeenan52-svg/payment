@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { config } from '../../src/config.js';
-import { sendJson, sendText } from '../../src/lib/http.js';
+import { sendJson, sendText, guard } from '../../src/lib/http.js';
 import { sweepExpirations } from '../../src/services/entitlements.js';
 
 // Replaces the old setInterval sweep — there is no long-lived process on
@@ -14,7 +14,7 @@ export function cronAuthorized(req) {
   return got.length === want.length && crypto.timingSafeEqual(got, want);
 }
 
-export default async function handler(req, res) {
+export default guard(async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     sendText(res, 405, 'method not allowed');
     return;
@@ -25,4 +25,4 @@ export default async function handler(req, res) {
   }
   const result = await sweepExpirations();
   sendJson(res, 200, { ok: true, ...result });
-}
+});

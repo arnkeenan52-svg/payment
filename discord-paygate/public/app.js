@@ -40,9 +40,15 @@ async function checkSetup() {
     if (ok === false) {
       const banner = document.createElement('div');
       banner.className = 'doctor-banner';
-      banner.textContent =
-        '⚠ This store is misconfigured — payments may be charged without access being granted. ' +
-        'Owner: run `npm run doctor` (or GET /api/setup-check with your CRON_SECRET) and fix the failures before selling.';
+      banner.append(
+        document.createTextNode(
+          '⚠ This store is misconfigured — payments may be charged without access being granted. ',
+        ),
+      );
+      const link = document.createElement('a');
+      link.href = '/diagnostics';
+      link.textContent = 'Owner: open diagnostics →';
+      banner.append(link);
       document.body.prepend(banner);
     }
   } catch {
@@ -89,9 +95,15 @@ function renderBrand() {
     logo.src = state.server.iconUrl;
     logo.alt = state.server.name;
   }
-  if (state.server?.name) $('#server-name').textContent = state.server.name;
-  // "Back to Dashboard" goes to the community itself.
-  if (state.server?.guildId) $('#back-link').href = `https://discord.com/channels/${state.server.guildId}`;
+  // Never render filler as though it were real content: the line shows only
+  // when Discord (or an explicit env override) gave us an actual name.
+  const nameEl = $('#server-name');
+  if (state.server?.name) {
+    nameEl.textContent = state.server.name;
+    nameEl.hidden = false;
+  } else {
+    nameEl.hidden = true;
+  }
   $('#plan-name').textContent = plan.name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
   $('#price').textContent = fmtPrice(plan.priceUsd);

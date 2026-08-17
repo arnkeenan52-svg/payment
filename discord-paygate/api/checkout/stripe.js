@@ -1,9 +1,9 @@
 import { planById, capabilities } from '../../src/config.js';
-import { sendJson, sendText, readJsonBody } from '../../src/lib/http.js';
+import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { createCheckoutSession } from '../../src/lib/stripe.js';
 
-export default async function handler(req, res) {
+export default guard(async function handler(req, res) {
   if (req.method !== 'POST') {
     sendText(res, 405, 'method not allowed');
     return;
@@ -28,4 +28,4 @@ export default async function handler(req, res) {
   const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 500) : '';
   const session = await createCheckoutSession({ plan, discordId: uid, note });
   sendJson(res, 200, { url: session.url });
-}
+});

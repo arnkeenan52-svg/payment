@@ -50,6 +50,16 @@ export async function runDoctor() {
     }
   }
 
+  if (!config.ownerDiscordId) {
+    add('env:owner-id', 'OWNER_DISCORD_ID set (unlocks /diagnostics)', 'warn', '(empty)',
+      'Set OWNER_DISCORD_ID to your own Discord user id (Developer Mode → right-click yourself → Copy User ID) so the /diagnostics page works for you.');
+  } else if (!isSnowflake(config.ownerDiscordId)) {
+    add('env:owner-id', 'OWNER_DISCORD_ID looks like a Discord snowflake', 'fail', `got ${mask(config.ownerDiscordId)}`,
+      'Copy YOUR user id: Discord → Developer Mode on → right-click your name → Copy User ID.');
+  } else {
+    add('env:owner-id', 'OWNER_DISCORD_ID set (unlocks /diagnostics)', 'pass', config.ownerDiscordId);
+  }
+
   for (const [key, value] of [
     ['DISCORD_CLIENT_ID', config.discord.clientId],
     ['DISCORD_GUILD_ID', config.discord.guildId],

@@ -1,9 +1,9 @@
 import { planById } from '../src/config.js';
-import { sendJson } from '../src/lib/http.js';
+import { sendJson, guard } from '../src/lib/http.js';
 import { sessionUserId } from '../src/lib/session.js';
 import { getUser, subscriptionsForMember, isEntitled } from '../src/db.js';
 
-export default async function handler(req, res) {
+export default guard(async function handler(req, res) {
   const uid = sessionUserId(req);
   if (!uid) {
     sendJson(res, 200, { loggedIn: false });
@@ -23,4 +23,4 @@ export default async function handler(req, res) {
     graceUntil: s.grace_until === null ? null : Number(s.grace_until),
   }));
   sendJson(res, 200, { loggedIn: true, discordId: uid, username: user?.username ?? null, subscriptions: subs });
-}
+});

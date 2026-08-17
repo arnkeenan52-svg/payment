@@ -410,6 +410,7 @@ const baseEnv = (mocks) => ({
   SESSION_SECRET: 'e2e-session-secret',
   CRON_SECRET,
   DISCORD_CLIENT_ID: '1010101010101010101',
+  OWNER_DISCORD_ID: U1, // U1 doubles as the store owner in these tests
   DISCORD_CLIENT_SECRET: 'client_secret_e2e',
   DISCORD_BOT_TOKEN: 'bot_token_e2e',
   DISCORD_GUILD_ID: GUILD,
@@ -464,6 +465,10 @@ test('storefront serves the Tradeleaks page, plans API exposes capabilities', as
     `https://cdn.discordapp.com/icons/${GUILD}/a_e2eicon.gif?size=128`,
     'an animated guild icon must surface as the .gif CDN url',
   );
+  assert.equal(server.name, 'Tradeleaks', 'server name must come from the live guild lookup, never a placeholder');
+  const diagPage = await fetch(`${appUrl}/diagnostics`);
+  assert.equal(diagPage.status, 200);
+  assert.match(await diagPage.text(), /Setup diagnostics/);
   assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'interval', 'lifetime', 'name', 'priceUsd', 'roleNames']);
 });
 
@@ -798,6 +803,67 @@ test('setup doctor: healthy config passes; endpoint gates detail behind CRON_SEC
 
   const summary = await (await fetch(`${appUrl}/api/setup-check`)).json();
   assert.deepEqual(summary, { ok: true }, 'unauthenticated callers get the bare ok flag and nothing else');
+
+  // The signed-in OWNER gets the full report (drives /diagnostics) …
+  const ownerView = await (await fetch(`${appUrl}/api/setup-check?fresh=1`, { headers: { cookie: u1Cookie } })).json();
+  assert.ok(Array.isArray(ownerView.checks) && ownerView.checks.length >= 10, 'the owner session must unlock the check list');
+  assert.ok(!JSON.stringify(ownerView).includes('sk_test_e2e'), 'the owner report must never contain raw secrets');
+
+  // … while any other signed-in user stays on the bare flag.
+  const login3 = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st3 = new URL(login3.headers.get('location')).searchParams.get('state');
+  const sc3 = login3.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb3 = await fetch(`${appUrl}/auth/callback?code=code_u3&state=${st3}`, {
+    redirect: 'manual',
+    headers: { cookie: sc3.split(';')[0] },
+  });
+  const u3Cookie = cb3.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  const nonOwner = await (await fetch(`${appUrl}/api/setup-check`, { headers: { cookie: u3Cookie } })).json();
+  assert.deepEqual(nonOwner, { ok: true }, 'a non-owner session must not unlock the report');
+});
+
+test('Vercel parsed-body regression: webhook never crashes, never touches the lazy body getter', async () => {
+  const { Readable } = await import('node:stream');
+  const { default: stripeWebhook } = await import('../api/webhooks/stripe.js');
+
+  const makeRes = () => {
+    const res = { statusCode: 0, body: '', headersSent: false };
+    res.writeHead = (code) => ((res.statusCode = code), (res.headersSent = true), res);
+    res.end = (chunk) => ((res.body += chunk ?? ''), res);
+    return res;
+  };
+
+  // Case A: the platform pre-parsed the body onto req.body as a plain object
+  // (raw bytes gone). Must be a clean 400, not FUNCTION_INVOCATION_FAILED.
+  const reqA = new Readable({ read() {} });
+  reqA.method = 'POST';
+  reqA.url = '/api/webhooks/stripe';
+  reqA.headers = { 'stripe-signature': 't=1,v1=deadbeef' };
+  Object.defineProperty(reqA, 'body', { value: { id: 'evt_x', type: 'noop' }, configurable: true });
+  const resA = makeRes();
+  await stripeWebhook(reqA, resA);
+  assert.deepEqual({ status: resA.statusCode, body: resA.body }, { status: 400, body: 'raw body unavailable' });
+
+  // Case B: Vercel-style LAZY body getter — merely probing it would consume
+  // the stream. The handler must read the stream and never touch the getter.
+  const reqB = new Readable({ read() {} });
+  reqB.method = 'POST';
+  reqB.url = '/api/webhooks/stripe';
+  reqB.headers = {}; // no signature → clean 400 after the raw read
+  let getterTouched = false;
+  Object.defineProperty(reqB, 'body', {
+    get() {
+      getterTouched = true;
+      return {};
+    },
+    configurable: true,
+  });
+  reqB.push('{"id":"evt_y","type":"noop"}');
+  reqB.push(null);
+  const resB = makeRes();
+  await stripeWebhook(reqB, resB);
+  assert.deepEqual({ status: resB.statusCode, body: resB.body }, { status: 400, body: 'invalid signature' });
+  assert.equal(getterTouched, false, 'the lazy req.body getter must never be invoked on the webhook path');
 });
 
 test('setup doctor CLI: exit 0 on healthy setup, secrets only ever masked', async () => {

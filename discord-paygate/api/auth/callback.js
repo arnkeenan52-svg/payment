@@ -1,4 +1,4 @@
-import { sendText, redirect, parseCookies, cookieHeader } from '../../src/lib/http.js';
+import { sendText, redirect, parseCookies, cookieHeader, guard } from '../../src/lib/http.js';
 import { exchangeOAuthCode, fetchOAuthUser } from '../../src/lib/discord.js';
 import { createSessionCookie } from '../../src/lib/session.js';
 import { upsertUser } from '../../src/db.js';
@@ -9,7 +9,7 @@ import { STATE_COOKIE, PLAN_COOKIE } from './login.js';
 // token (we need it later for guilds.join) → reconcile so an already-paid
 // buyer gets pulled into the guild with their role the moment they log in.
 // Then land the buyer back on the plan they were buying, ready to pay.
-export default async function handler(req, res) {
+export default guard(async function handler(req, res) {
   const url = new URL(req.url, 'http://localhost');
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
@@ -42,4 +42,4 @@ export default async function handler(req, res) {
       cookieHeader(PLAN_COOKIE, '', { maxAge: 0 }),
     ],
   });
-}
+});

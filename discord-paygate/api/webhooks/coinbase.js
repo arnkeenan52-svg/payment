@@ -1,5 +1,5 @@
 import { capabilities } from '../../src/config.js';
-import { readRawBody, sendText } from '../../src/lib/http.js';
+import { readRawBody, sendText, guard } from '../../src/lib/http.js';
 import { verifyCoinbaseSignature, withinTolerance } from '../../src/lib/coinbase.js';
 import { claimEvent, releaseEvent } from '../../src/db.js';
 import { processCoinbaseEvent } from '../../src/services/coinbase-events.js';
@@ -9,7 +9,7 @@ export const config = { api: { bodyParser: false } };
 
 // Dormant unless Coinbase credentials are configured — Stripe-only deploys
 // answer 501 and never verify or process anything.
-export default async function handler(req, res) {
+export default guard(async function handler(req, res) {
   if (req.method !== 'POST') {
     sendText(res, 405, 'method not allowed');
     return;
@@ -18,7 +18,13 @@ export default async function handler(req, res) {
     sendText(res, 501, 'crypto payments are not enabled');
     return;
   }
-  const raw = await readRawBody(req);
+  let raw;
+  try {
+    raw = await readRawBody(req);
+  } catch (err) {
+    sendText(res, 400, err.message === 'RAW_BODY_UNAVAILABLE' ? 'raw body unavailable' : 'unreadable body');
+    return;
+  }
   if (!verifyCoinbaseSignature(raw, req.headers['x-cc-webhook-signature'])) {
     sendText(res, 400, 'invalid signature');
     return;
@@ -52,4 +58,4 @@ export default async function handler(req, res) {
     console.error(`[webhooks] coinbase ${event.id} failed (claim released for retry): ${err.stack ?? err.message}`);
     sendText(res, 500, 'processing failed');
   }
-}
+});

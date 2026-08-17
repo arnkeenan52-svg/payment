@@ -1,21 +1,21 @@
-/* Reference palette: pure black page, near-black panels, one mint-green
-   accent for selection, trust marks and the pay action. Discord concepts
+/* Near-black with ONE strong orange accent: the primary action and one
+   highlighted headline phrase. Everything else neutral; Discord concepts
    (role chips, the open-server button) use Discord blurple. */
 :root {
-  --bg: #000000;
-  --panel: #0e0e0e;
-  --panel-hover: #151515;
+  --bg: #0a0a0a;
+  --panel: #101010;
+  --panel-hover: #161616;
   --edge: #232323;
-  --edge-selected: #4ade80;
-  --ink: #f5f5f4;
-  --dim: #9a9a94;
-  --accent: #4ade80;
-  --accent-hot: #6ee7a0;
-  --accent-ink: #04130a;
+  --edge-selected: #7a736b;
+  --ink: #f5f2ee;
+  --dim: #9a948c;
+  --accent: #ff5500;
+  --accent-hot: #ff7526;
+  --accent-ink: #140a02;
   --blurple: #5865f2;
   --blurple-text: #8b96f8;
   --stripe: #635bff;
-  --good: #4ade80;
+  --good: #34d399;
   --bad: #f87171;
   --font-head: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
@@ -70,9 +70,21 @@ body {
 .powered-mark { height: 18px; width: auto; margin: 6px auto 0; }
 
 .top-left { display: flex; align-items: center; gap: 14px; }
-.top-divider { width: 1px; height: 18px; background: #333; }
-.back-link { color: var(--dim); font-size: 13.5px; text-decoration: none; }
-.back-link:hover { color: var(--ink); }
+
+/* ── diagnostics (owner-only doctor view) ─────────────────────────────────── */
+.diagnostics #diag-body { display: flex; flex-direction: column; gap: 10px; }
+.diag-row { display: flex; flex-direction: column; gap: 6px; padding: 15px 18px; }
+.diag-name { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14.5px; }
+.diag-icon { width: 20px; text-align: center; flex: none; }
+.diag-status { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: var(--dim); }
+.diag-detail { color: var(--dim); font-size: 13.5px; padding-left: 30px; overflow-wrap: anywhere; }
+.diag-fix { color: var(--ink); font-size: 13.5px; padding-left: 30px; overflow-wrap: anywhere; }
+.diag-pass .diag-icon { color: var(--good); }
+.diag-fail { border-color: rgba(248, 113, 113, 0.5); }
+.diag-fail .diag-icon, .diag-fail .diag-status { color: var(--bad); }
+.diag-warn .diag-icon { color: #fbbf24; }
+.diag-skip .diag-icon { color: var(--dim); }
+.doctor-banner a { color: #fff; font-weight: 700; }
 
 /* Connect-Wallet-style pill for the header action */
 .btn-pill {
@@ -280,7 +292,7 @@ body {
   font-size: 16px;
 }
 .method:hover { background: var(--panel-hover); }
-.method.selected { border-color: var(--accent); background: rgba(74, 222, 128, 0.04); }
+.method.selected { border-color: var(--edge-selected); box-shadow: 0 0 0 1px var(--edge-selected); background: rgba(245, 242, 238, 0.03); }
 .method svg { flex: none; }
 .method .provider-badge {
   font-size: 10.5px;
@@ -295,8 +307,8 @@ body {
 .pay-head { display: flex; align-items: center; gap: 10px; }
 .pay-head h2 { font-family: var(--font-head); font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
 .pill {
-  background: rgba(74, 222, 128, 0.12);
-  color: var(--accent);
+  background: rgba(245, 242, 238, 0.08);
+  color: var(--ink);
   border-radius: 7px;
   padding: 3px 9px;
   font-size: 12.5px;
@@ -313,28 +325,28 @@ body {
   font-size: 14px;
 }
 .trust-row span { display: inline-flex; align-items: center; gap: 7px; }
-.trust-row svg { color: var(--accent); flex: none; }
+.trust-row svg { color: var(--dim); flex: none; }
 .redirect-note { color: var(--dim); font-size: 13.5px; text-align: center; }
 
 /* ── CTA ──────────────────────────────────────────────────────────────────── */
 #cta-area { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
 
-/* Reference pill CTA: dark green-tinted fill, green border, white text. */
+/* THE accent: a solid orange primary action. */
 .pay-btn {
   font-family: var(--font-head);
   font-weight: 700;
   font-size: 16px;
   width: 100%;
-  border: 1px solid rgba(74, 222, 128, 0.75);
+  border: none;
   border-radius: 999px;
   padding: 15px;
   cursor: pointer;
-  background: rgba(74, 222, 128, 0.06);
-  color: var(--ink);
+  background: var(--accent);
+  color: var(--accent-ink);
   transition: background 0.15s ease, transform 0.06s ease;
   min-height: 52px;
 }
-.pay-btn:hover:not(:disabled) { background: rgba(74, 222, 128, 0.14); }
+.pay-btn:hover:not(:disabled) { background: var(--accent-hot); }
 .pay-btn:active:not(:disabled) { transform: scale(0.99); }
 .pay-btn:disabled { opacity: 0.55; cursor: wait; }
 .pay-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }

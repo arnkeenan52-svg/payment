@@ -2,15 +2,19 @@
 
 const MAX_BODY = 1024 * 1024; // 1 MiB is plenty for any webhook or form we accept
 
-// Raw body, exactly as sent. On Vercel this requires the function to export
-// `config = { api: { bodyParser: false } }` — a parsed-and-reserialised body
-// would break webhook signature verification. Defensive: if some runtime has
-// already buffered the body onto req.body as bytes/string, use that.
+// Raw body, exactly as sent — signatures are HMACs over these bytes.
+// CRITICAL Vercel detail: the platform defines req.body as a LAZY GETTER that
+// parses (and consumes) the stream on first access. Merely probing req.body
+// destroys the raw bytes, so we inspect the property descriptor instead:
+// a getter (or absent property) means the stream is still untouched — read it.
+// Only a plain pre-set value is used directly (Buffer/string), and a plain
+// parsed object is a clean, catchable error — never a function crash.
 export function readRawBody(req) {
-  if (req.body !== undefined && req.body !== null) {
-    if (Buffer.isBuffer(req.body)) return Promise.resolve(req.body);
-    if (typeof req.body === 'string') return Promise.resolve(Buffer.from(req.body));
-    return Promise.reject(new Error('body was parsed upstream; raw bytes are gone (disable the body parser for this route)'));
+  const desc = Object.getOwnPropertyDescriptor(req, 'body');
+  if (desc && 'value' in desc && desc.value !== undefined && desc.value !== null) {
+    if (Buffer.isBuffer(desc.value)) return Promise.resolve(desc.value);
+    if (typeof desc.value === 'string') return Promise.resolve(Buffer.from(desc.value));
+    return Promise.reject(new Error('RAW_BODY_UNAVAILABLE'));
   }
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -29,15 +33,31 @@ export function readRawBody(req) {
   });
 }
 
-// JSON body for ordinary API routes; tolerates runtimes (Vercel) that have
-// already parsed it onto req.body.
+// JSON body for ordinary API routes. Here a parsed req.body is welcome —
+// accessing the Vercel getter is fine because we want the parsed value.
 export async function readJsonBody(req) {
   if (req.body !== undefined && req.body !== null && !Buffer.isBuffer(req.body) && typeof req.body === 'object') {
     return req.body;
   }
+  if (typeof req.body === 'string') return req.body.length ? JSON.parse(req.body) : {};
   const raw = await readRawBody(req);
   if (raw.length === 0) return {};
   return JSON.parse(raw.toString('utf8'));
+}
+
+// On Vercel there is no outer router to catch a throwing handler — an
+// uncaught error becomes an opaque FUNCTION_INVOCATION_FAILED page. Every
+// api/ default export is wrapped in this instead.
+export function guard(handler) {
+  return async function guarded(req, res) {
+    try {
+      await handler(req, res);
+    } catch (err) {
+      console.error(`[api] ${req.method} ${req.url} → ${err.stack ?? err.message}`);
+      if (!res.headersSent) sendText(res, 500, 'internal error');
+      else res.end();
+    }
+  };
 }
 
 export function sendJson(res, status, body) {
