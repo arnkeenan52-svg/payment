@@ -39,7 +39,7 @@ function renderAccount(me) {
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }
 
-function renderPlans(plans, me) {
+function renderPlans(plans, me, capabilities) {
   // One sub per plan card: a live subscription beats a lapsed one.
   const owned = new Map();
   for (const s of me.subscriptions ?? []) {
@@ -75,13 +75,14 @@ function renderPlans(plans, me) {
       ${ownedForever
         ? '<p class="settled">Nothing to manage — your access never expires.</p>'
         : `<div class="ctas">
-             <button class="cta-card">Pay with card</button>
-             <button class="cta-crypto">Pay with crypto</button>
+             ${capabilities.stripe ? '<button class="cta-card">Pay with card</button>' : ''}
+             ${capabilities.crypto ? '<button class="cta-crypto">Pay with crypto</button>' : ''}
            </div>`}`;
     if (!ownedForever) {
-      const [cardBtn, cryptoBtn] = card.querySelectorAll('button');
-      cardBtn.onclick = () => checkout('stripe', plan.id, cardBtn);
-      cryptoBtn.onclick = () => checkout('coinbase', plan.id, cryptoBtn);
+      const cardBtn = card.querySelector('.cta-card');
+      const cryptoBtn = card.querySelector('.cta-crypto');
+      if (cardBtn) cardBtn.onclick = () => checkout('stripe', plan.id, cardBtn);
+      if (cryptoBtn) cryptoBtn.onclick = () => checkout('coinbase', plan.id, cryptoBtn);
     }
     $('#plans').append(card);
   }
@@ -97,10 +98,10 @@ async function main() {
   }
 
   const [plansRes, meRes] = await Promise.all([fetch('/api/plans'), fetch('/api/me')]);
-  const { plans } = await plansRes.json();
+  const { plans, capabilities } = await plansRes.json();
   const me = await meRes.json();
   renderAccount(me);
-  renderPlans(plans, me);
+  renderPlans(plans, me, capabilities);
 }
 
 main();

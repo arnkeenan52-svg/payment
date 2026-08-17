@@ -6,9 +6,9 @@ const now = () => Math.floor(Date.now() / 1000);
 
 // Roles this member should hold right now: the union of roleIds across every
 // subscription that still entitles them (active+unexpired, or in grace).
-export function desiredRoleIds(discordId, at = now()) {
+export async function desiredRoleIds(discordId, at = now()) {
   const desired = new Set();
-  for (const sub of db.subscriptionsForMember(discordId)) {
+  for (const sub of await db.subscriptionsForMember(discordId)) {
     if (!db.isEntitled(sub, at)) continue;
     const plan = planById(sub.plan_id);
     if (plan) for (const roleId of plan.roleIds) desired.add(roleId);
@@ -18,12 +18,14 @@ export function desiredRoleIds(discordId, at = now()) {
 
 // Two webhooks for the same member can land at once; running their
 // reconciles back-to-back keeps add/remove pairs from interleaving.
+// (Per-instance only — cross-instance safety comes from reconcile being
+// idempotent: every run converges on the same desired state.)
 const inflight = new Map();
 
 // The one place roles change, and it is idempotent: compute desired state,
 // diff against Discord, add what's missing, remove only roles that appear in
 // plans.json. Mod, colour and every other unmanaged role is never touched.
-// Called from every webhook, from login, and from the expiry sweep timer.
+// Called from every webhook, from login, and from the cron sweep.
 export async function reconcile(discordId) {
   const previous = inflight.get(discordId) ?? Promise.resolve();
   const run = previous.then(() => reconcileNow(discordId)).finally(() => {
@@ -34,7 +36,7 @@ export async function reconcile(discordId) {
 }
 
 async function reconcileNow(discordId) {
-  const desired = desiredRoleIds(discordId);
+  const desired = await desiredRoleIds(discordId);
   const managed = managedRoleIds();
 
   const member = await getGuildMember(discordId);
@@ -43,7 +45,7 @@ async function reconcileNow(discordId) {
     // Buyer isn't in the server yet. If they logged in we hold a guilds.join
     // token — pull them in with their roles already applied instead of failing.
     if (desired.size === 0) return { joined: false, added: [], removed: [] };
-    const user = db.getUser(discordId);
+    const user = await db.getUser(discordId);
     if (!user?.access_token) {
       console.warn(`[entitlements] ${discordId} not in guild and no OAuth token stored; will retry on next reconcile`);
       return { joined: false, added: [], removed: [] };
@@ -77,7 +79,7 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
     return null;
   }
   const expiry = plan.lifetime ? null : periodEnd ?? now() + plan.durationDays * 86400;
-  const sub = db.upsertSubscription({
+  const sub = await db.upsertSubscription({
     discordId,
     planId,
     provider,
@@ -90,13 +92,13 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
   return sub;
 }
 
-// Failed renewal: keep access through a grace window and tell the buyer,
-// instead of yanking roles the moment a card bounces.
+// Failed payment on a renewing plan: keep access through a grace window and
+// tell the buyer, instead of yanking roles the moment a card bounces.
 export async function markPastDue(provider, providerRef) {
-  const sub = db.getSubscriptionByRef(provider, providerRef);
+  const sub = await db.getSubscriptionByRef(provider, providerRef);
   if (!sub) return null;
   const graceUntil = now() + config.gracePeriodHours * 3600;
-  db.setSubscriptionStatus(sub.id, { status: 'past_due', graceUntil });
+  await db.setSubscriptionStatus(sub.id, { status: 'past_due', graceUntil });
   const plan = planById(sub.plan_id);
   await dmUser(
     sub.discord_id,
@@ -108,21 +110,21 @@ export async function markPastDue(provider, providerRef) {
 }
 
 export async function cancel(provider, providerRef) {
-  const sub = db.getSubscriptionByRef(provider, providerRef);
+  const sub = await db.getSubscriptionByRef(provider, providerRef);
   if (!sub) return null;
-  db.setSubscriptionStatus(sub.id, { status: 'canceled', graceUntil: null });
+  await db.setSubscriptionStatus(sub.id, { status: 'canceled', graceUntil: null });
   await reconcile(sub.discord_id);
   return db.getSubscriptionByRef(provider, providerRef);
 }
 
-// Timer-driven safety net: expire lapsed subscriptions (grace windows that ran
-// out, terms that ended without a renewal webhook), then reconcile both the
-// members affected and every member still holding a live subscription — so
-// drift (a hand-removed paid role, a join that couldn't happen yet) heals on
-// its own. Lifetime rows have NULL expiry and are structurally immune.
+// Cron-driven safety net (there is no long-lived process on Vercel, so this
+// runs from /api/cron/reconcile): expire lapsed subscriptions, then reconcile
+// both the members affected and every member still holding a live
+// subscription so drift heals on its own. Lifetime rows have NULL expiry and
+// are structurally immune.
 export async function sweepExpirations(at = now()) {
-  const lapsed = db.lapseOverdueSubscriptions(at);
-  const members = [...new Set([...lapsed.map((s) => s.discord_id), ...db.membersWithLiveSubscriptions()])];
+  const lapsed = await db.lapseOverdueSubscriptions(at);
+  const members = [...new Set([...lapsed.map((s) => s.discord_id), ...(await db.membersWithLiveSubscriptions())])];
   for (const discordId of members) {
     try {
       await reconcile(discordId);

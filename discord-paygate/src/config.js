@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Minimal .env loader: KEY=VALUE lines, # comments, real env always wins.
+// On Vercel this is a no-op (no .env file is deployed; env comes from the
+// dashboard) — it exists for local dev and the e2e suite.
 function loadDotEnv(file) {
   if (!fs.existsSync(file)) return;
   for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
@@ -40,6 +42,10 @@ export const config = {
   port: num('PORT', 4000),
   publicBaseUrl: env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`).replace(/\/$/, ''),
   sessionSecret: env('SESSION_SECRET', 'change-me'),
+  cronSecret: env('CRON_SECRET'),
+  // Postgres when DATABASE_URL is set (Vercel/production); SQLite file
+  // otherwise (local dev, e2e). Same schema, same adapter interface.
+  databaseUrl: env('DATABASE_URL'),
   dbPath: env('DB_PATH', path.join(ROOT, 'data', 'paygate.sqlite')),
   discord: {
     clientId: env('DISCORD_CLIENT_ID'),
@@ -60,9 +66,18 @@ export const config = {
   },
   webhookToleranceSeconds: num('WEBHOOK_TOLERANCE_SECONDS', 300),
   gracePeriodHours: num('GRACE_PERIOD_HOURS', 72),
-  sweepIntervalSeconds: num('SWEEP_INTERVAL_SECONDS', 600),
   plans: loadPlans(),
 };
+
+// Payment capabilities: a provider is live only when its credentials are set.
+// The storefront hides the crypto CTA and the coinbase endpoints answer 501
+// when crypto is off — the code stays dormant rather than deleted.
+export function capabilities() {
+  return {
+    stripe: Boolean(config.stripe.secretKey && config.stripe.webhookSecret),
+    crypto: Boolean(config.coinbase.apiKey && config.coinbase.webhookSecret),
+  };
+}
 
 export function planById(id) {
   return config.plans.find((p) => p.id === id) ?? null;
@@ -77,19 +92,20 @@ const set = (v) => (v ? '✓ set' : '✗ MISSING');
 
 export function printBanner(actualPort) {
   const c = config;
+  const caps = capabilities();
   const planLine = (p) =>
-    `│   • ${p.id.padEnd(10)} ${p.name.padEnd(10)} $${String(p.priceUsd).padEnd(4)} ${p.interval.padEnd(8)} → roles [${p.roleIds.join(', ')}]`;
+    `│   • ${p.id.padEnd(10)} ${p.name.padEnd(10)} $${String(p.priceUsd).padEnd(6)} ${p.interval.padEnd(8)} → roles [${p.roleIds.join(', ')}]`;
   const lines = [
     '',
     `┌─ ${c.brand.toUpperCase()} PAYGATE ${'─'.repeat(46)}`,
     `│ listening      http://localhost:${actualPort}   (public: ${c.publicBaseUrl})`,
-    `│ database       ${c.dbPath}`,
+    `│ storage        ${c.databaseUrl ? `postgres (${c.databaseUrl.replace(/\/\/[^@]*@/, '//***@')})` : `sqlite ${c.dbPath}`}`,
     `│ discord        guild ${c.discord.guildId || '✗ MISSING'} | client ${set(c.discord.clientId)} | secret ${set(c.discord.clientSecret)} | bot ${set(c.discord.botToken)}`,
     `│ discord api    ${c.discord.apiBase}`,
-    `│ stripe         key ${set(c.stripe.secretKey)} | webhook secret ${set(c.stripe.webhookSecret)} | api ${c.stripe.apiBase}`,
-    `│ coinbase       key ${set(c.coinbase.apiKey)} | webhook secret ${set(c.coinbase.webhookSecret)} | api ${c.coinbase.apiBase}`,
-    `│ webhooks       POST /webhooks/stripe   POST /webhooks/coinbase   (replay tolerance ${c.webhookToleranceSeconds}s)`,
-    `│ entitlements   grace ${c.gracePeriodHours}h on failed renewals | expiry sweep every ${c.sweepIntervalSeconds}s`,
+    `│ stripe         ${caps.stripe ? 'ENABLED' : 'disabled'} | key ${set(c.stripe.secretKey)} | webhook secret ${set(c.stripe.webhookSecret)} | api ${c.stripe.apiBase}`,
+    `│ crypto         ${caps.crypto ? 'ENABLED (coinbase)' : 'disabled (coinbase code dormant, CTA hidden)'}`,
+    `│ webhooks       POST /webhooks/stripe${caps.crypto ? '   POST /webhooks/coinbase' : ''}   (replay tolerance ${c.webhookToleranceSeconds}s)`,
+    `│ cron           GET /api/cron/reconcile | CRON_SECRET ${set(c.cronSecret)} | grace ${c.gracePeriodHours}h on failed renewals`,
     `│ plans (plans.json)`,
     ...c.plans.map(planLine),
     `└${'─'.repeat(64)}`,

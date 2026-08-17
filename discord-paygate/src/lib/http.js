@@ -2,7 +2,16 @@
 
 const MAX_BODY = 1024 * 1024; // 1 MiB is plenty for any webhook or form we accept
 
+// Raw body, exactly as sent. On Vercel this requires the function to export
+// `config = { api: { bodyParser: false } }` — a parsed-and-reserialised body
+// would break webhook signature verification. Defensive: if some runtime has
+// already buffered the body onto req.body as bytes/string, use that.
 export function readRawBody(req) {
+  if (req.body !== undefined && req.body !== null) {
+    if (Buffer.isBuffer(req.body)) return Promise.resolve(req.body);
+    if (typeof req.body === 'string') return Promise.resolve(Buffer.from(req.body));
+    return Promise.reject(new Error('body was parsed upstream; raw bytes are gone (disable the body parser for this route)'));
+  }
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
@@ -20,7 +29,12 @@ export function readRawBody(req) {
   });
 }
 
+// JSON body for ordinary API routes; tolerates runtimes (Vercel) that have
+// already parsed it onto req.body.
 export async function readJsonBody(req) {
+  if (req.body !== undefined && req.body !== null && !Buffer.isBuffer(req.body) && typeof req.body === 'object') {
+    return req.body;
+  }
   const raw = await readRawBody(req);
   if (raw.length === 0) return {};
   return JSON.parse(raw.toString('utf8'));

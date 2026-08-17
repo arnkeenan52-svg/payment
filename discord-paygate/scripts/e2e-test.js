@@ -1,14 +1,17 @@
 #!/usr/bin/env node
-// End-to-end suite: boots the real app (node src/server.js, same entry as
-// `npm start`) against mock Stripe, Coinbase Commerce and Discord HTTP
-// servers, then drives signed webhooks at it and asserts on the role calls
+// End-to-end suite for the serverless build: boots the dev shim
+// (scripts/dev-server.js), which mounts the SAME handler functions Vercel
+// runs from api/**, against mock Stripe, Coinbase Commerce and Discord HTTP
+// servers — then drives signed webhooks at it and asserts on the role calls
 // the Discord mock actually received.
 //
-// Scenarios: purchase (incl. guilds.join), renewal, decline + grace + DM,
-// recovery, cancellation, crypto confirmation (pending ignored, resolved
-// honoured), duplicate delivery, forged/stale signatures, claim release on
-// handler crash, 429 retry_after honouring, expiry sweep, lifetime surviving
-// the sweep, and unmanaged roles staying untouched throughout.
+// Serverless semantics under test: webhooks do the work BEFORE responding
+// (a frozen function must never leave a grant pending), idempotency is a
+// PRIMARY KEY claim via INSERT ... ON CONFLICT DO NOTHING with the claim
+// released on failure (500 → provider retry really retries), and the expiry
+// sweep is the CRON_SECRET-guarded /api/cron/reconcile endpoint instead of a
+// timer. Storage runs on SQLite by default; set E2E_DATABASE_URL to a
+// Postgres connection string to run the identical suite against pg.
 
 import http from 'node:http';
 import crypto from 'node:crypto';
@@ -18,7 +21,6 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { DatabaseSync } from 'node:sqlite';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // The suite runs against its own multi-plan catalog (role unions, a lifetime
@@ -37,6 +39,7 @@ const U3 = '503300000000000003'; // buyer whose first webhook crashes the handle
 
 const STRIPE_SECRET = 'whsec_e2e_secret';
 const COINBASE_SECRET = 'cb_e2e_secret';
+const CRON_SECRET = 'cron_e2e_secret';
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -98,7 +101,6 @@ async function discordHandler(req, res) {
   const p = url.pathname;
   let m;
 
-  // role add/remove: PUT|DELETE /guilds/:g/members/:u/roles/:r
   if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)\/roles\/([^/]+)$/)) && (req.method === 'PUT' || req.method === 'DELETE')) {
     const [, , uid, roleId] = m;
     if (discord.rateLimit429Remaining > 0) {
@@ -118,7 +120,6 @@ async function discordHandler(req, res) {
     return;
   }
 
-  // guilds.join: PUT /guilds/:g/members/:u
   if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'PUT') {
     const [, , uid] = m;
     const body = JSON.parse(await readBody(req));
@@ -133,7 +134,6 @@ async function discordHandler(req, res) {
     return;
   }
 
-  // member fetch: GET /guilds/:g/members/:u
   if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'GET') {
     const [, , uid] = m;
     if (!discord.members.has(uid)) {
@@ -144,7 +144,6 @@ async function discordHandler(req, res) {
     return;
   }
 
-  // DMs
   if (p === '/users/@me/channels' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req));
     json(res, 200, { id: `dm_${body.recipient_id}` });
@@ -157,7 +156,6 @@ async function discordHandler(req, res) {
     return;
   }
 
-  // OAuth
   if (p === '/oauth2/token' && req.method === 'POST') {
     const params = new URLSearchParams(await readBody(req));
     const code = params.get('code');
@@ -219,6 +217,54 @@ async function coinbaseHandler(req, res) {
   }
 }
 
+// ── test-side database access (time travel + assertions) ─────────────────────
+// Mirrors the app's adapter: SQLite by default, Postgres when E2E_DATABASE_URL
+// is set — the app child gets the same target via its env.
+
+const PG_URL = process.env.E2E_DATABASE_URL ?? '';
+const dbPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'tl-e2e-')), 'e2e.sqlite');
+let tq; // (sql, params) => Promise<{rows}>
+
+async function initTestDb() {
+  if (PG_URL) {
+    const { default: pg } = await import('pg');
+    const pool = new pg.Pool({ connectionString: PG_URL, max: 2 });
+    tq = async (sql, params = []) => {
+      let i = 0;
+      return pool.query(sql.replace(/\?/g, () => `$${++i}`), params);
+    };
+    // fresh slate for repeat runs
+    await tq('DROP TABLE IF EXISTS users');
+    await tq('DROP TABLE IF EXISTS subscriptions');
+    await tq('DROP TABLE IF EXISTS webhook_events');
+  } else {
+    const { DatabaseSync } = await import('node:sqlite');
+    let sqlite;
+    tq = async (sql, params = []) => {
+      sqlite ??= (() => {
+        const d = new DatabaseSync(dbPath);
+        d.exec('PRAGMA busy_timeout = 5000');
+        return d;
+      })();
+      const stmt = sqlite.prepare(sql);
+      if (/^\s*select/i.test(sql)) return { rows: stmt.all(...params) };
+      stmt.run(...params);
+      return { rows: [] };
+    };
+  }
+}
+
+const asNum = (v) => (v === null || v === undefined ? null : Number(v));
+
+async function subRow(provider, ref) {
+  const { rows } = await tq('SELECT * FROM subscriptions WHERE provider = ? AND provider_ref = ?', [provider, ref]);
+  const r = rows[0];
+  return r ? { ...r, current_period_end: asNum(r.current_period_end), grace_until: asNum(r.grace_until) } : null;
+}
+
+const userRow = async (uid) => (await tq('SELECT * FROM users WHERE discord_id = ?', [uid])).rows[0] ?? null;
+const claimRows = async (like) => (await tq('SELECT event_id FROM webhook_events WHERE event_id LIKE ?', [like])).rows;
+
 // ── signing + delivery helpers ────────────────────────────────────────────────
 
 let appUrl;
@@ -230,9 +276,9 @@ function signStripe(payload, t = nowSec()) {
 
 const signCoinbase = (payload) => crypto.createHmac('sha256', COINBASE_SECRET).update(payload).digest('hex');
 
-async function deliverStripe(event, { header } = {}) {
+async function deliverStripe(event, { header, path: whPath = '/webhooks/stripe', base = appUrl } = {}) {
   const payload = JSON.stringify(event);
-  const res = await fetch(`${appUrl}/webhooks/stripe`, {
+  const res = await fetch(`${base}${whPath}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'stripe-signature': header ?? signStripe(payload) },
     body: payload,
@@ -240,9 +286,9 @@ async function deliverStripe(event, { header } = {}) {
   return { status: res.status, body: await res.text() };
 }
 
-async function deliverCoinbase(event, { signature } = {}) {
+async function deliverCoinbase(event, { signature, base = appUrl } = {}) {
   const payload = JSON.stringify({ id: crypto.randomUUID(), event });
-  const res = await fetch(`${appUrl}/webhooks/coinbase`, {
+  const res = await fetch(`${base}/webhooks/coinbase`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-cc-webhook-signature': signature ?? signCoinbase(payload) },
     body: payload,
@@ -257,6 +303,14 @@ const coinbaseEvent = (type, { id, code, discordId, planId, createdAt }) => ({
   data: { id: `charge_${code}`, code, metadata: { discord_id: discordId, plan_id: planId } },
 });
 
+// The cron sweep — what Vercel's scheduler calls, with its Bearer secret.
+async function hitCron({ secret = CRON_SECRET, omitHeader = false } = {}) {
+  const res = await fetch(`${appUrl}/api/cron/reconcile`, {
+    headers: omitHeader ? {} : { authorization: `Bearer ${secret}` },
+  });
+  return { status: res.status, body: await res.text() };
+}
+
 async function waitFor(desc, fn, timeoutMs = 6000) {
   const deadline = Date.now() + timeoutMs;
   let last;
@@ -270,51 +324,80 @@ async function waitFor(desc, fn, timeoutMs = 6000) {
 
 const memberRoles = (uid) => discord.members.get(uid) ?? new Set();
 
-// ── boot the real app ─────────────────────────────────────────────────────────
+// ── boot the real handlers via the dev shim ───────────────────────────────────
 
-let child;
-let appDb;
-const appLog = [];
-const dbPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'tl-e2e-')), 'e2e.sqlite');
+const children = [];
 
-async function bootApp(env) {
-  child = spawn(process.execPath, ['src/server.js'], {
+async function spawnApp(env) {
+  const log = [];
+  const child = spawn(process.execPath, ['scripts/dev-server.js'], {
     cwd: ROOT,
     env: { ...process.env, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  child.stdout.on('data', (d) => appLog.push(d.toString()));
-  child.stderr.on('data', (d) => appLog.push(d.toString()));
+  children.push(child);
+  child.stdout.on('data', (d) => log.push(d.toString()));
+  child.stderr.on('data', (d) => log.push(d.toString()));
   const port = await waitFor('app to start listening', () => {
-    const m = appLog.join('').match(/listening on http:\/\/localhost:(\d+)/);
+    const m = log.join('').match(/listening on http:\/\/localhost:(\d+)/);
     return m ? Number(m[1]) : null;
   });
-  appUrl = `http://127.0.0.1:${port}`;
-  appDb = new DatabaseSync(dbPath);
-  appDb.exec('PRAGMA busy_timeout = 5000');
+  return { child, log, url: `http://127.0.0.1:${port}` };
 }
 
-const subRow = (provider, ref) =>
-  appDb.prepare('SELECT * FROM subscriptions WHERE provider = ? AND provider_ref = ?').get(provider, ref) ?? null;
+const baseEnv = (mocks) => ({
+  ENV_PATH: '/nonexistent/.env', // a developer's real .env must never leak in
+  PLANS_PATH,
+  PORT: '0',
+  ...(PG_URL ? { DATABASE_URL: PG_URL } : { DB_PATH: dbPath }),
+  PUBLIC_BASE_URL: 'http://tradeleaks.e2e', // mocks never validate redirect URIs
+  SESSION_SECRET: 'e2e-session-secret',
+  CRON_SECRET,
+  DISCORD_CLIENT_ID: 'client_e2e',
+  DISCORD_CLIENT_SECRET: 'client_secret_e2e',
+  DISCORD_BOT_TOKEN: 'bot_token_e2e',
+  DISCORD_GUILD_ID: GUILD,
+  DISCORD_API_BASE: mocks.discord.url,
+  STRIPE_SECRET_KEY: 'sk_test_e2e',
+  STRIPE_WEBHOOK_SECRET: STRIPE_SECRET,
+  STRIPE_API_BASE: mocks.stripe.url,
+  WEBHOOK_TOLERANCE_SECONDS: '300',
+  GRACE_PERIOD_HOURS: '72',
+});
 
 // ── tiny sequential harness ───────────────────────────────────────────────────
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
 
+let appLog; // phase-1 child log
+
 // ═══ scenarios ════════════════════════════════════════════════════════════════
 
-test('npm start entry prints the config banner', async () => {
+test('npm start entry prints the config banner (storage + cron lines)', async () => {
   await waitFor('banner in stdout', () => appLog.join('').includes('TRADELEAKS PAYGATE'));
-  assert.match(appLog.join(''), /webhooks\s+POST \/webhooks\/stripe\s+POST \/webhooks\/coinbase/);
+  const out = appLog.join('');
+  assert.match(out, /webhooks\s+POST \/webhooks\/stripe\s+POST \/webhooks\/coinbase/);
+  assert.match(out, /cron\s+GET \/api\/cron\/reconcile/);
+  assert.match(out, PG_URL ? /storage\s+postgres/ : /storage\s+sqlite/);
 });
 
-test('storefront serves the Tradeleaks page and plans API', async () => {
+test('storefront serves the Tradeleaks page, plans API exposes capabilities', async () => {
   const page = await (await fetch(`${appUrl}/`)).text();
   assert.match(page, /Tradeleaks/i);
-  const { plans } = await (await fetch(`${appUrl}/api/plans`)).json();
+  const { plans, capabilities } = await (await fetch(`${appUrl}/api/plans`)).json();
   assert.equal(plans.length, PLANS.length);
+  assert.deepEqual(capabilities, { stripe: true, crypto: true }); // coinbase configured in this phase
   assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'id', 'interval', 'lifetime', 'name', 'priceUsd']);
+});
+
+test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
+  assert.equal((await hitCron({ omitHeader: true })).status, 401);
+  assert.equal((await hitCron({ secret: 'wrong-secret' })).status, 401);
+  assert.equal((await hitCron({ secret: `${CRON_SECRET}x` })).status, 401);
+  const ok = await hitCron();
+  assert.equal(ok.status, 200);
+  assert.match(ok.body, /"ok":true/);
 });
 
 let u1Cookie;
@@ -334,8 +417,7 @@ test('OAuth login requests guilds.join and stores the access token', async () =>
   assert.equal(cb.status, 302);
   u1Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
 
-  const user = appDb.prepare('SELECT * FROM users WHERE discord_id = ?').get(U1);
-  assert.equal(user.access_token, 'tok_code_u1');
+  assert.equal((await userRow(U1)).access_token, 'tok_code_u1');
 
   const me = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u1Cookie } })).json();
   assert.deepEqual({ loggedIn: me.loggedIn, username: me.username }, { loggedIn: true, username: 'trader_one' });
@@ -358,7 +440,7 @@ test('checkout endpoint creates a Stripe session with the buyer wired in', async
 
 const SUB1_END = nowSec() + 31 * 86400;
 
-test('purchase: webhook grants the role and joins the buyer into the guild', async () => {
+test('purchase: webhook completes the grant BEFORE responding (serverless-safe)', async () => {
   stripe.periodEnds.sub_1 = SUB1_END;
   assert.equal(discord.members.has(U1), false, 'U1 must start outside the guild');
   const { status, body } = await deliverStripe({
@@ -368,12 +450,13 @@ test('purchase: webhook grants the role and joins the buyer into the guild', asy
   });
   assert.deepEqual({ status, body }, { status: 200, body: 'ok' });
 
-  await waitFor('U1 joined with insider role', () => memberRoles(U1).has(R_INSIDER));
+  // No waiting: the response means the work already happened.
+  assert.ok(memberRoles(U1).has(R_INSIDER), 'role must be granted by the time the webhook responds');
   const join = discord.joins.find((j) => j.uid === U1);
   assert.deepEqual(join.roles, [R_INSIDER]);
   assert.equal(join.accessToken, 'tok_code_u1');
 
-  const row = subRow('stripe', 'sub_1');
+  const row = await subRow('stripe', 'sub_1');
   assert.equal(row.status, 'active');
   // The mock returns current_period_end ONLY on items.data[0] — equality here
   // proves the sub.current_period_end ?? items fallback is being read.
@@ -388,25 +471,30 @@ const SUB1_RENEWED_END = nowSec() + 62 * 86400;
 test('renewal: invoice.paid extends the expiry', async () => {
   stripe.periodEnds.sub_1 = SUB1_RENEWED_END;
   // Newer Stripe API versions nest the subscription id under parent.*
-  await deliverStripe({
+  const { status } = await deliverStripe({
     id: 'evt_invoice_1',
     type: 'invoice.paid',
     data: { object: { id: 'in_1', parent: { subscription_details: { subscription: 'sub_1' } } } },
   });
-  await waitFor('expiry extended', () => subRow('stripe', 'sub_1').current_period_end === SUB1_RENEWED_END);
-  assert.equal(subRow('stripe', 'sub_1').status, 'active');
+  assert.equal(status, 200);
+  const row = await subRow('stripe', 'sub_1');
+  assert.equal(row.current_period_end, SUB1_RENEWED_END);
+  assert.equal(row.status, 'active');
   assert.ok(memberRoles(U1).has(R_INSIDER));
 });
 
-test('duplicate delivery: same event id is claimed once and not reprocessed', async () => {
+test('duplicate delivery (via /api path): same event id claimed once, not reprocessed', async () => {
   const fetchesBefore = stripe.subFetches.sub_1;
-  const { status, body } = await deliverStripe({
-    id: 'evt_invoice_1',
-    type: 'invoice.paid',
-    data: { object: { id: 'in_1', parent: { subscription_details: { subscription: 'sub_1' } } } },
-  });
+  // Post the duplicate to the direct /api route — same handler, same claim.
+  const { status, body } = await deliverStripe(
+    {
+      id: 'evt_invoice_1',
+      type: 'invoice.paid',
+      data: { object: { id: 'in_1', parent: { subscription_details: { subscription: 'sub_1' } } } },
+    },
+    { path: '/api/webhooks/stripe' },
+  );
   assert.deepEqual({ status, body }, { status: 200, body: 'duplicate' });
-  await sleep(300);
   assert.equal(stripe.subFetches.sub_1, fetchesBefore, 'duplicate must not hit Stripe again');
 });
 
@@ -431,8 +519,7 @@ test('forged and stale signatures are rejected with no side effects', async () =
   );
   assert.equal(cbForged.status, 400);
 
-  const claims = appDb.prepare("SELECT event_id FROM webhook_events WHERE event_id LIKE '%forged%'").all();
-  assert.deepEqual(claims, []);
+  assert.deepEqual(await claimRows('%forged%'), []);
 });
 
 test('coinbase events outside the replay window are rejected even when correctly signed', async () => {
@@ -445,7 +532,7 @@ test('coinbase events outside the replay window are rejected even when correctly
   assert.deepEqual({ status, body }, { status: 400, body: 'stale event' });
 });
 
-test('handler crash releases the idempotency claim so the retry really retries', async () => {
+test('handler crash: 500 + claim released, so the provider retry really retries', async () => {
   stripe.failSubFetchOnce.add('sub_3');
   const evt = {
     id: 'evt_checkout_3',
@@ -453,18 +540,18 @@ test('handler crash releases the idempotency claim so the retry really retries',
     data: { object: { id: 'cs_3', mode: 'subscription', subscription: 'sub_3', client_reference_id: U3, metadata: { plan_id: 'pro', discord_id: U3 } } },
   };
   const first = await deliverStripe(evt);
-  assert.equal(first.body, 'ok', 'ack still 200 — the failure happens after the ack');
-  await waitFor('claim released after crash', () =>
-    !appDb.prepare('SELECT 1 FROM webhook_events WHERE event_id = ?').get('stripe:evt_checkout_3'));
-  assert.equal(subRow('stripe', 'sub_3'), null);
+  // Work-first semantics: the failure surfaces as a 500 (Stripe will retry),
+  // never as a swallowed 200.
+  assert.deepEqual({ status: first.status, body: first.body }, { status: 500, body: 'processing failed' });
+  assert.deepEqual(await claimRows('stripe:evt_checkout_3'), [], 'claim must be released after the crash');
+  assert.equal(await subRow('stripe', 'sub_3'), null);
 
   const retry = await deliverStripe(evt); // the provider's retry of the SAME event id
-  assert.equal(retry.body, 'ok', 'retry must be processed, not swallowed as duplicate');
-  await waitFor('sub_3 granted on retry', () => subRow('stripe', 'sub_3')?.status === 'active');
+  assert.deepEqual({ status: retry.status, body: retry.body }, { status: 200, body: 'ok' });
+  assert.equal((await subRow('stripe', 'sub_3')).status, 'active');
 });
 
 test('buyer not in guild with no token yet gets roles at login via guilds.join', async () => {
-  // U3 paid but never logged in: no access token, so reconcile could only wait.
   assert.equal(discord.members.has(U3), false);
   const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
   const authorize = new URL(login.headers.get('location'));
@@ -473,110 +560,126 @@ test('buyer not in guild with no token yet gets roles at login via guilds.join',
     redirect: 'manual',
     headers: { cookie: stateCookie.split(';')[0] },
   });
-  await waitFor('U3 joined with pro role at login', () => memberRoles(U3).has(R_PRO));
+  assert.ok(memberRoles(U3).has(R_PRO), 'login reconcile must join U3 with the pro role');
   assert.deepEqual(discord.joins.find((j) => j.uid === U3).roles, [R_PRO]);
 });
 
-test('declined renewal: DM + grace window, role kept while sweep runs', async () => {
-  await deliverStripe({
+test('declined renewal: DM + grace window, role kept across a cron sweep', async () => {
+  const { status } = await deliverStripe({
     id: 'evt_invoice_fail_1',
     type: 'invoice.payment_failed',
     data: { object: { id: 'in_2', parent: { subscription_details: { subscription: 'sub_1' } } } },
   });
-  const dm = await waitFor('failure DM to U1', () => discord.dms.find((d) => d.uid === U1));
+  assert.equal(status, 200);
+  const dm = discord.dms.find((d) => d.uid === U1);
+  assert.ok(dm, 'buyer must be DMed about the failed payment');
   assert.match(dm.content, /payment .*didn't go through/i);
   assert.match(dm.content, /keep access until/i);
-  const row = subRow('stripe', 'sub_1');
+  const row = await subRow('stripe', 'sub_1');
   assert.equal(row.status, 'past_due');
   assert.ok(row.grace_until > nowSec() + 71 * 3600, 'grace window ≈ GRACE_PERIOD_HOURS');
-  await sleep(1300); // let at least one sweep tick pass
+
+  const sweep = await hitCron();
+  assert.equal(sweep.status, 200);
   assert.ok(memberRoles(U1).has(R_INSIDER), 'role must survive the sweep during grace');
 });
 
-test('grace expiry: sweep revokes the managed role, unmanaged role untouched', async () => {
-  appDb.prepare("UPDATE subscriptions SET grace_until = ? WHERE provider_ref = 'sub_1'").run(nowSec() - 10);
-  await waitFor('sweep pulls insider role', () => !memberRoles(U1).has(R_INSIDER));
-  assert.equal(subRow('stripe', 'sub_1').status, 'expired');
+test('grace expiry: cron sweep revokes the managed role, unmanaged role untouched', async () => {
+  await tq("UPDATE subscriptions SET grace_until = ? WHERE provider_ref = 'sub_1'", [nowSec() - 10]);
+  const sweep = await hitCron();
+  assert.equal(sweep.status, 200);
+  assert.ok(!memberRoles(U1).has(R_INSIDER), 'sweep must pull the lapsed insider role');
+  assert.equal((await subRow('stripe', 'sub_1')).status, 'expired');
   assert.ok(memberRoles(U1).has('ROLE_MOD_UNMANAGED'), 'sweep must never touch mod/colour/unmanaged roles');
 });
 
 test('late payment recovery: invoice.paid re-grants after expiry', async () => {
   stripe.periodEnds.sub_1 = nowSec() + 31 * 86400;
-  await deliverStripe({
+  const { status } = await deliverStripe({
     id: 'evt_invoice_2',
     type: 'invoice.paid',
     data: { object: { id: 'in_3', parent: { subscription_details: { subscription: 'sub_1' } } } },
   });
-  await waitFor('insider role restored', () => memberRoles(U1).has(R_INSIDER));
-  assert.equal(subRow('stripe', 'sub_1').status, 'active');
+  assert.equal(status, 200);
+  assert.ok(memberRoles(U1).has(R_INSIDER), 'insider role restored');
+  assert.equal((await subRow('stripe', 'sub_1')).status, 'active');
 });
 
 test('cancellation: customer.subscription.deleted removes the role', async () => {
-  await deliverStripe({
+  const { status } = await deliverStripe({
     id: 'evt_sub_deleted_1',
     type: 'customer.subscription.deleted',
     data: { object: { id: 'sub_1', object: 'subscription', status: 'canceled' } },
   });
-  await waitFor('insider role removed on cancel', () => !memberRoles(U1).has(R_INSIDER));
-  assert.equal(subRow('stripe', 'sub_1').status, 'canceled');
+  assert.equal(status, 200);
+  assert.ok(!memberRoles(U1).has(R_INSIDER));
+  assert.equal((await subRow('stripe', 'sub_1')).status, 'canceled');
   assert.ok(memberRoles(U1).has('ROLE_MOD_UNMANAGED'));
 });
 
 test('crypto: charge:pending never grants', async () => {
   discord.members.set(U2, new Set(['ROLE_COLOUR_UNMANAGED'])); // already in guild
-  await deliverCoinbase(coinbaseEvent('charge:pending', { id: 'cb_pend_1', code: 'CBP1', discordId: U2, planId: 'insider' }));
-  await sleep(400);
+  const { status, body } = await deliverCoinbase(coinbaseEvent('charge:pending', { id: 'cb_pend_1', code: 'CBP1', discordId: U2, planId: 'insider' }));
+  assert.deepEqual({ status, body }, { status: 200, body: 'ok' });
   assert.equal(memberRoles(U2).has(R_INSIDER), false, 'pending is a mempool sighting, not money');
-  assert.equal(subRow('coinbase', 'CBP1'), null);
+  assert.equal(await subRow('coinbase', 'CBP1'), null);
 });
 
 test('crypto: charge:confirmed grants a fixed term, honouring 429 retry_after', async () => {
   discord.rateLimit429Remaining = 1;
-  await deliverCoinbase(coinbaseEvent('charge:confirmed', { id: 'cb_conf_1', code: 'CBC1', discordId: U2, planId: 'insider' }));
-  await waitFor('U2 has insider role', () => memberRoles(U2).has(R_INSIDER));
+  const { status } = await deliverCoinbase(coinbaseEvent('charge:confirmed', { id: 'cb_conf_1', code: 'CBC1', discordId: U2, planId: 'insider' }));
+  assert.equal(status, 200);
+  assert.ok(memberRoles(U2).has(R_INSIDER));
 
   const calls = discord.roleCalls.filter((c) => c.uid === U2 && c.roleId === R_INSIDER && c.method === 'PUT');
   assert.equal(calls.length, 2, 'first call rate-limited, second after retry_after honoured');
   assert.equal(calls[0].rateLimited, true);
 
-  const row = subRow('coinbase', 'CBC1');
+  const row = await subRow('coinbase', 'CBC1');
   assert.equal(row.status, 'active');
   const expectedEnd = nowSec() + 31 * 86400;
   assert.ok(
     row.current_period_end !== null && Math.abs(row.current_period_end - expectedEnd) < 3600,
-    'crypto cannot auto-renew: grant must be a fixed term of the plan duration, never NULL',
+    'crypto cannot auto-renew: a term plan grant must be a fixed term, never NULL',
   );
 });
 
 test('crypto: charge:resolved also grants', async () => {
-  await deliverCoinbase(coinbaseEvent('charge:resolved', { id: 'cb_res_1', code: 'CBR1', discordId: U2, planId: 'pro' }));
-  await waitFor('U2 has pro role', () => memberRoles(U2).has(R_PRO));
-  assert.equal(subRow('coinbase', 'CBR1').status, 'active');
+  const { status } = await deliverCoinbase(coinbaseEvent('charge:resolved', { id: 'cb_res_1', code: 'CBR1', discordId: U2, planId: 'pro' }));
+  assert.equal(status, 200);
+  assert.ok(memberRoles(U2).has(R_PRO));
+  assert.equal((await subRow('coinbase', 'CBR1')).status, 'active');
 });
 
-test('expiry sweep: ended crypto term loses its role, other roles untouched', async () => {
-  appDb.prepare("UPDATE subscriptions SET current_period_end = ? WHERE provider_ref = 'CBC1'").run(nowSec() - 10);
-  await waitFor('sweep pulls U2 insider role', () => !memberRoles(U2).has(R_INSIDER));
-  assert.equal(subRow('coinbase', 'CBC1').status, 'expired');
+test('cron sweep: ended crypto term loses its role, other roles untouched', async () => {
+  await tq("UPDATE subscriptions SET current_period_end = ? WHERE provider_ref = 'CBC1'", [nowSec() - 10]);
+  const sweep = await hitCron();
+  assert.equal(sweep.status, 200);
+  assert.match(sweep.body, /"lapsed":1/);
+  assert.ok(!memberRoles(U2).has(R_INSIDER), 'sweep must pull the ended crypto term');
+  assert.equal((await subRow('coinbase', 'CBC1')).status, 'expired');
   assert.ok(memberRoles(U2).has(R_PRO), 'the still-active pro sub must keep its role');
   assert.ok(memberRoles(U2).has('ROLE_COLOUR_UNMANAGED'), 'unmanaged colour role must survive');
 });
 
-test('lifetime: NULL expiry survives the sweep', async () => {
-  await deliverStripe({
+test('lifetime: NULL expiry survives the cron sweep', async () => {
+  const { status } = await deliverStripe({
     id: 'evt_checkout_life',
     type: 'checkout.session.completed',
     data: { object: { id: 'cs_life', mode: 'payment', payment_intent: 'pi_life_1', client_reference_id: U1, metadata: { plan_id: 'lifetime', discord_id: U1 } } },
   });
-  await waitFor('U1 has lifetime role', () => memberRoles(U1).has(R_LIFETIME));
-  const row = subRow('stripe', 'pi_life_1');
+  assert.equal(status, 200);
+  assert.ok(memberRoles(U1).has(R_LIFETIME));
+  const row = await subRow('stripe', 'pi_life_1');
   assert.equal(row.current_period_end, null, 'NULL expiry means lifetime and nothing else');
-  await sleep(1500); // several sweep ticks
+
+  const sweep = await hitCron();
+  assert.equal(sweep.status, 200);
   assert.ok(memberRoles(U1).has(R_LIFETIME), 'lifetime must survive the expiry sweep');
-  assert.equal(subRow('stripe', 'pi_life_1').status, 'active');
+  assert.equal((await subRow('stripe', 'pi_life_1')).status, 'active');
 });
 
-test('coinbase checkout endpoint creates a charge with metadata', async () => {
+test('coinbase checkout endpoint creates a charge with metadata (crypto enabled here)', async () => {
   const res = await fetch(`${appUrl}/api/checkout/coinbase`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', cookie: u1Cookie },
@@ -592,35 +695,23 @@ test('coinbase checkout endpoint creates a charge with metadata', async () => {
 // ═══ runner ═══════════════════════════════════════════════════════════════════
 
 async function main() {
-  const mocks = await Promise.all([
+  await initTestDb();
+  const [discordMock, stripeMock, coinbaseMock] = await Promise.all([
     startMock('discord', discordHandler),
     startMock('stripe', stripeHandler),
     startMock('coinbase', coinbaseHandler),
   ]);
-  const [discordMock, stripeMock, coinbaseMock] = mocks;
+  const mocks = { discord: discordMock, stripe: stripeMock, coinbase: coinbaseMock };
 
-  await bootApp({
-    ENV_PATH: '/nonexistent/.env', // a developer's real .env must never leak in
-    PLANS_PATH,
-    PORT: '0',
-    DB_PATH: dbPath,
-    PUBLIC_BASE_URL: 'http://tradeleaks.e2e', // mocks never validate redirect URIs
-    SESSION_SECRET: 'e2e-session-secret',
-    DISCORD_CLIENT_ID: 'client_e2e',
-    DISCORD_CLIENT_SECRET: 'client_secret_e2e',
-    DISCORD_BOT_TOKEN: 'bot_token_e2e',
-    DISCORD_GUILD_ID: GUILD,
-    DISCORD_API_BASE: discordMock.url,
-    STRIPE_SECRET_KEY: 'sk_test_e2e',
-    STRIPE_WEBHOOK_SECRET: STRIPE_SECRET,
-    STRIPE_API_BASE: stripeMock.url,
+  // Phase 1: full configuration (Stripe + Coinbase) — the main scenario ladder.
+  const app = await spawnApp({
+    ...baseEnv(mocks),
     COINBASE_API_KEY: 'cb_key_e2e',
     COINBASE_WEBHOOK_SECRET: COINBASE_SECRET,
     COINBASE_API_BASE: coinbaseMock.url,
-    WEBHOOK_TOLERANCE_SECONDS: '300',
-    GRACE_PERIOD_HOURS: '72',
-    SWEEP_INTERVAL_SECONDS: '1',
   });
+  appUrl = app.url;
+  appLog = app.log;
 
   let failed = 0;
   for (const { name, fn } of tests) {
@@ -634,25 +725,60 @@ async function main() {
     }
   }
 
-  child.kill('SIGTERM');
-  await new Promise((r) => {
-    child.on('exit', r);
-    setTimeout(() => {
-      child.kill('SIGKILL');
-      r();
-    }, 3000).unref();
-  });
-  for (const { server } of mocks) server.close();
+  // Phase 2: Stripe-only deploy — coinbase env absent, code dormant.
+  if (!failed) {
+    const soloDb = path.join(path.dirname(dbPath), 'solo.sqlite');
+    const solo = await spawnApp({
+      ...baseEnv(mocks),
+      ...(PG_URL ? {} : { DB_PATH: soloDb }),
+      ...(PG_URL ? { DATABASE_URL: PG_URL } : {}),
+    });
+    try {
+      const { capabilities } = await (await fetch(`${solo.url}/api/plans`)).json();
+      assert.deepEqual(capabilities, { stripe: true, crypto: false });
+      const co = await fetch(`${solo.url}/api/checkout/coinbase`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ planId: 'insider' }),
+      });
+      assert.equal(co.status, 501, 'coinbase checkout must be dormant without credentials');
+      const wh = await deliverCoinbase(
+        coinbaseEvent('charge:confirmed', { id: 'cb_solo', code: 'CBSOLO', discordId: U2, planId: 'insider' }),
+        { base: solo.url },
+      );
+      assert.equal(wh.status, 501, 'coinbase webhook must be dormant without credentials');
+      console.log('  ✓ stripe-only mode: crypto capability off, coinbase endpoints dormant (501)');
+    } catch (err) {
+      failed++;
+      console.error(`  ✗ stripe-only mode\n    ${String(err.stack ?? err).split('\n').join('\n    ')}`);
+    }
+  }
+
+  for (const child of children) child.kill('SIGTERM');
+  await Promise.all(
+    children.map(
+      (child) =>
+        new Promise((r) => {
+          child.on('exit', r);
+          setTimeout(() => {
+            child.kill('SIGKILL');
+            r();
+          }, 3000).unref();
+        }),
+    ),
+  );
+  for (const { server } of [discordMock, stripeMock, coinbaseMock]) server.close();
 
   if (failed) {
-    console.error(`\n${failed} scenario failed. App output tail:\n${appLog.join('').split('\n').slice(-30).join('\n')}`);
+    console.error(`\n${failed} scenario failed. App output tail:\n${(appLog ?? []).join('').split('\n').slice(-30).join('\n')}`);
     process.exit(1);
   }
-  console.log(`\nAll ${tests.length} scenarios green.`);
+  console.log(`\nAll ${tests.length + 1} scenarios green (storage: ${PG_URL ? 'postgres' : 'sqlite'}).`);
+  process.exit(0);
 }
 
 main().catch((err) => {
   console.error(err);
-  if (child) child.kill('SIGKILL');
+  for (const child of children) child.kill('SIGKILL');
   process.exit(1);
 });
