@@ -43,9 +43,11 @@ export const config = {
   publicBaseUrl: env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`).replace(/\/$/, ''),
   sessionSecret: env('SESSION_SECRET', 'change-me'),
   cronSecret: env('CRON_SECRET'),
-  // Postgres when DATABASE_URL is set (Vercel/production); SQLite file
-  // otherwise (local dev, e2e). Same schema, same adapter interface.
-  databaseUrl: env('DATABASE_URL'),
+  // Postgres when a connection string is set (Vercel/production); SQLite file
+  // otherwise (local dev, e2e). DATABASE_URL wins, but Vercel's marketplace
+  // Postgres integrations inject POSTGRES_URL — fall back to it so connecting
+  // a database in the Vercel dashboard works with no manual renaming step.
+  databaseUrl: env('DATABASE_URL') || env('POSTGRES_URL'),
   dbPath: env('DB_PATH', path.join(ROOT, 'data', 'paygate.sqlite')),
   discord: {
     clientId: env('DISCORD_CLIENT_ID'),

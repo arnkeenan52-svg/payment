@@ -72,9 +72,10 @@ id, and the Discord role ids each plan grants. The live catalog is a single
    step; `public/` is served statically, `api/` becomes functions).
 2. **Provision Postgres**: in the project, **Storage → Create Database**
    and pick a Postgres provider (Neon is the default marketplace choice) —
-   connecting it injects `DATABASE_URL` automatically. Any external
-   Postgres works too: paste its **pooled** connection string as
-   `DATABASE_URL` yourself.
+   connecting it injects the connection string automatically. The code reads
+   `DATABASE_URL` first and falls back to `POSTGRES_URL`, so whichever name
+   the integration injects works with no manual step. Any external Postgres
+   works too: paste its **pooled** connection string as `DATABASE_URL`.
 3. **Set the environment variables** listed in `.env.example` (all except
    `PORT`/`DB_PATH`, which are local-only). Generate `SESSION_SECRET` and
    `CRON_SECRET` with `openssl rand -hex 32`. Leave the `COINBASE_*` vars

@@ -396,7 +396,9 @@ const baseEnv = (mocks) => ({
   ENV_PATH: '/nonexistent/.env', // a developer's real .env must never leak in
   PLANS_PATH,
   PORT: '0',
-  ...(PG_URL ? { DATABASE_URL: PG_URL } : { DB_PATH: dbPath }),
+  // In SQLite mode, blank both connection-string names so a POSTGRES_URL in
+  // the developer's shell can't silently flip the suite onto Postgres.
+  ...(PG_URL ? { DATABASE_URL: PG_URL } : { DB_PATH: dbPath, DATABASE_URL: '', POSTGRES_URL: '' }),
   PUBLIC_BASE_URL: 'https://tradeleaks.e2e', // https + snowflake-shaped ids so the doctor's structural checks pass
   SESSION_SECRET: 'e2e-session-secret',
   CRON_SECRET,
