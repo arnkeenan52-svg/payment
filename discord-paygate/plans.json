@@ -1,8 +1,10 @@
 [
   {
     "id": "membership",
-    "name": "Membership",
-    "description": "Full member access, forever: every leak the moment it lands, real-time alerts, source documents, and the private trading floor. One payment, yours for good.",
+    "name": "Premium",
+    "description": "All courses, every leak, one payment — yours for good.",
+    "descriptionHighlight": "yours for good.",
+    "roleNames": ["@Premium"],
     "priceUsd": 59.99,
     "interval": "lifetime",
     "lifetime": true,

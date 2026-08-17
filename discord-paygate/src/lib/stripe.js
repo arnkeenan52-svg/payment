@@ -87,7 +87,7 @@ export async function createCheckoutSession({ plan, discordId }) {
       line_items: [{ price: plan.stripePriceId, quantity: 1 }],
       metadata: { plan_id: plan.id, discord_id: discordId },
       ...(lifetime ? {} : { subscription_data: { metadata: { plan_id: plan.id, discord_id: discordId } } }),
-      success_url: `${config.publicBaseUrl}/?checkout=success`,
+      success_url: `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}`,
       cancel_url: `${config.publicBaseUrl}/?checkout=cancelled`,
     },
   });

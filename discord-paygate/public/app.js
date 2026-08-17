@@ -2,91 +2,24 @@ const $ = (sel) => document.querySelector(sel);
 
 const fmtDate = (unix) =>
   new Date(unix * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+const fmtPrice = (usd) => `$${usd.toFixed(2)}`;
 
-async function checkout(kind, planId, button) {
-  button.disabled = true;
-  try {
-    const res = await fetch(`/api/checkout/${kind}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ planId }),
-    });
-    const data = await res.json();
-    if (res.status === 401) {
-      window.location.href = '/auth/login';
-      return;
-    }
-    if (!res.ok || !data.url) throw new Error(data.error || 'checkout failed');
-    window.location.href = data.url;
-  } catch (err) {
-    alert(err.message);
-    button.disabled = false;
-  }
-}
+const ICON_CARD =
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>';
+const ICON_CRYPTO =
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 8h4a2 2 0 1 1 0 4H9m0 0h5a2 2 0 1 1 0 4H9m2-10v12"/></svg>';
+const ICON_LOCK =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 
-function renderAccount(me) {
-  const el = $('#account');
-  if (!me.loggedIn) {
-    el.innerHTML = '<button class="btn-login" id="login">Sign in with Discord</button>';
-    $('#login').onclick = () => (window.location.href = '/auth/login');
-    return;
-  }
-  const entitled = me.subscriptions.filter((s) => s.entitled);
-  const active = entitled.length
-    ? `<span class="badge">${entitled.map((s) => s.planName).join(' · ')}</span>`
-    : '';
-  el.innerHTML = `${active}<span>@${me.username ?? me.discordId}</span><button class="btn-ghost" id="logout">Sign out</button>`;
-  $('#logout').onclick = () => (window.location.href = '/auth/logout');
-}
+const state = { plans: [], capabilities: { stripe: false, crypto: false }, me: { loggedIn: false }, planId: null, method: null };
 
-function renderPlans(plans, me, capabilities) {
-  // One sub per plan card: a live subscription beats a lapsed one.
-  const owned = new Map();
-  for (const s of me.subscriptions ?? []) {
-    const cur = owned.get(s.planId);
-    if (!cur || (s.entitled && !cur.entitled)) owned.set(s.planId, s);
-  }
-  $('#plans').innerHTML = '';
-  for (const plan of plans) {
-    const sub = owned.get(plan.id);
-    const card = document.createElement('article');
-    card.className = 'plan';
-    const status = sub
-      ? sub.entitled
-        ? `<p class="owned">${
-            sub.lifetime
-              ? 'Yours — lifetime'
-              : sub.status === 'past_due'
-                ? `Payment issue — access until ${fmtDate(sub.graceUntil)}`
-                : `Active until ${fmtDate(sub.currentPeriodEnd)}`
-          }</p>`
-        : `<p class="owned lapsed">${
-            sub.status === 'canceled' ? 'Cancelled — rejoin below' : `Expired ${fmtDate(sub.currentPeriodEnd)} — buy again below`
-          }</p>`
-      : '';
-    // A lifetime plan the member already owns has nothing to buy, renew or
-    // manage — show that instead of payment buttons.
-    const ownedForever = Boolean(sub?.entitled && sub.lifetime);
-    card.innerHTML = `
-      <h2>${plan.name}</h2>
-      <p class="desc">${plan.description}</p>
-      <p class="price">$${plan.priceUsd}<small>${plan.lifetime ? 'one-time · lifetime access' : `/ ${plan.interval}`}</small></p>
-      ${status}
-      ${ownedForever
-        ? '<p class="settled">Nothing to manage — your access never expires.</p>'
-        : `<div class="ctas">
-             ${capabilities.stripe ? '<button class="cta-card">Pay with card</button>' : ''}
-             ${capabilities.crypto ? '<button class="cta-crypto">Pay with crypto</button>' : ''}
-           </div>`}`;
-    if (!ownedForever) {
-      const cardBtn = card.querySelector('.cta-card');
-      const cryptoBtn = card.querySelector('.cta-crypto');
-      if (cardBtn) cardBtn.onclick = () => checkout('stripe', plan.id, cardBtn);
-      if (cryptoBtn) cryptoBtn.onclick = () => checkout('coinbase', plan.id, cryptoBtn);
-    }
-    $('#plans').append(card);
-  }
-}
+const selectedPlan = () => state.plans.find((p) => p.id === state.planId) ?? state.plans[0];
+const ownedSub = (plan) =>
+  (state.me.subscriptions ?? []).reduce((best, s) => {
+    if (s.planId !== plan.id) return best;
+    if (!best || (s.entitled && !best.entitled)) return s;
+    return best;
+  }, null);
 
 // One clear banner when the setup doctor is failing — a misconfigured
 // deployment must never quietly accept money. The public endpoint returns
@@ -107,21 +40,215 @@ async function checkSetup() {
   }
 }
 
-async function main() {
-  checkSetup();
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('checkout') === 'success') {
-    const notice = document.createElement('p');
-    notice.className = 'notice';
-    notice.textContent = 'Payment received — your role lands the moment the provider confirms (crypto can take a few minutes).';
-    $('.hero').append(notice);
+function renderAccount() {
+  const el = $('#account');
+  const me = state.me;
+  if (!me.loggedIn) {
+    // Neutral in the header — the orange accent belongs to the primary CTA only.
+    el.innerHTML = '<button class="btn-ghost" id="login">Sign in with Discord</button>';
+    $('#login').onclick = () => (window.location.href = '/auth/login');
+    return;
+  }
+  const entitled = (me.subscriptions ?? []).filter((s) => s.entitled);
+  const badge = entitled.length ? `<span class="badge">${entitled.map((s) => s.planName).join(' · ')}</span>` : '';
+  el.innerHTML = `${badge}<span>@${me.username ?? me.discordId}</span><button class="btn-ghost" id="logout">Sign out</button>`;
+  $('#logout').onclick = () => (window.location.href = '/auth/logout');
+}
+
+// The one accent phrase in the headline: wrap the plan's highlight substring
+// (from plans.json) in the accent span, everything built via text nodes.
+function renderTagline(el, text, highlight) {
+  el.textContent = '';
+  const at = highlight ? text.indexOf(highlight) : -1;
+  if (at === -1) {
+    el.textContent = text;
+    return;
+  }
+  el.append(document.createTextNode(text.slice(0, at)));
+  const hl = document.createElement('span');
+  hl.className = 'hl';
+  hl.textContent = highlight;
+  el.append(hl, document.createTextNode(text.slice(at + highlight.length)));
+}
+
+function renderBrand() {
+  const plan = selectedPlan();
+  if (!plan) return;
+  $('#plan-name').textContent = plan.name;
+  renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
+  $('#price').textContent = fmtPrice(plan.priceUsd);
+
+  const chips = $('#role-chips');
+  chips.innerHTML = '';
+  if (plan.roleNames.length) {
+    for (const name of plan.roleNames) {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = name;
+      chips.append(chip);
+    }
+    $('#roles-panel').hidden = false;
+  } else {
+    $('#roles-panel').hidden = true;
+  }
+}
+
+function renderOptions() {
+  const box = $('#options');
+  box.innerHTML = '';
+  for (const plan of state.plans) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = `option${plan.id === state.planId ? ' selected' : ''}`;
+    row.innerHTML = `
+      <span class="opt-name">${plan.lifetime ? 'One Time' : plan.name}<small>${plan.lifetime ? '(lifetime)' : `/ ${plan.interval}`}</small></span>
+      <span class="opt-price">${fmtPrice(plan.priceUsd)}</span>`;
+    row.onclick = () => {
+      state.planId = plan.id;
+      render();
+    };
+    box.append(row);
+  }
+}
+
+function renderMethods() {
+  const box = $('#methods');
+  box.innerHTML = '';
+  const methods = [];
+  if (state.capabilities.stripe) methods.push({ id: 'stripe', label: 'Card (Stripe)', icon: ICON_CARD });
+  if (state.capabilities.crypto) methods.push({ id: 'coinbase', label: 'Crypto', icon: ICON_CRYPTO });
+  if (!methods.some((m) => m.id === state.method)) state.method = methods[0]?.id ?? null;
+
+  for (const m of methods) {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = `method${m.id === state.method ? ' selected' : ''}`;
+    tile.innerHTML = `${m.icon}<span>${m.label}</span>`;
+    tile.onclick = () => {
+      state.method = m.id;
+      render();
+    };
+    box.append(tile);
+  }
+}
+
+function renderCta() {
+  const area = $('#cta-area');
+  area.innerHTML = '';
+  const plan = selectedPlan();
+  if (!plan) return;
+
+  // Sign-in comes before purchase, enforced here in the UI as well as by the
+  // API's 401: a logged-out visitor never sees a Pay button. The login link
+  // carries the plan so the OAuth round trip lands them back here, ready.
+  if (!state.me.loggedIn) {
+    const btn = document.createElement('button');
+    btn.className = 'pay-btn';
+    btn.textContent = 'Sign in with Discord to continue';
+    btn.onclick = () => (window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}`);
+    area.append(btn);
+    const note = document.createElement('p');
+    note.className = 'secure-line';
+    note.textContent = "You'll come straight back here after signing in.";
+    area.append(note);
+    return;
   }
 
+  const sub = ownedSub(plan);
+  if (sub?.entitled) {
+    const settled = document.createElement('div');
+    settled.className = 'settled';
+    settled.innerHTML = sub.lifetime
+      ? 'Yours — lifetime<small>Nothing to manage. Your access never expires.</small>'
+      : `Active until ${fmtDate(sub.currentPeriodEnd)}`;
+    area.append(settled);
+    return;
+  }
+  if (sub && !sub.entitled) {
+    const note = document.createElement('p');
+    note.className = 'fineprint';
+    note.textContent = sub.status === 'canceled' ? 'Your previous membership was cancelled — rejoin below.' : `Your membership expired ${fmtDate(sub.currentPeriodEnd)} — buy again below.`;
+    area.append(note);
+  }
+
+  const btn = document.createElement('button');
+  btn.className = 'pay-btn';
+  btn.textContent = `Pay ${fmtPrice(plan.priceUsd)} ${state.method === 'coinbase' ? 'with Crypto' : 'with Card'}`;
+  btn.onclick = () => pay(btn, plan);
+  area.append(btn);
+
+  const secure = document.createElement('p');
+  secure.className = 'secure-line';
+  secure.innerHTML = `${ICON_LOCK}<span>Secure payment processed by ${state.method === 'coinbase' ? 'Coinbase Commerce' : 'Stripe'}</span>`;
+  area.append(secure);
+}
+
+function showPayError(message) {
+  $('#cta-area .pay-error')?.remove();
+  const err = document.createElement('div');
+  err.className = 'pay-error';
+  err.textContent = message;
+  $('#cta-area').append(err);
+}
+
+async function pay(btn, plan) {
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Redirecting…';
+  try {
+    const res = await fetch(`/api/checkout/${state.method}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ planId: plan.id }),
+    });
+    if (res.status === 401) {
+      window.location.href = '/auth/login';
+      return;
+    }
+    const data = await res.json();
+    if (!res.ok || !data.url) throw new Error(data.error || 'Payment could not be started. Try again.');
+    window.location.href = data.url;
+  } catch (err) {
+    showPayError(err.message);
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+function renderNotice() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('checkout') === 'cancelled') {
+    $('#notice').innerHTML = '<div class="callout pending">Checkout cancelled — nothing was charged.</div>';
+  }
+}
+
+function render() {
+  renderAccount();
+  renderBrand();
+  renderOptions();
+  renderMethods();
+  renderCta();
+}
+
+async function main() {
+  checkSetup();
+  renderNotice();
   const [plansRes, meRes] = await Promise.all([fetch('/api/plans'), fetch('/api/me')]);
-  const { plans, capabilities } = await plansRes.json();
-  const me = await meRes.json();
-  renderAccount(me);
-  renderPlans(plans, me, capabilities);
+  const plansBody = await plansRes.json();
+  state.plans = plansBody.plans;
+  state.capabilities = plansBody.capabilities;
+  state.me = await meRes.json();
+
+  // Back from the OAuth round trip (or a shared link): land on that plan,
+  // scrolled to the pay button, instead of the top of the page.
+  const requested = new URLSearchParams(window.location.search).get('plan');
+  const requestedPlan = state.plans.find((p) => p.id === requested);
+  state.planId = requestedPlan?.id ?? state.plans[0]?.id ?? null;
+  render();
+  if (requestedPlan && state.me.loggedIn) {
+    $('#cta-area')?.scrollIntoView({ block: 'center' });
+    $('#cta-area .pay-btn')?.focus({ preventScroll: true });
+  }
 }
 
 main();

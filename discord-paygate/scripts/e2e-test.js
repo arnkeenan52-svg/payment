@@ -452,7 +452,7 @@ test('storefront serves the Tradeleaks page, plans API exposes capabilities', as
   const { plans, capabilities } = await (await fetch(`${appUrl}/api/plans`)).json();
   assert.equal(plans.length, PLANS.length);
   assert.deepEqual(capabilities, { stripe: true, crypto: true }); // coinbase configured in this phase
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'id', 'interval', 'lifetime', 'name', 'priceUsd']);
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'interval', 'lifetime', 'name', 'priceUsd', 'roleNames']);
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
@@ -466,19 +466,31 @@ test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', 
 
 let u1Cookie;
 
-test('OAuth login requests guilds.join and stores the access token', async () => {
-  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+test('checkout is refused for logged-out buyers (401 — UI gating is not security)', async () => {
+  const res = await fetch(`${appUrl}/api/checkout/stripe`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ planId: 'insider' }),
+  });
+  assert.equal(res.status, 401);
+  assert.equal(stripe.checkoutSessions.length, 0, 'no checkout session may be created without a session');
+});
+
+test('OAuth login requests guilds.join, stores the token, and carries the plan back', async () => {
+  const login = await fetch(`${appUrl}/auth/login?plan=insider`, { redirect: 'manual' });
   assert.equal(login.status, 302);
   const authorize = new URL(login.headers.get('location'));
   assert.equal(authorize.searchParams.get('scope'), 'identify guilds.join');
   const state = authorize.searchParams.get('state');
-  const stateCookie = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cookies = login.headers.getSetCookie().map((c) => c.split(';')[0]);
+  assert.ok(cookies.includes('tl_checkout_plan=insider'), 'login must remember which plan the buyer was on');
 
   const cb = await fetch(`${appUrl}/auth/callback?code=code_u1&state=${state}`, {
     redirect: 'manual',
-    headers: { cookie: stateCookie.split(';')[0] },
+    headers: { cookie: cookies.join('; ') },
   });
   assert.equal(cb.status, 302);
+  assert.equal(cb.headers.get('location'), '/?plan=insider', 'buyer must land back on the plan, ready to pay');
   u1Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
 
   assert.equal((await userRow(U1)).access_token, 'tok_code_u1');
@@ -500,6 +512,7 @@ test('checkout endpoint creates a Stripe session with the buyer wired in', async
   assert.equal(form.client_reference_id, U1);
   assert.equal(form['metadata[plan_id]'], 'insider');
   assert.equal(form['line_items[0][price]'], 'price_insider_month');
+  assert.match(form.success_url, /\/receipt\?plan=insider$/, 'buyers must land on the order receipt');
 });
 
 const SUB1_END = nowSec() + 31 * 86400;

@@ -54,6 +54,7 @@ export const config = {
     clientSecret: env('DISCORD_CLIENT_SECRET'),
     botToken: env('DISCORD_BOT_TOKEN'),
     guildId: env('DISCORD_GUILD_ID'),
+    guildName: env('DISCORD_GUILD_NAME', 'your Discord server'),
     apiBase: env('DISCORD_API_BASE', 'https://discord.com/api/v10').replace(/\/$/, ''),
   },
   stripe: {

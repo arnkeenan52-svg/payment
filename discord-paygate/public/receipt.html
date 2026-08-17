@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Order confirmed — Tradeleaks</title>
+  <link rel="icon" href="/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wordmark">TRADE<span>LEAKS</span></div>
+    <div id="account" class="account"></div>
+  </header>
+
+  <main class="checkout">
+    <div class="brand">
+      <div class="check-ring pending" id="check-ring" role="status" aria-live="polite">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12.5l5.5 5.5L20 6.5" />
+        </svg>
+      </div>
+      <h1 id="r-heading">Payment received</h1>
+      <p class="tagline" id="r-sub">Finishing up your order…</p>
+    </div>
+
+    <section class="panel">
+      <p class="label">Order details</p>
+      <div class="order-row"><span class="k">Server</span><span class="v" id="r-server">—</span></div>
+      <div class="order-row"><span class="k">Product</span><span class="v" id="r-product">—</span></div>
+      <div class="order-row"><span class="k">Option</span><span class="v" id="r-option">—</span></div>
+      <div class="order-row total"><span class="k">Total</span><span class="v" id="r-total">—</span></div>
+    </section>
+
+    <div class="callout pending" id="r-callout">Hold tight — we're assigning your role now. This usually takes a few seconds.</div>
+
+    <a class="btn-blurple" id="open-discord" href="https://discord.com" rel="noopener">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.9A19 19 0 0 0 15.6 3.4l-.22.44a17 17 0 0 1 4.2 2.06 15.6 15.6 0 0 0-13.16 0 17 17 0 0 1 4.2-2.06L10.4 3.4A19 19 0 0 0 5.7 4.9C3 8.9 2.26 12.8 2.63 16.64a19.2 19.2 0 0 0 5.8 2.96l.46-.63a12.4 12.4 0 0 1-2.06-1l.5-.38a13.7 13.7 0 0 0 11.34 0l.5.38c-.65.4-1.35.73-2.06 1l.46.63a19.2 19.2 0 0 0 5.8-2.96c.44-4.45-.75-8.3-2.97-11.74ZM9.35 14.3c-1.11 0-2.02-1.02-2.02-2.27s.89-2.28 2.02-2.28 2.04 1.03 2.02 2.28c0 1.25-.9 2.27-2.02 2.27Zm5.3 0c-1.11 0-2.02-1.02-2.02-2.27s.89-2.28 2.02-2.28 2.04 1.03 2.02 2.28c0 1.25-.89 2.27-2.02 2.27Z"/></svg>
+      <span id="open-discord-label">Open Discord</span>
+    </a>
+    <a class="btn-secondary" href="/">Back to the store</a>
+  </main>
+
+  <footer>
+    <span>© Tradeleaks. Not financial advice — obviously.</span>
+  </footer>
+
+  <script src="/receipt.js"></script>
+</body>
+</html>

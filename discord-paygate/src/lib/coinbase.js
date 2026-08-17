@@ -35,7 +35,7 @@ export async function createCharge({ plan, discordId }) {
       pricing_type: 'fixed_price',
       local_price: { amount: String(plan.priceUsd), currency: 'USD' },
       metadata: { discord_id: discordId, plan_id: plan.id },
-      redirect_url: `${config.publicBaseUrl}/?checkout=success`,
+      redirect_url: `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}`,
       cancel_url: `${config.publicBaseUrl}/?checkout=cancelled`,
     }),
   });

@@ -3,7 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tradeleaks — the desk they don't want you reading</title>
+  <title>Tradeleaks — Premium</title>
+  <link rel="icon" href="/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -12,26 +16,47 @@
     <div id="account" class="account"></div>
   </header>
 
-  <main>
-    <section class="hero">
-      <p class="kicker">Members-only Discord</p>
-      <h1>The leaks hit here<br /><em>before they hit the tape.</em></h1>
-      <p class="sub">
-        Pay once — card or crypto — and the bot puts you in the server with
-        your role already on. No forms, no waiting on a mod.
-      </p>
+  <main class="checkout">
+    <div class="brand">
+      <img class="logo" src="/logo.png" alt="Tradeleaks" width="72" height="72" />
+      <h1 id="plan-name">&nbsp;</h1>
+      <p class="brand-name">Tradeleaks</p>
+      <p class="tagline" id="plan-desc"></p>
+    </div>
+
+    <div id="notice"></div>
+
+    <section class="panel row-panel">
+      <span class="row-label">Price</span>
+      <span class="row-value" id="price">&nbsp;</span>
     </section>
 
-    <section id="plans" class="plans" aria-label="Plans"></section>
+    <section class="panel" id="roles-panel" hidden>
+      <p class="label">Discord roles included</p>
+      <div class="chips" id="role-chips"></div>
+    </section>
+
+    <section class="panel">
+      <p class="label">Select option</p>
+      <div id="options"></div>
+    </section>
+
+    <section class="panel">
+      <p class="label">Payment method</p>
+      <div class="methods" id="methods"></div>
+    </section>
+
+    <div id="cta-area"></div>
 
     <p class="fineprint">
       One-time payment, lifetime access — no recurring charges. Your role
-      lands the moment payment confirms: instantly by card, after on-chain
-      confirmation for crypto.
+      lands in the server the moment payment confirms.
     </p>
   </main>
 
-  <footer>© Tradeleaks. Not financial advice — obviously.</footer>
+  <footer>
+    <span>© Tradeleaks. Not financial advice — obviously.</span>
+  </footer>
 
   <script src="/app.js"></script>
 </body>

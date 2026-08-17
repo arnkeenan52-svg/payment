@@ -73,6 +73,10 @@ const server = http.createServer(async (req, res) => {
       serveStatic(res, 'index.html');
       return;
     }
+    if (req.method === 'GET' && url.pathname === '/receipt') {
+      serveStatic(res, 'receipt.html');
+      return;
+    }
     if (req.method === 'GET' && /^\/[a-zA-Z0-9._-]+$/.test(url.pathname)) {
       serveStatic(res, url.pathname.slice(1));
       return;
