@@ -36,6 +36,20 @@ function loadPlans() {
 const env = (key, fallback = '') => process.env[key] ?? fallback;
 const num = (key, fallback) => Number(process.env[key] ?? fallback);
 
+const publicBaseUrl = env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`).replace(/\/$/, '');
+// Cookies are scoped to the registrable domain (www stripped) so a deployment
+// reachable on both apex and www keeps its login cookies across the OAuth
+// host hop. localhost/IPs get host-only cookies.
+const cookieDomain = (() => {
+  try {
+    const host = new URL(publicBaseUrl).hostname;
+    if (host === 'localhost' || /^[\d.]+$/.test(host) || !host.includes('.')) return null;
+    return host.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+})();
+
 export const config = {
   root: ROOT,
   // Ripley is the host checkout platform; the product being sold is the
@@ -45,7 +59,9 @@ export const config = {
   // Discord user id of the store owner: unlocks the /diagnostics view.
   ownerDiscordId: env('OWNER_DISCORD_ID'),
   port: num('PORT', 4000),
-  publicBaseUrl: env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`).replace(/\/$/, ''),
+  publicBaseUrl,
+  cookieDomain,
+  secureCookies: publicBaseUrl.startsWith('https://'),
   sessionSecret: env('SESSION_SECRET', 'change-me'),
   cronSecret: env('CRON_SECRET'),
   // Postgres when a connection string is set (Vercel/production); SQLite file

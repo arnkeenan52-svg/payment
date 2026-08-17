@@ -86,8 +86,10 @@ export function parseCookies(req) {
   return out;
 }
 
-export function cookieHeader(name, value, { maxAge = null, path = '/' } = {}) {
+export function cookieHeader(name, value, { maxAge = null, path = '/', domain = null, secure = false } = {}) {
   let cookie = `${name}=${encodeURIComponent(value)}; Path=${path}; HttpOnly; SameSite=Lax`;
   if (maxAge !== null) cookie += `; Max-Age=${maxAge}`;
+  if (domain) cookie += `; Domain=${domain}`;
+  if (secure) cookie += `; Secure`;
   return cookie;
 }

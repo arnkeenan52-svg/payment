@@ -1,6 +1,6 @@
 import { sendText, redirect, parseCookies, cookieHeader, guard } from '../../src/lib/http.js';
 import { exchangeOAuthCode, fetchOAuthUser } from '../../src/lib/discord.js';
-import { createSessionCookie } from '../../src/lib/session.js';
+import { createSessionCookie, cookieAttrs } from '../../src/lib/session.js';
 import { upsertUser } from '../../src/db.js';
 import { reconcile } from '../../src/services/entitlements.js';
 import { STATE_COOKIE, PLAN_COOKIE } from './login.js';
@@ -15,7 +15,19 @@ export default guard(async function handler(req, res) {
   const state = url.searchParams.get('state');
   const cookies = parseCookies(req);
   if (!code || !state || !cookies[STATE_COOKIE] || state !== cookies[STATE_COOKIE]) {
-    sendText(res, 400, 'OAuth state mismatch — start again from /auth/login');
+    // The browser lost (or never kept) the state cookie — common across the
+    // apex↔www host hop and in in-app browsers. Retry exactly once with a
+    // fresh state; the ".r" marker in the returned state stops a loop.
+    if (state && !state.endsWith('.r')) {
+      redirect(res, '/auth/login?retry=1');
+      return;
+    }
+    sendText(
+      res,
+      400,
+      'Sign-in could not complete because your browser did not keep the login cookie. ' +
+        'If you opened this inside another app (like Discord), open it in your normal browser and try again from the store page.',
+    );
     return;
   }
 
@@ -38,8 +50,8 @@ export default guard(async function handler(req, res) {
   redirect(res, plan ? `/?plan=${encodeURIComponent(plan)}` : '/', {
     'set-cookie': [
       createSessionCookie(me.id),
-      cookieHeader(STATE_COOKIE, '', { maxAge: 0 }),
-      cookieHeader(PLAN_COOKIE, '', { maxAge: 0 }),
+      cookieHeader(STATE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
+      cookieHeader(PLAN_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
     ],
   });
 });

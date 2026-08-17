@@ -505,6 +505,9 @@ test('OAuth login requests guilds.join, stores the token, and carries the plan b
   const authorize = new URL(login.headers.get('location'));
   assert.equal(authorize.searchParams.get('scope'), 'identify guilds.join');
   const state = authorize.searchParams.get('state');
+  const rawStateCookie = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  assert.match(rawStateCookie, /Domain=tradeleaks\.e2e/, 'auth cookies must be registrable-domain scoped (apex↔www hop)');
+  assert.match(rawStateCookie, /Secure/, 'auth cookies must be Secure on https deployments');
   const cookies = login.headers.getSetCookie().map((c) => c.split(';')[0]);
   assert.ok(cookies.includes('tl_checkout_plan=insider'), 'login must remember which plan the buyer was on');
 
@@ -520,6 +523,23 @@ test('OAuth login requests guilds.join, stores the token, and carries the plan b
 
   const me = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u1Cookie } })).json();
   assert.deepEqual({ loggedIn: me.loggedIn, username: me.username }, { loggedIn: true, username: 'trader_one' });
+});
+
+test('OAuth state mismatch auto-heals once, then reports plainly (no loop)', async () => {
+  // Callback with a lost cookie: retry exactly once…
+  const first = await fetch(`${appUrl}/auth/callback?code=x&state=deadbeef`, { redirect: 'manual' });
+  assert.equal(first.status, 302);
+  assert.equal(first.headers.get('location'), '/auth/login?retry=1');
+
+  // …the retry login mints a state marked .r…
+  const retryLogin = await fetch(`${appUrl}/auth/login?retry=1`, { redirect: 'manual' });
+  const retryState = new URL(retryLogin.headers.get('location')).searchParams.get('state');
+  assert.match(retryState, /\.r$/, 'retry marker must ride inside the OAuth state, not a cookie');
+
+  // …and if the cookie is lost AGAIN, explain instead of looping.
+  const second = await fetch(`${appUrl}/auth/callback?code=x&state=${retryState}`, { redirect: 'manual' });
+  assert.equal(second.status, 400);
+  assert.match(await second.text(), /did not keep the login cookie/i);
 });
 
 test('checkout endpoint creates a Stripe session with the buyer wired in', async () => {
