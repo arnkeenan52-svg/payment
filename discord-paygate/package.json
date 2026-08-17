@@ -1,0 +1,14 @@
+{
+  "name": "tradeleaks-paygate",
+  "version": "1.0.0",
+  "description": "Tradeleaks Discord paygate: Stripe + Coinbase Commerce checkout, hardened webhooks, idempotent role reconciliation.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node scripts/e2e-test.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

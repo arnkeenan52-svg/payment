@@ -1,0 +1,33 @@
+[
+  {
+    "id": "insider",
+    "name": "Insider",
+    "description": "Daily leak digests, the private insider chat, and weekly market recaps.",
+    "priceUsd": 19,
+    "interval": "month",
+    "durationDays": 31,
+    "stripePriceId": "price_insider_month",
+    "roleIds": ["1200000000000000101"]
+  },
+  {
+    "id": "pro",
+    "name": "Pro Desk",
+    "description": "Real-time alerts the second they land, full source documents, and analyst Q&A.",
+    "priceUsd": 49,
+    "interval": "month",
+    "durationDays": 31,
+    "stripePriceId": "price_pro_month",
+    "roleIds": ["1200000000000000102"]
+  },
+  {
+    "id": "lifetime",
+    "name": "Lifetime",
+    "description": "Everything in Pro Desk, forever. One payment, no renewals, priority support.",
+    "priceUsd": 299,
+    "interval": "lifetime",
+    "lifetime": true,
+    "durationDays": null,
+    "stripePriceId": "price_lifetime_once",
+    "roleIds": ["1200000000000000103"]
+  }
+]
