@@ -161,13 +161,13 @@ function renderPayPanel() {
 
   const card = state.method === 'stripe';
   $('#pay-title').textContent = card ? 'Pay with Card' : 'Pay with Crypto';
-  $('#pay-pill').textContent = '0% added fees';
+  $('#pay-pill').textContent = '0% Fee';
   $('#pay-sub').textContent = card
     ? 'Pay with card or debit. Payment goes directly to the server owner via Stripe.'
     : 'Pay with crypto via Coinbase Commerce. Payment goes directly to the server owner.';
   $('#trust-row').innerHTML = card
-    ? `<span>${ICON_CHECK} Secured by Stripe</span><span>${ICON_LOCK} Encrypted checkout</span>`
-    : `<span>${ICON_CHECK} Coinbase Commerce</span><span>${ICON_LOCK} On-chain settlement</span>`;
+    ? `<span>${ICON_CHECK} Secured by Stripe</span><span>${ICON_LOCK} 100% Secure</span>`
+    : `<span>${ICON_CHECK} Coinbase Commerce</span><span>${ICON_LOCK} 100% Secure</span>`;
 
   renderCta();
 
@@ -193,7 +193,7 @@ function renderCta() {
     btn.textContent = 'Sign in with Discord to continue';
     btn.onclick = () => (window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}`);
     area.append(btn);
-    return;
+    return; // no extra note — the reference keeps this area clean
   }
 
   const sub = ownedSub(plan);
