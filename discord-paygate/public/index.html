@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tradeleaks — Premium</title>
+  <title>Premium — Tradeleaks</title>
   <link rel="icon" href="/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,7 +12,7 @@
 </head>
 <body>
   <header class="top">
-    <div class="wordmark">TRADE<span>LEAKS</span></div>
+    <img class="platform-mark" src="/ripley.png" alt="Ripley" height="20" />
     <div id="account" class="account"></div>
   </header>
 
@@ -20,7 +20,7 @@
     <div class="brand">
       <img class="logo" src="/logo.png" alt="Tradeleaks" width="84" height="84" />
       <h1 id="plan-name">&nbsp;</h1>
-      <p class="brand-name">Tradeleaks</p>
+      <p class="brand-name" id="server-name">Tradeleaks</p>
       <p class="tagline" id="plan-desc"></p>
     </div>
 
@@ -31,31 +31,30 @@
       <span class="row-value" id="price">&nbsp;</span>
     </section>
 
-    <section class="panel" id="roles-panel" hidden>
-      <p class="label">Discord roles included</p>
-      <div class="chips" id="role-chips"></div>
-    </section>
-
-    <section class="panel">
+    <section class="panel" id="options-panel" hidden>
       <p class="label">Select option</p>
       <div id="options"></div>
     </section>
 
-    <section class="panel">
-      <p class="label">Payment method</p>
-      <div class="methods" id="methods"></div>
+    <div class="methods" id="methods"></div>
+
+    <section class="panel pay-panel" id="pay-panel">
+      <div class="pay-head">
+        <h2 id="pay-title">Pay with Card</h2>
+        <span class="pill" id="pay-pill">0% added fees</span>
+      </div>
+      <p class="pay-sub" id="pay-sub">Pay with card or debit. Payment goes directly to the server owner via Stripe.</p>
+      <div class="trust-row" id="trust-row"></div>
+      <div id="cta-area"></div>
+      <p class="redirect-note" id="redirect-note"></p>
     </section>
 
-    <div id="cta-area"></div>
-
-    <p class="fineprint">
-      One-time payment, lifetime access — no recurring charges. Your role
-      lands in the server the moment payment confirms.
-    </p>
+    <p class="fineprint" id="fineprint">One-time payment, lifetime access — your role lands the moment payment confirms.</p>
   </main>
 
   <footer>
-    <span>© Tradeleaks. Not financial advice — obviously.</span>
+    <span class="powered-label">Checkout powered by:</span>
+    <img class="powered-mark" src="/ripley.png" alt="Ripley" height="18" />
   </footer>
 
   <script src="/app.js"></script>

@@ -2,8 +2,8 @@
   {
     "id": "membership",
     "name": "Premium",
-    "description": "All courses, every leak, one payment — yours for good.",
-    "descriptionHighlight": "yours for good.",
+    "description": "All courses lifetime",
+    "descriptionHighlight": null,
     "roleNames": ["@Premium"],
     "priceUsd": 59.99,
     "interval": "lifetime",

@@ -8,10 +8,20 @@ const ICON_CARD =
   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>';
 const ICON_CRYPTO =
   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 8h4a2 2 0 1 1 0 4H9m0 0h5a2 2 0 1 1 0 4H9m2-10v12"/></svg>';
+const ICON_CHECK =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>';
 const ICON_LOCK =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 
-const state = { plans: [], capabilities: { stripe: false, crypto: false }, server: null, me: { loggedIn: false }, planId: null, method: null };
+const state = {
+  plans: [],
+  capabilities: { stripe: false, crypto: false },
+  server: null,
+  platform: { name: 'Ripley' },
+  me: { loggedIn: false },
+  planId: null,
+  method: null,
+};
 
 const selectedPlan = () => state.plans.find((p) => p.id === state.planId) ?? state.plans[0];
 const ownedSub = (plan) =>
@@ -44,7 +54,6 @@ function renderAccount() {
   const el = $('#account');
   const me = state.me;
   if (!me.loggedIn) {
-    // Neutral in the header — the orange accent belongs to the primary CTA only.
     el.innerHTML = '<button class="btn-ghost" id="login">Sign in with Discord</button>';
     $('#login').onclick = () => (window.location.href = '/auth/login');
     return;
@@ -55,8 +64,7 @@ function renderAccount() {
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }
 
-// The one accent phrase in the headline: wrap the plan's highlight substring
-// (from plans.json) in the accent span, everything built via text nodes.
+// The one accent phrase in the headline (optional, from plans.json).
 function renderTagline(el, text, highlight) {
   el.textContent = '';
   const at = highlight ? text.indexOf(highlight) : -1;
@@ -81,26 +89,20 @@ function renderBrand() {
     logo.src = state.server.iconUrl;
     logo.alt = state.server.name;
   }
+  if (state.server?.name) $('#server-name').textContent = state.server.name;
   $('#plan-name').textContent = plan.name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
   $('#price').textContent = fmtPrice(plan.priceUsd);
-
-  const chips = $('#role-chips');
-  chips.innerHTML = '';
-  if (plan.roleNames.length) {
-    for (const name of plan.roleNames) {
-      const chip = document.createElement('span');
-      chip.className = 'chip';
-      chip.textContent = name;
-      chips.append(chip);
-    }
-    $('#roles-panel').hidden = false;
-  } else {
-    $('#roles-panel').hidden = true;
-  }
 }
 
 function renderOptions() {
+  const panel = $('#options-panel');
+  // A single-plan catalog needs no chooser — keep the page simple.
+  if (state.plans.length < 2) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
   const box = $('#options');
   box.innerHTML = '';
   for (const plan of state.plans) {
@@ -122,21 +124,58 @@ function renderMethods() {
   const box = $('#methods');
   box.innerHTML = '';
   const methods = [];
-  if (state.capabilities.stripe) methods.push({ id: 'stripe', label: 'Card (Stripe)', icon: ICON_CARD });
-  if (state.capabilities.crypto) methods.push({ id: 'coinbase', label: 'Crypto', icon: ICON_CRYPTO });
-  if (!methods.some((m) => m.id === state.method)) state.method = methods[0]?.id ?? null;
+  if (state.capabilities.crypto) methods.push({ id: 'coinbase', label: 'Crypto', icon: ICON_CRYPTO, badge: '' });
+  if (state.capabilities.stripe) methods.push({ id: 'stripe', label: 'Card', icon: ICON_CARD, badge: '<span class="provider-badge">Stripe</span>' });
+  if (!methods.some((m) => m.id === state.method)) state.method = methods.at(-1)?.id ?? null;
 
   for (const m of methods) {
     const tile = document.createElement('button');
     tile.type = 'button';
     tile.className = `method${m.id === state.method ? ' selected' : ''}`;
-    tile.innerHTML = `${m.icon}<span>${m.label}</span>`;
+    tile.innerHTML = `${m.icon}<span>${m.label}</span>${m.badge}`;
     tile.onclick = () => {
       state.method = m.id;
       render();
     };
     box.append(tile);
   }
+}
+
+function renderPayPanel() {
+  const plan = selectedPlan();
+  const panel = $('#pay-panel');
+  if (!plan) {
+    panel.hidden = true;
+    return;
+  }
+
+  // No payment method is live: tell buyers plainly instead of showing a
+  // button that can only fail. (The owner sees the red doctor banner too.)
+  if (!state.method) {
+    panel.hidden = true;
+    $('#notice').innerHTML =
+      '<div class="callout pending">Checkout is still being set up by the owner — check back soon.</div>';
+    return;
+  }
+  panel.hidden = false;
+
+  const card = state.method === 'stripe';
+  $('#pay-title').textContent = card ? 'Pay with Card' : 'Pay with Crypto';
+  $('#pay-pill').textContent = '0% added fees';
+  $('#pay-sub').textContent = card
+    ? 'Pay with card or debit. Payment goes directly to the server owner via Stripe.'
+    : 'Pay with crypto via Coinbase Commerce. Payment goes directly to the server owner.';
+  $('#trust-row').innerHTML = card
+    ? `<span>${ICON_CHECK} Secured by Stripe</span><span>${ICON_LOCK} Encrypted checkout</span>`
+    : `<span>${ICON_CHECK} Coinbase Commerce</span><span>${ICON_LOCK} On-chain settlement</span>`;
+
+  renderCta();
+
+  const note = $('#redirect-note');
+  const showingPay = Boolean($('#cta-area .pay-btn')) && state.me.loggedIn;
+  note.textContent = showingPay
+    ? `You'll be redirected to ${card ? "Stripe's" : "Coinbase's"} secure checkout page to complete your payment.`
+    : '';
 }
 
 function renderCta() {
@@ -154,10 +193,6 @@ function renderCta() {
     btn.textContent = 'Sign in with Discord to continue';
     btn.onclick = () => (window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}`);
     area.append(btn);
-    const note = document.createElement('p');
-    note.className = 'secure-line';
-    note.textContent = "You'll come straight back here after signing in.";
-    area.append(note);
     return;
   }
 
@@ -171,23 +206,12 @@ function renderCta() {
     area.append(settled);
     return;
   }
-  if (sub && !sub.entitled) {
-    const note = document.createElement('p');
-    note.className = 'fineprint';
-    note.textContent = sub.status === 'canceled' ? 'Your previous membership was cancelled — rejoin below.' : `Your membership expired ${fmtDate(sub.currentPeriodEnd)} — buy again below.`;
-    area.append(note);
-  }
 
   const btn = document.createElement('button');
   btn.className = 'pay-btn';
-  btn.textContent = `Pay ${fmtPrice(plan.priceUsd)} ${state.method === 'coinbase' ? 'with Crypto' : 'with Card'}`;
+  btn.textContent = `Pay ${fmtPrice(plan.priceUsd)} with ${state.method === 'coinbase' ? 'Crypto' : 'Card'}`;
   btn.onclick = () => pay(btn, plan);
   area.append(btn);
-
-  const secure = document.createElement('p');
-  secure.className = 'secure-line';
-  secure.innerHTML = `${ICON_LOCK}<span>Secure payment processed by ${state.method === 'coinbase' ? 'Coinbase Commerce' : 'Stripe'}</span>`;
-  area.append(secure);
 }
 
 function showPayError(message) {
@@ -209,7 +233,7 @@ async function pay(btn, plan) {
       body: JSON.stringify({ planId: plan.id }),
     });
     if (res.status === 401) {
-      window.location.href = '/auth/login';
+      window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}`;
       return;
     }
     const data = await res.json();
@@ -234,7 +258,7 @@ function render() {
   renderBrand();
   renderOptions();
   renderMethods();
-  renderCta();
+  renderPayPanel();
 }
 
 async function main() {
@@ -245,6 +269,7 @@ async function main() {
   state.plans = plansBody.plans;
   state.capabilities = plansBody.capabilities;
   state.server = plansBody.server;
+  state.platform = plansBody.platform ?? state.platform;
   state.me = await meRes.json();
 
   // Back from the OAuth round trip (or a shared link): land on that plan,

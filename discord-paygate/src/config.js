@@ -38,6 +38,9 @@ const num = (key, fallback) => Number(process.env[key] ?? fallback);
 
 export const config = {
   root: ROOT,
+  // Ripley is the host checkout platform; the product being sold is the
+  // Discord server itself (DISCORD_GUILD_NAME, e.g. Tradeleaks).
+  platform: env('PLATFORM_NAME', 'Ripley'),
   brand: 'Tradeleaks',
   port: num('PORT', 4000),
   publicBaseUrl: env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`).replace(/\/$/, ''),

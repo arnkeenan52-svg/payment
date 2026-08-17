@@ -18,6 +18,7 @@ async function serverIconUrl() {
 export default async function handler(req, res) {
   sendJson(res, 200, {
     brand: config.brand,
+    platform: { name: config.platform },
     // Guild id is public (it's in every invite link); the receipt page needs
     // it for the "Open on Discord" deep link.
     server: {
