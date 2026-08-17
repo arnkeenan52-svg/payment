@@ -31,28 +31,38 @@ function renderAccount(me) {
     $('#login').onclick = () => (window.location.href = '/auth/login');
     return;
   }
-  const active = me.subscriptions.length
-    ? `<span class="badge">${me.subscriptions.map((s) => s.planName).join(' · ')}</span>`
+  const entitled = me.subscriptions.filter((s) => s.entitled);
+  const active = entitled.length
+    ? `<span class="badge">${entitled.map((s) => s.planName).join(' · ')}</span>`
     : '';
   el.innerHTML = `${active}<span>@${me.username ?? me.discordId}</span><button class="btn-ghost" id="logout">Sign out</button>`;
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }
 
 function renderPlans(plans, me) {
-  const owned = new Map((me.subscriptions ?? []).map((s) => [s.planId, s]));
+  // One sub per plan card: a live subscription beats a lapsed one.
+  const owned = new Map();
+  for (const s of me.subscriptions ?? []) {
+    const cur = owned.get(s.planId);
+    if (!cur || (s.entitled && !cur.entitled)) owned.set(s.planId, s);
+  }
   $('#plans').innerHTML = '';
   for (const plan of plans) {
     const sub = owned.get(plan.id);
     const card = document.createElement('article');
     card.className = 'plan';
     const status = sub
-      ? `<p class="owned">${
-          sub.lifetime
-            ? 'Yours — lifetime'
-            : sub.status === 'past_due'
-              ? `Payment issue — access until ${fmtDate(sub.graceUntil)}`
-              : `Active until ${fmtDate(sub.currentPeriodEnd)}`
-        }</p>`
+      ? sub.entitled
+        ? `<p class="owned">${
+            sub.lifetime
+              ? 'Yours — lifetime'
+              : sub.status === 'past_due'
+                ? `Payment issue — access until ${fmtDate(sub.graceUntil)}`
+                : `Active until ${fmtDate(sub.currentPeriodEnd)}`
+          }</p>`
+        : `<p class="owned lapsed">${
+            sub.status === 'canceled' ? 'Cancelled — rejoin below' : `Expired ${fmtDate(sub.currentPeriodEnd)} — renew below`
+          }</p>`
       : '';
     card.innerHTML = `
       <h2>${plan.name}</h2>

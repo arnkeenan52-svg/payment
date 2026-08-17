@@ -26,17 +26,18 @@ export function handleMe(req, res) {
     return;
   }
   const user = getUser(uid);
-  const subs = subscriptionsForMember(uid)
-    .filter((s) => isEntitled(s))
-    .map((s) => ({
-      planId: s.plan_id,
-      planName: planById(s.plan_id)?.name ?? s.plan_id,
-      provider: s.provider,
-      status: s.status,
-      lifetime: s.current_period_end === null,
-      currentPeriodEnd: s.current_period_end,
-      graceUntil: s.grace_until,
-    }));
+  // Lapsed rows are included too (entitled: false) so the storefront can show
+  // "expired on …" on a plan card instead of pretending it was never bought.
+  const subs = subscriptionsForMember(uid).map((s) => ({
+    planId: s.plan_id,
+    planName: planById(s.plan_id)?.name ?? s.plan_id,
+    provider: s.provider,
+    status: s.status,
+    entitled: isEntitled(s),
+    lifetime: s.status === 'active' && s.current_period_end === null,
+    currentPeriodEnd: s.current_period_end,
+    graceUntil: s.grace_until,
+  }));
   sendJson(res, 200, { loggedIn: true, discordId: uid, username: user?.username ?? null, subscriptions: subs });
 }
 
