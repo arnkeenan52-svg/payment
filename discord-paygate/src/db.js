@@ -37,6 +37,16 @@ const ddl = (dialect) => {
   );
   CREATE INDEX IF NOT EXISTS idx_subscriptions_member ON subscriptions (discord_id);
 
+  -- Owner-picked role mapping per plan (set from /diagnostics). Overrides the
+  -- roleIds/roleNames shipped in plans.json — the deployed filesystem is
+  -- read-only, so runtime plan-config edits live here.
+  CREATE TABLE IF NOT EXISTS plan_overrides (
+    plan_id    TEXT PRIMARY KEY,
+    role_ids   TEXT NOT NULL,               -- JSON array of role snowflakes
+    role_names TEXT NOT NULL,               -- JSON array of display names
+    updated_at ${int} NOT NULL
+  );
+
   -- Idempotency: the PRIMARY KEY *is* the claim. INSERT ... ON CONFLICT DO
   -- NOTHING and check the affected row count — first delivery wins at the
   -- constraint, not at a racy SELECT-then-INSERT. Claims are deleted again
@@ -132,6 +142,30 @@ export async function upsertUser({ discordId, username, accessToken = null, refr
 export async function getUser(discordId) {
   const { rows } = await q('SELECT * FROM users WHERE discord_id = ?', [discordId]);
   return rows[0] ?? null;
+}
+
+// ── plan role overrides ───────────────────────────────────────────────────────
+
+export async function getPlanOverride(planId) {
+  const { rows } = await q('SELECT * FROM plan_overrides WHERE plan_id = ?', [planId]);
+  const r = rows[0];
+  return r ? { roleIds: JSON.parse(r.role_ids), roleNames: JSON.parse(r.role_names) } : null;
+}
+
+export async function getAllPlanOverrides() {
+  const { rows } = await q('SELECT * FROM plan_overrides', []);
+  return new Map(rows.map((r) => [r.plan_id, { roleIds: JSON.parse(r.role_ids), roleNames: JSON.parse(r.role_names) }]));
+}
+
+export async function setPlanOverride(planId, roleIds, roleNames) {
+  await q(
+    `INSERT INTO plan_overrides (plan_id, role_ids, role_names, updated_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT (plan_id) DO UPDATE SET
+       role_ids = excluded.role_ids,
+       role_names = excluded.role_names,
+       updated_at = excluded.updated_at`,
+    [planId, JSON.stringify(roleIds), JSON.stringify(roleNames), now()],
+  );
 }
 
 // ── webhook idempotency claims ────────────────────────────────────────────────

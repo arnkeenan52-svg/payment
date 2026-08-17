@@ -59,12 +59,70 @@ function renderDenied(me) {
     : '<div class="callout pending">Sign in with Discord (top right) as the store owner to see the setup report.</div>';
 }
 
+// ── plan role picker ──────────────────────────────────────────────────────────
+// The deployment already holds a valid bot token and guild id, so the guild's
+// roles are fetched server-side and picked here — no hand-copied snowflakes.
+// Roles the bot cannot grant are flagged with the reason.
+
+async function renderPicker() {
+  const res = await fetch('/api/admin/roles');
+  if (!res.ok) return; // not the owner (or roles unavailable) — checks table already explains
+  const data = await res.json();
+
+  const box = document.createElement('section');
+  box.className = 'panel picker';
+  const current = data.plans
+    .map((p) => `${escapeHtml(p.name)} → ${p.roleNames.length ? escapeHtml(p.roleNames.join(', ')) : p.roleIds.join(', ')}${p.source === 'override' ? ' (picked)' : ' (from plans.json)'}`)
+    .join(' · ');
+  box.innerHTML = `
+    <p class="label">Plan role — pick the role buyers receive</p>
+    <p class="diag-detail" style="padding-left:0">Current: ${current}. The bot's top role is
+      "${escapeHtml(data.botTop.name)}" (position ${data.botTop.position}); greyed roles sit at or above it or can't be granted.</p>
+    <div class="role-list"></div>`;
+  const list = box.querySelector('.role-list');
+
+  for (const role of data.roles) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = `role-row${role.usable ? '' : ' unusable'}`;
+    row.disabled = !role.usable;
+    row.innerHTML = `
+      <span class="role-dot" style="background:${role.color ?? '#4a4a4a'}"></span>
+      <span class="role-name">${escapeHtml(role.name)}</span>
+      <span class="role-pos">pos ${role.position}</span>
+      ${role.usable ? '<span class="role-use">Use for Premium</span>' : `<span class="role-why">${escapeHtml(role.reason)}</span>`}`;
+    if (role.usable) {
+      row.onclick = async () => {
+        row.disabled = true;
+        const resp = await fetch('/api/admin/plan-role', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ planId: data.plans[0].id, roleId: role.id }),
+        });
+        const out = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          alert(out.error ?? 'could not set the role');
+          row.disabled = false;
+          return;
+        }
+        await load(true); // re-run the doctor so the verdicts update immediately
+      };
+    }
+    list.append(row);
+  }
+  $('#diag-body').append(box);
+}
+
 let me = { loggedIn: false };
 
 async function load(fresh = false) {
   const report = await (await fetch(`/api/setup-check${fresh ? '?fresh=1' : ''}`)).json();
-  if (Array.isArray(report.checks)) renderReport(report);
-  else renderDenied(me);
+  if (Array.isArray(report.checks)) {
+    renderReport(report);
+    await renderPicker();
+  } else {
+    renderDenied(me);
+  }
 }
 
 async function main() {

@@ -1,6 +1,7 @@
 import { config, capabilities } from '../src/config.js';
 import { sendJson, guard } from '../src/lib/http.js';
 import { getGuild, guildIconUrl } from '../src/lib/discord.js';
+import { effectiveRoleMap } from '../src/services/plan-config.js';
 
 // The server's own identity fronts the checkout: name and icon come from the
 // live guild lookup via the bot (animated icons surface as .gif). Cached per
@@ -22,6 +23,7 @@ async function serverInfo() {
 
 export default guard(async function handler(req, res) {
   const { name, iconUrl } = await serverInfo();
+  const roleMap = await effectiveRoleMap();
   sendJson(res, 200, {
     brand: config.brand,
     platform: { name: config.platform },
@@ -36,7 +38,7 @@ export default guard(async function handler(req, res) {
       priceUsd: p.priceUsd,
       interval: p.interval,
       lifetime: Boolean(p.lifetime),
-      roleNames: p.roleNames ?? [],
+      roleNames: roleMap.get(p.id)?.roleNames ?? p.roleNames ?? [],
       descriptionHighlight: p.descriptionHighlight ?? null,
     })),
   });

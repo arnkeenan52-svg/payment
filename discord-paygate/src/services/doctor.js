@@ -5,6 +5,7 @@
 // Never returns secret values: only masked prefixes.
 
 import { config, capabilities } from '../config.js';
+import { effectiveRoleMap } from './plan-config.js';
 
 const MANAGE_ROLES = 1n << 28n;
 const ADMINISTRATOR = 1n << 3n;
@@ -141,7 +142,16 @@ export async function runDoctor() {
       }
       const price = await res.json();
       const expected = Math.round(plan.priceUsd * 100);
-      if (price.active !== true) {
+      // plans.json prices are USD by definition (priceUsd). The Stripe
+      // account's default currency is irrelevant — the price object's own
+      // currency is what buyers get charged in, so any mismatch here means
+      // the wrong money would be taken. Fail loudly, never silently pass.
+      const currency = String(price.currency ?? '').toLowerCase();
+      if (currency !== 'usd') {
+        add(id, name, 'fail',
+          `CURRENCY MISMATCH: plans.json prices are USD but price ${plan.stripePriceId} is ${currency.toUpperCase() || 'unknown'} — buyers would be charged in the wrong currency`,
+          `Create the price in USD (Stripe dashboard → Product catalog → the product → Add another price → currency USD, $${plan.priceUsd}, ${plan.lifetime ? 'One-off' : 'Recurring'}) and put its id in plans.json. Do not rely on the account's default currency.`);
+      } else if (price.active !== true) {
         add(id, name, 'fail', `price ${plan.stripePriceId} is archived (active=false)`,
           'Unarchive it or create a new price: Stripe dashboard → Product catalog → the product → Pricing.');
       } else if (plan.lifetime && price.type !== 'one_time') {
@@ -151,10 +161,10 @@ export async function runDoctor() {
         add(id, name, 'fail', `price ${plan.stripePriceId} is one-time but plan "${plan.id}" is a recurring ${plan.interval} plan`,
           `Create a Recurring (${plan.interval}) price in Stripe → Product catalog and put its id in plans.json.`);
       } else if (price.unit_amount !== expected) {
-        add(id, name, 'fail', `price is ${(price.unit_amount / 100).toFixed(2)} ${String(price.currency ?? '').toUpperCase()} but plans.json says $${plan.priceUsd}`,
+        add(id, name, 'fail', `price is ${(price.unit_amount / 100).toFixed(2)} USD but plans.json says $${plan.priceUsd}`,
           `Fix whichever is wrong: the price in Stripe → Product catalog, or priceUsd in plans.json.`);
       } else {
-        add(id, name, 'pass', `${plan.stripePriceId}: $${(price.unit_amount / 100).toFixed(2)} ${price.type === 'one_time' ? 'one-time' : `every ${price.recurring?.interval}`}, active`);
+        add(id, name, 'pass', `${plan.stripePriceId}: $${(price.unit_amount / 100).toFixed(2)} USD ${price.type === 'one_time' ? 'one-time' : `every ${price.recurring?.interval}`}, active`);
       }
     } catch (err) {
       add(id, name, 'fail', `could not reach Stripe: ${err.message}`);
@@ -238,13 +248,16 @@ export async function runDoctor() {
       canManage ? `via role "${botTopRole}"` : 'none of the bot\'s roles grant Manage Roles',
       canManage ? null : 'Server Settings → Roles → the bot\'s role → Permissions → enable "Manage Roles" (or re-invite with the invite URL from the README).');
 
+    const roleMap = await effectiveRoleMap();
     for (const plan of config.plans) {
-      for (const roleId of plan.roleIds) {
+      const mapping = roleMap.get(plan.id) ?? { roleIds: plan.roleIds, source: 'default' };
+      const src = mapping.source === 'override' ? ' [picked in /diagnostics]' : '';
+      for (const roleId of mapping.roleIds) {
         const role = byId.get(roleId);
         if (!role) {
-          add(`discord:role:${roleId}`, `Role ${roleId} (plan "${plan.id}") exists in the guild`, 'fail',
+          add(`discord:role:${roleId}`, `Role ${roleId} (plan "${plan.id}")${src} exists in the guild`, 'fail',
             'no role with that id in this guild',
-            'The id in plans.json is wrong or the role was deleted. Server Settings → Roles → right-click the role → Copy Role ID (Developer Mode on), and paste it into plans.json.');
+            'Pick the real role on the /diagnostics page (role picker), or paste its id into plans.json (Developer Mode → Server Settings → Roles → right-click → Copy Role ID).');
           continue;
         }
         add(`discord:role:${roleId}`, `Role "${role.name}" (plan "${plan.id}") exists in the guild`, 'pass', `position ${role.position}`);

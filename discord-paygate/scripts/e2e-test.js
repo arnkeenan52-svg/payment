@@ -42,6 +42,9 @@ const COINBASE_SECRET = 'cb_e2e_secret';
 const CRON_SECRET = 'cron_e2e_secret_1'; // ≥16 chars so the doctor's own check passes
 const BOT_ID = '600000000000000001';
 const R_BOT = '1200000000000000999';
+const R_ADMIN = '1200000000000000555';   // above the bot — must be flagged unusable
+const R_NEW = '1200000000000000200';     // below the bot — pickable
+const R_MANAGED = '1200000000000000666'; // integration-managed — unusable
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -198,11 +201,14 @@ async function discordHandler(req, res) {
   // position is mock-configurable so the hierarchy failure can be staged.
   if ((m = p.match(/^\/guilds\/([^/]+)\/roles$/)) && req.method === 'GET') {
     json(res, 200, [
-      { id: GUILD, name: '@everyone', position: 0, permissions: '0' },
-      { id: R_BOT, name: 'Tradeleaks Bot', position: discord.botRolePosition, permissions: String(1 << 28) }, // MANAGE_ROLES
-      { id: R_INSIDER, name: 'Insider', position: 10, permissions: '0' },
-      { id: R_PRO, name: 'Pro Desk', position: 11, permissions: '0' },
-      { id: R_LIFETIME, name: 'Lifetime', position: 12, permissions: '0' },
+      { id: GUILD, name: '@everyone', position: 0, permissions: '0', color: 0 },
+      { id: R_BOT, name: 'Tradeleaks Bot', position: discord.botRolePosition, permissions: String(1 << 28), color: 0, managed: true }, // MANAGE_ROLES
+      { id: R_ADMIN, name: 'Admin', position: 60, permissions: '8', color: 15548997 },
+      { id: R_NEW, name: 'New Tier', position: 15, permissions: '0', color: 16711680 },
+      { id: R_LIFETIME, name: 'Lifetime', position: 12, permissions: '0', color: 0 },
+      { id: R_PRO, name: 'Pro Desk', position: 11, permissions: '0', color: 0 },
+      { id: R_INSIDER, name: 'Insider', position: 10, permissions: '0', color: 0 },
+      { id: R_MANAGED, name: 'Some Bot Integration', position: 3, permissions: '0', color: 0, managed: true },
     ]);
     return;
   }
@@ -901,6 +907,74 @@ test('setup doctor: bot role at/below a managed role fails loudly with the drag-
     }
   } finally {
     discord.botRolePosition = 50;
+  }
+});
+
+test('role picker: owner sees guild roles with usability flags; others refused', async () => {
+  assert.equal((await fetch(`${appUrl}/api/admin/roles`)).status, 401, 'anonymous gets 401');
+
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=code_u3&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  const u3Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  assert.equal((await fetch(`${appUrl}/api/admin/roles`, { headers: { cookie: u3Cookie } })).status, 403, 'non-owner gets 403');
+
+  const data = await (await fetch(`${appUrl}/api/admin/roles`, { headers: { cookie: u1Cookie } })).json();
+  assert.deepEqual({ name: data.botTop.name, position: data.botTop.position }, { name: 'Tradeleaks Bot', position: 50 });
+  const byName = new Map(data.roles.map((r) => [r.name, r]));
+  assert.equal(byName.get('Admin').usable, false, 'a role above the bot must be unusable');
+  assert.match(byName.get('Admin').reason, /at or above the bot/i);
+  assert.equal(byName.get('@everyone').usable, false);
+  assert.equal(byName.get('Some Bot Integration').usable, false, 'integration-managed roles are unusable');
+  assert.deepEqual(
+    { usable: byName.get('New Tier').usable, color: byName.get('New Tier').color },
+    { usable: true, color: '#ff0000' },
+    'a normal role below the bot is pickable, with its colour',
+  );
+  assert.equal(data.plans[0].source, 'default');
+});
+
+test('picking a role writes the DB override; grants use it immediately', async () => {
+  const post = (body, cookie) =>
+    fetch(`${appUrl}/api/admin/plan-role`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
+      body: JSON.stringify(body),
+    });
+
+  assert.equal((await post({ planId: 'insider', roleId: R_NEW })).status, 401, 'anonymous cannot write');
+  const above = await post({ planId: 'insider', roleId: R_ADMIN }, u1Cookie);
+  assert.equal(above.status, 400, 'a role at/above the bot is rejected server-side');
+  assert.match((await above.json()).error, /at or above the bot/i);
+
+  const ok = await post({ planId: 'insider', roleId: R_NEW }, u1Cookie);
+  assert.equal(ok.status, 200);
+
+  const { plans } = await (await fetch(`${appUrl}/api/plans`)).json();
+  assert.deepEqual(plans.find((p) => p.id === 'insider').roleNames, ['@New Tier'], 'storefront role name follows the pick');
+
+  // A fresh grant must hand out the PICKED role, not the plans.json one.
+  const { status } = await deliverCoinbase(coinbaseEvent('charge:confirmed', { id: 'cb_pick_1', code: 'CBPICK', discordId: U3, planId: 'insider' }));
+  assert.equal(status, 200);
+  assert.ok(memberRoles(U3).has(R_NEW), 'grant must use the picked role');
+  assert.ok(!memberRoles(U3).has(R_INSIDER), 'the old plans.json role must not be granted');
+  assert.ok(memberRoles(U3).has(R_PRO), 'unrelated entitled roles stay');
+});
+
+test('doctor fails loudly on a currency mismatch (never assumes account default)', async () => {
+  MOCK_PRICES.price_pro_month.currency = 'dkk';
+  try {
+    const { code, out } = await runDoctorCli(phase1Env);
+    assert.equal(code, 1, `doctor must exit non-zero on a currency mismatch:\n${out}`);
+    assert.match(out, /CURRENCY MISMATCH/);
+    assert.match(out, /DKK/);
+    assert.match(out, /Create the price in USD/i);
+  } finally {
+    MOCK_PRICES.price_pro_month.currency = 'usd';
   }
 });
 

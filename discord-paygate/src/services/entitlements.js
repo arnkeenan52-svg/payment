@@ -1,17 +1,20 @@
-import { config, planById, managedRoleIds } from '../config.js';
+import { config, planById } from '../config.js';
 import * as db from '../db.js';
+import { effectiveRoleMap, effectiveManagedRoleIds } from './plan-config.js';
 import { getGuildMember, addRole, removeRole, joinGuildWithRoles, dmUser } from '../lib/discord.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 
 // Roles this member should hold right now: the union of roleIds across every
 // subscription that still entitles them (active+unexpired, or in grace).
+// Role mapping honours the owner's diagnostics picker (DB override) over the
+// shipped plans.json values.
 export async function desiredRoleIds(discordId, at = now()) {
+  const roleMap = await effectiveRoleMap();
   const desired = new Set();
   for (const sub of await db.subscriptionsForMember(discordId)) {
     if (!db.isEntitled(sub, at)) continue;
-    const plan = planById(sub.plan_id);
-    if (plan) for (const roleId of plan.roleIds) desired.add(roleId);
+    for (const roleId of roleMap.get(sub.plan_id)?.roleIds ?? []) desired.add(roleId);
   }
   return desired;
 }
@@ -37,7 +40,7 @@ export async function reconcile(discordId) {
 
 async function reconcileNow(discordId) {
   const desired = await desiredRoleIds(discordId);
-  const managed = managedRoleIds();
+  const managed = await effectiveManagedRoleIds();
 
   const member = await getGuildMember(discordId);
 

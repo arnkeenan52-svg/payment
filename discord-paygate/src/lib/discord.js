@@ -59,6 +59,21 @@ export function guildIconUrl(guild, size = 128) {
   return `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.${ext}?size=${size}`;
 }
 
+// The bot's own user (id, username) via its token.
+export async function getBotUser() {
+  const res = await discordFetch('/users/@me');
+  await expect(res, [200], 'fetch bot user');
+  return res.json();
+}
+
+// Full role list of the guild (id, name, color, position, managed) — used by
+// the doctor and the owner diagnostics role picker.
+export async function getGuildRoles() {
+  const res = await discordFetch(`/guilds/${config.discord.guildId}/roles`);
+  await expect(res, [200], 'list guild roles');
+  return res.json();
+}
+
 // ── guild members and roles ───────────────────────────────────────────────────
 
 export async function getGuildMember(discordId) {

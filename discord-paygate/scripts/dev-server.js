@@ -21,6 +21,8 @@ import webhookStripe from '../api/webhooks/stripe.js';
 import webhookCoinbase from '../api/webhooks/coinbase.js';
 import cronReconcile from '../api/cron/reconcile.js';
 import setupCheck from '../api/setup-check.js';
+import adminRoles from '../api/admin/roles.js';
+import adminPlanRole from '../api/admin/plan-role.js';
 
 const PUBLIC_DIR = path.join(config.root, 'public');
 const MIME = {
@@ -61,6 +63,8 @@ const routes = {
   '/webhooks/coinbase': webhookCoinbase,
   '/api/cron/reconcile': cronReconcile,
   '/api/setup-check': setupCheck,
+  '/api/admin/roles': adminRoles,
+  '/api/admin/plan-role': adminPlanRole,
 };
 
 const server = http.createServer(async (req, res) => {

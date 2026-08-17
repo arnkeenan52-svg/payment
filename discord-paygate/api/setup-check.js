@@ -1,6 +1,5 @@
-import { config } from '../src/config.js';
 import { sendJson, sendText, guard } from '../src/lib/http.js';
-import { sessionUserId } from '../src/lib/session.js';
+import { ownerAuthorized } from '../src/lib/authz.js';
 import { runDoctor } from '../src/services/doctor.js';
 import { cronAuthorized } from './cron/reconcile.js';
 
@@ -13,11 +12,6 @@ import { cronAuthorized } from './cron/reconcile.js';
 
 let cache = null; // { at, report }
 const ttlMs = () => Number(process.env.DOCTOR_CACHE_SECONDS ?? 300) * 1000;
-
-function ownerAuthorized(req) {
-  const uid = sessionUserId(req);
-  return Boolean(uid && config.ownerDiscordId && uid === config.ownerDiscordId);
-}
 
 export default guard(async function handler(req, res) {
   if (req.method !== 'GET') {
