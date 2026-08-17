@@ -187,6 +187,13 @@ async function discordHandler(req, res) {
     return;
   }
 
+  // Guild object with an ANIMATED icon hash (a_ prefix) — the storefront must
+  // surface it as the .gif CDN url so the server's animated logo plays.
+  if ((m = p.match(/^\/guilds\/([^/]+)$/)) && req.method === 'GET') {
+    json(res, 200, { id: m[1], name: 'Tradeleaks', icon: 'a_e2eicon' });
+    return;
+  }
+
   // Doctor: full role list with positions and permissions. The bot's role
   // position is mock-configurable so the hierarchy failure can be staged.
   if ((m = p.match(/^\/guilds\/([^/]+)\/roles$/)) && req.method === 'GET') {
@@ -449,9 +456,14 @@ test('npm start entry prints the config banner (storage + cron lines)', async ()
 test('storefront serves the Tradeleaks page, plans API exposes capabilities', async () => {
   const page = await (await fetch(`${appUrl}/`)).text();
   assert.match(page, /Tradeleaks/i);
-  const { plans, capabilities } = await (await fetch(`${appUrl}/api/plans`)).json();
+  const { plans, capabilities, server } = await (await fetch(`${appUrl}/api/plans`)).json();
   assert.equal(plans.length, PLANS.length);
   assert.deepEqual(capabilities, { stripe: true, crypto: true }); // coinbase configured in this phase
+  assert.equal(
+    server.iconUrl,
+    `https://cdn.discordapp.com/icons/${GUILD}/a_e2eicon.gif?size=128`,
+    'an animated guild icon must surface as the .gif CDN url',
+  );
   assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'interval', 'lifetime', 'name', 'priceUsd', 'roleNames']);
 });
 

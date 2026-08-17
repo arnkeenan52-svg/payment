@@ -37,6 +37,28 @@ async function expect(res, allowed, what) {
   throw new Error(`discord: ${what} failed with ${res.status}: ${detail.slice(0, 300)}`);
 }
 
+// ── guild ─────────────────────────────────────────────────────────────────────
+
+// The guild object (name, icon hash) — used to show the server's own icon on
+// the storefront. Returns null on any failure; callers must have a fallback.
+export async function getGuild() {
+  try {
+    const res = await discordFetch(`/guilds/${config.discord.guildId}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// CDN url for a guild icon; animated icons (a_ prefix) are served as GIFs, so
+// an animated server icon animates on the storefront too.
+export function guildIconUrl(guild, size = 128) {
+  if (!guild?.icon || !guild?.id) return null;
+  const ext = guild.icon.startsWith('a_') ? 'gif' : 'png';
+  return `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.${ext}?size=${size}`;
+}
+
 // ── guild members and roles ───────────────────────────────────────────────────
 
 export async function getGuildMember(discordId) {

@@ -11,7 +11,7 @@ const ICON_CRYPTO =
 const ICON_LOCK =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 
-const state = { plans: [], capabilities: { stripe: false, crypto: false }, me: { loggedIn: false }, planId: null, method: null };
+const state = { plans: [], capabilities: { stripe: false, crypto: false }, server: null, me: { loggedIn: false }, planId: null, method: null };
 
 const selectedPlan = () => state.plans.find((p) => p.id === state.planId) ?? state.plans[0];
 const ownedSub = (plan) =>
@@ -74,6 +74,13 @@ function renderTagline(el, text, highlight) {
 function renderBrand() {
   const plan = selectedPlan();
   if (!plan) return;
+  // The server's own Discord icon (animated GIF when the guild has one);
+  // /logo.png stays as the fallback when Discord can't be reached.
+  if (state.server?.iconUrl) {
+    const logo = $('.logo');
+    logo.src = state.server.iconUrl;
+    logo.alt = state.server.name;
+  }
   $('#plan-name').textContent = plan.name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
   $('#price').textContent = fmtPrice(plan.priceUsd);
@@ -237,6 +244,7 @@ async function main() {
   const plansBody = await plansRes.json();
   state.plans = plansBody.plans;
   state.capabilities = plansBody.capabilities;
+  state.server = plansBody.server;
   state.me = await meRes.json();
 
   // Back from the OAuth round trip (or a shared link): land on that plan,
