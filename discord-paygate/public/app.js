@@ -54,7 +54,7 @@ function renderAccount() {
   const el = $('#account');
   const me = state.me;
   if (!me.loggedIn) {
-    el.innerHTML = '<button class="btn-ghost" id="login">Sign in with Discord</button>';
+    el.innerHTML = '<button class="btn-pill" id="login">Sign in with Discord</button>';
     $('#login').onclick = () => (window.location.href = '/auth/login');
     return;
   }
@@ -90,6 +90,8 @@ function renderBrand() {
     logo.alt = state.server.name;
   }
   if (state.server?.name) $('#server-name').textContent = state.server.name;
+  // "Back to Dashboard" goes to the community itself.
+  if (state.server?.guildId) $('#back-link').href = `https://discord.com/channels/${state.server.guildId}`;
   $('#plan-name').textContent = plan.name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
   $('#price').textContent = fmtPrice(plan.priceUsd);
@@ -124,15 +126,15 @@ function renderMethods() {
   const box = $('#methods');
   box.innerHTML = '';
   const methods = [];
-  if (state.capabilities.crypto) methods.push({ id: 'coinbase', label: 'Crypto', icon: ICON_CRYPTO, badge: '' });
-  if (state.capabilities.stripe) methods.push({ id: 'stripe', label: 'Card', icon: ICON_CARD, badge: '<span class="provider-badge">Stripe</span>' });
+  if (state.capabilities.crypto) methods.push({ id: 'coinbase', html: `${ICON_CRYPTO}<span>Crypto</span>` });
+  if (state.capabilities.stripe) methods.push({ id: 'stripe', html: '<span class="provider-badge">Stripe</span><span>Card (Stripe)</span>' });
   if (!methods.some((m) => m.id === state.method)) state.method = methods.at(-1)?.id ?? null;
 
   for (const m of methods) {
     const tile = document.createElement('button');
     tile.type = 'button';
     tile.className = `method${m.id === state.method ? ' selected' : ''}`;
-    tile.innerHTML = `${m.icon}<span>${m.label}</span>${m.badge}`;
+    tile.innerHTML = m.html;
     tile.onclick = () => {
       state.method = m.id;
       render();
@@ -214,23 +216,40 @@ function renderCta() {
   area.append(btn);
 }
 
-function showPayError(message) {
-  $('#cta-area .pay-error')?.remove();
-  const err = document.createElement('div');
-  err.className = 'pay-error';
-  err.textContent = message;
-  $('#cta-area').append(err);
+// Reference-style error panel below the pay card: heading, message,
+// Try Again (re-runs the same payment) and Dismiss.
+function showPayError(message, retry) {
+  const slot = $('#error-slot');
+  slot.innerHTML = `
+    <div class="error-panel" role="alert">
+      <p class="error-head">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 7v6"/><circle cx="12" cy="16.6" r="0.5" fill="currentColor"/></svg>
+        Payment Error
+      </p>
+      <p class="error-msg"></p>
+      <div class="error-actions">
+        <button class="try-again" type="button">Try Again</button>
+        <button class="dismiss" type="button">Dismiss</button>
+      </div>
+    </div>`;
+  slot.querySelector('.error-msg').textContent = message;
+  slot.querySelector('.try-again').onclick = () => {
+    slot.innerHTML = '';
+    retry();
+  };
+  slot.querySelector('.dismiss').onclick = () => (slot.innerHTML = '');
 }
 
 async function pay(btn, plan) {
   btn.disabled = true;
   const original = btn.textContent;
   btn.textContent = 'Redirecting…';
+  const note = $('#buyer-note')?.value.trim() ?? '';
   try {
     const res = await fetch(`/api/checkout/${state.method}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ planId: plan.id }),
+      body: JSON.stringify({ planId: plan.id, ...(note ? { note } : {}) }),
     });
     if (res.status === 401) {
       window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}`;
@@ -240,7 +259,7 @@ async function pay(btn, plan) {
     if (!res.ok || !data.url) throw new Error(data.error || 'Payment could not be started. Try again.');
     window.location.href = data.url;
   } catch (err) {
-    showPayError(err.message);
+    showPayError(err.message, () => pay(btn, plan));
     btn.disabled = false;
     btn.textContent = original;
   }

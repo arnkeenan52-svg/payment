@@ -77,7 +77,7 @@ export function invoiceSubscriptionId(invoice) {
   return invoice?.subscription ?? invoice?.parent?.subscription_details?.subscription ?? null;
 }
 
-export async function createCheckoutSession({ plan, discordId }) {
+export async function createCheckoutSession({ plan, discordId, note = '' }) {
   const lifetime = Boolean(plan.lifetime);
   return stripeFetch('/v1/checkout/sessions', {
     method: 'POST',
@@ -85,7 +85,7 @@ export async function createCheckoutSession({ plan, discordId }) {
       mode: lifetime ? 'payment' : 'subscription',
       client_reference_id: discordId,
       line_items: [{ price: plan.stripePriceId, quantity: 1 }],
-      metadata: { plan_id: plan.id, discord_id: discordId },
+      metadata: { plan_id: plan.id, discord_id: discordId, ...(note ? { buyer_note: note } : {}) },
       ...(lifetime ? {} : { subscription_data: { metadata: { plan_id: plan.id, discord_id: discordId } } }),
       success_url: `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}`,
       cancel_url: `${config.publicBaseUrl}/?checkout=cancelled`,

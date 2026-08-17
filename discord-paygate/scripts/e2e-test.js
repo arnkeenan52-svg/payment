@@ -515,7 +515,7 @@ test('checkout endpoint creates a Stripe session with the buyer wired in', async
   const res = await fetch(`${appUrl}/api/checkout/stripe`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', cookie: u1Cookie },
-    body: JSON.stringify({ planId: 'insider' }),
+    body: JSON.stringify({ planId: 'insider', note: 'purchased by @e2e on discord' }),
   });
   const { url } = await res.json();
   assert.match(url, /^https:\/\/stripe\.mock\/pay\//);
@@ -523,6 +523,7 @@ test('checkout endpoint creates a Stripe session with the buyer wired in', async
   assert.equal(form.mode, 'subscription');
   assert.equal(form.client_reference_id, U1);
   assert.equal(form['metadata[plan_id]'], 'insider');
+  assert.equal(form['metadata[buyer_note]'], 'purchased by @e2e on discord', 'buyer note must reach Stripe metadata');
   assert.equal(form['line_items[0][price]'], 'price_insider_month');
   assert.match(form.success_url, /\/receipt\?plan=insider$/, 'buyers must land on the order receipt');
 });

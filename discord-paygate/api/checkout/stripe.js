@@ -23,6 +23,9 @@ export default async function handler(req, res) {
     sendJson(res, 400, { error: 'unknown plan' });
     return;
   }
-  const session = await createCheckoutSession({ plan, discordId: uid });
+  // Optional buyer note — rides into Stripe metadata so the owner sees it on
+  // the payment in the Stripe dashboard.
+  const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 500) : '';
+  const session = await createCheckoutSession({ plan, discordId: uid, note });
   sendJson(res, 200, { url: session.url });
 }
