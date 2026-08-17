@@ -2,11 +2,12 @@
   {
     "id": "membership",
     "name": "Membership",
-    "description": "Full member access: every leak the moment it lands, real-time alerts, source documents, and the private trading floor.",
+    "description": "Full member access, forever: every leak the moment it lands, real-time alerts, source documents, and the private trading floor. One payment, yours for good.",
     "priceUsd": 59.99,
-    "interval": "month",
-    "durationDays": 31,
-    "stripePriceId": "price_membership_month",
+    "interval": "lifetime",
+    "lifetime": true,
+    "durationDays": null,
+    "stripePriceId": "price_membership_lifetime",
     "roleIds": ["1200000000000000101"]
   }
 ]

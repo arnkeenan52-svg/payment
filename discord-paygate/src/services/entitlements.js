@@ -100,9 +100,8 @@ export async function markPastDue(provider, providerRef) {
   const plan = planById(sub.plan_id);
   await dmUser(
     sub.discord_id,
-    `⚠️ Your ${config.brand} payment for **${plan?.name ?? sub.plan_id}** failed. ` +
-      `We'll retry automatically — you keep access until <t:${graceUntil}:f>. ` +
-      `Update your payment method at ${config.publicBaseUrl} to stay in.`,
+    `⚠️ Your ${config.brand} payment for **${plan?.name ?? sub.plan_id}** didn't go through. ` +
+      `You keep access until <t:${graceUntil}:f> — sort it out at ${config.publicBaseUrl} to stay in.`,
   );
   await reconcile(sub.discord_id);
   return db.getSubscriptionByRef(provider, providerRef);

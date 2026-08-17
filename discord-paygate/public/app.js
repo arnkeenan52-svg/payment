@@ -61,21 +61,28 @@ function renderPlans(plans, me) {
                 : `Active until ${fmtDate(sub.currentPeriodEnd)}`
           }</p>`
         : `<p class="owned lapsed">${
-            sub.status === 'canceled' ? 'Cancelled — rejoin below' : `Expired ${fmtDate(sub.currentPeriodEnd)} — renew below`
+            sub.status === 'canceled' ? 'Cancelled — rejoin below' : `Expired ${fmtDate(sub.currentPeriodEnd)} — buy again below`
           }</p>`
       : '';
+    // A lifetime plan the member already owns has nothing to buy, renew or
+    // manage — show that instead of payment buttons.
+    const ownedForever = Boolean(sub?.entitled && sub.lifetime);
     card.innerHTML = `
       <h2>${plan.name}</h2>
       <p class="desc">${plan.description}</p>
-      <p class="price">$${plan.priceUsd}<small>${plan.lifetime ? 'once' : `/ ${plan.interval}`}</small></p>
+      <p class="price">$${plan.priceUsd}<small>${plan.lifetime ? 'one-time · lifetime access' : `/ ${plan.interval}`}</small></p>
       ${status}
-      <div class="ctas">
-        <button class="cta-card">Pay with card</button>
-        <button class="cta-crypto">Pay with crypto</button>
-      </div>`;
-    const [cardBtn, cryptoBtn] = card.querySelectorAll('button');
-    cardBtn.onclick = () => checkout('stripe', plan.id, cardBtn);
-    cryptoBtn.onclick = () => checkout('coinbase', plan.id, cryptoBtn);
+      ${ownedForever
+        ? '<p class="settled">Nothing to manage — your access never expires.</p>'
+        : `<div class="ctas">
+             <button class="cta-card">Pay with card</button>
+             <button class="cta-crypto">Pay with crypto</button>
+           </div>`}`;
+    if (!ownedForever) {
+      const [cardBtn, cryptoBtn] = card.querySelectorAll('button');
+      cardBtn.onclick = () => checkout('stripe', plan.id, cardBtn);
+      cryptoBtn.onclick = () => checkout('coinbase', plan.id, cryptoBtn);
+    }
     $('#plans').append(card);
   }
 }

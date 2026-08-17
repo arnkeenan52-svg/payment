@@ -484,7 +484,8 @@ test('declined renewal: DM + grace window, role kept while sweep runs', async ()
     data: { object: { id: 'in_2', parent: { subscription_details: { subscription: 'sub_1' } } } },
   });
   const dm = await waitFor('failure DM to U1', () => discord.dms.find((d) => d.uid === U1));
-  assert.match(dm.content, /payment .*failed/i);
+  assert.match(dm.content, /payment .*didn't go through/i);
+  assert.match(dm.content, /keep access until/i);
   const row = subRow('stripe', 'sub_1');
   assert.equal(row.status, 'past_due');
   assert.ok(row.grace_until > nowSec() + 71 * 3600, 'grace window ≈ GRACE_PERIOD_HOURS');

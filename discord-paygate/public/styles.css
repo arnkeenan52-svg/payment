@@ -94,12 +94,15 @@ h1 em { font-style: normal; color: var(--accent); }
 
 .plan .price { font-size: 38px; font-weight: 900; letter-spacing: -0.04em; }
 .plan .price small {
+  display: block;
   font-size: 14px;
   font-weight: 600;
   color: var(--ink-dim);
   letter-spacing: 0;
-  margin-left: 4px;
+  margin-top: 2px;
 }
+
+.plan .settled { color: var(--ink-dim); font-size: 14px; border-top: 1px solid var(--panel-edge); padding-top: 14px; }
 
 .plan .owned {
   color: var(--accent);
