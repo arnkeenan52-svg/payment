@@ -68,7 +68,8 @@ h1 em { font-style: normal; color: var(--accent); }
 .plans {
   margin-top: 56px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  /* cards cap at 380px so a one-plan catalog doesn't stretch edge to edge */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 380px));
   gap: 18px;
 }
 

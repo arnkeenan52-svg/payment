@@ -21,7 +21,10 @@ import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PLANS = JSON.parse(fs.readFileSync(path.join(ROOT, 'plans.json'), 'utf8'));
+// The suite runs against its own multi-plan catalog (role unions, a lifetime
+// plan) so editing the production plans.json never shrinks test coverage.
+const PLANS_PATH = path.join(ROOT, 'scripts', 'e2e-plans.json');
+const PLANS = JSON.parse(fs.readFileSync(PLANS_PATH, 'utf8'));
 const roleOf = (planId) => PLANS.find((p) => p.id === planId).roleIds[0];
 const R_INSIDER = roleOf('insider');
 const R_PRO = roleOf('pro');
@@ -597,6 +600,7 @@ async function main() {
 
   await bootApp({
     ENV_PATH: '/nonexistent/.env', // a developer's real .env must never leak in
+    PLANS_PATH,
     PORT: '0',
     DB_PATH: dbPath,
     PUBLIC_BASE_URL: 'http://tradeleaks.e2e', // mocks never validate redirect URIs
