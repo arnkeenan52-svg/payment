@@ -19,6 +19,16 @@ body {
   flex-direction: column;
 }
 
+.doctor-banner {
+  background: #7f1d1d;
+  color: #fecaca;
+  border-bottom: 2px solid #ef4444;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .top {
   display: flex;
   justify-content: space-between;

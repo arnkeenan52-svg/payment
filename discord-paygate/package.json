@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node scripts/dev-server.js",
     "test": "node scripts/e2e-test.js",
-    "migrate": "node scripts/migrate.js"
+    "migrate": "node scripts/migrate.js",
+    "doctor": "node scripts/doctor.js"
   },
   "engines": {
     "node": ">=22.5.0"

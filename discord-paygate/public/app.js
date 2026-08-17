@@ -88,7 +88,27 @@ function renderPlans(plans, me, capabilities) {
   }
 }
 
+// One clear banner when the setup doctor is failing — a misconfigured
+// deployment must never quietly accept money. The public endpoint returns
+// only { ok }, no configuration detail.
+async function checkSetup() {
+  try {
+    const { ok } = await (await fetch('/api/setup-check')).json();
+    if (ok === false) {
+      const banner = document.createElement('div');
+      banner.className = 'doctor-banner';
+      banner.textContent =
+        '⚠ This store is misconfigured — payments may be charged without access being granted. ' +
+        'Owner: run `npm run doctor` (or GET /api/setup-check with your CRON_SECRET) and fix the failures before selling.';
+      document.body.prepend(banner);
+    }
+  } catch {
+    /* the storefront still works if the check itself is unreachable */
+  }
+}
+
 async function main() {
+  checkSetup();
   const params = new URLSearchParams(window.location.search);
   if (params.get('checkout') === 'success') {
     const notice = document.createElement('p');

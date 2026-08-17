@@ -20,6 +20,7 @@ import checkoutCoinbase from '../api/checkout/coinbase.js';
 import webhookStripe from '../api/webhooks/stripe.js';
 import webhookCoinbase from '../api/webhooks/coinbase.js';
 import cronReconcile from '../api/cron/reconcile.js';
+import setupCheck from '../api/setup-check.js';
 
 const PUBLIC_DIR = path.join(config.root, 'public');
 const MIME = {
@@ -57,6 +58,7 @@ const routes = {
   '/api/webhooks/coinbase': webhookCoinbase,
   '/webhooks/coinbase': webhookCoinbase,
   '/api/cron/reconcile': cronReconcile,
+  '/api/setup-check': setupCheck,
 };
 
 const server = http.createServer(async (req, res) => {

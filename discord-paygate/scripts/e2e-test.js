@@ -39,7 +39,9 @@ const U3 = '503300000000000003'; // buyer whose first webhook crashes the handle
 
 const STRIPE_SECRET = 'whsec_e2e_secret';
 const COINBASE_SECRET = 'cb_e2e_secret';
-const CRON_SECRET = 'cron_e2e_secret';
+const CRON_SECRET = 'cron_e2e_secret_1'; // ≥16 chars so the doctor's own check passes
+const BOT_ID = '600000000000000001';
+const R_BOT = '1200000000000000999';
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -52,11 +54,14 @@ const discord = {
   roleCalls: [],                // { method, uid, roleId }
   dms: [],                      // { uid, content }
   rateLimit429Remaining: 0,     // next N role PUT/DELETEs answer 429 first
+  botRolePosition: 50,          // doctor: set below the managed roles (10-12) to break hierarchy
   oauthUsers: {
     code_u1: { id: U1, username: 'trader_one' },
     code_u3: { id: U3, username: 'trader_three' },
   },
 };
+// The bot itself is a guild member holding its own role.
+discord.members.set(BOT_ID, new Set([R_BOT]));
 
 const stripe = {
   checkoutSessions: [],         // parsed form bodies
@@ -167,8 +172,13 @@ async function discordHandler(req, res) {
     return;
   }
   if (p === '/users/@me' && req.method === 'GET') {
-    const code = (req.headers.authorization ?? '').replace('Bearer tok_', '');
-    const user = discord.oauthUsers[code];
+    const auth = req.headers.authorization ?? '';
+    if (auth.startsWith('Bot ')) {
+      // The doctor authenticates the bot token here.
+      json(res, 200, { id: BOT_ID, username: 'tradeleaks-bot' });
+      return;
+    }
+    const user = discord.oauthUsers[auth.replace('Bearer tok_', '')];
     if (!user) {
       json(res, 401, { message: 'Unauthorized' });
       return;
@@ -176,11 +186,48 @@ async function discordHandler(req, res) {
     json(res, 200, user);
     return;
   }
+
+  // Doctor: full role list with positions and permissions. The bot's role
+  // position is mock-configurable so the hierarchy failure can be staged.
+  if ((m = p.match(/^\/guilds\/([^/]+)\/roles$/)) && req.method === 'GET') {
+    json(res, 200, [
+      { id: GUILD, name: '@everyone', position: 0, permissions: '0' },
+      { id: R_BOT, name: 'Tradeleaks Bot', position: discord.botRolePosition, permissions: String(1 << 28) }, // MANAGE_ROLES
+      { id: R_INSIDER, name: 'Insider', position: 10, permissions: '0' },
+      { id: R_PRO, name: 'Pro Desk', position: 11, permissions: '0' },
+      { id: R_LIFETIME, name: 'Lifetime', position: 12, permissions: '0' },
+    ]);
+    return;
+  }
 }
+
+// Doctor: prices matching the fixture catalog (amounts in cents).
+const MOCK_PRICES = {
+  price_insider_month: { id: 'price_insider_month', active: true, type: 'recurring', unit_amount: 1900, currency: 'usd', recurring: { interval: 'month' } },
+  price_pro_month: { id: 'price_pro_month', active: true, type: 'recurring', unit_amount: 4900, currency: 'usd', recurring: { interval: 'month' } },
+  price_lifetime_once: { id: 'price_lifetime_once', active: true, type: 'one_time', unit_amount: 29900, currency: 'usd' },
+};
 
 async function stripeHandler(req, res) {
   const url = new URL(req.url, 'http://mock');
   let m;
+  if (url.pathname === '/v1/account' && req.method === 'GET') {
+    if (req.headers.authorization !== 'Bearer sk_test_e2e') {
+      json(res, 401, { error: { message: 'Invalid API Key' } });
+      return;
+    }
+    json(res, 200, { id: 'acct_e2e' });
+    return;
+  }
+  if ((m = url.pathname.match(/^\/v1\/prices\/([^/]+)$/)) && req.method === 'GET') {
+    const price = MOCK_PRICES[m[1]];
+    if (!price) {
+      json(res, 404, { error: { message: 'No such price' } });
+      return;
+    }
+    json(res, 200, price);
+    return;
+  }
   if (url.pathname === '/v1/checkout/sessions' && req.method === 'POST') {
     const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
     stripe.checkoutSessions.push(form);
@@ -350,10 +397,10 @@ const baseEnv = (mocks) => ({
   PLANS_PATH,
   PORT: '0',
   ...(PG_URL ? { DATABASE_URL: PG_URL } : { DB_PATH: dbPath }),
-  PUBLIC_BASE_URL: 'http://tradeleaks.e2e', // mocks never validate redirect URIs
+  PUBLIC_BASE_URL: 'https://tradeleaks.e2e', // https + snowflake-shaped ids so the doctor's structural checks pass
   SESSION_SECRET: 'e2e-session-secret',
   CRON_SECRET,
-  DISCORD_CLIENT_ID: 'client_e2e',
+  DISCORD_CLIENT_ID: '1010101010101010101',
   DISCORD_CLIENT_SECRET: 'client_secret_e2e',
   DISCORD_BOT_TOKEN: 'bot_token_e2e',
   DISCORD_GUILD_ID: GUILD,
@@ -371,6 +418,21 @@ const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
 
 let appLog; // phase-1 child log
+let phase1Env; // full env of the phase-1 app — reused to run the doctor CLI
+
+function runDoctorCli(env) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, ['scripts/doctor.js'], {
+      cwd: ROOT,
+      env: { ...process.env, ...env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let out = '';
+    child.stdout.on('data', (d) => (out += d));
+    child.stderr.on('data', (d) => (out += d));
+    child.on('exit', (code) => resolve({ code, out }));
+  });
+}
 
 // ═══ scenarios ════════════════════════════════════════════════════════════════
 
@@ -692,6 +754,62 @@ test('coinbase checkout endpoint creates a charge with metadata (crypto enabled 
   assert.equal(charge.local_price.amount, '49');
 });
 
+test('setup doctor: healthy config passes; endpoint gates detail behind CRON_SECRET', async () => {
+  const full = await (await fetch(`${appUrl}/api/setup-check`, {
+    headers: { authorization: `Bearer ${CRON_SECRET}` },
+  })).json();
+  assert.equal(full.ok, true);
+  assert.ok(Array.isArray(full.checks) && full.checks.length >= 10, 'authorized call must return the check list');
+  assert.deepEqual(full.checks.filter((c) => c.status === 'fail'), [], 'no check may fail on a healthy setup');
+  assert.ok(
+    full.checks.some((c) => c.id.startsWith('discord:hierarchy:') && c.status === 'pass'),
+    'the hierarchy check must run and pass',
+  );
+  assert.ok(full.checks.some((c) => c.id === 'stripe:auth' && /test mode/.test(c.detail)), 'reports test vs live mode');
+  assert.ok(full.checks.some((c) => c.id === 'discord:bot-auth' && /tradeleaks-bot/.test(c.detail)), 'reports bot username');
+
+  const summary = await (await fetch(`${appUrl}/api/setup-check`)).json();
+  assert.deepEqual(summary, { ok: true }, 'unauthenticated callers get the bare ok flag and nothing else');
+});
+
+test('setup doctor CLI: exit 0 on healthy setup, secrets only ever masked', async () => {
+  const { code, out } = await runDoctorCli(phase1Env);
+  assert.equal(code, 0, `doctor must exit 0 on a healthy setup:\n${out}`);
+  assert.match(out, /tradeleaks-bot/);
+  assert.match(out, /test mode/);
+  assert.match(out, /safe to take payments/i);
+  for (const secret of ['sk_test_e2e', STRIPE_SECRET, 'bot_token_e2e', CRON_SECRET, 'e2e-session-secret', 'client_secret_e2e']) {
+    assert.ok(!out.includes(secret), `doctor output must never contain the raw secret ${secret.slice(0, 4)}…`);
+  }
+});
+
+test('setup doctor: bot role at/below a managed role fails loudly with the drag-above fix', async () => {
+  discord.botRolePosition = 5; // below Insider(10)/Pro(11)/Lifetime(12) — the charge-then-403 failure
+  try {
+    const { code, out } = await runDoctorCli(phase1Env);
+    assert.equal(code, 1, `doctor must exit non-zero when the hierarchy is broken:\n${out}`);
+    assert.match(out, /position 5/, 'names the bot role position');
+    assert.match(out, /403 AFTER the buyer has paid/i, 'states the consequence loudly');
+    assert.match(out, /Server Settings → Roles → drag/i, 'gives the exact click path');
+    assert.match(out, /DO NOT take payments/i);
+
+    // The storefront-facing summary flips too, so the banner shows.
+    const broken = await spawnApp({ ...phase1Env, PORT: '0' });
+    try {
+      const summary = await (await fetch(`${broken.url}/api/setup-check`)).json();
+      assert.deepEqual(summary, { ok: false }, 'public summary must report failing (drives the storefront banner)');
+      const detail = await (await fetch(`${broken.url}/api/setup-check`, {
+        headers: { authorization: `Bearer ${CRON_SECRET}` },
+      })).json();
+      assert.ok(detail.checks.some((c) => c.id.startsWith('discord:hierarchy:') && c.status === 'fail'));
+    } finally {
+      broken.child.kill('SIGTERM');
+    }
+  } finally {
+    discord.botRolePosition = 50;
+  }
+});
+
 // ═══ runner ═══════════════════════════════════════════════════════════════════
 
 async function main() {
@@ -704,12 +822,13 @@ async function main() {
   const mocks = { discord: discordMock, stripe: stripeMock, coinbase: coinbaseMock };
 
   // Phase 1: full configuration (Stripe + Coinbase) — the main scenario ladder.
-  const app = await spawnApp({
+  phase1Env = {
     ...baseEnv(mocks),
     COINBASE_API_KEY: 'cb_key_e2e',
     COINBASE_WEBHOOK_SECRET: COINBASE_SECRET,
     COINBASE_API_BASE: coinbaseMock.url,
-  });
+  };
+  const app = await spawnApp(phase1Env);
   appUrl = app.url;
   appLog = app.log;
 

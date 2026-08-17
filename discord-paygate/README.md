@@ -18,6 +18,7 @@ npm start                # local dev server; prints a config banner
 npm test                 # e2e suite against mock Stripe/Coinbase/Discord (SQLite)
 E2E_DATABASE_URL=postgres://… npm test   # same suite against real Postgres
 npm run migrate          # create tables against DATABASE_URL / DB_PATH
+npm run doctor           # LIVE-verify the whole setup before taking money
 ```
 
 Products live in `plans.json` — id, name, description, price, Stripe price
@@ -86,6 +87,48 @@ id, and the Discord role ids each plan grants. The live catalog is a single
    scheduled with looser precision (once per day); Pro runs them on
    schedule. The sweep is a safety net — grants and revocations are
    webhook-driven and immediate either way.
+7. **Before selling, run the setup doctor** against the deployment:
+
+   ```bash
+   curl -s -H "Authorization: Bearer $CRON_SECRET" https://<your-domain>/api/setup-check
+   ```
+
+   and fix anything it flags (see below).
+
+## Setup doctor
+
+A wrong value here fails silently at the worst possible moment — a buyer
+pays and no role is granted. The doctor verifies the setup **live**, not by
+checking that strings are non-empty:
+
+- every required env var present and structurally plausible (`sk_`/`whsec_`
+  prefixes, snowflake-shaped Discord ids, `PUBLIC_BASE_URL` https with no
+  trailing slash, real-length `SESSION_SECRET`/`CRON_SECRET`);
+- the Stripe key actually authenticates, reporting **test vs live mode**;
+- each `stripePriceId` in `plans.json` exists, is active, is **one-time
+  rather than recurring** for lifetime plans (a Recurring price here would
+  bill buyers monthly forever), and its amount matches the catalog;
+- the bot token authenticates (reports the bot's username), the bot is a
+  member of `DISCORD_GUILD_ID`, holds **Manage Roles**, every `roleId` in
+  `plans.json` exists in that guild — and, the critical one, the bot's
+  highest role sits **strictly above** every managed role, because at or
+  below means Discord 403s every grant *after* the buyer has paid;
+- plus a warning when Stripe is in live mode while `PUBLIC_BASE_URL` still
+  points at a preview domain.
+
+Run it three ways, all the same module:
+
+- `npm run doctor` — pass/fail table, each failure with the exact fix and
+  the dashboard path to click; exits non-zero on any failure; secrets are
+  only ever printed as masked prefixes.
+- `GET /api/setup-check` with `Authorization: Bearer <CRON_SECRET>` — the
+  full report as JSON, for checking a live deployment.
+- `GET /api/setup-check` without auth — returns **only** `{ ok }`; the
+  storefront polls this and shows a single red banner when the doctor is
+  failing, so a misconfigured deployment can't quietly accept money.
+
+Results are cached for `DOCTOR_CACHE_SECONDS` (default 300) per warm
+instance.
 
 ## Discord setup
 

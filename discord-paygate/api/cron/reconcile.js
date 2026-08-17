@@ -7,7 +7,7 @@ import { sweepExpirations } from '../../src/services/entitlements.js';
 // Vercel. vercel.json schedules this; Vercel sends Authorization: Bearer
 // <CRON_SECRET> when the CRON_SECRET env var is set. Constant-time compare
 // so the endpoint can't be probed, and fail closed when the secret is unset.
-function authorized(req) {
+export function cronAuthorized(req) {
   if (!config.cronSecret) return false;
   const got = Buffer.from(String(req.headers.authorization ?? ''));
   const want = Buffer.from(`Bearer ${config.cronSecret}`);
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     sendText(res, 405, 'method not allowed');
     return;
   }
-  if (!authorized(req)) {
+  if (!cronAuthorized(req)) {
     sendText(res, config.cronSecret ? 401 : 500, config.cronSecret ? 'unauthorized' : 'CRON_SECRET is not configured');
     return;
   }
