@@ -25,6 +25,15 @@ export default guard(async function handler(req, res) {
     sendJson(res, 400, { error: 'unknown plan' });
     return;
   }
-  const charge = await createCharge({ plan, discordId: uid });
+  let charge;
+  try {
+    charge = await createCharge({ plan, discordId: uid });
+  } catch (err) {
+    console.error(`[checkout] coinbase charge for ${uid}/${plan.id} failed: ${err.message}`);
+    sendJson(res, 502, {
+      error: "Payment could not be started — the store's payment setup is incomplete. Please try again shortly.",
+    });
+    return;
+  }
   sendJson(res, 200, { url: charge.hosted_url });
 });

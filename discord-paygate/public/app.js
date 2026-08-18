@@ -267,8 +267,15 @@ async function pay(btn, plan) {
       window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}`;
       return;
     }
-    const data = await res.json();
-    if (!res.ok || !data.url) throw new Error(data.error || 'Payment could not be started. Try again.');
+    // The body may not be JSON (a proxy error page, an empty 500) — parse
+    // defensively so buyers see a plain sentence, never a JSON parse error.
+    let data = {};
+    try {
+      data = JSON.parse(await res.text());
+    } catch {
+      data = {};
+    }
+    if (!res.ok || !data.url) throw new Error(data.error || 'Payment could not be started. Please try again in a moment.');
     window.location.href = data.url;
   } catch (err) {
     showPayError(err.message, () => pay(btn, plan));

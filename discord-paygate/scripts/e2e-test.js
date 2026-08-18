@@ -58,6 +58,8 @@ const discord = {
   dms: [],                      // { uid, content }
   rateLimit429Remaining: 0,     // next N role PUT/DELETEs answer 429 first
   botRolePosition: 50,          // doctor: set below the managed roles (10-12) to break hierarchy
+  failRolesFetchOnce: false,    // next GET /guilds/:id/roles answers 500
+  extraRoles: [],               // appended to the role list (e.g. a same-named decoy)
   oauthUsers: {
     code_u1: { id: U1, username: 'trader_one' },
     code_u3: { id: U3, username: 'trader_three' },
@@ -71,6 +73,7 @@ const stripe = {
   periodEnds: {},               // subscription id -> current_period_end (on ITEMS only)
   failSubFetchOnce: new Set(),  // subscription ids whose next GET answers 500
   subFetches: {},               // subscription id -> fetch count
+  failCheckoutSessionsWith: null, // when set, POST /v1/checkout/sessions answers 400 with this message
 };
 
 const coinbase = { charges: [] };
@@ -200,7 +203,13 @@ async function discordHandler(req, res) {
   // Doctor: full role list with positions and permissions. The bot's role
   // position is mock-configurable so the hierarchy failure can be staged.
   if ((m = p.match(/^\/guilds\/([^/]+)\/roles$/)) && req.method === 'GET') {
+    if (discord.failRolesFetchOnce) {
+      discord.failRolesFetchOnce = false;
+      json(res, 500, { message: 'mock: roles fetch exploded' });
+      return;
+    }
     json(res, 200, [
+      ...discord.extraRoles,
       { id: GUILD, name: '@everyone', position: 0, permissions: '0', color: 0 },
       { id: R_BOT, name: 'Tradeleaks Bot', position: discord.botRolePosition, permissions: String(1 << 28), color: 0, managed: true }, // MANAGE_ROLES
       { id: R_ADMIN, name: 'Admin', position: 60, permissions: '8', color: 15548997 },
@@ -242,6 +251,10 @@ async function stripeHandler(req, res) {
     return;
   }
   if (url.pathname === '/v1/checkout/sessions' && req.method === 'POST') {
+    if (stripe.failCheckoutSessionsWith) {
+      json(res, 400, { error: { message: stripe.failCheckoutSessionsWith } });
+      return;
+    }
     const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
     stripe.checkoutSessions.push(form);
     json(res, 200, { id: `cs_${stripe.checkoutSessions.length}`, url: `https://stripe.mock/pay/cs_${stripe.checkoutSessions.length}` });
@@ -297,6 +310,8 @@ async function initTestDb() {
     await tq('DROP TABLE IF EXISTS users');
     await tq('DROP TABLE IF EXISTS subscriptions');
     await tq('DROP TABLE IF EXISTS webhook_events');
+    await tq('DROP TABLE IF EXISTS plan_overrides');
+    await tq('DROP TABLE IF EXISTS managed_role_history');
   } else {
     const { DatabaseSync } = await import('node:sqlite');
     let sqlite;
@@ -995,6 +1010,118 @@ test('doctor fails loudly on a currency mismatch (never assumes account default)
     assert.match(out, /Create the price in USD/i);
   } finally {
     MOCK_PRICES.price_pro_month.currency = 'usd';
+  }
+});
+
+test('checkout answers clean JSON when Stripe rejects the session (never an opaque error page)', async () => {
+  stripe.failCheckoutSessionsWith = 'No such price: price_pro_month';
+  try {
+    const res = await fetch(`${appUrl}/api/checkout/stripe`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u1Cookie },
+      body: JSON.stringify({ planId: 'pro' }),
+    });
+    assert.equal(res.status, 502, 'a Stripe rejection must surface as 502, not a crash');
+    assert.match(res.headers.get('content-type') ?? '', /application\/json/, 'body must be JSON for the storefront to render');
+    const body = await res.json();
+    assert.match(body.error, /payment could not be started/i);
+    assert.doesNotMatch(body.error, /no such price/i, 'raw Stripe internals must not leak to buyers');
+  } finally {
+    stripe.failCheckoutSessionsWith = null;
+  }
+});
+
+test('a plan with stale roleIds grants by role NAME, and the doctor goes green', async () => {
+  // plans.json ships a dead snowflake but names the role — resolution must
+  // find the real role by its name from the live guild list. A same-named
+  // decoy ABOVE the bot must lose to the grantable role below the bot.
+  const R_DECOY = '1200000000000000201';
+  const namedPlans = [
+    {
+      id: 'named',
+      name: 'Named Tier',
+      description: 'role resolved by name',
+      priceUsd: 299,
+      interval: 'lifetime',
+      lifetime: true,
+      durationDays: null,
+      stripePriceId: 'price_lifetime_once',
+      roleIds: ['1200000000000000404'], // no such role in the guild
+      roleNames: ['@New Tier'], // the real role, by name (with the display "@")
+    },
+  ];
+  const namedPlansPath = path.join(path.dirname(dbPath), 'named-plans.json');
+  fs.writeFileSync(namedPlansPath, JSON.stringify(namedPlans, null, 2));
+  const env = {
+    ...phase1Env,
+    PLANS_PATH: namedPlansPath,
+    ROLE_CACHE_SECONDS: '0', // every resolution refetches — the failure knobs below stay deterministic
+    ...(PG_URL ? {} : { DB_PATH: path.join(path.dirname(dbPath), 'named.sqlite') }),
+  };
+  const app2 = await spawnApp(env);
+  discord.extraRoles = [{ id: R_DECOY, name: 'New Tier', position: 55, permissions: '0', color: 0 }];
+
+  try {
+    const U4 = '504400000000000004';
+    discord.members.set(U4, new Set());
+    const { status } = await deliverStripe(
+      {
+        id: 'evt_named_1',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_named_1',
+            mode: 'payment',
+            client_reference_id: U4,
+            metadata: { plan_id: 'named', discord_id: U4 },
+          },
+        },
+      },
+      { base: app2.url },
+    );
+    assert.equal(status, 200);
+    assert.ok(memberRoles(U4).has(R_NEW), 'the grant must land on the role matched by name');
+    assert.ok(!memberRoles(U4).has(R_DECOY), 'the same-named decoy above the bot must not be picked');
+    assert.ok(!memberRoles(U4).has('1200000000000000404'), 'the dead configured id must not be attempted');
+
+    const { plans } = await (await fetch(`${app2.url}/api/plans`)).json();
+    assert.deepEqual(plans[0].roleNames, ['@New Tier']);
+
+    // A transient roles-fetch failure mid-sweep must NEVER strip an entitled
+    // member's name-resolved role (degraded mappings skip removals).
+    discord.failRolesFetchOnce = true;
+    const cron = await fetch(`${app2.url}/api/cron/reconcile`, { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+    assert.equal(cron.status, 200);
+    assert.ok(memberRoles(U4).has(R_NEW), 'a transient roles-fetch failure must not strip the entitled role');
+
+    // The next (healthy) sweep converges back to exactly the resolved role.
+    const cron2 = await fetch(`${app2.url}/api/cron/reconcile`, { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+    assert.equal(cron2.status, 200);
+    assert.ok(memberRoles(U4).has(R_NEW), 'healthy sweep keeps the entitled role');
+    assert.ok(!memberRoles(U4).has('1200000000000000404'), 'healthy sweep cleans up any degraded-mode junk');
+
+    const doctor = await runDoctorCli(env);
+    assert.match(doctor.out, /matched by role name/i, `doctor must say the role was matched by name:\n${doctor.out}`);
+    assert.match(doctor.out, /matched by NAME instead/, `doctor must warn about the stale configured id:\n${doctor.out}`);
+    assert.equal(doctor.code, 0, `doctor must pass once the role resolves by name:\n${doctor.out}`);
+
+    // A typo'd id NEXT TO a valid one must still fail loudly — resolution
+    // dropping it silently is exactly what the doctor exists to catch.
+    const mixedPlans = [
+      { ...namedPlans[0], id: 'mixed', roleIds: [R_NEW, '1200000000000000777'], roleNames: [] },
+    ];
+    const mixedPlansPath = path.join(path.dirname(dbPath), 'mixed-plans.json');
+    fs.writeFileSync(mixedPlansPath, JSON.stringify(mixedPlans, null, 2));
+    const mixedDoctor = await runDoctorCli({
+      ...env,
+      PLANS_PATH: mixedPlansPath,
+      ...(PG_URL ? {} : { DB_PATH: path.join(path.dirname(dbPath), 'mixed.sqlite') }),
+    });
+    assert.equal(mixedDoctor.code, 1, `doctor must fail on a dead id even when another id is valid:\n${mixedDoctor.out}`);
+    assert.match(mixedDoctor.out, /no role with that id/);
+  } finally {
+    discord.extraRoles = [];
+    discord.failRolesFetchOnce = false;
   }
 });
 

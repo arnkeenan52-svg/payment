@@ -72,7 +72,7 @@ async function renderPicker() {
   const box = document.createElement('section');
   box.className = 'panel picker';
   const current = data.plans
-    .map((p) => `${escapeHtml(p.name)} → ${p.roleNames.length ? escapeHtml(p.roleNames.join(', ')) : p.roleIds.join(', ')}${p.source === 'override' ? ' (picked)' : ' (from plans.json)'}`)
+    .map((p) => `${escapeHtml(p.name)} → ${p.roleNames.length ? escapeHtml(p.roleNames.join(', ')) : p.roleIds.join(', ')}${p.source === 'override' ? ' (picked)' : p.source === 'name' ? ' (matched by role name)' : ' (from plans.json)'}`)
     .join(' · ');
   box.innerHTML = `
     <p class="label">Plan role — pick the role buyers receive</p>

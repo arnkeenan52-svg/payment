@@ -19,11 +19,19 @@ async function discordFetch(path, { method = 'GET', body, auth = `Bot ${config.d
   }
 
   for (let attempt = 0; attempt < 6; attempt++) {
-    const res = await fetch(`${config.discord.apiBase}${path}`, { method, headers, body: payload });
+    // Bounded per attempt: webhook handlers grant BEFORE responding, so a
+    // hung Discord must fail fast enough to leave room for the provider's
+    // retry instead of eating the whole serverless function budget.
+    const res = await fetch(`${config.discord.apiBase}${path}`, {
+      method,
+      headers,
+      body: payload,
+      signal: AbortSignal.timeout(10_000),
+    });
     if (res.status === 429) {
       const data = await res.json().catch(() => ({}));
       const retryAfter = Number(data.retry_after ?? res.headers.get('retry-after') ?? 1);
-      await sleep(Math.max(retryAfter * 1000, 50));
+      await sleep(Math.min(Math.max(retryAfter * 1000, 50), 5000));
       continue;
     }
     return res;

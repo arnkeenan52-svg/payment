@@ -5,7 +5,7 @@
 // Never returns secret values: only masked prefixes.
 
 import { config, capabilities } from '../config.js';
-import { effectiveRoleMap } from './plan-config.js';
+import { effectiveRoleMap, invalidateGuildRolesCache } from './plan-config.js';
 
 const MANAGE_ROLES = 1n << 28n;
 const ADMINISTRATOR = 1n << 3n;
@@ -14,6 +14,9 @@ const mask = (v) => (v ? `${String(v).slice(0, 8)}…(${String(v).length} chars)
 const isSnowflake = (v) => /^\d{17,20}$/.test(String(v ?? ''));
 
 export async function runDoctor() {
+  // Grade against a FRESH role mapping — "Re-run checks" right after the
+  // owner fixes a role must not read a cached list up to a minute old.
+  invalidateGuildRolesCache();
   const checks = [];
   const add = (id, name, status, detail, fix = null) =>
     checks.push({ id, name, status, detail, ...(fix ? { fix } : {}) });
@@ -251,7 +254,10 @@ export async function runDoctor() {
     const roleMap = await effectiveRoleMap();
     for (const plan of config.plans) {
       const mapping = roleMap.get(plan.id) ?? { roleIds: plan.roleIds, source: 'default' };
-      const src = mapping.source === 'override' ? ' [picked in /diagnostics]' : '';
+      const src =
+        mapping.source === 'override' ? ' [picked in /diagnostics]'
+        : mapping.source === 'name' ? ' [matched by role name]'
+        : '';
       for (const roleId of mapping.roleIds) {
         const role = byId.get(roleId);
         if (!role) {
@@ -260,7 +266,7 @@ export async function runDoctor() {
             'Pick the real role on the /diagnostics page (role picker), or paste its id into plans.json (Developer Mode → Server Settings → Roles → right-click → Copy Role ID).');
           continue;
         }
-        add(`discord:role:${roleId}`, `Role "${role.name}" (plan "${plan.id}") exists in the guild`, 'pass', `position ${role.position}`);
+        add(`discord:role:${roleId}`, `Role "${role.name}" (plan "${plan.id}")${src} exists in the guild`, 'pass', `position ${role.position}`);
 
         // THE check. Below or equal means every grant 403s after the buyer paid.
         if (botTop <= role.position) {
@@ -270,6 +276,23 @@ export async function runDoctor() {
         } else {
           add(`discord:hierarchy:${roleId}`, `Bot's highest role sits above "${role.name}"`, 'pass',
             `"${botTopRole}" (${botTop}) > "${role.name}" (${role.position})`);
+        }
+      }
+
+      // Configured ids that resolution dropped must never vanish silently: a
+      // typo'd id next to a valid one is exactly the misconfiguration this
+      // doctor exists to catch.
+      const mappedIds = new Set(mapping.roleIds);
+      for (const cfgId of plan.roleIds ?? []) {
+        if (mappedIds.has(cfgId) || byId.has(cfgId)) continue;
+        if (mapping.source === 'name') {
+          add(`discord:role:${cfgId}`, `Configured role id ${cfgId} (plan "${plan.id}") is stale`, 'warn',
+            'no role with that id in this guild — the plan currently works because the role was matched by NAME instead',
+            'Pin it: pick the role on /diagnostics (role picker), or paste the real id into plans.json.');
+        } else {
+          add(`discord:role:${cfgId}`, `Role ${cfgId} (plan "${plan.id}") exists in the guild`, 'fail',
+            'no role with that id in this guild — buyers would be granted only the other configured roles',
+            'Pick the real role on the /diagnostics page (role picker), or paste its id into plans.json (Developer Mode → Server Settings → Roles → right-click → Copy Role ID).');
         }
       }
     }

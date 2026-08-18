@@ -47,6 +47,15 @@ const ddl = (dialect) => {
     updated_at ${int} NOT NULL
   );
 
+  -- Every role id the paygate has ever resolved as grantable (from plans.json,
+  -- the picker override, or a name match). The reconciler removes only roles
+  -- it manages, so this ledger keeps roles granted under an OLD mapping
+  -- removable after renames, re-picks and redeploys change the mapping.
+  CREATE TABLE IF NOT EXISTS managed_role_history (
+    role_id     TEXT PRIMARY KEY,
+    recorded_at ${int} NOT NULL
+  );
+
   -- Idempotency: the PRIMARY KEY *is* the claim. INSERT ... ON CONFLICT DO
   -- NOTHING and check the affected row count — first delivery wins at the
   -- constraint, not at a racy SELECT-then-INSERT. Claims are deleted again
@@ -166,6 +175,22 @@ export async function setPlanOverride(planId, roleIds, roleNames) {
        updated_at = excluded.updated_at`,
     [planId, JSON.stringify(roleIds), JSON.stringify(roleNames), now()],
   );
+}
+
+// Ledger of every role id the paygate has ever been able to grant — see the
+// managed_role_history DDL comment. Insert-only, idempotent.
+export async function recordManagedRoles(roleIds) {
+  if (roleIds.length === 0) return;
+  const values = roleIds.map(() => '(?, ?)').join(', ');
+  await q(
+    `INSERT INTO managed_role_history (role_id, recorded_at) VALUES ${values} ON CONFLICT (role_id) DO NOTHING`,
+    roleIds.flatMap((id) => [id, now()]),
+  );
+}
+
+export async function recordedManagedRoleIds() {
+  const { rows } = await q('SELECT role_id FROM managed_role_history', []);
+  return rows.map((r) => String(r.role_id));
 }
 
 // ── webhook idempotency claims ────────────────────────────────────────────────

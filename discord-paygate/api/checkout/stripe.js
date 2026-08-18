@@ -26,6 +26,17 @@ export default guard(async function handler(req, res) {
   // Optional buyer note — rides into Stripe metadata so the owner sees it on
   // the payment in the Stripe dashboard.
   const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 500) : '';
-  const session = await createCheckoutSession({ plan, discordId: uid, note });
+  let session;
+  try {
+    session = await createCheckoutSession({ plan, discordId: uid, note });
+  } catch (err) {
+    // Buyers get a plain sentence, never raw Stripe internals; the owner sees
+    // the exact cause (wrong-mode key, missing price, …) on /diagnostics.
+    console.error(`[checkout] stripe session for ${uid}/${plan.id} failed: ${err.message}`);
+    sendJson(res, 502, {
+      error: "Payment could not be started — the store's payment setup is incomplete. Please try again shortly.",
+    });
+    return;
+  }
   sendJson(res, 200, { url: session.url });
 });

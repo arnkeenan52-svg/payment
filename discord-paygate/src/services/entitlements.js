@@ -1,6 +1,6 @@
 import { config, planById } from '../config.js';
 import * as db from '../db.js';
-import { effectiveRoleMap, effectiveManagedRoleIds } from './plan-config.js';
+import { effectiveRolePlan, effectiveManagedRoleIds } from './plan-config.js';
 import { getGuildMember, addRole, removeRole, joinGuildWithRoles, dmUser } from '../lib/discord.js';
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -10,7 +10,10 @@ const now = () => Math.floor(Date.now() / 1000);
 // Role mapping honours the owner's diagnostics picker (DB override) over the
 // shipped plans.json values.
 export async function desiredRoleIds(discordId, at = now()) {
-  const roleMap = await effectiveRoleMap();
+  return desiredFrom((await effectiveRolePlan()).map, discordId, at);
+}
+
+async function desiredFrom(roleMap, discordId, at = now()) {
   const desired = new Set();
   for (const sub of await db.subscriptionsForMember(discordId)) {
     if (!db.isEntitled(sub, at)) continue;
@@ -39,8 +42,12 @@ export async function reconcile(discordId) {
 }
 
 async function reconcileNow(discordId) {
-  const desired = await desiredRoleIds(discordId);
-  const managed = await effectiveManagedRoleIds();
+  // One mapping snapshot for BOTH the desired and managed sets — resolving
+  // twice could disagree mid-reconcile (a transient roles-fetch failure on
+  // one of them) and strip a role the member is entitled to.
+  const { map: roleMap, degraded } = await effectiveRolePlan();
+  const desired = await desiredFrom(roleMap, discordId);
+  const managed = await effectiveManagedRoleIds(roleMap);
 
   const member = await getGuildMember(discordId);
 
@@ -62,7 +69,10 @@ async function reconcileNow(discordId) {
 
   const current = new Set(member.roles ?? []);
   const toAdd = [...desired].filter((r) => !current.has(r));
-  const toRemove = [...current].filter((r) => managed.has(r) && !desired.has(r));
+  // A degraded mapping (guild role list unfetchable) fell back to configured
+  // ids: additions can retry later, but a removal computed against it could
+  // strip a role the member holds legitimately under the full mapping.
+  const toRemove = degraded ? [] : [...current].filter((r) => managed.has(r) && !desired.has(r));
 
   for (const roleId of toAdd) await addRole(discordId, roleId);
   for (const roleId of toRemove) await removeRole(discordId, roleId);
