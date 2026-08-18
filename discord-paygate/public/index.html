@@ -18,7 +18,7 @@
   <meta name="twitter:image" content="https://www.ripleybot.com/shot-dashboard.png" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=39" />
+  <link rel="stylesheet" href="/styles.css?v=40" />
 </head>
 <body class="home">
   <header class="top xoe-nav">
@@ -66,7 +66,7 @@
              browser with no codec negotiation, autoplay policy, range requests
              or JS in the way. home.js swaps in the real <video> only after the
              browser has proven it can actually play it. -->
-        <img class="hero-video" id="hero-media" src="/hero-demo.webp?v=39" width="1280" height="800"
+        <img class="hero-video" id="hero-media" src="/hero-demo.webp?v=40" width="1280" height="800"
           alt="Ripley product tour: live analytics with period comparison, products, members and the checkout" />
       </div>
     </section>
@@ -147,69 +147,57 @@
     </section>
 
     <section class="xsection" id="features">
-      <div class="wrap frow">
-        <div class="frow-copy">
-          <h2>A complete Discord payment processor</h2>
-          <p>Your store lives on its own page with your server’s name and icon. Buyers sign in with Discord, pay on Stripe’s secure checkout, and they’re in. No bots to learn, no invites to manage.</p>
-          <ul class="tick-list">
-            <li><strong>Automatic role assignment</strong> — delivered the second payment clears.</li>
-            <li><strong>Hosted store page</strong> — your name, your icon, your product images.</li>
-            <li><strong>Subscriptions &amp; one-time products</strong> — monthly or lifetime, your price.</li>
-            <li><strong>Not in the server yet?</strong> Buyers are pulled in automatically, role attached.</li>
-          </ul>
-          <a class="btn-fill" href="/dashboard">Start selling <span aria-hidden="true">→</span></a>
-        </div>
-        <div class="frow-visual">
-          <div class="glow glow-side" aria-hidden="true"></div>
-          <div class="shot-frame browser-frame">
-            <div class="bf-bar" aria-hidden="true">
-              <span class="bf-dots"><i></i><i></i><i></i></span>
-              <span class="bf-url">ripleybot.com/yourserver</span>
-            </div>
-            <img src="/shot-store.png?v=39" alt="A Ripley storefront with product, price and card checkout" width="1080" height="760" loading="lazy" />
-          </div>
-        </div>
+      <div class="wrap narrow center">
+        <h2 class="section-title">A complete Discord payment processor</h2>
+        <p class="section-sub">Storefront, checkout, role delivery, receipts and member management. One platform, your Stripe account.</p>
       </div>
-    </section>
-
-    <section class="xsection">
-      <div class="wrap frow flip">
-        <div class="frow-copy">
-          <h2>Every sale verified, every receipt sent</h2>
-          <p>Ripley verifies every payment against Stripe’s signatures before granting anything, delivers the buyer’s role in seconds, and emails them a clean receipt. This runs on every store, automatically.</p>
-          <ul class="tick-list">
-            <li><strong>Instant delivery</strong> — roles land in about two seconds.</li>
-            <li><strong>Email receipts</strong> — sent automatically after every purchase.</li>
-            <li><strong>Self-healing access</strong> — hourly checks plus one-click re-sync.</li>
-          </ul>
-        </div>
-        <div class="frow-visual">
-          <div class="glow glow-side" aria-hidden="true"></div>
-          <img class="email-shot" src="/shot-email.png?v=39" alt="The membership confirmation email buyers receive after checkout" width="1240" height="1226" loading="lazy" />
-        </div>
-      </div>
-    </section>
-
-    <section class="xsection">
-      <div class="wrap frow">
-        <div class="frow-copy">
-          <h2>Manage members and revenue in one place</h2>
-          <p>Every sale and every member, live. Revoke a membership and the role comes off in seconds. Grant access by hand when you need to, and re-sync anyone with one click.</p>
-          <ul class="tick-list">
-            <li><strong>Revenue overview</strong> — 30-day chart, totals, recent sales.</li>
-            <li><strong>Transactions</strong> — searchable, filterable, newest first.</li>
-            <li><strong>Members</strong> — revoke, manually add, re-sync.</li>
-          </ul>
-        </div>
-        <div class="frow-visual">
-          <div class="glow glow-side" aria-hidden="true"></div>
-          <div class="shot-frame browser-frame">
-            <div class="bf-bar" aria-hidden="true">
-              <span class="bf-dots"><i></i><i></i><i></i></span>
-              <span class="bf-url">ripleybot.com/dashboard</span>
+      <div class="wrap">
+        <div class="bento">
+          <article class="panel bento-cell bento-wide bento-texture">
+            <div class="bento-head">
+              <span class="bento-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v11H3z"/><path d="M9 20v-6h6v6"/></svg></span>
+              <span class="bento-chip">Live</span>
             </div>
-            <img src="/shot-members.png?v=39" alt="Member management: revoke, add and re-sync members" width="1400" height="817" loading="lazy" />
-          </div>
+            <h3>Your store page <span class="bento-meta">ripleybot.com/yourname</span></h3>
+            <p>Your server&rsquo;s name, icon and product photos on a hosted checkout. Buyers sign in with Discord, pay on Stripe&rsquo;s secure page, and they&rsquo;re in. Subscriptions or one-time products, monthly or lifetime, your price.</p>
+            <div class="bento-tags"><span>#HostedCheckout</span><span>#Stripe</span><span>#YourBrand</span></div>
+            <div class="bento-media browser-frame">
+              <div class="bf-bar" aria-hidden="true"><span class="bf-dots"><i></i><i></i><i></i></span><span class="bf-url">ripleybot.com/yourserver</span></div>
+              <img src="/shot-store.png?v=40" alt="A Ripley storefront with product, price and card checkout" width="1080" height="760" loading="lazy" />
+            </div>
+          </article>
+          <article class="panel bento-cell">
+            <div class="bento-head">
+              <span class="bento-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg></span>
+              <span class="bento-chip">~2s</span>
+            </div>
+            <h3>Roles delivered <span class="bento-meta">automatic</span></h3>
+            <p>Payment clears and the role lands. Buyers who aren&rsquo;t in your server yet are pulled in with the role attached, and lapsed subscriptions lose it on their own.</p>
+            <div class="bento-tags"><span>#AutoRoles</span><span>#SelfHealing</span></div>
+          </article>
+          <article class="panel bento-cell">
+            <div class="bento-head">
+              <span class="bento-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg></span>
+              <span class="bento-chip">Every sale</span>
+            </div>
+            <h3>Verified &amp; receipted <span class="bento-meta">Stripe signatures</span></h3>
+            <p>Ripley verifies every payment against Stripe&rsquo;s signatures before granting anything, then emails the buyer a clean membership confirmation.</p>
+            <div class="bento-tags"><span>#Verified</span><span>#Receipts</span></div>
+            <img class="bento-email" src="/shot-email.png?v=40" alt="The membership confirmation email buyers receive" width="1240" height="1226" loading="lazy" />
+          </article>
+          <article class="panel bento-cell bento-wide bento-texture">
+            <div class="bento-head">
+              <span class="bento-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></span>
+              <span class="bento-chip">Live</span>
+            </div>
+            <h3>Members &amp; revenue <span class="bento-meta">one dashboard</span></h3>
+            <p>A 30-day revenue chart with period comparison, searchable transactions, and member controls: revoke and the role comes off in seconds, grant by hand, re-sync anyone. Hourly checks keep access healthy.</p>
+            <div class="bento-tags"><span>#Analytics</span><span>#Members</span><span>#Transactions</span></div>
+            <div class="bento-media browser-frame">
+              <div class="bf-bar" aria-hidden="true"><span class="bf-dots"><i></i><i></i><i></i></span><span class="bf-url">ripleybot.com/dashboard</span></div>
+              <img src="/shot-members.png?v=40" alt="Member management: revoke, add and re-sync members" width="1400" height="817" loading="lazy" />
+            </div>
+          </article>
         </div>
       </div>
     </section>
@@ -264,7 +252,7 @@
 
     <section class="xsection" id="pricing">
       <div class="wrap narrow center">
-        <h2 class="section-title">Pricing Plans</h2>
+        <h2 class="section-title">Flat pricing. <span class="dim-line">0% of sales.</span></h2>
         <p class="section-sub">No sales fees on any plan — 100% of your revenue is yours. Pay a flat monthly rate sized by how many paying members you have.</p>
       </div>
       <div class="wrap">
@@ -276,7 +264,10 @@
         <div class="price-grid">
           <div class="panel price-card">
             <span class="price-name">Free</span>
+            <p class="price-desc">For trying Ripley out.</p>
             <span class="price-amt" data-m="0" data-y="0"><span class="pa-num">$0</span><span class="price-per">/month</span></span>
+            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
+            <div class="price-divider"></div>
             <ul class="price-list">
               <li>Up to 10 active members</li>
               <li>0% platform fees</li>
@@ -286,11 +277,13 @@
               <li>Email receipts</li>
               <li>Member management</li>
             </ul>
-            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
           </div>
           <div class="panel price-card">
             <span class="price-name">Starter</span>
+            <p class="price-desc">For your first paying members.</p>
             <span class="price-amt" data-m="5.99" data-y="59.90"><span class="pa-num">$5.99</span><span class="price-per">/month</span></span>
+            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
+            <div class="price-divider"></div>
             <ul class="price-list">
               <li>Up to 50 active members</li>
               <li>0% platform fees</li>
@@ -300,12 +293,14 @@
               <li>Email receipts</li>
               <li>Member management</li>
             </ul>
-            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
           </div>
           <div class="panel price-card popular">
-            <span class="price-badge">Popular</span>
+            <span class="price-badge">Most popular</span>
             <span class="price-name">Growth</span>
+            <p class="price-desc">For growing communities.</p>
             <span class="price-amt" data-m="19.99" data-y="199.90"><span class="pa-num">$19.99</span><span class="price-per">/month</span></span>
+            <a class="btn-fill price-cta" href="/dashboard">Get started</a>
+            <div class="price-divider"></div>
             <ul class="price-list">
               <li>Up to 500 active members</li>
               <li>0% platform fees</li>
@@ -315,11 +310,13 @@
               <li>Email receipts</li>
               <li>Member management</li>
             </ul>
-            <a class="btn-fill price-cta" href="/dashboard">Get started</a>
           </div>
           <div class="panel price-card">
             <span class="price-name">Scale</span>
+            <p class="price-desc">For big operations.</p>
             <span class="price-amt" data-m="49.99" data-y="499.90"><span class="pa-num">$49.99</span><span class="price-per">/month</span></span>
+            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
+            <div class="price-divider"></div>
             <ul class="price-list">
               <li>Unlimited active members</li>
               <li>0% platform fees</li>
@@ -329,7 +326,6 @@
               <li>Email receipts</li>
               <li>Member management</li>
             </ul>
-            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
           </div>
         </div>
         <p class="price-note">Every feature is on every plan — only the member limit changes. Start free and upgrade from your dashboard when your community grows.</p>
@@ -372,6 +368,19 @@
       </div>
     </section>
 
+    <section class="xsection" id="get-started">
+      <div class="wrap narrow center">
+        <div class="panel cta-panel">
+          <h2 class="section-title">Start selling in your server today</h2>
+          <p class="section-sub">Invite Ripley, connect Stripe, publish your store. Free for your first 10 paying members.</p>
+          <div class="cta-actions">
+            <a class="btn-fill btn-hero" href="/api/invite">Invite Ripley <span aria-hidden="true">&rarr;</span></a>
+            <a class="link-quiet" href="/dashboard">Open dashboard <span aria-hidden="true">&rarr;</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="xcta">
       <div class="glow glow-cta" aria-hidden="true"></div>
       <h2>Ready to make money with<br />your Discord server?</h2>
@@ -408,6 +417,6 @@
     <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
   </footer>
 
-  <script src="/home.js?v=39"></script>
+  <script src="/home.js?v=40"></script>
 </body>
 </html>
