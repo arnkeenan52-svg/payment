@@ -24,7 +24,10 @@ let senderCache = { value: null, at: 0 };
 
 export async function receiptFrom() {
   const explicit = process.env.RECEIPT_FROM || (await getAppSecret('receipt_from').catch(() => null));
-  if (explicit) return explicit;
+  // The resend.dev test sender is never a real choice — the old settings UI
+  // could persist it as an "override", which then shadowed the verified-
+  // domain lookup forever. Only honor overrides on a real domain.
+  if (explicit && !explicit.includes('resend.dev')) return explicit;
   const now = Date.now();
   if (senderCache.value && now - senderCache.at < 10 * 60_000) return senderCache.value;
   let from = 'Ripley <onboarding@resend.dev>';
