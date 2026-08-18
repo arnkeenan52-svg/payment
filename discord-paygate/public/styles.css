@@ -1948,15 +1948,34 @@ a.kicker:hover { color: var(--ink); }
     linear-gradient(#fff, #fff) right bottom / 6px 6px no-repeat;
 }
 
-/* closing CTA: the inverted panel (advanced-stats “primary goal” card).
+/* closing CTA: a dark panel in the page's own palette, lit by a border
+   beam — a thin white light tracing the hairline. The one moving accent
+   on the page, and it moves along the brand's own edge.
    body.home .panel would out-rank a bare class, so match its weight. */
-.cta-panel, body.home .panel.cta-panel { background: #f5f5f5; border-color: #f5f5f5; }
-.cta-panel .section-title, body.home .cta-panel .section-title { color: #0a0a0a; }
-.cta-panel .section-sub, body.home .cta-panel .section-sub { color: #55555e; }
-.cta-panel .btn-fill { background: #0a0a0a; color: #fafafa; }
-.cta-panel .btn-fill:hover { filter: none; background: #1f1f1f; }
-.cta-panel .link-quiet { color: #55555e; }
-.cta-panel .link-quiet:hover { color: #0a0a0a; }
+@property --beam { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.cta-panel, body.home .panel.cta-panel {
+  position: relative; background: #0d0d0d; border-color: #232323;
+  border-radius: 16px; overflow: hidden;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.cta-panel::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+  background: conic-gradient(from var(--beam),
+    transparent 0deg, transparent 300deg,
+    rgba(255, 255, 255, 0.85) 330deg, rgba(255, 255, 255, 0.15) 344deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: beam-spin 5s linear infinite;
+  pointer-events: none;
+}
+@keyframes beam-spin { to { --beam: 360deg; } }
+.cta-panel > * { position: relative; }
+.cta-panel .section-title, body.home .cta-panel .section-title { color: var(--ink); }
+.cta-panel .section-sub, body.home .cta-panel .section-sub { color: rgba(255, 255, 255, 0.55); }
+@media (prefers-reduced-motion: reduce) { .cta-panel::before { animation: none; opacity: 0.35; } }
 
 /* account badge: quiet neutral, not a hard white ring */
 .badge { border-color: var(--edge); }
