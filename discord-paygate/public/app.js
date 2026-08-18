@@ -1,6 +1,12 @@
 const $ = (sel) => document.querySelector(sel);
-// Which store this page shows: /s/<slug> → that store, /store → the default.
-const STORE_SLUG = (location.pathname.match(/^\/s\/([a-z0-9-]+)$/) ?? [])[1] ?? '';
+// Which store this page shows: /<slug> (or legacy /s/<slug>) → that store,
+// /store → the default. This file only ever runs on store.html, so any other
+// single-segment path IS a store slug.
+const STORE_SLUG =
+  (location.pathname.match(/^\/s\/([a-z0-9-]+)$/) ?? [])[1] ??
+  ((location.pathname.match(/^\/([a-z0-9-]+)$/) ?? [])[1] === 'store'
+    ? ''
+    : ((location.pathname.match(/^\/([a-z0-9-]+)$/) ?? [])[1] ?? ''));
 const storeQS = STORE_SLUG ? `?store=${encodeURIComponent(STORE_SLUG)}` : '';
 const loginStoreQ = STORE_SLUG ? `&store=${encodeURIComponent(STORE_SLUG)}` : '';
 

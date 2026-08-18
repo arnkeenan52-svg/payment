@@ -15,7 +15,8 @@
     { "source": "/auth/callback", "destination": "/api/auth/callback" },
     { "source": "/auth/logout", "destination": "/api/auth/logout" },
     { "source": "/webhooks/stripe", "destination": "/api/webhooks/stripe" },
-    { "source": "/webhooks/coinbase", "destination": "/api/webhooks/coinbase" }
+    { "source": "/webhooks/coinbase", "destination": "/api/webhooks/coinbase" },
+    { "source": "/:slug", "destination": "/store.html" }
   ],
   "functions": {
     "api/webhooks/stripe.js": { "maxDuration": 60 },

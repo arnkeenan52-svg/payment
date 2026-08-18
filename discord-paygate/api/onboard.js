@@ -6,7 +6,7 @@ import { sealSecret } from '../src/lib/secretbox.js';
 import { getUser } from '../src/db.js';
 import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember } from '../src/lib/discord.js';
 import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache } from '../src/lib/stripe.js';
-import { storeByGuild, storeBySlug, slugify, plansOf } from '../src/services/stores.js';
+import { storeByGuild, storeBySlug, slugify, isReservedSlug, plansOf } from '../src/services/stores.js';
 
 const ADMINISTRATOR = 1n << 3n;
 const MANAGE_GUILD = 1n << 5n;
@@ -90,7 +90,7 @@ export default guard(async function handler(req, res) {
       }
 
       let slug = slugify(name);
-      if (slug === 'store' || (await db.getStoreBySlug(slug))) {
+      if (isReservedSlug(slug) || (await db.getStoreBySlug(slug))) {
         slug = `${slug}-${guildId.slice(-4)}`;
         if (await db.getStoreBySlug(slug)) return sendJson(res, 409, { error: 'Try a different store name.' });
       }
@@ -247,7 +247,7 @@ export default guard(async function handler(req, res) {
       const plans = await db.storePlansFor(row.id);
       const out = [];
       for (const p of plans) {
-        out.push({ ...p, buyers: await db.countBuyersOfPlan(row.id, p.planKey), checkoutUrl: `${config.publicBaseUrl}/s/${row.slug}?plan=${encodeURIComponent(p.planKey)}` });
+        out.push({ ...p, buyers: await db.countBuyersOfPlan(row.id, p.planKey), checkoutUrl: `${config.publicBaseUrl}/${row.slug}?plan=${encodeURIComponent(p.planKey)}` });
       }
       return sendJson(res, 200, { products: out, storeSlug: row.slug });
     }

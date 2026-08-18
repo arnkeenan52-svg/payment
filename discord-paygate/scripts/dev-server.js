@@ -137,8 +137,18 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === 'GET' && /^\/[a-zA-Z0-9._-]+$/.test(url.pathname)) {
-      serveStatic(res, url.pathname.slice(1));
-      return;
+      const file = url.pathname.slice(1);
+      const resolved = path.join(PUBLIC_DIR, file);
+      if (resolved.startsWith(PUBLIC_DIR) && fs.existsSync(resolved) && fs.statSync(resolved).isFile()) {
+        serveStatic(res, file);
+        return;
+      }
+      // Store links live at the root (vercel.json's /:slug rewrite): any
+      // slug-shaped path with no matching static file is a storefront.
+      if (/^\/[a-z0-9-]+$/.test(url.pathname)) {
+        serveStatic(res, 'store.html');
+        return;
+      }
     }
     sendText(res, 404, 'not found');
   } catch (err) {

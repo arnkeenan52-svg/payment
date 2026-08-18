@@ -647,9 +647,13 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
     'an animated guild icon must surface as the .gif CDN url',
   );
   assert.equal(server.name, 'Tradeleaks', 'server name must come from the live guild lookup, never a placeholder');
-  // The internal diagnostics page is gone — tenants never see platform plumbing.
+  // The internal diagnostics page is gone — tenants never see platform
+  // plumbing. Its old path now falls through to the storefront shell like any
+  // other unclaimed slug ('diagnostics' is reserved, so no store can claim it).
   const diagPage = await fetch(`${appUrl}/diagnostics`);
-  assert.equal(diagPage.status, 404, 'the diagnostics page must not exist on the tenant-facing site');
+  const diagBody = await diagPage.text();
+  assert.doesNotMatch(diagBody, /Setup diagnostics/, 'the diagnostics tool must be gone');
+  assert.match(diagBody, /Confirm Order/, 'unclaimed slugs serve the storefront shell');
   assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'imageUrl', 'interval', 'lifetime', 'name', 'priceUsd', 'roleNames']);
 });
 
@@ -1529,7 +1533,10 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   assert.equal(live.status, 200);
   assert.equal((await live.json()).store.status, 'live');
 
-  // The slug storefront serves, and its plans API shows the tenant catalog.
+  // The slug storefront serves at the root (and the legacy /s/ path), and its
+  // plans API shows the tenant catalog.
+  assert.equal((await fetch(`${appUrl}/vip-signals`)).status, 200);
+  assert.match(await (await fetch(`${appUrl}/vip-signals`)).text(), /Confirm Order/, 'root slug serves the storefront');
   assert.equal((await fetch(`${appUrl}/s/vip-signals`)).status, 200);
   const tenantPlans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
   assert.equal(tenantPlans.server.guildId, G2);
@@ -1548,7 +1555,7 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
     redirect: 'manual',
     headers: { cookie: sc8 },
   });
-  assert.equal(cb8.headers.get('location'), `/s/vip-signals?plan=${plan.planKey}`, 'buyer lands back on the tenant store');
+  assert.equal(cb8.headers.get('location'), `/vip-signals?plan=${plan.planKey}`, 'buyer lands back on the tenant store');
   const u8Cookie = cb8.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
 
   const co = await fetch(`${appUrl}/api/checkout/stripe`, {
@@ -1833,7 +1840,7 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal(list0.products.length, 1);
   const vip = list0.products[0];
   assert.ok(vip.buyers >= 10, `buyers counted (got ${vip.buyers})`);
-  assert.match(vip.checkoutUrl, /\/s\/vip-signals\?plan=/);
+  assert.match(vip.checkoutUrl, /\.e2e\/vip-signals\?plan=/, 'checkout links use the root store URL');
 
   // Deactivate → hidden from buyers and refused at checkout; reactivate heals.
   assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, active: false })).status, 200);
@@ -1917,7 +1924,11 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   const pub = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
   assert.equal(pub.brand, 'VIP Signals Pro');
   assert.equal(pub.store.description, 'The alpha desk.');
-  // Custom link: new slug serves, the old one 404s, then restore.
+  // Custom link: platform paths can never be claimed as store links.
+  for (const bad of ['dashboard', 'api', 'store', 'diagnostics']) {
+    assert.equal((await storeCall({ slug: bad })).status, 409, `reserved slug "${bad}" must be refused`);
+  }
+  // New slug serves, the old one 404s, then restore.
   assert.equal((await storeCall({ slug: 'vip-elite' })).status, 200);
   assert.equal((await fetch(`${appUrl}/api/plans?store=vip-elite`)).status, 200);
   assert.equal((await fetch(`${appUrl}/api/plans?store=vip-signals`)).status, 404);

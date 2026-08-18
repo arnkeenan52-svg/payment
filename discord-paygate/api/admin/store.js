@@ -2,7 +2,7 @@ import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { ownerAuthorized } from '../../src/lib/authz.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import * as db from '../../src/db.js';
-import { storeBySlug } from '../../src/services/stores.js';
+import { storeBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
 import { stripeFetch } from '../../src/lib/stripe.js';
 
@@ -60,7 +60,7 @@ export default guard(async function handler(req, res) {
       return sendJson(res, 400, { error: 'Links are 2–40 lowercase letters, numbers and dashes.' });
     }
     if (slug !== store.slug) {
-      if (slug === 'store' || (await db.getStoreBySlug(slug))) {
+      if (isReservedSlug(slug) || (await db.getStoreBySlug(slug))) {
         return sendJson(res, 409, { error: 'That link is taken — pick another.' });
       }
       fields.slug = slug;

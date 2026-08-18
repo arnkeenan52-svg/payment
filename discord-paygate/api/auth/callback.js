@@ -48,7 +48,7 @@ export default guard(async function handler(req, res) {
 
   const plan = /^[a-z0-9_-]{1,64}$/i.test(cookies[PLAN_COOKIE] ?? '') ? cookies[PLAN_COOKIE] : '';
   const storeSlug = /^[a-z0-9-]{1,40}$/.test(cookies[STORE_COOKIE] ?? '') ? cookies[STORE_COOKIE] : '';
-  const base = storeSlug && storeSlug !== 'store' ? `/s/${encodeURIComponent(storeSlug)}` : '/store';
+  const base = storeSlug && storeSlug !== 'store' ? `/${encodeURIComponent(storeSlug)}` : '/store';
   redirect(res, plan ? `${base}?plan=${encodeURIComponent(plan)}` : base, {
     'set-cookie': [
       createSessionCookie(me.id),

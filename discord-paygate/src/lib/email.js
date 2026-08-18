@@ -18,7 +18,7 @@ export async function receiptFrom() {
   return (
     process.env.RECEIPT_FROM ||
     (await getAppSecret('receipt_from').catch(() => null)) ||
-    'Ripley Receipts <onboarding@resend.dev>'
+    'Ripley <onboarding@resend.dev>'
   );
 }
 
@@ -28,33 +28,41 @@ export function receiptHtml({ storeName, planName, amountUsd, lifetime, discordU
   const amount = `$${Number(amountUsd).toFixed(2)} USD`;
   const row = (k, v) => `
     <tr>
-      <td style="padding:8px 0;color:#8a8f98;font-size:13px;">${esc(k)}</td>
-      <td style="padding:8px 0;color:#0b0b0c;font-size:13px;font-weight:600;text-align:right;">${esc(v)}</td>
+      <td style="padding:9px 0;color:#8a8f98;font-size:13px;border-bottom:1px solid #eef0f3;">${esc(k)}</td>
+      <td style="padding:9px 0;color:#0b0b0c;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #eef0f3;">${esc(v)}</td>
     </tr>`;
   return `
-  <div style="background:#f4f5f7;padding:32px 16px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <div style="max-width:460px;margin:0 auto;background:#ffffff;border-radius:14px;padding:28px;border:1px solid #e6e8ec;">
-      <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#8a8f98;font-weight:700;">Receipt</p>
-      <h1 style="margin:0 0 18px;font-size:20px;color:#0b0b0c;">${esc(storeName)}</h1>
-      <p style="margin:0 0 18px;font-size:14px;color:#3f4450;line-height:1.6;">
-        Thanks for your purchase — your access has been delivered to
-        <strong>@${esc(discordUsername ?? 'your Discord account')}</strong>.
+  <div style="background:#f4f5f7;padding:36px 16px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <div style="max-width:460px;margin:0 auto;background:#ffffff;border-radius:8px;padding:32px;border:1px solid #e6e8ec;">
+      <table role="presentation" style="border-collapse:collapse;margin:0 0 14px;"><tr>
+        <td style="width:34px;height:34px;background:#e9f9ef;border:1px solid #bfeccd;border-radius:6px;text-align:center;vertical-align:middle;color:#16a34a;font-size:17px;font-weight:700;line-height:34px;">&#10003;</td>
+        <td style="padding-left:12px;">
+          <span style="display:block;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;font-weight:800;">Membership Activated</span>
+        </td>
+      </tr></table>
+      <h1 style="margin:0 0 10px;font-size:21px;line-height:1.3;color:#0b0b0c;">Your ${esc(storeName)} membership is active</h1>
+      <p style="margin:0 0 20px;font-size:14px;color:#3f4450;line-height:1.65;">
+        <strong>${esc(planName)}</strong> is live on
+        <strong>@${esc(discordUsername ?? 'your Discord account')}</strong> — your roles have been
+        delivered and every members-only channel is now open to you.
       </p>
-      <table style="width:100%;border-collapse:collapse;border-top:1px solid #e6e8ec;">
-        ${row('Product', planName)}
-        ${row('Access', lifetime ? 'Lifetime — never expires' : 'Subscription')}
-        ${row('Amount', amount)}
+      <table style="width:100%;border-collapse:collapse;border-top:1px solid #eef0f3;">
+        ${row('Server', storeName)}
+        ${row('Membership', planName)}
+        ${row('Access', lifetime ? 'Lifetime — never expires' : 'Renews monthly')}
+        ${row('Amount paid', amount)}
         ${row('Date', dateIso)}
         ${row('Reference', reference)}
       </table>
-      <div style="border-top:1px solid #e6e8ec;margin-top:6px;padding-top:16px;">
+      <div style="margin-top:20px;">
         <a href="${esc(config.publicBaseUrl)}/account"
-           style="display:inline-block;background:#0b0b0c;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;">
-          Manage your access
+           style="display:inline-block;background:#0b0b0c;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:11px 20px;border-radius:6px;">
+          Manage Membership
         </a>
       </div>
-      <p style="margin:18px 0 0;font-size:11.5px;color:#8a8f98;">
+      <p style="margin:20px 0 0;font-size:11.5px;color:#8a8f98;line-height:1.6;">
         Payment processed by Stripe. Sent by Ripley on behalf of ${esc(storeName)}.
+        If anything looks wrong, reply to this email.
       </p>
     </div>
   </div>`;
@@ -72,7 +80,7 @@ export async function sendReceiptEmail({ to, storeName, planName, amountUsd, lif
       body: JSON.stringify({
         from: await receiptFrom(),
         to: [to],
-        subject: `Your ${storeName} receipt — ${planName}`,
+        subject: `Your ${storeName} membership is active`,
         html: receiptHtml({
           storeName,
           planName,

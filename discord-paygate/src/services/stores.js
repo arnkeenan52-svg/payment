@@ -117,3 +117,15 @@ export function slugify(name) {
     .slice(0, 40);
   return base || 'server';
 }
+
+// Store links live at the domain root (ripleybot.com/<slug>), so every path
+// the platform itself uses is off-limits as a store name.
+const RESERVED_SLUGS = new Set([
+  'store', 'account', 'dashboard', 'receipt', 'terms', 'privacy', 'diagnostics',
+  'api', 'auth', 'webhooks', 's', 'admin', 'checkout', 'login', 'logout',
+  'pricing', 'docs', 'help', 'support', 'status', 'assets', 'static',
+]);
+
+export function isReservedSlug(slug) {
+  return RESERVED_SLUGS.has(String(slug ?? '').toLowerCase());
+}

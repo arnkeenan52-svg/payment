@@ -421,7 +421,7 @@ function renderSetupStep(g, step) {
 }
 
 function renderLive(g, slug) {
-  const link = `${location.origin}/s/${slug}`;
+  const link = `${location.origin}/${slug}`;
   wizShell(g, 4, `
     <div class="wiz-done">
       <span class="done-ring">${I.check}</span>
@@ -1037,7 +1037,7 @@ function sectionStore(store, link) {
       body: `
         ${linkRow}
         <label class="field"><span class="field-label">Custom link</span>
-          <div class="slug-row"><span class="slug-prefix">${esc(location.origin)}/s/</span><input id="st-slug" type="text" maxlength="40" value="${esc(store.slug)}" spellcheck="false" /></div>
+          <div class="slug-row"><span class="slug-prefix">${esc(location.origin)}/</span><input id="st-slug" type="text" maxlength="40" value="${esc(store.slug)}" spellcheck="false" /></div>
           <span class="field-help">Changing the link breaks the old one immediately.</span></label>
         <p class="field-err" id="err-slug" role="alert"></p>`,
       foot: `<button class="btn-secondary" id="st-slug-save">Update link</button>`,
@@ -1108,7 +1108,7 @@ async function viewStore(slug) {
     return;
   }
   const store = data.stores.find((s) => s.slug === slug) ?? data.stores[0];
-  const link = store.isDefault ? `${location.origin}/store` : `${location.origin}/s/${store.slug}`;
+  const link = store.isDefault ? `${location.origin}/store` : `${location.origin}/${store.slug}`;
   const section = location.hash.split('/')[3] ?? 'overview';
   const isPlatformOwner = Boolean(state.me?.isOwner);
 
@@ -1629,7 +1629,7 @@ function wireStoreSettings(store, slug) {
     const slugNew = $('#st-slug').value.trim().toLowerCase();
     fieldErr('slug', '');
     if (slugNew === store.slug) return;
-    if (!confirm(`Change your store link to ${location.origin}/s/${slugNew}?\n\nThe old link stops working immediately.`)) return;
+    if (!confirm(`Change your store link to ${location.origin}/${slugNew}?\n\nThe old link stops working immediately.`)) return;
     btn.disabled = true;
     btn.textContent = 'Updating…';
     try {
