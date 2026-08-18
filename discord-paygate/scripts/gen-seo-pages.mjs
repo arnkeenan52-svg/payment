@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '29'; // keep in step with the ?v= asset version on index.html
+const V = '30'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
