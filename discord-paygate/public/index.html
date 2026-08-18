@@ -30,109 +30,152 @@
   </header>
 
   <main class="landing">
-    <section class="hero">
+    <section class="hero bleed">
       <video class="hero-video" autoplay muted loop playsinline preload="auto"
              onerror="this.remove()" src="/hero.mp4"></video>
       <div class="hero-shade"></div>
       <div class="hero-inner">
         <span class="hero-kicker">0% platform fees · powered by Stripe</span>
-        <h1>Your community.<br />Your revenue.</h1>
-        <p class="hero-sub">Ripley turns a Discord server into a store: buyers pay by card and their role lands in seconds — nothing skimmed off the top.</p>
+        <h1>The Discord store<br />that pays you everything.</h1>
+        <p class="hero-sub">Sell roles and access in your Discord server. Buyers pay by card, their role lands in seconds, and every cent goes to your own Stripe account.</p>
         <div class="hero-ctas">
-          <a class="btn-pill hero-cta" id="hero-buy" href="/store">Open the store →</a>
-          <a class="btn-secondary hero-alt" href="/dashboard">Add your server</a>
+          <a class="btn-pill hero-cta" id="hero-buy" href="/dashboard">Start selling — it's free →</a>
+          <a class="btn-secondary hero-alt" href="/store" id="hero-store">Visit a live store</a>
         </div>
         <div class="hero-trust">
           <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> Secured by Stripe</span>
-          <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg> Instant delivery</span>
-          <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 12c-2-2.7-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.3 6-4zm0 0c2 2.7 4 4 6 4a4 4 0 1 0 0-8c-2 0-4 1.3-6 4z"/></svg> Lifetime option</span>
+          <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg> Roles in seconds</span>
+          <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 12c-2-2.7-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.3 6-4zm0 0c2 2.7 4 4 6 4a4 4 0 1 0 0-8c-2 0-4 1.3-6 4z"/></svg> Lifetime &amp; subscriptions</span>
+        </div>
+        <div class="hero-mock" aria-hidden="true">
+          <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-url">ripleybot.com/dashboard</span></div>
+          <div class="mock-body">
+            <div class="mock-stats">
+              <div class="mock-stat"><span class="k">30-Day Revenue</span><span class="v">$2,439.51</span></div>
+              <div class="mock-stat"><span class="k">Sales</span><span class="v">41</span></div>
+              <div class="mock-stat"><span class="k">Active Members</span><span class="v">38</span></div>
+              <div class="mock-stat"><span class="k">Lifetime Members</span><span class="v">29</span></div>
+            </div>
+            <div class="mock-chart"><i style="height:22%"></i><i style="height:30%"></i><i style="height:18%"></i><i style="height:42%"></i><i style="height:35%"></i><i style="height:52%"></i><i style="height:44%"></i><i style="height:61%"></i><i style="height:50%"></i><i style="height:70%"></i><i style="height:58%"></i><i style="height:78%"></i><i style="height:66%"></i><i style="height:88%"></i><i style="height:100%"></i></div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="store-card panel" id="store-card" hidden>
-      <img id="store-icon" class="store-icon" src="" alt="" width="56" height="56" hidden />
-      <div class="store-meta">
-        <h2 id="store-name">&nbsp;</h2>
-        <p class="note-help" id="store-desc"></p>
-      </div>
-      <a class="btn-pill store-cta" id="store-cta" href="/store">Get&nbsp;Premium</a>
-    </section>
-
-    <section class="split">
-      <div class="split-copy">
-        <h2>Selling access shouldn't cost you access.</h2>
-        <p>Marketplaces take a cut of every sale, hold your money, and can close your storefront overnight. Ripley is different by design:</p>
-        <ul class="tick-list">
-          <li><strong>Every cent goes to the owner.</strong> Payments run through the owner's own Stripe account — Ripley never touches the money.</li>
-          <li><strong>No middleman risk.</strong> Your storefront lives on your own domain, not inside someone else's marketplace.</li>
-          <li><strong>Nothing to install.</strong> Buyers sign in with Discord, pay, and they're in. No bots to invite, no commands to learn.</li>
-        </ul>
-      </div>
-      <div class="demo-card panel" aria-hidden="true">
-        <div class="demo-row demo-head"><span class="demo-dot"></span><span>Ripley</span><span class="demo-time">just now</span></div>
-        <div class="demo-row"><span class="demo-check">✓</span><div><strong>Payment completed</strong><br /><span class="demo-dim">Premium — $59.99 · lifetime</span></div></div>
-        <div class="demo-row"><span class="demo-check">✓</span><div><strong>Role granted</strong><br /><span class="demo-dim">@PREMIUM added in 1.4s</span></div></div>
-        <div class="demo-row"><span class="demo-check">✓</span><div><strong>Receipt confirmed</strong><br /><span class="demo-dim">Access verified — welcome in</span></div></div>
+    <section class="section alt">
+      <div class="wrap">
+        <h2 class="section-title">Tired of platforms eating your earnings?</h2>
+        <p class="section-sub">Marketplaces take a cut of every sale, hold your money, and can close your storefront overnight.</p>
+        <div class="pain-grid">
+          <div class="panel pain">
+            <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0-2.4 1"/></svg> Lost revenue</h3>
+            <p>5–15% platform fees on every sale add up fast. Ripley takes 0% — payments run through your own Stripe account, so nothing is skimmed off the top.</p>
+          </div>
+          <div class="panel pain">
+            <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg> Account risk</h3>
+            <p>A marketplace can freeze payouts or delete your store overnight. Here your storefront runs on your own domain and your own Stripe — nobody stands between you and your money.</p>
+          </div>
+          <div class="panel pain">
+            <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg> Limited options</h3>
+            <p>One-time lifetime access or monthly subscriptions, your prices, your product images, your roles — configured in minutes from the dashboard.</p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="steps">
-      <h2 class="steps-title">How it works</h2>
-      <div class="steps-grid">
-        <div class="panel step"><span class="step-n">1</span><p><strong>Sign in with Discord</strong><br />so we know exactly where to deliver.</p></div>
-        <div class="panel step"><span class="step-n">2</span><p><strong>Pay with card</strong><br />on Stripe's hosted, secure checkout.</p></div>
-        <div class="panel step"><span class="step-n">3</span><p><strong>Role lands in seconds</strong><br />— and if it's ever missing, one click brings it back.</p></div>
+    <section class="section">
+      <div class="wrap split">
+        <div class="split-copy">
+          <h2>A payment processor built for Discord.</h2>
+          <p>Ripley handles the whole flow — checkout, role delivery, receipts, and self-healing access:</p>
+          <ul class="tick-list">
+            <li><strong>Every cent goes to you.</strong> Buyers pay on Stripe's hosted checkout connected to your account. Ripley never touches the money.</li>
+            <li><strong>Roles land in seconds.</strong> The moment payment clears, the buyer gets their role — and if they're not in the server yet, they're pulled in automatically.</li>
+            <li><strong>Receipts included.</strong> Buyers get a clean emailed receipt after every purchase.</li>
+            <li><strong>Access heals itself.</strong> Roles are re-checked hourly, and buyers can fix their own access with one click.</li>
+          </ul>
+        </div>
+        <div class="demo-card panel" aria-hidden="true">
+          <div class="demo-row demo-head"><span class="demo-dot"></span><span>Ripley</span><span class="demo-time">just now</span></div>
+          <div class="demo-row"><span class="demo-check">✓</span><div><strong>Payment completed</strong><br /><span class="demo-dim">Premium — $59.99 · lifetime</span></div></div>
+          <div class="demo-row"><span class="demo-check">✓</span><div><strong>Role granted</strong><br /><span class="demo-dim">@PREMIUM added in 1.4s</span></div></div>
+          <div class="demo-row"><span class="demo-check">✓</span><div><strong>Receipt sent</strong><br /><span class="demo-dim">Emailed to the buyer</span></div></div>
+        </div>
       </div>
     </section>
 
-    <section class="features">
-      <div class="panel feature">
-        <h3><svg class="f-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg> Instant delivery</h3>
-        <p>The moment payment clears, the role lands. Not in the server yet? You're pulled in automatically with the role already attached.</p>
-      </div>
-      <div class="panel feature">
-        <h3><svg class="f-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> Secure by default</h3>
-        <p>Card details never touch this site — Stripe hosts the checkout, and every payment event is signature-verified before anything is granted.</p>
-      </div>
-      <div class="panel feature">
-        <h3><svg class="f-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 12c-2-2.7-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.3 6-4zm0 0c2 2.7 4 4 6 4a4 4 0 1 0 0-8c-2 0-4 1.3-6 4z"/></svg> Lifetime means lifetime</h3>
-        <p>One payment, no renewals. A lifetime purchase structurally cannot expire — there is no timer to run out.</p>
-      </div>
-      <div class="panel feature">
-        <h3><svg class="f-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg> Self-healing access</h3>
-        <p>Roles are re-checked continuously. Buyers can also fix their own access with one click on the account page — no support ticket needed.</p>
+    <section class="section alt">
+      <div class="wrap">
+        <h2 class="section-title">How it works</h2>
+        <p class="section-sub">From zero to selling in a few minutes — no code, no bots to configure.</p>
+        <div class="steps-grid">
+          <div class="panel step"><span class="step-n">1</span><p><strong>Pick your server</strong><br />Sign in with Discord and choose a server you manage.</p></div>
+          <div class="panel step"><span class="step-n">2</span><p><strong>Connect Stripe &amp; create a product</strong><br />Paste your Stripe key, set a name, price and image.</p></div>
+          <div class="panel step"><span class="step-n">3</span><p><strong>Get paid</strong><br />Share your store link — roles deliver themselves.</p></div>
+        </div>
       </div>
     </section>
 
-    <section class="faq">
-      <h2 class="steps-title">Frequently asked questions</h2>
-      <details class="panel faq-item">
-        <summary>Do I have to be in the Discord server before buying?</summary>
-        <p>No. If you're not in the server yet, you're added automatically the moment your payment completes — with your role already attached.</p>
-      </details>
-      <details class="panel faq-item">
-        <summary>Is my card information safe?</summary>
-        <p>Yes. Payment happens on Stripe's own hosted checkout page. This site never sees, stores, or transmits your card details.</p>
-      </details>
-      <details class="panel faq-item">
-        <summary>What does "lifetime" actually mean?</summary>
-        <p>One payment, permanent access. There is no subscription behind it and nothing that renews or expires.</p>
-      </details>
-      <details class="panel faq-item">
-        <summary>My role disappeared — what do I do?</summary>
-        <p>Open your <a href="/account">account page</a> and press "Re-sync my access". Your roles are restored instantly. An automatic hourly check does the same in the background.</p>
-      </details>
-      <details class="panel faq-item">
-        <summary>Can I get a refund?</summary>
-        <p>Access is delivered instantly, so completed purchases are generally final — but if something went wrong (double charge, nothing delivered), contact the owner on Discord and it will be sorted. Details in the <a href="/terms">terms</a>.</p>
-      </details>
+    <section class="section">
+      <div class="wrap">
+        <h2 class="section-title">Built to not break</h2>
+        <p class="section-sub">The unglamorous parts — done properly.</p>
+        <div class="features">
+          <div class="panel feature">
+            <h3><svg class="f-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg> Instant delivery</h3>
+            <p>The moment payment clears, the role lands. Not in the server yet? You're pulled in automatically with the role already attached.</p>
+          </div>
+          <div class="panel feature">
+            <h3><svg class="f-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> Secure by default</h3>
+            <p>Card details never touch this site — Stripe hosts the checkout, and every payment event is signature-verified before anything is granted.</p>
+          </div>
+          <div class="panel feature">
+            <h3><svg class="f-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 12c-2-2.7-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.3 6-4zm0 0c2 2.7 4 4 6 4a4 4 0 1 0 0-8c-2 0-4 1.3-6 4z"/></svg> Lifetime means lifetime</h3>
+            <p>One payment, no renewals. A lifetime purchase structurally cannot expire — there is no timer to run out.</p>
+          </div>
+          <div class="panel feature">
+            <h3><svg class="f-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg> Self-healing access</h3>
+            <p>Roles are re-checked continuously. Buyers can also fix their own access with one click — no support tickets.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section class="final-cta panel">
-      <h2>Ready to open yours?</h2>
-      <p class="note-help" id="final-sub">Buy access in seconds — or put your own server on Ripley.</p>
-      <div class="hero-ctas"><a class="btn-pill hero-cta" id="final-buy" href="/store">Open the store →</a><a class="btn-secondary hero-alt" href="/dashboard">Add your server</a></div>
+    <section class="section alt">
+      <div class="wrap">
+        <h2 class="section-title">Frequently asked questions</h2>
+        <div class="faq" style="margin-top:26px">
+          <details class="panel faq-item">
+            <summary>How do I get paid?</summary>
+            <p>Directly. Buyers pay on Stripe checkout connected to your own Stripe account — money never passes through Ripley, and there is no platform fee.</p>
+          </details>
+          <details class="panel faq-item">
+            <summary>Do buyers have to be in my server before purchasing?</summary>
+            <p>No. If they're not in the server yet, they're added automatically the moment payment completes — with the role already attached.</p>
+          </details>
+          <details class="panel faq-item">
+            <summary>Can I sell one-time lifetime access?</summary>
+            <p>Yes — one-time lifetime and monthly subscriptions are both supported. Lifetime access structurally cannot expire.</p>
+          </details>
+          <details class="panel faq-item">
+            <summary>Is card data safe?</summary>
+            <p>Card details go straight to Stripe on their hosted checkout page. This site never sees, stores, or transmits them.</p>
+          </details>
+          <details class="panel faq-item">
+            <summary>A buyer's role disappeared — now what?</summary>
+            <p>They press "Re-sync my access" on their <a href="/account">account page</a> and it's restored instantly. An hourly sweep does the same automatically.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="footer-cta">
+      <h2>Ready to make money<br />with your Discord server?</h2>
+      <p class="section-sub" style="margin-bottom:24px">Set up takes a few minutes. 0% platform fees, forever.</p>
+      <div class="hero-ctas">
+        <a class="btn-pill hero-cta" href="/dashboard">Start selling →</a>
+        <a class="btn-secondary hero-alt" href="/store">Visit a live store</a>
+      </div>
     </section>
   </main>
 

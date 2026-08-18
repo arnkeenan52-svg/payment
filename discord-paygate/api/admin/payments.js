@@ -64,7 +64,9 @@ export default guard(async function handler(req, res) {
 
   const activeMembers = new Set(rows.filter((r) => r.entitled).map((r) => r.discordId));
   sendJson(res, 200, {
-    stores: visible.map((s) => ({ slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault })),
+    // Every store the caller owns (for the dashboard's store switcher);
+    // `payments` below honours the ?store filter.
+    stores: stores.map((s) => ({ slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault })),
     totals: {
       allTimeUsd: Math.round(rows.reduce((sum, r) => sum + r.amountUsd, 0) * 100) / 100,
       payments: rows.length,

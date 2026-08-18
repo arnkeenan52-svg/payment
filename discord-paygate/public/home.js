@@ -11,7 +11,7 @@ async function load() {
     account.innerHTML =
       `<a class="nav-link" href="/store">Store</a>` +
       `<a class="nav-link" href="/account">Account</a>` +
-      (me.isOwner ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : '') +
+      `<a class="nav-link" href="/dashboard">Dashboard</a>` +
       `<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
     $('#logout').onclick = () => (window.location.href = '/auth/logout');
   } else {
@@ -20,23 +20,10 @@ async function load() {
     $('#login').onclick = () => (window.location.href = '/auth/login');
   }
 
-  // Live store card: the real server (name + icon) and the real price.
-  const plan = data?.plans?.[0];
-  if (plan) {
-    const card = $('#store-card');
-    card.hidden = false;
-    $('#store-name').textContent = data.server?.name ?? plan.name;
-    $('#store-desc').textContent = `${plan.name} — ${plan.description}`;
-    $('#store-cta').textContent = `Get ${plan.name} · $${plan.priceUsd}`;
-    $('#hero-buy').textContent = `Get ${plan.name} · $${plan.priceUsd} →`;
-    // Only the server's real Discord icon is ever shown — no stand-in logo.
-    if (data.server?.iconUrl) {
-      const icon = $('#store-icon');
-      icon.src = data.server.iconUrl;
-      icon.alt = data.server?.name ?? '';
-      icon.hidden = false;
-    }
-  }
+  // Point "Visit a live store" at the featured store with its real name.
+  const server = data?.server;
+  const link = $('#hero-store');
+  if (link && server?.name) link.textContent = `Visit ${server.name}`;
 }
 
 load().catch(() => {});
