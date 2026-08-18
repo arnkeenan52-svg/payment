@@ -1468,11 +1468,13 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .lg-key.prev { width: 14px; height: 0; border-top: 2px dashed var(--dim); opacity: 0.85; margin-left: 8px; }
 
 /* stat-card sparklines: the metric's shape over the current window */
-.stat-spark { display: block; width: 100%; height: 30px; margin-top: 6px; }
-.stat-spark .spark-line { stroke: var(--accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
-.stat-spark .spark-fill { fill: var(--accent); opacity: 0.09; }
+.stat-spark { display: block; width: 100%; height: 30px; margin-top: 6px; overflow: visible; }
+.stat-spark .spark-line { stroke: var(--accent); stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+/* the gradient rides in each svg's own defs — CSS only gates visibility */
+.stat-spark .spark-fill { opacity: 1; }
+.stat-spark .spark-dot { fill: var(--accent); }
 .stat-spark.flat .spark-line { stroke: var(--edge); }
-.stat-spark.flat .spark-fill { opacity: 0; }
+.stat-spark.flat .spark-fill, .stat-spark.flat .spark-dot { opacity: 0; }
 .chart-total .delta { margin-left: 8px; vertical-align: 3px; }
 
 .rev-chart .tick { fill: var(--dim); font-size: 10.5px; font-family: var(--font-body); }
@@ -2247,3 +2249,33 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .hiw-step.rv .vz-pop { opacity: 0; scale: 0.75; transition: opacity 0.3s var(--ease-out) 0.5s, scale 0.3s var(--ease-out) 0.5s; }
 .hiw-step.rv.in .vz-pop { opacity: 1; scale: 1; }
 @media (prefers-reduced-motion: reduce) { .hiw-step.rv .vz-pop { opacity: 1; scale: 1; transition: none; } }
+
+/* ── pro analytics: the current line draws itself in, the area fades up,
+   the live endpoint breathes once; product bars grow on load ──────────────── */
+.rev-chart .cur-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: rev-draw 0.9s var(--ease-out) 0.05s forwards; }
+@keyframes rev-draw { to { stroke-dashoffset: 0; } }
+.rev-chart .area-fill { opacity: 0; animation: rev-area 0.6s ease-out 0.55s forwards; }
+@keyframes rev-area { to { opacity: 1; } }
+.rev-chart .prev-line { opacity: 0; animation: rev-area 0.5s ease-out 0.75s forwards; }
+.rev-chart .end-dot, .rev-chart .end-halo, .rev-chart .peak, .rev-chart circle:not(.dot-cur):not(.dot-prev) {
+  opacity: 0; animation: rev-area 0.4s ease-out 0.85s forwards;
+}
+.rev-chart .end-halo { animation: rev-halo 0.4s ease-out 0.85s forwards; }
+@keyframes rev-halo { to { opacity: 0.14; } }
+.top-bar { height: 7px; border-radius: 4px; }
+.top-bar span {
+  background: linear-gradient(90deg, #8f8f8f, #f2f2f2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transform-origin: left center;
+  animation: bar-grow 0.8s var(--ease-out) 0.15s backwards;
+}
+@keyframes bar-grow { from { transform: scaleX(0); } }
+.chart-tip { background: rgba(18, 18, 18, 0.92); backdrop-filter: blur(10px); border-radius: 8px; }
+.panel.stat { transition: border-color 140ms ease-out; }
+.panel.stat:hover { border-color: rgba(255, 255, 255, 0.16); }
+@media (prefers-reduced-motion: reduce) {
+  .rev-chart .cur-line, .rev-chart .area-fill, .rev-chart .prev-line,
+  .rev-chart .end-dot, .rev-chart .end-halo, .rev-chart .peak { animation: none; opacity: 1; stroke-dasharray: none; stroke-dashoffset: 0; }
+  .rev-chart .end-halo { opacity: 0.14; }
+  .top-bar span { animation: none; }
+}

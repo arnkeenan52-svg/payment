@@ -526,8 +526,31 @@ function statCard(label, value, icon, delta = null, sub = '', spark = '') {
 // Straight segments with round joins — the Stripe treatment. Spiky
 // one-sale-a-day data stays honest and crisp; smoothing curves turned it
 // into a sine wave.
+// Smooth monotone cubic through every data point (Fritsch–Carlson slopes,
+// emitted as beziers). No overshoot: the curve never invents a peak or dip
+// the data doesn't have, so hover dots always sit exactly on the line.
 function linePath(pts) {
-  return pts.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)} ${py.toFixed(1)}`).join('');
+  const n = pts.length;
+  if (n === 0) return '';
+  if (n === 1) return `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  if (n === 2)
+    return `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}L${pts[1][0].toFixed(1)} ${pts[1][1].toFixed(1)}`;
+  const d = [];
+  for (let i = 0; i < n - 1; i++) d.push((pts[i + 1][1] - pts[i][1]) / (pts[i + 1][0] - pts[i][0] || 1));
+  const m = [d[0]];
+  for (let i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
+  m.push(d[n - 2]);
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], h = Math.hypot(a, b);
+    if (h > 3) { m[i] = (3 * d[i] * a) / h; m[i + 1] = (3 * d[i] * b) / h; }
+  }
+  let path = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const dx = (pts[i + 1][0] - pts[i][0]) / 3;
+    path += `C${(pts[i][0] + dx).toFixed(1)} ${(pts[i][1] + m[i] * dx).toFixed(1)} ${(pts[i + 1][0] - dx).toFixed(1)} ${(pts[i + 1][1] - m[i + 1] * dx).toFixed(1)} ${pts[i + 1][0].toFixed(1)} ${pts[i + 1][1].toFixed(1)}`;
+  }
+  return path;
 }
 
 // Tiny trajectory line inside a stat card. Dense windows are aggregated down
@@ -549,9 +572,15 @@ function sparkSvg(vals) {
   const y = (val) => H - p - (val / max) * (H - 2 * p);
   const line = linePath(v.map((val, i) => [x(i), y(val)]));
   const flat = v.every((val) => val === 0);
+  const gid = `sg${(sparkSvg.seq = (sparkSvg.seq ?? 0) + 1)}`;
   return `<svg class="stat-spark${flat ? ' flat' : ''}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-    <path class="spark-fill" d="${line} L${x(n - 1).toFixed(1)} ${(H - p).toFixed(1)} L${x(0).toFixed(1)} ${(H - p).toFixed(1)} Z" />
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--accent);stop-opacity:0.18" />
+      <stop offset="1" style="stop-color:var(--accent);stop-opacity:0" />
+    </linearGradient></defs>
+    <path class="spark-fill" fill="url(#${gid})" d="${line} L${x(n - 1).toFixed(1)} ${(H - p).toFixed(1)} L${x(0).toFixed(1)} ${(H - p).toFixed(1)} Z" />
     <path class="spark-line" d="${line}" fill="none" vector-effect="non-scaling-stroke" />
+    <circle class="spark-dot" cx="${x(n - 1).toFixed(1)}" cy="${y(v[n - 1]).toFixed(1)}" r="2.4" />
   </svg>`;
 }
 
@@ -680,13 +709,14 @@ function revenueChart(series) {
   const money = (v) => (max >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : `$${v}`);
   const base = padT + plotH;
 
-  const grid = [0, 0.25, 0.5, 0.75, 1]
+  // Three quiet horizontals: a solid baseline and two dashed guides — the
+  // Stripe-dashboard idiom, less ink than a full grid.
+  const grid = [0, 0.5, 1]
     .map((f) => {
       const gy = y(max * f);
-      const major = f === 0 || f === 0.5 || f === 1;
-      return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - 6}" y2="${gy.toFixed(1)}" stroke="var(--edge)" stroke-width="1"${major ? '' : ' opacity="0.45"'} />${
-        major ? `<text x="${padL - 8}" y="${(gy + 3.5).toFixed(1)}" text-anchor="end" class="tick">${money(max * f)}</text>` : ''
-      }`;
+      const baselineRow = f === 0;
+      return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - 6}" y2="${gy.toFixed(1)}" stroke="var(--edge)" stroke-width="1"${baselineRow ? '' : ' stroke-dasharray="3 5" opacity="0.6"'} />
+        <text x="${padL - 8}" y="${(gy + 3.5).toFixed(1)}" text-anchor="end" class="tick">${money(max * f)}</text>`;
     })
     .join('');
 
@@ -698,8 +728,14 @@ function revenueChart(series) {
       : '';
   const line =
     n > 1
-      ? `<path class="cur-line" d="${curLine}" fill="none" stroke="var(--accent)" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" />`
+      ? `<path class="cur-line" pathLength="1" d="${curLine}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`
       : `<circle cx="${x(0).toFixed(1)}" cy="${y(curVals[0] ?? 0).toFixed(1)}" r="3.5" fill="var(--accent)" />`;
+  // Live endpoint: a marked dot with a quiet halo ring on the newest bucket.
+  const endDot =
+    n > 1
+      ? `<circle class="end-halo" cx="${x(n - 1).toFixed(1)}" cy="${y(curVals[n - 1]).toFixed(1)}" r="7" fill="var(--accent)" opacity="0.14" />
+         <circle class="end-dot" cx="${x(n - 1).toFixed(1)}" cy="${y(curVals[n - 1]).toFixed(1)}" r="3.2" fill="var(--accent)" stroke="var(--panel)" stroke-width="1.5" />`
+      : '';
 
   const prevLine =
     prevVals && n > 1
@@ -725,10 +761,11 @@ function revenueChart(series) {
 
   return `<svg class="rev-chart" viewBox="0 0 ${W} ${H}" data-max="${max}" role="img" aria-label="Revenue over time with previous-period comparison">
     <defs><linearGradient id="rev-fade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" style="stop-color:var(--accent);stop-opacity:0.16" />
-      <stop offset="1" style="stop-color:var(--accent);stop-opacity:0.01" />
+      <stop offset="0" style="stop-color:var(--accent);stop-opacity:0.2" />
+      <stop offset="0.55" style="stop-color:var(--accent);stop-opacity:0.06" />
+      <stop offset="1" style="stop-color:var(--accent);stop-opacity:0" />
     </linearGradient></defs>
-    ${grid}${area}${prevLine}${line}${peakLabel}${xLabels}
+    ${grid}${area}${prevLine}${line}${endDot}${peakLabel}${xLabels}
     <line class="xhairline" x1="0" y1="${padT}" x2="0" y2="${base}" stroke="var(--ink)" stroke-width="1" opacity="0" />
     <circle class="dot-prev" r="3" fill="var(--dim)" opacity="0" />
     <circle class="dot-cur" r="4" fill="var(--accent)" stroke="var(--panel)" stroke-width="1.5" opacity="0" />
