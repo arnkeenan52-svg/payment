@@ -1856,3 +1856,44 @@ input:hover, select:hover, textarea:hover { border-color: rgba(255, 255, 255, 0.
 .cta-panel .section-sub { margin: 0; }
 .cta-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
 @media (max-width: 640px) { .cta-actions { flex-direction: column; width: 100%; } .cta-actions .btn-hero { width: 100%; text-align: center; } }
+
+/* ── pricing, monochrome per the reference the owner picked: white featured
+   CTA, white chip, neutral checks, switch toggle. Scoped to #pricing — the
+   dashboard billing toggle keeps its own look. ─────────────────────────────── */
+#pricing .bill-toggle { gap: 10px; }
+#pricing .bill-toggle .seg-btn {
+  border: none; background: none; min-width: 0; padding: 6px 2px;
+  color: var(--dim); font-weight: 600; font-size: 13.5px;
+}
+#pricing .bill-toggle .seg-btn.active { background: none; color: #fff; }
+.bill-switch {
+  width: 38px; height: 21px; border-radius: 999px; background: rgba(255, 255, 255, 0.16);
+  position: relative; cursor: pointer; display: inline-block; flex: none;
+  transition: background 150ms ease-out;
+}
+.bill-switch:hover { background: rgba(255, 255, 255, 0.22); }
+.bill-switch::after {
+  content: ''; position: absolute; top: 2.5px; left: 2.5px; width: 16px; height: 16px;
+  border-radius: 50%; background: #fff;
+  transition: transform 190ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+#pricing .bill-toggle:has(.bt-y.active) .bill-switch::after { transform: translateX(17px); }
+#pricing .bt-free {
+  border: 1px solid var(--edge); border-radius: 999px; padding: 4px 10px;
+  font-size: 10.5px; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--dim); background: rgba(255, 255, 255, 0.04);
+}
+#pricing .price-badge {
+  position: absolute; top: 18px; right: 18px; left: auto; transform: rotate(3deg);
+  background: #fff; color: #0a0a0a; border-radius: 999px; padding: 5px 11px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  line-height: 1.15; max-width: 76px; text-align: center;
+}
+#pricing .price-card.popular { border-color: rgba(255, 255, 255, 0.3); }
+#pricing .price-card.popular .price-cta {
+  background: #fff; color: #0a0a0a; border-color: transparent; font-weight: 700;
+  box-shadow: none;
+}
+#pricing .price-card.popular .price-cta:hover { filter: brightness(0.9); }
+#pricing .price-list li::before { color: var(--dim); }
+#pricing .price-card.popular .price-list li::before { color: #fff; }
