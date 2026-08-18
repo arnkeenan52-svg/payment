@@ -442,58 +442,242 @@ function renderLive(g, slug) {
 
 // ── store dashboard: shared bits ─────────────────────────────────────────────
 
-function statCard(label, value, icon, delta = null) {
+function statCard(label, value, icon, delta = null, sub = '') {
   const chip =
-    delta === null
+    delta === null || delta === undefined
       ? ''
-      : `<span class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${Math.round(delta)}%</span>`;
-  return `<div class="panel stat"><div class="stat-top"><span class="stat-label">${label}</span><span class="stat-ic">${icon}</span></div><span class="stat-value">${value}${chip}</span></div>`;
+      : `<span class="delta ${delta >= 0 ? 'up' : 'down'}"><span aria-hidden="true">${delta >= 0 ? '▲' : '▼'}</span>${Math.abs(delta) >= 100 ? Math.round(Math.abs(delta)) : Math.abs(delta).toFixed(Math.abs(delta) < 10 ? 1 : 0)}%</span>`;
+  return `<div class="panel stat"><div class="stat-top"><span class="stat-label">${label}</span><span class="stat-ic">${icon}</span></div><span class="stat-value">${value}${chip}</span>${sub ? `<span class="stat-sub">${sub}</span>` : ''}</div>`;
 }
 
-// Daily bars for bounded ranges; monthly bars for all-time.
-function revenueChart(payments, rangeDays) {
-  const W = 920, H = 150;
-  let buckets, labelFor;
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-  if (rangeDays) {
-    const dayMs = 86400000;
-    buckets = Array.from({ length: rangeDays }, () => 0);
-    for (const p of payments) {
-      const idx = rangeDays - 1 - Math.floor((end.getTime() - p.createdAt * 1000) / dayMs);
-      if (idx >= 0 && idx < rangeDays) buckets[idx] += p.amountUsd;
-    }
-    labelFor = (i) => new Date(end.getTime() - (rangeDays - 1 - i) * dayMs).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+// ── analytics: ranges, buckets, comparison ───────────────────────────────────
+// Every range compares against the immediately preceding window of the same
+// length; the comparison is named everywhere it is used.
+
+const RANGES = [
+  ['today', 'Today'],
+  ['7', '7d'],
+  ['30', '30d'],
+  ['90', '90d'],
+  ['12m', '12m'],
+  ['all', 'All'],
+];
+
+function rangeWindows(range, payments) {
+  const nowMs = Date.now();
+  const day = 86400000;
+  if (range === 'today') {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return { cur: [start.getTime(), nowMs], prev: [start.getTime() - day, start.getTime()], cmp: 'yesterday (same time)', grain: 'hour' };
+  }
+  if (range === '12m') {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0); start.setDate(1); start.setMonth(start.getMonth() - 11);
+    const prevStart = new Date(start);
+    prevStart.setMonth(prevStart.getMonth() - 12);
+    return { cur: [start.getTime(), nowMs], prev: [prevStart.getTime(), start.getTime()], cmp: 'the previous 12 months', grain: 'month' };
+  }
+  if (range === 'all') {
+    const first = payments.length ? Math.min(...payments.map((p) => p.createdAt)) * 1000 : nowMs;
+    return { cur: [first, nowMs], prev: null, cmp: null, grain: 'month' };
+  }
+  // Day ranges are calendar-aligned: full days, so "30d vs the previous 30d"
+  // compares like with like.
+  const days = Number(range);
+  const d0 = new Date();
+  d0.setHours(0, 0, 0, 0);
+  const start = d0.getTime() - (days - 1) * day;
+  return { cur: [start, nowMs], prev: [start - days * day, start], cmp: `the previous ${days} days`, grain: 'day' };
+}
+
+const inWin = (p, w) => w && p.createdAt * 1000 >= w[0] && p.createdAt * 1000 < w[1];
+
+// Aligned bucket series for the chart: current window bars + the previous
+// window as an overlay line (same bucket count, offset by one window).
+function bucketSeries(payments, win) {
+  const { cur, prev, grain } = win;
+  const marks = [];
+  if (grain === 'hour') {
+    for (let h = 0; h < 24; h++) marks.push(cur[0] + h * 3600000);
+  } else if (grain === 'day') {
+    const days = Math.round((cur[1] - cur[0]) / 86400000);
+    const d0 = new Date(cur[1]);
+    d0.setHours(0, 0, 0, 0);
+    for (let i = days - 1; i >= 0; i--) marks.push(d0.getTime() - i * 86400000);
   } else {
-    const first = payments.length ? Math.min(...payments.map((p) => p.createdAt)) : Date.now() / 1000;
-    const months = [];
-    const d = new Date(first * 1000);
+    const d = new Date(cur[0]);
     d.setDate(1); d.setHours(0, 0, 0, 0);
-    const stop = new Date();
-    while (d <= stop && months.length < 24) {
-      months.push(new Date(d));
+    const stop = new Date(cur[1]);
+    while (d <= stop && marks.length < 24) {
+      marks.push(d.getTime());
       d.setMonth(d.getMonth() + 1);
     }
-    buckets = months.map(() => 0);
-    for (const p of payments) {
-      const pd = new Date(p.createdAt * 1000);
-      const idx = months.findIndex((m) => m.getFullYear() === pd.getFullYear() && m.getMonth() === pd.getMonth());
-      if (idx >= 0) buckets[idx] += p.amountUsd;
-    }
-    labelFor = (i) => months[i].toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
   }
-  const max = Math.max(...buckets, 1);
-  const total = buckets.reduce((a, b) => a + b, 0);
-  const bw = W / buckets.length;
-  const bars = buckets
-    .map((v, i) => {
-      const h = Math.max(v > 0 ? 5 : 2, (v / max) * (H - 12));
-      const pad = Math.min(3, bw * 0.15);
-      return `<rect x="${(i * bw + pad).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${(bw - pad * 2).toFixed(1)}" height="${h.toFixed(1)}" rx="2"
-        fill="${v > 0 ? 'var(--accent)' : 'var(--edge)'}" opacity="${v > 0 ? 0.92 : 0.55}"><title>${esc(`${labelFor(i)}: ${usd(v)}`)}</title></rect>`;
+  const span = grain === 'hour' ? 3600000 : grain === 'day' ? 86400000 : 0;
+  const offset = prev ? cur[0] - prev[0] : 0;
+  const idxFor = (tMs, base) => {
+    if (grain === 'month') {
+      const pd = new Date(tMs);
+      return marks.findIndex((m) => {
+        const md = new Date(m + base);
+        return md.getFullYear() === pd.getFullYear() && md.getMonth() === pd.getMonth();
+      });
+    }
+    for (let i = marks.length - 1; i >= 0; i--) if (tMs >= marks[i] + base) return tMs < marks[i] + base + span || i === marks.length - 1 ? i : -1;
+    return -1;
+  };
+  const curVals = marks.map(() => 0);
+  const prevVals = prev ? marks.map(() => 0) : null;
+  for (const p of payments) {
+    const t = p.createdAt * 1000;
+    if (t >= cur[0] && t < cur[1]) {
+      const i = idxFor(t, 0);
+      if (i >= 0) curVals[i] += p.amountUsd;
+    } else if (prev && t >= prev[0] && t < prev[1]) {
+      const i = idxFor(t, -offset);
+      if (i >= 0) prevVals[i] += p.amountUsd;
+    }
+  }
+  const labelFor = (i) => {
+    const d = new Date(marks[i]);
+    if (grain === 'hour') return d.toLocaleTimeString(undefined, { hour: 'numeric' });
+    if (grain === 'day') return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+  };
+  return { curVals, prevVals, labels: marks.map((_, i) => labelFor(i)) };
+}
+
+// Clean axis ceiling: 1/2/2.5/5 × 10^n.
+function niceCeil(v) {
+  if (v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p;
+  return 10 * p;
+}
+
+// Revenue chart: current-period columns (≤24px, rounded data-end, square
+// baseline), previous period as a 2px muted overlay line, hairline gridlines
+// with clean tick labels. The crosshair tooltip is wired up after render.
+function revenueChart(series) {
+  const W = 920, H = 190, padL = 44, padB = 20, padT = 8;
+  const { curVals, prevVals, labels } = series;
+  const n = curVals.length || 1;
+  const plotW = W - padL - 6, plotH = H - padB - padT;
+  const maxRaw = Math.max(...curVals, ...(prevVals ?? [0]), 1);
+  const max = niceCeil(maxRaw);
+  const y = (v) => padT + plotH - (v / max) * plotH;
+  const band = plotW / n;
+  const bw = Math.min(24, Math.max(3, band * 0.6));
+  const x = (i) => padL + i * band + band / 2;
+  const money = (v) => (max >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : `$${v}`);
+
+  const grid = [0, 0.5, 1]
+    .map((f) => {
+      const gy = y(max * f);
+      return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - 6}" y2="${gy.toFixed(1)}" stroke="var(--edge)" stroke-width="1" />
+        <text x="${padL - 8}" y="${(gy + 3.5).toFixed(1)}" text-anchor="end" class="tick">${money(max * f)}</text>`;
     })
     .join('');
-  return `<svg class="rev-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Revenue over time, totaling ${usd(total)}">${bars}</svg>`;
+
+  // Rounded top corners only — square at the baseline.
+  const bars = curVals
+    .map((v, i) => {
+      const h = Math.max(v > 0 ? 3 : 0, plotH * (v / max));
+      if (h === 0) return `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(padT + plotH - 1.5).toFixed(1)}" width="${bw.toFixed(1)}" height="1.5" fill="var(--edge)" data-i="${i}" class="bar" />`;
+      const r = Math.min(4, bw / 2, h);
+      const x0 = x(i) - bw / 2, y0 = padT + plotH - h;
+      return `<path class="bar" data-i="${i}" fill="var(--accent)" opacity="0.92"
+        d="M${x0.toFixed(1)} ${(padT + plotH).toFixed(1)} v${(-(h - r)).toFixed(1)} q0 ${-r} ${r} ${-r} h${(bw - 2 * r).toFixed(1)} q${r} 0 ${r} ${r} v${(h - r).toFixed(1)} z" />`;
+    })
+    .join('');
+
+  const prevLine = prevVals
+    ? `<polyline fill="none" stroke="var(--dim)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"
+        points="${prevVals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}" />`
+    : '';
+
+  // Selective direct label: the peak bucket only — and only when it fits
+  // above the bar without clipping the frame (the tooltip still carries it).
+  const peak = curVals.indexOf(Math.max(...curVals));
+  const peakY = y(curVals[peak]) - 6;
+  const peakLabel =
+    curVals[peak] > 0 && peakY >= padT + 9
+      ? `<text x="${x(peak).toFixed(1)}" y="${peakY.toFixed(1)}" text-anchor="middle" class="peak">${usd(curVals[peak])}</text>`
+      : '';
+
+  const xt = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i);
+  const xLabels = xt
+    .map((i) => `<text x="${x(i).toFixed(1)}" y="${H - 5}" text-anchor="middle" class="tick">${esc(labels[i] ?? '')}</text>`)
+    .join('');
+
+  return `<svg class="rev-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Revenue over time with previous-period comparison">
+    ${grid}${prevLine}${bars}${peakLabel}${xLabels}
+    <line class="xhairline" x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="var(--ink)" stroke-width="1" opacity="0" />
+  </svg>`;
+}
+
+// Crosshair + one tooltip reading BOTH series at the hovered X.
+function wireChartHover(card, series) {
+  const svg = card.querySelector('.rev-chart');
+  if (!svg) return;
+  const tip = document.createElement('div');
+  tip.className = 'chart-tip';
+  tip.hidden = true;
+  card.append(tip);
+  const hair = svg.querySelector('.xhairline');
+  const { curVals, prevVals, labels } = series;
+  const n = curVals.length;
+  const padL = 44, W = 920;
+  const band = (W - padL - 6) / n;
+  let last = -1;
+  const show = (i, clientX, clientY) => {
+    if (i < 0 || i >= n) return;
+    if (i !== last) {
+      last = i;
+      tip.textContent = '';
+      const t = document.createElement('div');
+      t.className = 'chart-tip-title';
+      t.textContent = labels[i];
+      tip.append(t);
+      const row = (cls, label, v) => {
+        const r = document.createElement('div');
+        r.className = 'chart-tip-row';
+        const key = document.createElement('span');
+        key.className = `tip-key ${cls}`;
+        const val = document.createElement('strong');
+        val.textContent = usd(v);
+        const lbl = document.createElement('span');
+        lbl.className = 'tip-lbl';
+        lbl.textContent = label;
+        r.append(key, val, lbl);
+        tip.append(r);
+      };
+      row('cur', 'this period', curVals[i]);
+      if (prevVals) row('prev', 'previous', prevVals[i]);
+      svg.querySelectorAll('.bar').forEach((b) => b.setAttribute('opacity', b.dataset.i == i ? '1' : '0.55'));
+      const xPos = padL + i * band + band / 2;
+      hair.setAttribute('x1', xPos);
+      hair.setAttribute('x2', xPos);
+      hair.setAttribute('opacity', '0.25');
+    }
+    tip.hidden = false;
+    const box = card.getBoundingClientRect();
+    const tw = tip.offsetWidth;
+    tip.style.left = `${Math.min(Math.max(clientX - box.left + 14, 8), box.width - tw - 8)}px`;
+    tip.style.top = `${Math.max(clientY - box.top - 14, 8)}px`;
+  };
+  svg.addEventListener('pointermove', (e) => {
+    const r = svg.getBoundingClientRect();
+    const sx = ((e.clientX - r.left) / r.width) * W;
+    show(Math.floor((sx - padL) / band), e.clientX, e.clientY);
+  });
+  svg.addEventListener('pointerleave', () => {
+    tip.hidden = true;
+    last = -1;
+    hair.setAttribute('opacity', '0');
+    svg.querySelectorAll('.bar').forEach((b) => b.setAttribute('opacity', '0.92'));
+  });
 }
 
 function chipFor(p) {
@@ -531,60 +715,90 @@ const SECTIONS = [
 ];
 
 function sectionOverview(data, store, slug) {
-  const rangeDays = state.range === 'all' ? null : Number(state.range);
-  const nowS = Date.now() / 1000;
-  const cut = rangeDays ? nowS - rangeDays * 86400 : 0;
-  const inRange = data.payments.filter((p) => p.createdAt >= cut);
-  const prevRange = rangeDays ? data.payments.filter((p) => p.createdAt >= cut - rangeDays * 86400 && p.createdAt < cut) : [];
+  const win = rangeWindows(state.range, data.payments);
+  const inRange = data.payments.filter((p) => inWin(p, win.cur));
+  const prevRange = win.prev ? data.payments.filter((p) => inWin(p, win.prev)) : null;
   const sum = (l) => l.reduce((s, p) => s + p.amountUsd, 0);
-  const rev = sum(inRange);
-  const revPrev = sum(prevRange);
-  const delta = rangeDays && revPrev > 0 ? ((rev - revPrev) / revPrev) * 100 : null;
-  const salesDelta = rangeDays && prevRange.length > 0 ? ((inRange.length - prevRange.length) / prevRange.length) * 100 : null;
-  const mrr = sum(data.payments.filter((p) => p.entitled && !p.lifetime));
-  const label = rangeDays ? `${rangeDays}-Day` : 'All-Time';
+  const pct = (cur, prev) => (prevRange === null || prev <= 0 ? null : ((cur - prev) / prev) * 100);
 
+  const rev = sum(inRange);
+  const revPrev = prevRange ? sum(prevRange) : 0;
+  const sales = inRange.length;
+  const salesPrev = prevRange ? prevRange.length : 0;
+
+  // First-ever purchase per buyer — "new members" is first purchases in the
+  // window, not just activity.
+  const firstBuy = new Map();
+  for (const p of data.payments) {
+    const t = firstBuy.get(p.discordId);
+    if (t === undefined || p.createdAt < t) firstBuy.set(p.discordId, p.createdAt);
+  }
+  const newIn = (w) => (w ? [...firstBuy.values()].filter((t) => t * 1000 >= w[0] && t * 1000 < w[1]).length : 0);
+  const newMembers = newIn(win.cur);
+  const newMembersPrev = prevRange ? newIn(win.prev) : 0;
+
+  const aov = sales ? rev / sales : 0;
+  const aovPrev = salesPrev ? revPrev / salesPrev : 0;
+
+  const mrr = sum(data.payments.filter((p) => p.entitled && !p.lifetime));
+  const mrrNew = sum(data.payments.filter((p) => p.entitled && !p.lifetime && inWin(p, win.cur)));
+
+  const cmpNote = win.cmp ? `vs ${win.cmp}` : 'all time';
+  const prevSub = (v, fmt = usd) => (prevRange === null ? cmpNote : `${fmt(v)} ${cmpNote}`);
+
+  const series = bucketSeries(data.payments, win);
+
+  // Top products with per-product change vs the previous window.
   const byPlan = new Map();
   for (const p of inRange) byPlan.set(p.planName, (byPlan.get(p.planName) ?? 0) + p.amountUsd);
+  const byPlanPrev = new Map();
+  if (prevRange) for (const p of prevRange) byPlanPrev.set(p.planName, (byPlanPrev.get(p.planName) ?? 0) + p.amountUsd);
   const top = [...byPlan.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   const topMax = Math.max(...top.map(([, v]) => v), 1);
+  const topDelta = (name, v) => {
+    const prev = byPlanPrev.get(name) ?? 0;
+    const d = pct(v, prev);
+    return d === null ? '' : `<span class="delta ${d >= 0 ? 'up' : 'down'}"><span aria-hidden="true">${d >= 0 ? '▲' : '▼'}</span>${Math.abs(d) >= 100 ? Math.round(Math.abs(d)) : Math.abs(d).toFixed(0)}%</span>`;
+  };
 
   const recent = data.payments.slice(0, 6);
+  const seg = RANGES.map(
+    ([k, lbl]) => `<button type="button" class="seg-btn${state.range === k ? ' active' : ''}" data-range="${k}" ${state.range === k ? 'aria-pressed="true"' : ''}>${lbl}</button>`,
+  ).join('');
+
   return `
     <div class="ov-toolbar">
       <h2 class="sec-title">Overview</h2>
-      <select id="range-sel" class="store-switch" aria-label="Time period">
-        <option value="7" ${state.range === '7' ? 'selected' : ''}>Last 7 days</option>
-        <option value="30" ${state.range === '30' ? 'selected' : ''}>Last 30 days</option>
-        <option value="90" ${state.range === '90' ? 'selected' : ''}>Last 90 days</option>
-        <option value="all" ${state.range === 'all' ? 'selected' : ''}>All time</option>
-      </select>
+      <div class="seg" role="group" aria-label="Time period" id="range-seg">${seg}</div>
     </div>
     <div id="checklist-slot"></div>
     <div class="stat-grid five">
-      ${statCard(`${label} Revenue`, usd(rev), I.dollar, delta)}
-      ${statCard(`${label} Sales`, inRange.length, I.cart, salesDelta)}
-      ${statCard('MRR', usd(mrr), I.dollar)}
-      ${statCard('Active Members', data.totals.activeMembers, I.users)}
-      ${statCard('All-Time Revenue', usd(data.totals.allTimeUsd), I.infinity)}
+      ${statCard('Revenue', usd(rev), I.dollar, pct(rev, revPrev), prevSub(revPrev))}
+      ${statCard('Sales', sales, I.cart, pct(sales, salesPrev), prevSub(salesPrev, (v) => v))}
+      ${statCard('New members', newMembers, I.users, pct(newMembers, newMembersPrev), prevSub(newMembersPrev, (v) => v))}
+      ${statCard('Avg order', usd(aov), I.dollar, pct(aov, aovPrev), prevSub(aovPrev))}
+      ${statCard('MRR', usd(mrr), I.infinity, null, mrrNew > 0 ? `+${usd(mrrNew)} added this period` : 'recurring, right now')}
     </div>
     <div class="chart-grid">
-      <section class="panel chart-card">
-        <div class="card-head"><div><h3>Revenue Over Time</h3><p class="card-sub">${rangeDays ? `Daily revenue, last ${rangeDays} days` : 'Monthly revenue, all time'}</p></div><span class="chart-total">${usd(rev)}</span></div>
-        ${inRange.length || !rangeDays ? revenueChart(inRange, rangeDays) : '<div class="empty-chart">No data in this period</div>'}
+      <section class="panel chart-card" id="rev-card">
+        <div class="card-head"><div><h3>Revenue</h3><p class="card-sub">${win.cmp ? `This period against ${win.cmp}` : 'Monthly, all time'}</p></div>
+          <div class="chart-side"><span class="chart-total">${usd(rev)}</span>
+            <span class="chart-legend"><span class="lg-key cur"></span>This period${series.prevVals ? '<span class="lg-key prev"></span>Previous' : ''}</span></div></div>
+        ${revenueChart(series)}
       </section>
       <section class="panel chart-card">
-        <div class="card-head"><div><h3>Top Products</h3><p class="card-sub">Revenue by product, ${rangeDays ? `last ${rangeDays} days` : 'all time'}</p></div></div>
+        <div class="card-head"><div><h3>Top Products</h3><p class="card-sub">Revenue by product, ${win.cmp ? 'this period' : 'all time'}</p></div></div>
         ${
           top.length
             ? `<ul class="top-list">${top
                 .map(
-                  ([name, v]) => `<li><span class="top-meta"><strong>${esc(name)}</strong><span class="num">${usd(v)}</span></span>
+                  ([name, v]) => `<li><span class="top-meta"><strong>${esc(name)}</strong><span class="num">${usd(v)} ${topDelta(name, v)}</span></span>
                     <span class="top-bar"><span style="width:${Math.max((v / topMax) * 100, 2)}%"></span></span></li>`,
                 )
                 .join('')}</ul>`
             : '<div class="empty-chart">No sales in this period</div>'
         }
+        <p class="rows-note">Active members: ${data.totals.activeMembers} · All-time revenue: ${usd(data.totals.allTimeUsd)}</p>
       </section>
     </div>
     <div class="chart-grid">
@@ -1038,10 +1252,14 @@ async function viewStore(slug) {
   // ── section wiring ──────────────────────────────────────────────────────────
 
   if (section === 'overview') {
-    $('#range-sel').onchange = () => {
-      state.range = $('#range-sel').value;
-      viewStore(slug);
-    };
+    document.querySelectorAll('#range-seg .seg-btn').forEach((b) => {
+      b.onclick = () => {
+        state.range = b.dataset.range;
+        viewStore(slug);
+      };
+    });
+    const revCard = $('#rev-card');
+    if (revCard) wireChartHover(revCard, bucketSeries(data.payments, rangeWindows(state.range, data.payments)));
     renderChecklist(store, slug);
     loadBilling()
       .then((b) => {

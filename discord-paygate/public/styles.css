@@ -1326,3 +1326,44 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .landing > .xsection { border-top: 1px solid rgba(255,255,255,0.05); }
 .landing > .xinset + .xsection { border-top: none; }
 .section-title { margin-bottom: 8px; }
+
+/* ── analytics: segmented range, delta chips, comparison chart ──────────────── */
+.seg { display: inline-flex; border: 1px solid var(--edge); border-radius: 6px; overflow: hidden; }
+.seg-btn {
+  background: transparent; border: none; color: var(--dim); font: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 7px 12px; min-height: 34px; cursor: pointer; border-right: 1px solid var(--edge);
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn:hover { color: var(--ink); background: rgba(255,255,255,0.04); }
+.seg-btn.active { color: var(--ink); background: rgba(255,255,255,0.07); }
+.seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.stat { gap: 2px; }
+.stat-sub { font-size: 11.5px; color: var(--dim); }
+.delta { display: inline-flex; align-items: baseline; gap: 2px; }
+.delta [aria-hidden] { font-size: 8px; transform: translateY(-1px); }
+
+.chart-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.chart-legend { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--dim); font-weight: 600; }
+.lg-key { display: inline-block; }
+.lg-key.cur { width: 10px; height: 10px; border-radius: 2px; background: var(--accent); }
+.lg-key.prev { width: 14px; height: 0; border-top: 2px solid var(--dim); opacity: 0.85; margin-left: 8px; }
+
+.rev-chart .tick { fill: var(--dim); font-size: 10.5px; font-family: var(--font-body); }
+.rev-chart .peak { fill: var(--ink); font-size: 11px; font-weight: 700; font-family: var(--font-body); }
+.chart-card { position: relative; }
+.rev-chart { touch-action: none; }
+.chart-tip {
+  position: absolute; z-index: 30; pointer-events: none;
+  background: #161616; border: 1px solid var(--edge); border-radius: 6px;
+  padding: 8px 11px; font-size: 12.5px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; gap: 4px; min-width: 130px;
+}
+.chart-tip-title { color: var(--dim); font-size: 11px; font-weight: 700; }
+.chart-tip-row { display: flex; align-items: center; gap: 7px; }
+.chart-tip-row strong { font-variant-numeric: tabular-nums; }
+.tip-lbl { color: var(--dim); font-size: 11.5px; }
+.tip-key { display: inline-block; flex: none; }
+.tip-key.cur { width: 10px; height: 10px; border-radius: 2px; background: var(--accent); }
+.tip-key.prev { width: 12px; height: 0; border-top: 2px solid var(--dim); }
+.top-meta .delta { font-size: 11px; margin-left: 4px; }
