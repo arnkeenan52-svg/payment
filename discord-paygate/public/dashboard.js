@@ -98,9 +98,7 @@ function renderNav() {
     $('#login').onclick = () => (window.location.href = '/auth/login');
     return;
   }
-  el.innerHTML = `<a class="nav-link" href="/store">Store</a><a class="nav-link" href="/account">Account</a>${
-    me.isOwner ? '<a class="nav-link" href="/diagnostics">Diagnostics</a>' : ''
-  }<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
+  el.innerHTML = `<a class="nav-link" href="/store">Store</a><a class="nav-link" href="/account">Account</a><span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }
 
@@ -870,7 +868,7 @@ function sectionProductsDefault(data) {
   return `
     <h2 class="sec-title">Products</h2>
     <section class="panel table-panel">
-      <div class="card-head"><div><h3>Products</h3><p class="card-sub">This store’s catalog is configured by the platform (plans.json + /diagnostics role mapping).</p></div></div>
+      <div class="card-head"><div><h3>Products</h3><p class="card-sub">This store’s catalog is configured by the platform.</p></div></div>
     </section>`;
 }
 

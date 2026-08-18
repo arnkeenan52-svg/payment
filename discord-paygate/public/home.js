@@ -40,90 +40,56 @@ if (menuBtn) {
   });
 }
 
-// ── hero video: a real product-tour recording ─────────────────────────────────
-// Autoplays muted and loops like Subscord's. Reduced motion: hold the poster.
+// ── hero media: animated tour image, upgraded to real video when proven ──────
+// The markup ships an animated WebP <img> — it renders and moves everywhere:
+// no codec negotiation, no autoplay policy, no range requests, works with JS
+// disabled. Here we build a <video> OFF-DOM and swap it in only after the
+// browser has decoded frames AND started playback, so a broken video stack
+// can never take the motion away.
 (() => {
-  const v = $('.hero-video');
-  if (!v) return;
-  const overlay = $('#video-play');
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Last resort: swap the <video> for the animated WebP. An <img> has no
-  // codec negotiation, no autoplay policy, no range requests — every modern
-  // phone and desktop simply plays it. The hero can no longer end up still.
-  let fellBack = false;
-  const fallbackToImage = () => {
-    if (fellBack) return;
-    fellBack = true;
-    const img = document.createElement('img');
-    img.src = '/hero-demo.webp?v=16';
-    img.alt = v.getAttribute('aria-label') ?? '';
-    img.className = 'hero-video';
-    img.width = 1280;
-    img.height = 800;
-    if (overlay) overlay.hidden = true;
-    v.replaceWith(img);
-  };
-
-  if (reduce) {
-    v.removeAttribute('autoplay');
-    v.pause();
-    if (overlay) {
-      overlay.hidden = false;
-      overlay.onclick = () => {
-        v.muted = true;
-        v.play().then(() => (overlay.hidden = true)).catch(fallbackToImage);
-      };
-    }
+  const img = $('#hero-media');
+  if (!img) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    img.src = '/shot-dashboard.png?v=17'; // hold a still frame instead
     return;
   }
 
-  // Explicit source management — Safari's <source> negotiation has failed us
-  // before. Pick what this browser says it can play, chain to the next on
-  // error, and give up into the animated image.
+  const v = document.createElement('video');
+  v.className = 'hero-video';
   v.muted = true;
+  v.loop = true;
+  v.autoplay = true;
+  v.preload = 'auto';
+  v.playsInline = true;
+  v.setAttribute('playsinline', ''); // older iOS reads the attribute, not the prop
+  v.width = 1280;
+  v.height = 800;
+  v.setAttribute('aria-label', img.alt);
+
   const sources = [
-    ['/hero-demo.mp4?v=16', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=16', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=17', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=17', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
-  if (!playable.length) return fallbackToImage();
+  if (!playable.length) return; // the animated image simply stays
 
-  const showOverlayIfPaused = () => {
-    if (overlay) overlay.hidden = fellBack || !v.paused;
-  };
-  const tryPlay = () => v.play().then(showOverlayIfPaused).catch(showOverlayIfPaused);
+  let upgraded = false;
+  v.addEventListener('playing', () => {
+    if (upgraded || v.readyState < 2) return;
+    upgraded = true;
+    img.replaceWith(v);
+  });
 
   let at = 0;
   const load = () => {
     v.src = playable[at][0];
     v.load();
-    tryPlay();
+    v.play().catch(() => {}); // refused autoplay → the image stays; no harm done
   };
   v.addEventListener('error', () => {
     at += 1;
-    if (at < playable.length) load();
-    else fallbackToImage();
+    if (!upgraded && at < playable.length) load();
   });
-
-  for (const ev of ['touchstart', 'pointerdown', 'scroll']) {
-    window.addEventListener(ev, () => !fellBack && v.paused && tryPlay(), { once: true, passive: true });
-  }
-  if (overlay)
-    overlay.onclick = () => {
-      v.muted = true;
-      v.play().then(() => (overlay.hidden = true)).catch(fallbackToImage);
-    };
-  v.addEventListener('playing', () => overlay && (overlay.hidden = true));
-
-  // Watchdog: if no frame data ever arrives, the media stack is broken here —
-  // use the image. Data but paused → show tap-to-play.
-  setTimeout(() => {
-    if (fellBack) return;
-    if (v.readyState < 2) fallbackToImage();
-    else showOverlayIfPaused();
-  }, 5000);
-
   load();
 })();
 

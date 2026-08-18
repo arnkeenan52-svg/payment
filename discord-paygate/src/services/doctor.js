@@ -65,13 +65,13 @@ export async function runDoctor() {
   }
 
   if (!config.ownerDiscordId) {
-    add('env:owner-id', 'OWNER_DISCORD_ID set (unlocks /diagnostics)', 'warn', '(empty)',
-      'Set OWNER_DISCORD_ID to your own Discord user id (Developer Mode → right-click yourself → Copy User ID) so the /diagnostics page works for you.');
+    add('env:owner-id', 'OWNER_DISCORD_ID set (platform owner)', 'warn', '(empty)',
+      'Set OWNER_DISCORD_ID to your own Discord user id (Developer Mode → right-click yourself → Copy User ID) so owner-only views work for you.');
   } else if (!isSnowflake(config.ownerDiscordId)) {
     add('env:owner-id', 'OWNER_DISCORD_ID looks like a Discord snowflake', 'fail', `got ${mask(config.ownerDiscordId)}`,
       'Copy YOUR user id: Discord → Developer Mode on → right-click your name → Copy User ID.');
   } else {
-    add('env:owner-id', 'OWNER_DISCORD_ID set (unlocks /diagnostics)', 'pass', config.ownerDiscordId);
+    add('env:owner-id', 'OWNER_DISCORD_ID set (platform owner)', 'pass', config.ownerDiscordId);
   }
 
   for (const [key, value] of [
@@ -309,7 +309,7 @@ export async function runDoctor() {
     for (const plan of config.plans) {
       const mapping = roleMap.get(plan.id) ?? { roleIds: plan.roleIds, source: 'default' };
       const src =
-        mapping.source === 'override' ? ' [picked in /diagnostics]'
+        mapping.source === 'override' ? ' [picked in the dashboard]'
         : mapping.source === 'name' ? ' [matched by role name]'
         : '';
       for (const roleId of mapping.roleIds) {
@@ -317,7 +317,7 @@ export async function runDoctor() {
         if (!role) {
           add(`discord:role:${roleId}`, `Role ${roleId} (plan "${plan.id}")${src} exists in the guild`, 'fail',
             'no role with that id in this guild',
-            'Pick the real role on the /diagnostics page (role picker), or paste its id into plans.json (Developer Mode → Server Settings → Roles → right-click → Copy Role ID).');
+            'Pick the real role in the dashboard (Products → role picker), or paste its id into plans.json (Developer Mode → Server Settings → Roles → right-click → Copy Role ID).');
           continue;
         }
         add(`discord:role:${roleId}`, `Role "${role.name}" (plan "${plan.id}")${src} exists in the guild`, 'pass', `position ${role.position}`);
@@ -335,7 +335,7 @@ export async function runDoctor() {
 
       // Configured ids that resolution dropped must never vanish silently: a
       // typo'd id next to a valid one is exactly the misconfiguration this
-      // doctor exists to catch. An owner's /diagnostics pick is the one
+      // doctor exists to catch. An owner's dashboard pick is the one
       // legitimate supersession — the override IS the pin, so the shipped
       // placeholder ids stop mattering entirely.
       const mappedIds = new Set(mapping.roleIds);
@@ -345,11 +345,11 @@ export async function runDoctor() {
         if (mapping.source === 'name') {
           add(`discord:role:${cfgId}`, `Configured role id ${cfgId} (plan "${plan.id}") is stale`, 'warn',
             'no role with that id in this guild — the plan currently works because the role was matched by NAME instead',
-            'Pin it: pick the role on /diagnostics (role picker), or paste the real id into plans.json.');
+            'Pin it: pick the role in the dashboard (role picker), or paste the real id into plans.json.');
         } else {
           add(`discord:role:${cfgId}`, `Role ${cfgId} (plan "${plan.id}") exists in the guild`, 'fail',
             'no role with that id in this guild — buyers would be granted only the other configured roles',
-            'Pick the real role on the /diagnostics page (role picker), or paste its id into plans.json (Developer Mode → Server Settings → Roles → right-click → Copy Role ID).');
+            'Pick the real role in the dashboard (Products → role picker), or paste its id into plans.json (Developer Mode → Server Settings → Roles → right-click → Copy Role ID).');
         }
       }
     }

@@ -56,7 +56,7 @@ export const config = {
   // Discord server itself (DISCORD_GUILD_NAME, e.g. Tradeleaks).
   platform: env('PLATFORM_NAME', 'Ripley'),
   brand: env('BRAND') || 'Tradeleaks',
-  // Discord user id of the store owner: unlocks the /diagnostics view.
+  // Discord user id of the store owner: unlocks owner-only platform views.
   ownerDiscordId: env('OWNER_DISCORD_ID'),
   port: num('PORT', 4000),
   publicBaseUrl,

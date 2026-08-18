@@ -3,22 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Premium — Tradeleaks</title>
-  <meta name="description" content="All courses lifetime — one payment, instant Discord access." />
-  <!-- Link previews (Discord/Twitter/iMessage). og:image must be an absolute
-       URL — update the domain here if the deployment moves. -->
+  <title>Checkout — Ripley</title>
+  <meta name="description" content="Secure checkout for Discord communities — pay once, roles delivered in seconds." />
+  <!-- Link previews (Discord/Twitter/iMessage). The title is set per store by
+       app.js once the store loads; these statics are the platform fallback. -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Premium — Tradeleaks" />
-  <meta property="og:description" content="All courses lifetime — one payment, instant Discord access." />
-  <meta property="og:image" content="https://ripleybot.com/product.jpg" />
-  <meta property="og:url" content="https://ripleybot.com/" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Premium — Tradeleaks" />
-  <meta name="twitter:description" content="All courses lifetime — one payment, instant Discord access." />
-  <meta name="twitter:image" content="https://ripleybot.com/product.jpg" />
+  <meta property="og:title" content="Checkout — Ripley" />
+  <meta property="og:description" content="Secure checkout for Discord communities — pay once, roles delivered in seconds." />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Checkout — Ripley" />
+  <meta name="twitter:description" content="Secure checkout for Discord communities — pay once, roles delivered in seconds." />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=16" />
+  <link rel="stylesheet" href="/styles.css?v=17" />
 </head>
 <body>
   <header class="top">
@@ -35,7 +32,7 @@
 
       <div class="order-product">
         <div class="op-left">
-          <img class="op-thumb" id="product-shot" src="/product.gif" alt="" onerror="this.hidden = true" />
+          <img class="op-thumb" id="product-shot" alt="" hidden onerror="this.hidden = true" />
           <span class="op-name" id="plan-name">&nbsp;</span>
         </div>
         <span class="op-price" id="price">&nbsp;</span>
@@ -83,6 +80,6 @@
     <img class="powered-mark" src="/ripley.png" alt="Ripley" height="18" />
   </footer>
 
-  <script src="/app.js?v=16"></script>
+  <script src="/app.js?v=17"></script>
 </body>
 </html>

@@ -116,10 +116,6 @@ const server = http.createServer(async (req, res) => {
       serveStatic(res, 'receipt.html');
       return;
     }
-    if (req.method === 'GET' && url.pathname === '/diagnostics') {
-      serveStatic(res, 'diagnostics.html');
-      return;
-    }
     if (req.method === 'GET' && url.pathname === '/store') {
       serveStatic(res, 'store.html');
       return;
@@ -154,14 +150,14 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(config.port, () => {
   const actualPort = server.address().port;
-  console.log(`[tradeleaks] listening on http://localhost:${actualPort}`);
+  console.log(`[ripley] listening on http://localhost:${actualPort}`);
   printBanner(actualPort);
 });
 
 // Leave no stray servers behind: exit promptly and predictably on signals.
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
-    console.log(`[tradeleaks] ${signal} received, shutting down`);
+    console.log(`[ripley] ${signal} received, shutting down`);
     server.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 2000).unref();
   });

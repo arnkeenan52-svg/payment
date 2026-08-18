@@ -51,8 +51,8 @@ async function checkSetup() {
         ),
       );
       const link = document.createElement('a');
-      link.href = '/diagnostics';
-      link.textContent = 'Owner: open diagnostics →';
+      link.href = '/dashboard';
+      link.textContent = 'Owner: open the dashboard →';
       banner.append(link);
       document.body.prepend(banner);
     }
@@ -98,12 +98,13 @@ function renderBrand() {
   // keeps its bundled animated shot. Nothing renders when there is none.
   const shot = $('#product-shot');
   if (shot) {
-    if (STORE_SLUG) {
-      if (plan.imageUrl) {
-        shot.src = plan.imageUrl;
-        shot.hidden = false;
-      } else shot.hidden = true;
-    }
+    // Tenant stores show their own product image or nothing; only the legacy
+    // built-in store falls back to its shipped art. Never another store's.
+    const art = STORE_SLUG ? plan.imageUrl : (plan.imageUrl ?? '/product.gif');
+    if (art) {
+      shot.src = art;
+      shot.hidden = false;
+    } else shot.hidden = true;
   }
   // ONLY the server's own Discord icon (animated GIF when the guild has
   // one) is ever shown — no stand-in logo. Hidden until Discord answers.
@@ -121,6 +122,7 @@ function renderBrand() {
   if (state.server?.name) {
     nameEl.textContent = state.server.name;
     nameEl.hidden = false;
+    document.title = `${state.server.name} — Checkout`;
   } else {
     nameEl.hidden = true;
   }

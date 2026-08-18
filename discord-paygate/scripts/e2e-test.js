@@ -458,6 +458,7 @@ async function initTestDb() {
     await tq('DROP TABLE IF EXISTS stores');
     await tq('DROP TABLE IF EXISTS store_plans');
     await tq('DROP TABLE IF EXISTS platform_billing');
+    await tq('DROP TABLE IF EXISTS discounts');
   } else {
     const { DatabaseSync } = await import('node:sqlite');
     let sqlite;
@@ -623,7 +624,7 @@ test('npm start entry prints the config banner (storage + cron lines)', async ()
   assert.match(out, PG_URL ? /storage\s+postgres/ : /storage\s+sqlite/);
 });
 
-test('storefront serves the Tradeleaks page, plans API exposes capabilities', async () => {
+test('storefront serves the tenant-generic checkout, plans API exposes capabilities', async () => {
   // "/" is the Ripley platform landing; the checkout lives at /store.
   const home = await (await fetch(`${appUrl}/`)).text();
   assert.match(home, /Sell Discord access/);
@@ -633,7 +634,10 @@ test('storefront serves the Tradeleaks page, plans API exposes capabilities', as
     assert.equal(res.status, 200, `${p} must serve`);
   }
   const page = await (await fetch(`${appUrl}/store`)).text();
-  assert.match(page, /Tradeleaks/i);
+  assert.match(page, /Confirm Order/);
+  // The checkout shell is shared by every tenant store — no store's branding
+  // may be baked into the static HTML. Store identity arrives via the API.
+  assert.doesNotMatch(page, /Tradeleaks/i, 'checkout HTML must be tenant-generic');
   const { plans, capabilities, server } = await (await fetch(`${appUrl}/api/plans`)).json();
   assert.equal(plans.length, PLANS.length);
   assert.deepEqual(capabilities, { stripe: true, crypto: true }); // coinbase configured in this phase
@@ -643,9 +647,9 @@ test('storefront serves the Tradeleaks page, plans API exposes capabilities', as
     'an animated guild icon must surface as the .gif CDN url',
   );
   assert.equal(server.name, 'Tradeleaks', 'server name must come from the live guild lookup, never a placeholder');
+  // The internal diagnostics page is gone — tenants never see platform plumbing.
   const diagPage = await fetch(`${appUrl}/diagnostics`);
-  assert.equal(diagPage.status, 200);
-  assert.match(await diagPage.text(), /Setup diagnostics/);
+  assert.equal(diagPage.status, 404, 'the diagnostics page must not exist on the tenant-facing site');
   assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'imageUrl', 'interval', 'lifetime', 'name', 'priceUsd', 'roleNames']);
 });
 
@@ -1002,7 +1006,7 @@ test('setup doctor: healthy config passes; endpoint gates detail behind CRON_SEC
   const summary = await (await fetch(`${appUrl}/api/setup-check`)).json();
   assert.deepEqual(summary, { ok: true }, 'unauthenticated callers get the bare ok flag and nothing else');
 
-  // The signed-in OWNER gets the full report (drives /diagnostics) …
+  // The signed-in OWNER gets the full report (drives the setup checklist) …
   const ownerView = await (await fetch(`${appUrl}/api/setup-check?fresh=1`, { headers: { cookie: u1Cookie } })).json();
   assert.ok(Array.isArray(ownerView.checks) && ownerView.checks.length >= 10, 'the owner session must unlock the check list');
   assert.ok(!JSON.stringify(ownerView).includes('sk_test_e2e'), 'the owner report must never contain raw secrets');
@@ -1277,7 +1281,7 @@ test('a plan with stale roleIds grants by role NAME, and the doctor goes green',
     assert.equal(mixedDoctor.code, 1, `doctor must fail on a dead id even when another id is valid:\n${mixedDoctor.out}`);
     assert.match(mixedDoctor.out, /no role with that id/);
 
-    // An owner's /diagnostics pick supersedes the shipped placeholder id
+    // An owner's dashboard role pick supersedes the shipped placeholder id
     // entirely — the doctor must go fully green, with no stale-id complaint.
     const pick = await fetch(`${app2.url}/api/admin/plan-role`, {
       method: 'POST',
@@ -1287,7 +1291,7 @@ test('a plan with stale roleIds grants by role NAME, and the doctor goes green',
     assert.equal(pick.status, 200, await pick.text());
     const pickedDoctor = await runDoctorCli(env);
     assert.equal(pickedDoctor.code, 0, `doctor must pass after the pick:\n${pickedDoctor.out}`);
-    assert.match(pickedDoctor.out, /picked in \/diagnostics/);
+    assert.match(pickedDoctor.out, /picked in the dashboard/);
     assert.doesNotMatch(pickedDoctor.out, /buyers would be granted only/, 'a picked role must silence the stale placeholder id');
   } finally {
     discord.extraRoles = [];

@@ -75,7 +75,7 @@ export async function getBotUser() {
 }
 
 // Full role list of the guild (id, name, color, position, managed) — used by
-// the doctor and the owner diagnostics role picker.
+// the doctor and the owner dashboard role picker.
 export async function getGuildRoles(guildId = config.discord.guildId) {
   const res = await discordFetch(`/guilds/${guildId}/roles`);
   await expect(res, [200], 'list guild roles');

@@ -100,7 +100,7 @@ export default guard(async function handler(req, res) {
     session = await createCheckoutSession({ plan, discordId: uid, note, store, couponId, discountCode });
   } catch (err) {
     // Buyers get a plain sentence, never raw Stripe internals; the owner sees
-    // the exact cause (wrong-mode key, missing price, …) on /diagnostics.
+    // the exact cause (wrong-mode key, missing price, …) via the setup doctor.
     console.error(`[checkout] stripe session for ${uid}/${plan.id} (store ${store.slug}) failed: ${err.message}`);
     sendJson(res, 502, {
       error: "Payment could not be started — the store's payment setup is incomplete. Please try again shortly.",

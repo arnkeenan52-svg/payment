@@ -1,11 +1,11 @@
 // Effective plan configuration: plans.json is the shipped default, but the
-// role mapping can be overridden at runtime from the owner diagnostics page
+// role mapping can be overridden at runtime from the owner dashboard
 // (stored in the database — the deployed filesystem is read-only). Pricing
 // and billing fields (stripePriceId, priceUsd, lifetime, durationDays) are
 // deliberately NOT runtime-editable; only the Discord role mapping is.
 //
 // Resolution order per plan:
-//   1. the owner's /diagnostics pick (DB override)
+//   1. the owner's dashboard pick (DB override)
 //   2. plans.json roleIds that exist in the guild
 //   3. ONLY when none of the configured ids exist: roleNames matched against
 //      the live guild role list — "@Premium" finds the role literally named

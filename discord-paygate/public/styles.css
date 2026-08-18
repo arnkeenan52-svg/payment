@@ -92,19 +92,6 @@ body {
 
 .top-left { display: flex; align-items: center; gap: 14px; }
 
-/* ── diagnostics (owner-only doctor view) ─────────────────────────────────── */
-.diagnostics #diag-body { display: flex; flex-direction: column; gap: 10px; }
-.diag-row { display: flex; flex-direction: column; gap: 6px; padding: 15px 18px; }
-.diag-name { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14.5px; }
-.diag-icon { width: 20px; text-align: center; flex: none; }
-.diag-status { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: var(--dim); }
-.diag-detail { color: var(--dim); font-size: 13.5px; padding-left: 30px; overflow-wrap: anywhere; }
-.diag-fix { color: var(--ink); font-size: 13.5px; padding-left: 30px; overflow-wrap: anywhere; }
-.diag-pass .diag-icon { color: var(--good); }
-.diag-fail { border-color: rgba(248, 113, 113, 0.5); }
-.diag-fail .diag-icon, .diag-fail .diag-status { color: var(--bad); }
-.diag-warn .diag-icon { color: #fbbf24; }
-.diag-skip .diag-icon { color: var(--dim); }
 .doctor-banner a { color: #fff; font-weight: 700; }
 
 /* role picker */
@@ -614,8 +601,10 @@ footer {
   position: relative; overflow: hidden; border-radius: 18px; border: 1px solid var(--edge);
   min-height: 340px; display: flex; align-items: center; justify-content: center; text-align: center;
 }
-.hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; }
-.hero-shade { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(0,0,0,0.15), rgba(0,0,0,0.82)); }
+/* (the old full-bleed .hero-video/.hero-shade background rules lived here —
+   they absolutely-positioned ANY .hero-video at 55% opacity, which collapsed
+   the browser-frame to its bar and clipped the tour to nothing. Never bring
+   them back: the hero media must be a normal in-flow block.) */
 .hero-inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 46px 22px; }
 .hero-mark { mix-blend-mode: screen; }
 .hero h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.12; margin: 0; letter-spacing: -0.02em; }
@@ -1418,35 +1407,7 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
   .account > span { display: none; }
 }
 
-/* ── hero demo: auto-cycling product views ──────────────────────────────────── */
-.hero-demo { position: relative; aspect-ratio: 1400 / 817; }
-.hero-demo .demo-slide {
-  position: absolute; inset: 0; opacity: 0; transform: scale(1.012);
-  transition: opacity 600ms var(--ease-out), transform 900ms var(--ease-out);
-  pointer-events: none;
-}
-.hero-demo .demo-slide.active { opacity: 1; transform: none; }
-.hero-demo .demo-slide img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
-.demo-hud {
-  position: absolute; left: 12px; bottom: 12px; z-index: 5;
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(10, 10, 10, 0.78); border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 6px; padding: 7px 10px; backdrop-filter: blur(6px);
-}
-.demo-caption { font-size: 12px; font-weight: 700; color: var(--ink); }
-.demo-dots { display: inline-flex; gap: 6px; }
-.hd-dot {
-  width: 14px; height: 14px; padding: 0; border: none; background: transparent; cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-.hd-dot::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 140ms var(--ease-out), transform 140ms var(--ease-out); }
-.hd-dot.active::after { background: var(--accent); transform: scale(1.25); }
-.hd-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
-@media (prefers-reduced-motion: reduce) {
-  .hero-demo .demo-slide { transition: opacity 200ms ease; transform: none; }
-}
-
-/* hero video fills the frame like the screenshot did */
+/* hero media fills the frame like the screenshot did */
 .hero-video { display: block; width: 100%; height: auto; background: #0b0b0c; }
 
 /* ── Subscord-weight typography (marketing page) ────────────────────────────── */
@@ -1521,25 +1482,13 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 .bf-live { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--accent); flex: none; }
 @media (max-width: 560px) { .bf-url { display: none; } .bf-live { margin-left: auto; } }
 
-/* tap-to-play overlay: only when autoplay was refused */
-.video-play {
-  position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); z-index: 6;
-  width: 64px; height: 64px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(10, 10, 10, 0.75); color: var(--ink); cursor: pointer;
-  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
-}
-.video-play:hover { background: rgba(10, 10, 10, 0.9); border-color: var(--accent); }
-.video-play:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.video-play[hidden] { display: none; }
-.video-play svg { margin-left: 3px; }
-
-/* ── hero fixes: Safari-collapse-proof video box + centered column ──────────── */
+/* ── hero fixes: Safari-collapse-proof media box + centered column ──────────── */
 /* Safari renders <video> with no reserved ratio until metadata arrives — the
    frame collapsed to a sliver. A hard CSS aspect-ratio makes the box stable
-   before a single byte loads, poster and video alike. */
+   before a single byte loads, for the animated image and the upgraded video
+   alike (the JS swap keeps the same class, so the box never moves). */
 .browser-frame .hero-video { aspect-ratio: 1280 / 800; width: 100%; height: auto; object-fit: cover; display: block; }
 .bf-bar { position: relative; z-index: 2; }
-.video-play { z-index: 7; }
 
 /* Subscord composition: one centered content column, text left-aligned
    inside it — no dead void on the right at wide widths. */

@@ -6,7 +6,7 @@ import { cronAuthorized } from '../cron/reconcile.js';
 import { getGuildRoles, getGuildMember, getBotUser } from '../../src/lib/discord.js';
 import { setPlanOverride } from '../../src/db.js';
 
-// Owner-only: point a plan at a real guild role, picked on /diagnostics.
+// Owner-only: point a plan at a real guild role, picked in the dashboard.
 // Validated server-side against the LIVE guild: the role must exist, must not
 // be @everyone or integration-managed, and must sit strictly below the bot's
 // top role — otherwise every grant would 403 after payment.

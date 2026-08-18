@@ -6,7 +6,7 @@ import { cronAuthorized } from '../cron/reconcile.js';
 import { getGuildRoles, getGuildMember, getBotUser } from '../../src/lib/discord.js';
 import { effectiveRoleMap } from '../../src/services/plan-config.js';
 
-// Owner-only: the guild's live role list for the diagnostics role picker.
+// Owner-only: the guild's live role list for the dashboard role picker.
 // Roles the bot cannot grant are flagged unusable with the reason — that
 // makes the hierarchy problem visible instead of mysterious.
 

@@ -4,7 +4,7 @@ import { runDoctor } from '../src/services/doctor.js';
 import { cronAuthorized } from './cron/reconcile.js';
 
 // Full doctor report for: the CRON_SECRET bearer (machine use, unchanged) or
-// the signed-in Discord user matching OWNER_DISCORD_ID (the /diagnostics
+// the signed-in Discord user matching OWNER_DISCORD_ID (the owner
 // page). Everyone else gets ONLY { ok } — enough to drive the storefront
 // banner, zero configuration detail. Reports never contain secret values,
 // only masked prefixes. Cached per warm instance; detail-authorized callers

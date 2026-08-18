@@ -9,7 +9,6 @@
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/receipt", "destination": "/receipt.html" },
-    { "source": "/diagnostics", "destination": "/diagnostics.html" },
     { "source": "/account", "destination": "/account.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/auth/login", "destination": "/api/auth/login" },

@@ -38,7 +38,7 @@ const ddl = (dialect) => {
   );
   CREATE INDEX IF NOT EXISTS idx_subscriptions_member ON subscriptions (discord_id);
 
-  -- Owner-picked role mapping per plan (set from /diagnostics). Overrides the
+  -- Owner-picked role mapping per plan (set from the dashboard). Overrides the
   -- roleIds/roleNames shipped in plans.json — the deployed filesystem is
   -- read-only, so runtime plan-config edits live here.
   CREATE TABLE IF NOT EXISTS plan_overrides (
