@@ -15,6 +15,7 @@ import {
   canonicalWebhookUrl,
 } from '../lib/stripe.js';
 import { getAppSecret, setAppSecret, acquireLock, releaseLock } from '../db.js';
+import { resendApiKey, receiptFrom } from '../lib/email.js';
 
 const MANAGE_ROLES = 1n << 28n;
 const ADMINISTRATOR = 1n << 3n;
@@ -359,6 +360,29 @@ export async function runDoctor() {
   } else {
     add('discord:manage-roles', 'Bot holds the Manage Roles permission', 'skip', 'skipped — bot not confirmed in guild');
     add('discord:hierarchy', 'Bot role hierarchy', 'skip', 'skipped — bot not confirmed in guild');
+  }
+
+  // Receipt emails (Resend) — warn-level only: broken receipts must never
+  // mark the store itself unsafe, but the owner needs to SEE why buyers get
+  // no confirmation mail. The classic trap: the resend.dev test sender
+  // "works" while delivering only to the account owner's own inbox.
+  try {
+    const resendKey = await resendApiKey();
+    if (!resendKey) {
+      add('email:resend-key', 'Resend API key present (receipt emails)', 'warn', '(empty)',
+        'Set RESEND_API_KEY in Vercel → Project → Settings → Environment Variables to turn on membership-confirmation emails.');
+    } else {
+      add('email:resend-key', 'Resend API key present (receipt emails)', 'pass', mask(resendKey));
+      const from = await receiptFrom();
+      if (from.includes('resend.dev')) {
+        add('email:resend-sender', 'Receipts send from a verified domain', 'warn', from,
+          "Resend's onboarding@resend.dev test sender delivers ONLY to your own Resend account inbox — real buyers get nothing. Verify your domain in Resend → Domains (the sender switches automatically), or set RECEIPT_FROM.");
+      } else {
+        add('email:resend-sender', 'Receipts send from a verified domain', 'pass', from);
+      }
+    }
+  } catch (err) {
+    add('email:resend-key', 'Resend reachable (receipt emails)', 'warn', err.message);
   }
 
   // Coinbase: only flagged when partially configured (one secret without the other).

@@ -14,12 +14,44 @@ export async function resendApiKey() {
   return sealed ? openSecret(sealed) : null;
 }
 
+// The sender decides whether buyers actually get mail: Resend's
+// onboarding@resend.dev TEST sender delivers only to the Resend account
+// owner's own inbox — every real buyer is silently refused. An explicit
+// override wins; otherwise the account's verified domains are looked up and
+// the first one becomes the sender, so verifying a domain in Resend is the
+// only step an operator ever has to take. Cached per warm instance.
+let senderCache = { value: null, at: 0 };
+
 export async function receiptFrom() {
-  return (
-    process.env.RECEIPT_FROM ||
-    (await getAppSecret('receipt_from').catch(() => null)) ||
-    'Ripley <onboarding@resend.dev>'
-  );
+  const explicit = process.env.RECEIPT_FROM || (await getAppSecret('receipt_from').catch(() => null));
+  if (explicit) return explicit;
+  const now = Date.now();
+  if (senderCache.value && now - senderCache.at < 10 * 60_000) return senderCache.value;
+  let from = 'Ripley <onboarding@resend.dev>';
+  try {
+    const key = await resendApiKey();
+    if (key) {
+      const res = await fetch(`${apiBase()}/domains`, {
+        headers: { authorization: `Bearer ${key}` },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const verified = ((await res.json()).data ?? []).find((d) => d.status === 'verified');
+        if (verified) from = `Ripley <receipts@${verified.name}>`;
+      }
+    }
+  } catch {
+    /* keep the test-sender fallback; the next send retries the lookup */
+  }
+  if (from.includes('resend.dev')) {
+    // Loud, because this failure mode is otherwise invisible: sends "work"
+    // but only ever reach the Resend account owner.
+    console.warn('[email] no verified Resend domain — receipts use the test sender, which does NOT deliver to real buyers');
+    senderCache = { value: null, at: 0 }; // do not cache the bad state
+    return from;
+  }
+  senderCache = { value: from, at: now };
+  return from;
 }
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

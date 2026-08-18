@@ -103,6 +103,13 @@ async function resendHandler(req, res) {
     json(res, 200, { id: `email_${resend.emails.length}` });
     return;
   }
+  // The account's verified domains — receiptFrom() self-provisions the
+  // sender from here (the resend.dev test sender delivers to nobody real).
+  if (url.pathname === '/domains' && req.method === 'GET') {
+    json(res, 200, { data: [{ name: 'pending.e2e', status: 'pending' }, { name: 'tradeleaks.e2e', status: 'verified' }] });
+    return;
+  }
+  json(res, 404, { message: 'not found' });
 }
 
 // ── mock servers ──────────────────────────────────────────────────────────────
@@ -1609,10 +1616,13 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   assert.ok(memberRoles(U8).has(R2_VIP), 'the buyer must receive the tenant role (joined with it)');
   assert.ok(discord.joins.some((j) => j.uid === U8 && j.roles.includes(R2_VIP)), 'buyer was pulled into G2 with the role');
 
-  // The emailed receipt went out via Resend with the right details.
+  // The emailed receipt went out via Resend with the right details, sent
+  // from the account's VERIFIED domain — never the resend.dev test sender,
+  // which delivers only to the Resend account owner.
   const receipt = resend.emails.at(-1);
   assert.ok(receipt, 'a receipt email must be sent');
   assert.deepEqual(receipt.to, ['buyer8@e2e.test']);
+  assert.equal(receipt.from, 'Ripley <receipts@tradeleaks.e2e>', 'the sender self-provisions from the verified domain');
   assert.match(receipt.subject, /VIP Signals/);
   assert.match(receipt.html, /VIP Access/);
   assert.match(receipt.html, /\$49\.99/);
