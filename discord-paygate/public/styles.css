@@ -906,3 +906,72 @@ body.home .landing { width: 100%; gap: 0; padding-bottom: 0; }
 .footer-cta h2 { font-size: clamp(26px, 4vw, 40px); margin: 0 0 12px; letter-spacing: -0.02em; }
 .card-head > .btn-secondary { flex: none; width: auto; align-self: flex-start; }
 .hero-ctas .btn-pill, .hero-ctas .btn-secondary { width: auto; flex: none; }
+
+.row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.row-actions .btn-ghost { font-size: 12px; padding: 6px 10px; min-height: 34px; }
+.act-revoke { color: #f87171; }
+.add-member { display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--edge); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.add-member[hidden] { display: none; }
+
+/* ── XOE-style landing ────────────────────────────────────────────────────── */
+body.home { background: #0a0a0a; }
+.xoe-nav { position: relative; }
+.top-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
+@media (max-width: 760px) { .top-center { display: none; } }
+
+.glow { position: absolute; border-radius: 50%; pointer-events: none; }
+.glow-hero {
+  width: 900px; height: 900px; left: 50%; top: -320px; transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(18, 183, 136, 0.22), transparent 70%);
+}
+.glow-side {
+  width: 560px; height: 560px; right: -160px; top: -120px;
+  background: radial-gradient(circle, rgba(18, 183, 136, 0.14), transparent 70%);
+}
+.glow-cta {
+  width: 760px; height: 760px; left: 50%; top: -230px; transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(18, 183, 136, 0.16), transparent 70%);
+}
+
+.btn-fill {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  background: var(--accent); color: #05130b; font-weight: 800; font-size: 14.5px;
+  padding: 13px 24px; border-radius: 999px; min-height: 46px; border: none; cursor: pointer;
+}
+.btn-fill:hover { filter: brightness(1.08); }
+.btn-fill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.xhero { position: relative; overflow: hidden; padding: 96px 22px 0; text-align: center; }
+.xhero .hero-inner { position: relative; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.xhero h1 { font-size: clamp(34px, 5.6vw, 58px); line-height: 1.08; margin: 0; letter-spacing: -0.025em; color: rgba(255,255,255,0.95); }
+.xhero .hero-sub { color: rgba(255,255,255,0.6); font-size: 16.5px; max-width: 560px; margin: 0; line-height: 1.6; }
+.hero-shot { width: min(1060px, calc(100% - 8px)); margin: 52px auto -2px; position: relative; }
+
+.shot-frame {
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden;
+  background: #0b0b0c; box-shadow: 0 40px 120px rgba(0,0,0,0.65);
+  position: relative;
+}
+.shot-frame img { display: block; width: 100%; height: auto; }
+
+.xsection { padding: 96px 22px; position: relative; }
+.wrap.narrow { max-width: 760px; }
+.frow { display: grid; grid-template-columns: 1fr 1.15fr; gap: 56px; align-items: center; }
+.frow.flip { grid-template-columns: 1.15fr 1fr; }
+.frow.flip .frow-copy { order: 2; }
+.frow.flip .frow-visual { order: 1; display: flex; justify-content: center; }
+@media (max-width: 860px) {
+  .frow, .frow.flip { grid-template-columns: 1fr; gap: 26px; }
+  .frow.flip .frow-copy { order: 1; }
+  .frow.flip .frow-visual { order: 2; }
+  .xsection { padding: 64px 22px; }
+}
+.frow-copy h2 { font-size: clamp(24px, 3.2vw, 32px); line-height: 1.15; margin: 0 0 14px; letter-spacing: -0.02em; color: rgba(255,255,255,0.95); }
+.frow-copy p { color: rgba(255,255,255,0.6); font-size: 14.5px; line-height: 1.65; margin: 0 0 16px; }
+.frow-copy .tick-list { margin-bottom: 22px; }
+.frow-visual { position: relative; }
+.frow-visual .demo-card { max-width: 420px; margin: 0 auto; }
+
+.xcta { position: relative; overflow: hidden; text-align: center; padding: 120px 22px; border-top: 1px solid rgba(255,255,255,0.07); }
+.xcta h2 { position: relative; font-size: clamp(28px, 4.4vw, 44px); margin: 0 0 22px; letter-spacing: -0.025em; line-height: 1.1; }
+.xcta .hero-ctas { position: relative; }

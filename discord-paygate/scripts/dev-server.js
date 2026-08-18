@@ -25,6 +25,7 @@ import adminRoles from '../api/admin/roles.js';
 import adminPlanRole from '../api/admin/plan-role.js';
 import adminPayments from '../api/admin/payments.js';
 import adminSettings from '../api/admin/settings.js';
+import adminMember from '../api/admin/member.js';
 import resync from '../api/resync.js';
 import myGuilds from '../api/my/guilds.js';
 import onboard from '../api/onboard.js';
@@ -72,6 +73,7 @@ const routes = {
   '/api/admin/plan-role': adminPlanRole,
   '/api/admin/payments': adminPayments,
   '/api/admin/settings': adminSettings,
+  '/api/admin/member': adminMember,
   '/api/resync': resync,
   '/api/my/guilds': myGuilds,
   '/api/onboard': onboard,

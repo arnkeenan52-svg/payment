@@ -469,6 +469,7 @@ async function viewStore(slug) {
   const tabs = [
     ['overview', 'Overview'],
     ['payments', 'Transactions'],
+    ['members', 'Members'],
     ['settings', 'Settings'],
   ]
     .map(([k, lbl]) => `<a class="apptab${k === tab ? ' active' : ''}" href="#/store/${esc(slug)}/${k}" ${k === tab ? 'aria-current="page"' : ''}>${lbl}</a>`)
@@ -533,6 +534,55 @@ async function viewStore(slug) {
         </div>
         <div class="table-scroll"><table class="data-table"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="tx-body">${paymentsRows(data.payments)}</tbody></table></div>
         <p class="rows-note" id="tx-count">${data.payments.length} row(s)</p>
+      </section>`;
+  } else if (tab === 'members') {
+    const byMember = new Map();
+    for (const p of data.payments) {
+      const m = byMember.get(p.discordId) ?? {
+        discordId: p.discordId, username: p.username, products: new Set(), spent: 0, entitled: false, lifetime: false, last: 0,
+      };
+      m.username = m.username ?? p.username;
+      m.spent += p.amountUsd;
+      if (p.entitled) { m.entitled = true; m.products.add(p.planName); }
+      if (p.lifetime) m.lifetime = true;
+      m.last = Math.max(m.last, p.createdAt);
+      byMember.set(p.discordId, m);
+    }
+    const members = [...byMember.values()].sort((a, b) => b.last - a.last);
+    const memberRows = members
+      .map(
+        (m) => `<tr data-member="${esc(m.discordId)}">
+          <td>${m.username ? '@' + esc(m.username) : ''}<span class="dim"> ${esc(m.discordId)}</span></td>
+          <td>${esc([...m.products].join(', ') || '—')}</td>
+          <td class="num">${usd(m.spent)}</td>
+          <td>${m.lifetime ? '<span class="chip chip-good">Lifetime</span>' : m.entitled ? '<span class="chip chip-good">Active</span>' : '<span class="chip chip-off">Ended</span>'}</td>
+          <td class="row-actions">
+            <button class="btn-ghost act-resync" data-id="${esc(m.discordId)}">Re-sync</button>
+            ${m.entitled ? `<button class="btn-ghost act-revoke" data-id="${esc(m.discordId)}">Revoke</button>` : ''}
+          </td>
+        </tr>`,
+      )
+      .join('');
+    body = `
+      <section class="panel table-panel">
+        <div class="card-head"><div><h3>Members</h3><p class="card-sub">Manage who has access.</p></div>
+        <button class="btn-secondary" id="add-member-toggle">${I.plus} Add member</button></div>
+        <form class="add-member" id="add-member" hidden>
+          <label class="field"><span class="field-label">Discord user ID</span>
+            <input id="am-id" type="text" inputmode="numeric" placeholder="123456789012345678" spellcheck="false" />
+            <span class="field-help">Discord → Settings → Advanced → Developer Mode, then right-click the user → Copy User ID.</span>
+          </label>
+          <label class="field"><span class="field-label">Product</span><select id="am-plan"><option value="">Loading…</option></select></label>
+          <div class="wiz-actions"><button class="btn-pill" type="submit">Grant access</button></div>
+          <p class="field-err" id="err-am" role="alert"></p>
+        </form>
+        ${
+          members.length
+            ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>Member</th><th>Products</th><th class="num">Total spent</th><th>Status</th><th></th></tr></thead><tbody>${memberRows}</tbody></table></div>
+               <p class="rows-note">${members.length} member(s)</p>`
+            : '<div class="empty-chart">No members yet.</div>'
+        }
+        <p class="field-err" id="err-member" role="alert"></p>
       </section>`;
   } else {
     const isPlatformOwner = Boolean(state.me?.isOwner);
@@ -611,6 +661,84 @@ async function viewStore(slug) {
     };
     $('#tx-search').oninput = apply;
     $('#tx-status').onchange = apply;
+  }
+
+  if (tab === 'members') {
+    const memberCall = async (payload) => {
+      const res = await fetch('/api/admin/member', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ store: slug, ...payload }),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(out.error ?? 'Something went wrong — try again.');
+      return out;
+    };
+    document.querySelectorAll('.act-revoke').forEach((btn) => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        if (!confirm(`Remove this membership?\n\nTheir role is taken away immediately. ${id}`)) return;
+        btn.disabled = true;
+        btn.textContent = 'Removing…';
+        try {
+          await memberCall({ action: 'revoke', discordId: id });
+          state.data = null;
+          route();
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = 'Revoke';
+          fieldErr('member', err.message);
+        }
+      };
+    });
+    document.querySelectorAll('.act-resync').forEach((btn) => {
+      btn.onclick = async () => {
+        btn.disabled = true;
+        btn.textContent = 'Syncing…';
+        try {
+          await memberCall({ action: 'resync', discordId: btn.dataset.id });
+          btn.textContent = 'Synced ✓';
+          setTimeout(() => { btn.disabled = false; btn.textContent = 'Re-sync'; }, 1800);
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = 'Re-sync';
+          fieldErr('member', err.message);
+        }
+      };
+    });
+    const toggle = $('#add-member-toggle');
+    const form = $('#add-member');
+    toggle.onclick = () => {
+      form.hidden = !form.hidden;
+      if (!form.hidden && $('#am-plan').options.length <= 1) {
+        fetch(`/api/plans?store=${encodeURIComponent(slug)}`)
+          .then((r) => r.json())
+          .then((d) => {
+            $('#am-plan').innerHTML = (d.plans ?? [])
+              .map((p) => `<option value="${esc(p.id)}">${esc(p.name)} — $${p.priceUsd}</option>`)
+              .join('');
+          })
+          .catch(() => {});
+      }
+    };
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const id = $('#am-id').value.trim();
+      fieldErr('am', '');
+      if (!/^\d{17,20}$/.test(id)) return fieldErr('am', 'That is not a Discord user ID (17–20 digits).');
+      const btn = form.querySelector('button[type=submit]');
+      btn.disabled = true;
+      btn.textContent = 'Granting…';
+      try {
+        await memberCall({ action: 'grant', discordId: id, planId: $('#am-plan').value });
+        state.data = null;
+        route();
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Grant access';
+        fieldErr('am', err.message);
+      }
+    };
   }
 
   if (tab === 'settings' && state.me?.isOwner) {

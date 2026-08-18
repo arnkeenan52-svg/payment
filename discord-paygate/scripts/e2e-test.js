@@ -1558,6 +1558,34 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   const pay1 = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u1Cookie } })).json();
   assert.ok(pay1.payments.some((p) => p.storeSlug === 'vip-signals'));
   assert.ok(pay1.payments.some((p) => p.storeSlug === 'store'));
+
+  // ── member management: revoke / manual grant / resync ─────────────────────
+  const member = (cookie, payload) =>
+    fetch(`${appUrl}/api/admin/member`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
+      body: JSON.stringify({ store: 'vip-signals', ...payload }),
+    });
+
+  assert.equal((await member(null, { action: 'revoke', discordId: U8 })).status, 401, 'anonymous cannot manage members');
+  assert.equal((await member(u8Cookie, { action: 'revoke', discordId: U8 })).status, 403, 'a buyer cannot manage members');
+
+  const revoked = await member(u7Cookie, { action: 'revoke', discordId: U8 });
+  assert.equal(revoked.status, 200, await revoked.text());
+  assert.ok(!memberRoles(U8).has(R2_VIP), 'revoking the membership must take the role away');
+
+  // Manual grant: a member who never paid gets access by hand.
+  const U9 = '509900000000000009';
+  discord.members.set(U9, new Set());
+  const granted = await member(u7Cookie, { action: 'grant', discordId: U9, planId: plan.planKey });
+  assert.equal(granted.status, 200, await granted.text());
+  assert.ok(memberRoles(U9).has(R2_VIP), 'a manual grant must deliver the role');
+
+  // Resync heals a manually-removed role for the tenant store.
+  discord.members.get(U9).delete(R2_VIP);
+  const resynced = await member(u7Cookie, { action: 'resync', discordId: U9 });
+  assert.equal(resynced.status, 200);
+  assert.ok(memberRoles(U9).has(R2_VIP), 'resync must restore the role');
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════
