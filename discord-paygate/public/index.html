@@ -4,15 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ripley — Sell Discord access</title>
-  <meta name="description" content="Ripley powers paid Discord communities: secure Stripe checkout, instant role delivery, self-healing access." />
+  <meta name="description" content="Ripley turns a Discord community into revenue: secure Stripe checkout, 0% platform fees, roles delivered in seconds." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Ripley — Sell Discord access" />
-  <meta property="og:description" content="Secure Stripe checkout, instant Discord role delivery, self-healing access." />
+  <meta property="og:description" content="Secure Stripe checkout, 0% platform fees, roles delivered in seconds." />
   <meta property="og:image" content="https://ripleybot.com/product.jpg" />
   <meta property="og:url" content="https://ripleybot.com/" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Ripley — Sell Discord access" />
-  <meta name="twitter:description" content="Secure Stripe checkout, instant Discord role delivery, self-healing access." />
+  <meta name="twitter:description" content="Secure Stripe checkout, 0% platform fees, roles delivered in seconds." />
   <meta name="twitter:image" content="https://ripleybot.com/product.jpg" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
@@ -35,12 +35,15 @@
              onerror="this.remove()" src="/hero.mp4"></video>
       <div class="hero-shade"></div>
       <div class="hero-inner">
-        <img class="hero-mark" src="/ripley.png" alt="Ripley" height="30" />
-        <h1>Sell Discord access.<br />Get paid instantly.</h1>
-        <p class="hero-sub" id="hero-sub">Secure card checkout, instant role delivery, and access that heals itself — powered by Ripley.</p>
+        <span class="hero-kicker">0% platform fees · powered by Stripe</span>
+        <h1>Your community.<br />Your revenue.</h1>
+        <p class="hero-sub">Ripley turns a Discord server into a store: buyers pay by card and their role lands in seconds — nothing skimmed off the top.</p>
         <div class="hero-ctas">
           <a class="btn-pill hero-cta" id="hero-buy" href="/store">Open the store →</a>
-          <a class="btn-secondary hero-alt" href="/account">Manage subscription</a>
+          <a class="btn-secondary hero-alt" href="/dashboard">Add your server</a>
+        </div>
+        <div class="hero-trust">
+          <span>🔒 Secured by Stripe</span><span>⚡ Instant delivery</span><span>♾️ Lifetime option</span>
         </div>
       </div>
     </section>
@@ -54,44 +57,90 @@
       <a class="btn-pill store-cta" id="store-cta" href="/store">Get&nbsp;Premium</a>
     </section>
 
-    <section class="features">
-      <div class="panel feature">
-        <h3>⚡ Instant delivery</h3>
-        <p>The moment payment clears, the buyer's Discord role lands — usually within seconds. Not in the server yet? They're pulled in automatically with the role already attached.</p>
+    <section class="split">
+      <div class="split-copy">
+        <h2>Selling access shouldn't cost you access.</h2>
+        <p>Marketplaces take a cut of every sale, hold your money, and can close your storefront overnight. Ripley is different by design:</p>
+        <ul class="tick-list">
+          <li><strong>Every cent goes to the owner.</strong> Payments run through the owner's own Stripe account — Ripley never touches the money.</li>
+          <li><strong>No middleman risk.</strong> Your storefront lives on your own domain, not inside someone else's marketplace.</li>
+          <li><strong>Nothing to install.</strong> Buyers sign in with Discord, pay, and they're in. No bots to invite, no commands to learn.</li>
+        </ul>
       </div>
-      <div class="panel feature">
-        <h3>🔒 Secure checkout</h3>
-        <p>Payments run on Stripe's hosted checkout. Card details never touch this site, and every webhook is signature-verified before anything is granted.</p>
-      </div>
-      <div class="panel feature">
-        <h3>♾️ Lifetime access</h3>
-        <p>One payment, no renewals, no billing surprises. A lifetime purchase can never expire — it's structural, not a promise.</p>
-      </div>
-      <div class="panel feature">
-        <h3>🩹 Self-healing access</h3>
-        <p>Role removed by accident? Buyers fix it themselves with one click on their account page, and an hourly sweep keeps every membership in sync.</p>
+      <div class="demo-card panel" aria-hidden="true">
+        <div class="demo-row demo-head"><span class="demo-dot"></span><span>Ripley</span><span class="demo-time">just now</span></div>
+        <div class="demo-row"><span class="demo-check">✓</span><div><strong>Payment completed</strong><br /><span class="demo-dim">Premium — $59.99 · lifetime</span></div></div>
+        <div class="demo-row"><span class="demo-check">✓</span><div><strong>Role granted</strong><br /><span class="demo-dim">@PREMIUM added in 1.4s</span></div></div>
+        <div class="demo-row"><span class="demo-check">✓</span><div><strong>Receipt confirmed</strong><br /><span class="demo-dim">Access verified — welcome in</span></div></div>
       </div>
     </section>
 
     <section class="steps">
       <h2 class="steps-title">How it works</h2>
       <div class="steps-grid">
-        <div class="panel step"><span class="step-n">1</span><p><strong>Sign in with Discord</strong><br />so we know where to deliver.</p></div>
-        <div class="panel step"><span class="step-n">2</span><p><strong>Pay with card</strong><br />on Stripe's secure checkout.</p></div>
-        <div class="panel step"><span class="step-n">3</span><p><strong>Role lands in seconds</strong><br />and it's yours for life.</p></div>
+        <div class="panel step"><span class="step-n">1</span><p><strong>Sign in with Discord</strong><br />so we know exactly where to deliver.</p></div>
+        <div class="panel step"><span class="step-n">2</span><p><strong>Pay with card</strong><br />on Stripe's hosted, secure checkout.</p></div>
+        <div class="panel step"><span class="step-n">3</span><p><strong>Role lands in seconds</strong><br />— and if it's ever missing, one click brings it back.</p></div>
       </div>
+    </section>
+
+    <section class="features">
+      <div class="panel feature">
+        <h3>⚡ Instant delivery</h3>
+        <p>The moment payment clears, the role lands. Not in the server yet? You're pulled in automatically with the role already attached.</p>
+      </div>
+      <div class="panel feature">
+        <h3>🔒 Secure by default</h3>
+        <p>Card details never touch this site — Stripe hosts the checkout, and every payment event is signature-verified before anything is granted.</p>
+      </div>
+      <div class="panel feature">
+        <h3>♾️ Lifetime means lifetime</h3>
+        <p>One payment, no renewals. A lifetime purchase structurally cannot expire — there is no timer to run out.</p>
+      </div>
+      <div class="panel feature">
+        <h3>🩹 Self-healing access</h3>
+        <p>Roles are re-checked continuously. Buyers can also fix their own access with one click on the account page — no support ticket needed.</p>
+      </div>
+    </section>
+
+    <section class="faq">
+      <h2 class="steps-title">Frequently asked questions</h2>
+      <details class="panel faq-item">
+        <summary>Do I have to be in the Discord server before buying?</summary>
+        <p>No. If you're not in the server yet, you're added automatically the moment your payment completes — with your role already attached.</p>
+      </details>
+      <details class="panel faq-item">
+        <summary>Is my card information safe?</summary>
+        <p>Yes. Payment happens on Stripe's own hosted checkout page. This site never sees, stores, or transmits your card details.</p>
+      </details>
+      <details class="panel faq-item">
+        <summary>What does "lifetime" actually mean?</summary>
+        <p>One payment, permanent access. There is no subscription behind it and nothing that renews or expires.</p>
+      </details>
+      <details class="panel faq-item">
+        <summary>My role disappeared — what do I do?</summary>
+        <p>Open your <a href="/account">account page</a> and press "Re-sync my access". Your roles are restored instantly. An automatic hourly check does the same in the background.</p>
+      </details>
+      <details class="panel faq-item">
+        <summary>Can I get a refund?</summary>
+        <p>Access is delivered instantly, so completed purchases are generally final — but if something went wrong (double charge, nothing delivered), contact the owner on Discord and it will be sorted. Details in the <a href="/terms">terms</a>.</p>
+      </details>
+    </section>
+
+    <section class="final-cta panel">
+      <h2>Ready to open yours?</h2>
+      <p class="note-help" id="final-sub">Buy access in seconds — or put your own server on Ripley.</p>
+      <div class="hero-ctas"><a class="btn-pill hero-cta" id="final-buy" href="/store">Open the store →</a><a class="btn-secondary hero-alt" href="/dashboard">Add your server</a></div>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
-    <nav class="footer-nav">
-      <a href="/store">Store</a>
-      <a href="/account">Account</a>
-      <a href="/terms">Terms</a>
-      <a href="/privacy">Privacy</a>
-    </nav>
-    <span class="footer-copy">© Ripley</span>
+  <footer class="site-footer cols">
+    <div class="footer-brand">
+      <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
+      <span class="footer-copy">© Ripley</span>
+    </div>
+    <nav class="footer-col"><span class="footer-head">Platform</span><a href="/store">Store</a><a href="/account">Account</a><a href="/dashboard">Dashboard</a></nav>
+    <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
   </footer>
 
   <script src="/home.js"></script>
