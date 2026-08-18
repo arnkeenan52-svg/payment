@@ -176,7 +176,7 @@ function renderMethods() {
   box.innerHTML = '';
   const methods = [];
   if (state.capabilities.crypto) methods.push({ id: 'coinbase', html: `${ICON_CRYPTO}<span>Crypto</span>` });
-  if (state.capabilities.stripe) methods.push({ id: 'stripe', html: '<span class="provider-badge">Stripe</span><span>Card</span>' });
+  if (state.capabilities.stripe) methods.push({ id: 'stripe', html: '<span>Card</span><span class="provider-badge">Stripe</span>' });
   if (!methods.some((m) => m.id === state.method)) state.method = methods.at(-1)?.id ?? null;
 
   for (const m of methods) {
