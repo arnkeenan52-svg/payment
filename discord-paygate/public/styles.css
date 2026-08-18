@@ -1407,11 +1407,15 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
   .xhero { padding-top: 12px; padding-bottom: 20px; }
   .xhero .hero-inner { padding-top: 0; padding-bottom: 0; }
   .hero-left .hero-inner { gap: 8px; }
+  /* phones read centered heroes as designed, left-ragged ones as unfinished */
+  .hero-left .hero-inner { align-items: center; text-align: center; }
   .xhero h1 { font-size: 28px; line-height: 1.12; }
   .xhero .hero-sub { font-size: 14px; line-height: 1.5; }
-  .btn-hero { padding: 10px 22px; font-size: 14.5px; min-height: 42px; }
-  .hero-ctas { gap: 8px; }
-  .hero-trust { margin-top: 0; font-size: 11.5px; }
+  .btn-hero { padding: 10px 22px; font-size: 14.5px; min-height: 44px; }
+  /* one action stack: full-width primary, quiet link centered beneath it */
+  .hero-ctas { flex-direction: column; align-items: stretch; width: 100%; gap: 2px; }
+  .hero-ctas .link-quiet { justify-content: center; }
+  .hero-trust { margin-top: 0; font-size: 11.5px; justify-content: center; text-align: center; }
   .hero-shot { margin-top: 10px; }
 }
 .landing > .xsection { border-top: 1px solid rgba(255,255,255,0.05); }
@@ -1665,7 +1669,6 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 .btn-hero span { display: inline-block; transition: transform 150ms ease-out; }
 .btn-hero:hover span { transform: translateX(3px); }
 
-.hero-trust svg { vertical-align: -2px; color: var(--accent); margin-right: 2px; }
 .bf-url { display: inline-flex; align-items: center; gap: 5px; }
 .bf-url svg { opacity: 0.65; flex: none; }
 
