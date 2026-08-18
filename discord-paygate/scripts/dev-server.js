@@ -23,6 +23,8 @@ import cronReconcile from '../api/cron/reconcile.js';
 import setupCheck from '../api/setup-check.js';
 import adminRoles from '../api/admin/roles.js';
 import adminPlanRole from '../api/admin/plan-role.js';
+import adminPayments from '../api/admin/payments.js';
+import resync from '../api/resync.js';
 
 const PUBLIC_DIR = path.join(config.root, 'public');
 const MIME = {
@@ -65,6 +67,8 @@ const routes = {
   '/api/setup-check': setupCheck,
   '/api/admin/roles': adminRoles,
   '/api/admin/plan-role': adminPlanRole,
+  '/api/admin/payments': adminPayments,
+  '/api/resync': resync,
 };
 
 const server = http.createServer(async (req, res) => {
@@ -85,6 +89,14 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/diagnostics') {
       serveStatic(res, 'diagnostics.html');
+      return;
+    }
+    if (req.method === 'GET' && url.pathname === '/account') {
+      serveStatic(res, 'account.html');
+      return;
+    }
+    if (req.method === 'GET' && url.pathname === '/dashboard') {
+      serveStatic(res, 'dashboard.html');
       return;
     }
     if (req.method === 'GET' && /^\/[a-zA-Z0-9._-]+$/.test(url.pathname)) {

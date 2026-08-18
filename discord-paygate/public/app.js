@@ -66,7 +66,8 @@ function renderAccount() {
   }
   const entitled = (me.subscriptions ?? []).filter((s) => s.entitled);
   const badge = entitled.length ? `<span class="badge">${entitled.map((s) => s.planName).join(' · ')}</span>` : '';
-  el.innerHTML = `${badge}<span>@${me.username ?? me.discordId}</span><button class="btn-ghost" id="logout">Sign out</button>`;
+  const links = `<a class="nav-link" href="/account">Account</a>${me.isOwner ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}`;
+  el.innerHTML = `${badge}${links}<span>@${me.username ?? me.discordId}</span><button class="btn-ghost" id="logout">Sign out</button>`;
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }
 

@@ -308,6 +308,18 @@ export function isEntitled(sub, at = now()) {
   return false;
 }
 
+// Every subscription with its buyer's username — the owner dashboard's
+// payments timeline (one row per purchase, newest first).
+export async function allSubscriptionsWithUsers() {
+  const { rows } = await q(
+    `SELECT s.*, u.username FROM subscriptions s
+     LEFT JOIN users u ON u.discord_id = s.discord_id
+     ORDER BY s.created_at DESC, s.id DESC`,
+    [],
+  );
+  return rows;
+}
+
 export async function membersWithLiveSubscriptions() {
   const { rows } = await q("SELECT DISTINCT discord_id FROM subscriptions WHERE status IN ('active', 'past_due')", []);
   return rows.map((r) => r.discord_id);

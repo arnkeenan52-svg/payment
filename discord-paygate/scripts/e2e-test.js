@@ -531,6 +531,7 @@ test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', 
 });
 
 let u1Cookie;
+let u6Cookie;
 
 test('checkout is refused for logged-out buyers (401 — UI gating is not security)', async () => {
   const res = await fetch(`${appUrl}/api/checkout/stripe`, {
@@ -1244,6 +1245,79 @@ test('doctor auto-registers the missing webhook endpoint; deliveries verify with
   } finally {
     stripe.webhookEndpoints = saved;
   }
+});
+
+test('platform: /api/me exposes account fields (isOwner, purchase dates, roles)', async () => {
+  const anon = await (await fetch(`${appUrl}/api/me`)).json();
+  assert.deepEqual(anon, { loggedIn: false });
+
+  const me = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u1Cookie } })).json();
+  assert.equal(me.isOwner, true, 'U1 is the store owner in these tests');
+  assert.ok(me.subscriptions.length >= 1);
+  for (const sub of me.subscriptions) {
+    assert.equal(typeof sub.createdAt, 'number', 'every subscription carries its purchase date');
+    assert.ok(Array.isArray(sub.roleNames));
+    assert.ok(sub.priceUsd === null || typeof sub.priceUsd === 'number');
+  }
+});
+
+test('platform: account re-sync heals a manually-removed role', async () => {
+  assert.equal((await fetch(`${appUrl}/api/resync`, { method: 'POST' })).status, 401, 'anonymous cannot resync');
+
+  // Fresh buyer U6: pay by webhook, log in, then lose the role "by accident".
+  const U6 = '506600000000000006';
+  discord.members.set(U6, new Set());
+  discord.oauthUsers.code_u6 = { id: U6, username: 'trader_six' };
+  const paid = await deliverStripe({
+    id: 'evt_platform_u6',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_platform_u6', mode: 'payment', client_reference_id: U6, metadata: { plan_id: 'lifetime', discord_id: U6 } } },
+  });
+  assert.equal(paid.status, 200);
+  assert.ok(memberRoles(U6).has(R_LIFETIME));
+
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=code_u6&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  u6Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+
+  discord.members.get(U6).delete(R_LIFETIME); // a mod (or Discord hiccup) removed it
+  const resync = await fetch(`${appUrl}/api/resync`, { method: 'POST', headers: { cookie: u6Cookie } });
+  const body = await resync.json();
+  assert.equal(resync.status, 200, JSON.stringify(body));
+  assert.ok(body.added.includes(R_LIFETIME), 'resync must report the healed role');
+  assert.ok(memberRoles(U6).has(R_LIFETIME), 'the role must be back after resync');
+});
+
+test('platform: payments dashboard endpoint is owner-gated and its totals add up', async () => {
+  assert.equal((await fetch(`${appUrl}/api/admin/payments`)).status, 401, 'anonymous gets 401');
+  assert.equal(
+    (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u6Cookie } })).status,
+    403,
+    'a signed-in non-owner gets 403',
+  );
+
+  const data = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u1Cookie } })).json();
+  assert.equal(data.totals.payments, data.payments.length);
+  const sum = Math.round(data.payments.reduce((s, p) => s + p.amountUsd, 0) * 100) / 100;
+  assert.equal(data.totals.allTimeUsd, sum, 'all-time revenue must equal the sum of the rows');
+  const u6row = data.payments.find((p) => p.discordId === '506600000000000006');
+  assert.deepEqual(
+    { username: u6row.username, planId: u6row.planId, amountUsd: u6row.amountUsd, lifetime: u6row.lifetime },
+    { username: 'trader_six', planId: 'lifetime', amountUsd: 299, lifetime: true },
+  );
+  assert.ok(data.totals.activeMembers >= 2);
+  assert.ok(data.totals.lifetimeMembers >= 1);
+
+  // The cron secret also opens it (for machine use), and rows are newest-first.
+  const viaCron = await fetch(`${appUrl}/api/admin/payments`, { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+  assert.equal(viaCron.status, 200);
+  const times = data.payments.map((p) => p.createdAt);
+  assert.deepEqual(times, [...times].sort((a, b) => b - a), 'payments must be newest-first');
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════
