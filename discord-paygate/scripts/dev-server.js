@@ -44,6 +44,7 @@ const MIME = {
   '.gif': 'image/gif',
   '.mp4': 'video/mp4',
   '.webm': 'video/webm',
+  '.woff2': 'font/woff2',
 };
 
 function serveStatic(res, file) {
