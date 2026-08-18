@@ -84,6 +84,7 @@ const ddl = (dialect) => {
     active          ${int} NOT NULL DEFAULT 1,
     purchase_limit  ${int},
     success_url     TEXT,
+    image_data      TEXT,
     created_at      ${int} NOT NULL,
     UNIQUE (store_id, plan_key)
   );
@@ -205,6 +206,9 @@ function db() {
       await driver.exec(`ALTER TABLE store_plans ADD COLUMN active ${intType} NOT NULL DEFAULT 1`).catch(() => {});
       await driver.exec(`ALTER TABLE store_plans ADD COLUMN purchase_limit ${intType}`).catch(() => {});
       await driver.exec('ALTER TABLE store_plans ADD COLUMN success_url TEXT').catch(() => {});
+      // Uploaded product photos live in the database as data URLs (kept out
+      // of list queries; served by /api/img with cache headers).
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN image_data TEXT').catch(() => {});
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -468,9 +472,16 @@ const planRow = (r) =>
         active: r.active === null || r.active === undefined ? true : Number(r.active) === 1,
         purchaseLimit: r.purchase_limit === null || r.purchase_limit === undefined ? null : Number(r.purchase_limit),
         successUrl: r.success_url ?? null,
+        hasImageData: Boolean(r.image_data), // the data URL itself never rides list payloads
         createdAt: r.created_at === null || r.created_at === undefined ? null : Number(r.created_at),
       }
     : null;
+
+// The uploaded photo for one plan — fetched only by the image endpoint.
+export async function getPlanImage(storeId, planKey) {
+  const { rows } = await q('SELECT image_data FROM store_plans WHERE store_id = ? AND plan_key = ?', [storeId, planKey]);
+  return rows[0]?.image_data ?? null;
+}
 
 // Field-level product edits. stripe_price_id is set here only when checkout
 // lazily provisions a price; a price EDIT clears it so the next checkout
@@ -488,6 +499,7 @@ export async function updateStorePlan(storeId, planKey, fields) {
     active: 'active',
     purchaseLimit: 'purchase_limit',
     successUrl: 'success_url',
+    imageData: 'image_data',
   };
   const sets = [];
   const params = [];

@@ -102,6 +102,42 @@ function renderNav() {
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }
 
+// "59.99" and "59,99" both parse. Number inputs on comma-decimal phones
+// (Danish, German, …) silently refuse the dot key, so price fields are
+// plain text with inputmode=decimal, parsed here.
+function parsePrice(v) {
+  const n = parseFloat(String(v ?? '').trim().replace(/[^0-9.,]/g, '').replace(',', '.'));
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+}
+
+// Photo picker: read the chosen file, downscale on a canvas so uploads stay
+// around 100KB, hand back a data URL the API stores and serves via /api/img.
+function readPhoto(file, ok, err) {
+  if (!file || !file.type.startsWith('image/')) return err('Pick an image file.');
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const max = 1000;
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    const keepAlpha = file.type === 'image/png' || file.type === 'image/gif';
+    const data = c.toDataURL(keepAlpha ? 'image/png' : 'image/jpeg', 0.85);
+    if (data.length > 2_000_000) return err('That photo is too large even after resizing — try a smaller one.');
+    ok(data);
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    err('Could not read that image.');
+  };
+  img.src = url;
+}
+
 function fieldErr(id, msg) {
   const el = $(`#err-${id}`);
   if (el) el.textContent = msg ?? '';
@@ -332,7 +368,7 @@ function renderSetupStep(g, step) {
       <div class="field-row">
         <label class="field">
           <span class="field-label">Price (USD) <span aria-hidden="true">*</span></span>
-          <input id="f-price" type="number" inputmode="decimal" min="1" max="10000" step="0.01" placeholder="59.99" />
+          <input id="f-price" type="text" inputmode="decimal" placeholder="59.99" autocomplete="off" />
           <span class="field-err" id="err-price" role="alert"></span>
         </label>
         <label class="field">
@@ -340,19 +376,47 @@ function renderSetupStep(g, step) {
           <select id="f-billing"><option value="lifetime" selected>One-time · lifetime</option><option value="month">Monthly subscription</option></select>
         </label>
       </div>
-      <label class="field">
-        <span class="field-label">Image URL</span>
+      <div class="field">
+        <span class="field-label">Product photo</span>
+        <div class="photo-row">
+          <img id="f-photo-prev" class="photo-prev" alt="" hidden />
+          <button type="button" class="btn-secondary" id="f-photo-btn">Choose photo</button>
+          <button type="button" class="btn-ghost" id="f-photo-clear" hidden>Remove</button>
+          <input id="f-photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+        </div>
+        <span class="field-help">Shown on your store page and in Stripe checkout. Or paste a link:</span>
         <input id="f-img" type="url" placeholder="https://…  (optional)" spellcheck="false" />
-        <span class="field-help">Shown on your store page and in Stripe checkout.</span>
-      </label>
+      </div>
       <div class="wiz-actions"><button class="btn-pill" id="next3">Continue ${I.arrow}</button></div>
       <p class="field-err" id="err-prod" role="alert"></p>`);
+    let wizPhoto = null;
+    $('#f-photo-btn').onclick = () => $('#f-photo').click();
+    $('#f-photo').onchange = () => {
+      fieldErr('prod', '');
+      readPhoto(
+        $('#f-photo').files[0],
+        (data) => {
+          wizPhoto = data;
+          const prev = $('#f-photo-prev');
+          prev.src = data;
+          prev.hidden = false;
+          $('#f-photo-clear').hidden = false;
+        },
+        (msg) => fieldErr('prod', msg),
+      );
+    };
+    $('#f-photo-clear').onclick = () => {
+      wizPhoto = null;
+      $('#f-photo').value = '';
+      $('#f-photo-prev').hidden = true;
+      $('#f-photo-clear').hidden = true;
+    };
     $('#next3').onclick = async () => {
       const name = $('#f-pname').value.trim();
-      const priceUsd = Number($('#f-price').value);
+      const priceUsd = parsePrice($('#f-price').value);
       fieldErr('pname', ''); fieldErr('price', ''); fieldErr('prod', '');
       if (!name) return fieldErr('pname', 'Name your product.');
-      if (!Number.isFinite(priceUsd) || priceUsd < 1) return fieldErr('price', 'Set a price of at least $1.');
+      if (!Number.isFinite(priceUsd) || priceUsd < 1) return fieldErr('price', 'Set a price of at least $1 — e.g. 59.99');
       const btn = $('#next3');
       btn.disabled = true;
       btn.textContent = 'Creating your product…';
@@ -363,6 +427,7 @@ function renderSetupStep(g, step) {
           name,
           description: $('#f-pdesc').value.trim(),
           imageUrl: $('#f-img').value.trim(),
+          ...(wizPhoto ? { imageData: wizPhoto } : {}),
           priceUsd,
           lifetime: $('#f-billing').value === 'lifetime',
         });
@@ -955,7 +1020,7 @@ function productEditorFields(p = {}) {
       <label class="field"><span class="field-label">Name <span aria-hidden="true">*</span></span>
         <input class="pe-name" type="text" maxlength="80" value="${esc(p.name ?? '')}" placeholder="Premium" /></label>
       <label class="field"><span class="field-label">Price (USD) <span aria-hidden="true">*</span></span>
-        <input class="pe-price" type="number" inputmode="decimal" min="1" max="10000" step="0.01" value="${p.priceUsd ?? ''}" placeholder="49.99" /></label>
+        <input class="pe-price" type="text" inputmode="decimal" value="${p.priceUsd ?? ''}" placeholder="59.99" autocomplete="off" /></label>
     </div>
     <label class="field"><span class="field-label">Description</span>
       <input class="pe-desc" type="text" maxlength="300" value="${esc(p.description ?? '')}" placeholder="One line buyers see under the name." /></label>
@@ -969,8 +1034,15 @@ function productEditorFields(p = {}) {
         <input class="pe-limit" type="number" min="1" step="1" value="${p.purchaseLimit ?? ''}" placeholder="No cap" />
         <span class="field-help">Optional cap on total buyers.</span></label>
     </div>
-    <label class="field"><span class="field-label">Image URL</span>
-      <input class="pe-img" type="url" value="${esc(p.imageUrl ?? '')}" placeholder="https://…  (optional)" spellcheck="false" /></label>
+    <div class="field"><span class="field-label">Product photo</span>
+      <div class="photo-row">
+        <img class="pe-photo-prev photo-prev" alt="" hidden />
+        <button type="button" class="btn-secondary pe-photo-btn">Choose photo</button>
+        <button type="button" class="btn-ghost pe-photo-clear" hidden>Remove</button>
+        <input class="pe-photo-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+      </div>
+      <span class="field-help">Or paste a link:</span>
+      <input class="pe-img" type="url" value="${esc(p.imageUrl ?? '')}" placeholder="https://…  (optional)" spellcheck="false" /></div>
     <label class="field"><span class="field-label">Success URL</span>
       <input class="pe-success" type="url" value="${esc(p.successUrl ?? '')}" placeholder="https://…  (optional — where buyers land after paying)" spellcheck="false" /></label>`;
 }
@@ -1050,7 +1122,7 @@ function sectionDiscounts(discounts, products, slug) {
           <label class="field"><span class="field-label">Type</span>
             <select id="dc-kind"><option value="percent">Percent off</option><option value="fixed">Fixed USD off</option></select></label>
           <label class="field"><span class="field-label">Amount <span aria-hidden="true">*</span></span>
-            <input id="dc-amount" type="number" min="1" step="0.01" placeholder="20" /></label>
+            <input id="dc-amount" type="text" inputmode="decimal" placeholder="20" autocomplete="off" /></label>
         </div>
         <div class="field-row">
           <label class="field"><span class="field-label">Product</span>
@@ -1517,7 +1589,37 @@ function wireProducts(store, slug, products) {
     form.querySelector('.pe-limit').value = p?.purchaseLimit ?? '';
     form.querySelector('.pe-img').value = p?.imageUrl ?? '';
     form.querySelector('.pe-success').value = p?.successUrl ?? '';
+    // photo picker state: undefined = untouched, string = new upload, null = removed
+    photoPick = undefined;
+    const prev = form.querySelector('.pe-photo-prev');
+    prev.src = p?.imageUrl ?? '';
+    prev.hidden = !p?.imageUrl;
+    form.querySelector('.pe-photo-clear').hidden = !p?.imageUrl;
+    form.querySelector('.pe-photo-file').value = '';
     form.scrollIntoView({ block: 'nearest' });
+  };
+  let photoPick;
+  form.querySelector('.pe-photo-btn').onclick = () => form.querySelector('.pe-photo-file').click();
+  form.querySelector('.pe-photo-file').onchange = () => {
+    fieldErr('prod', '');
+    readPhoto(
+      form.querySelector('.pe-photo-file').files[0],
+      (data) => {
+        photoPick = data;
+        const prev = form.querySelector('.pe-photo-prev');
+        prev.src = data;
+        prev.hidden = false;
+        form.querySelector('.pe-photo-clear').hidden = false;
+      },
+      (msg) => fieldErr('prod', msg),
+    );
+  };
+  form.querySelector('.pe-photo-clear').onclick = () => {
+    photoPick = null;
+    form.querySelector('.pe-photo-file').value = '';
+    form.querySelector('.pe-photo-prev').hidden = true;
+    form.querySelector('.pe-photo-clear').hidden = true;
+    form.querySelector('.pe-img').value = '';
   };
   for (const id of ['prod-new', 'prod-new-2']) {
     const b = document.getElementById(id);
@@ -1532,13 +1634,14 @@ function wireProducts(store, slug, products) {
       name: form.querySelector('.pe-name').value.trim(),
       description: form.querySelector('.pe-desc').value.trim(),
       imageUrl: form.querySelector('.pe-img').value.trim(),
+      ...(photoPick !== undefined ? { imageData: photoPick } : {}),
       successUrl: form.querySelector('.pe-success').value.trim(),
-      priceUsd: Number(form.querySelector('.pe-price').value),
+      priceUsd: parsePrice(form.querySelector('.pe-price').value),
       lifetime: form.querySelector('.pe-billing').value === 'lifetime',
       purchaseLimit: form.querySelector('.pe-limit').value.trim() || null,
     };
     if (!fields.name) return fieldErr('prod', 'Name your product.');
-    if (!Number.isFinite(fields.priceUsd) || fields.priceUsd < 1) return fieldErr('prod', 'Set a price of at least $1.');
+    if (!Number.isFinite(fields.priceUsd) || fields.priceUsd < 1) return fieldErr('prod', 'Set a price of at least $1 — e.g. 59.99');
     const btn = $('#pe-save');
     btn.disabled = true;
     btn.textContent = 'Saving…';
@@ -1659,7 +1762,7 @@ function wireDiscounts(store, slug) {
         action: 'create',
         code: $('#dc-code').value,
         kind: $('#dc-kind').value,
-        amount: Number($('#dc-amount').value),
+        amount: parsePrice($('#dc-amount').value),
         planKey: $('#dc-plan').value || null,
         maxUses: $('#dc-max').value || null,
         expiresAt: $('#dc-exp').value || null,

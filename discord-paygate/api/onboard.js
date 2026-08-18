@@ -11,6 +11,11 @@ import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf } fr
 const ADMINISTRATOR = 1n << 3n;
 const MANAGE_GUILD = 1n << 5n;
 
+// Uploaded product photos arrive as data URLs, already downscaled by the
+// dashboard (~100KB typical). 2M chars ≈ 1.5MB decoded — a hard ceiling.
+const isImageDataUrl = (v) =>
+  typeof v === 'string' && v.length <= 2_000_000 && /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v);
+
 async function callerManagesGuild(uid, guildId) {
   const user = await getUser(uid);
   if (!user?.access_token) return false;
@@ -128,7 +133,6 @@ export default guard(async function handler(req, res) {
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const name = String(body.name ?? '').trim().slice(0, 80);
       const description = String(body.description ?? '').trim().slice(0, 300);
-      const imageUrl = /^https:\/\/\S+$/.test(String(body.imageUrl ?? '').trim()) ? String(body.imageUrl).trim().slice(0, 500) : null;
       const priceUsd = Math.round(Number(body.priceUsd) * 100) / 100;
       const lifetime = body.lifetime !== false;
       const durationDays = lifetime ? null : Math.max(1, Math.min(366, Math.round(Number(body.durationDays ?? 31))));
@@ -136,6 +140,17 @@ export default guard(async function handler(req, res) {
       if (!Number.isFinite(priceUsd) || priceUsd < 1 || priceUsd > 10000) {
         return sendJson(res, 400, { error: 'Price must be between $1 and $10,000.' });
       }
+      // Photo: an uploaded data URL (dashboard photo picker) wins over a
+      // pasted link. It is stored on the row and served from /api/img.
+      const planKey = slugify(name) || 'premium';
+      if (body.imageData !== undefined && body.imageData !== null && !isImageDataUrl(body.imageData)) {
+        return sendJson(res, 400, { error: 'That photo could not be read — use a JPG, PNG, WebP or GIF under 1.5MB.' });
+      }
+      const uploaded = isImageDataUrl(body.imageData) ? body.imageData : null;
+      const linked = /^https:\/\/\S+$/.test(String(body.imageUrl ?? '').trim()) ? String(body.imageUrl).trim().slice(0, 500) : null;
+      const imageUrl = uploaded
+        ? `${config.publicBaseUrl}/api/img?store=${encodeURIComponent(row.slug)}&plan=${encodeURIComponent(planKey)}`
+        : linked;
       const { openSecret } = await import('../src/lib/secretbox.js');
       const key = openSecret(row.stripe_secret_enc);
       if (!key) return sendJson(res, 409, { error: 'Stripe key unreadable — re-enter it in step 1.' });
@@ -147,7 +162,7 @@ export default guard(async function handler(req, res) {
           form: {
             name,
             ...(description ? { description } : {}),
-            ...(imageUrl ? { images: [imageUrl] } : {}),
+            ...(imageUrl?.startsWith('https://') ? { images: [imageUrl] } : {}),
             default_price_data: {
               currency: 'usd',
               unit_amount: Math.round(priceUsd * 100),
@@ -159,9 +174,9 @@ export default guard(async function handler(req, res) {
         console.error(`[onboard] product creation for store ${row.id} failed: ${err.message}`);
         return sendJson(res, 502, { error: 'Stripe would not create the product — check the key and try again.' });
       }
-      const plan = await db.createStorePlan({
+      let plan = await db.createStorePlan({
         storeId: row.id,
-        planKey: slugify(name) || 'premium',
+        planKey,
         name,
         description,
         imageUrl,
@@ -170,6 +185,7 @@ export default guard(async function handler(req, res) {
         durationDays,
         stripePriceId: typeof product.default_price === 'string' ? product.default_price : product.default_price?.id ?? null,
       });
+      if (uploaded) plan = await db.updateStorePlan(row.id, planKey, { imageData: uploaded });
       return sendJson(res, 200, { ok: true, plan });
     }
 
@@ -268,9 +284,24 @@ export default guard(async function handler(req, res) {
         fields.name = name;
       }
       if (body.description !== undefined) fields.description = String(body.description).trim().slice(0, 300);
-      if (body.imageUrl !== undefined) {
+      if (body.imageData !== undefined) {
+        if (body.imageData === null || body.imageData === '') {
+          fields.imageData = null;
+          // A cleared upload also clears the served URL it produced.
+          if ((existing.imageUrl ?? '').includes('/api/img?')) fields.imageUrl = null;
+        } else if (isImageDataUrl(body.imageData)) {
+          fields.imageData = body.imageData;
+          fields.imageUrl = `${config.publicBaseUrl}/api/img?store=${encodeURIComponent(row.slug)}&plan=${encodeURIComponent(planKey)}`;
+        } else {
+          return sendJson(res, 400, { error: 'That photo could not be read — use a JPG, PNG, WebP or GIF under 1.5MB.' });
+        }
+      }
+      // A pasted link applies unless a fresh upload just claimed the slot.
+      if (body.imageUrl !== undefined && typeof fields.imageData !== 'string') {
         const u = String(body.imageUrl).trim();
-        fields.imageUrl = /^https:\/\/\S+$/.test(u) ? u.slice(0, 500) : null;
+        const linked = /^https:\/\/\S+$/.test(u) ? u.slice(0, 500) : null;
+        if (linked || fields.imageUrl === undefined) fields.imageUrl = linked;
+        if (linked && existing.hasImageData) fields.imageData = null; // link replaces upload
       }
       if (body.successUrl !== undefined) {
         const u = String(body.successUrl).trim();

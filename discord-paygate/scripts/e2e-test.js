@@ -1933,6 +1933,26 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal((await checkout(u9Cookie, { planId: vip.planKey })).status, 200);
   assert.equal(stripe.checkoutSessions.at(-1).success_url, 'https://done.example/thanks');
 
+  // ── uploaded product photo: stored, listed as a served URL, delivered ─────
+  const PNG1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  assert.equal(
+    (await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: `data:image/png;base64,${PNG1}` })).status,
+    200,
+  );
+  const withPhoto = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => p.id === vip.planKey);
+  assert.match(withPhoto.imageUrl, /\/api\/img\?store=vip-signals&plan=/, 'uploads are served from /api/img');
+  const served = await fetch(`${appUrl}/api/img?store=vip-signals&plan=${vip.planKey}`);
+  assert.equal(served.status, 200);
+  assert.equal(served.headers.get('content-type'), 'image/png');
+  assert.equal(Buffer.from(await served.arrayBuffer()).toString('base64'), PNG1, 'served bytes match the upload');
+  assert.equal(
+    (await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: 'data:image/png;base64,@@@' })).status,
+    400,
+    'garbage uploads are refused',
+  );
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: null })).status, 200, 'photo removable');
+  assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals&plan=${vip.planKey}`)).status, 404, 'removed photo no longer served');
+
   // Second product, monthly — created in the site, extras applied, role picked.
   const made = await onboard({ step: 'product', storeId, name: 'Signals Monthly', description: 'Every signal, monthly.', priceUsd: 15, lifetime: false, durationDays: 31 });
   const plan2 = (await made.json()).plan;

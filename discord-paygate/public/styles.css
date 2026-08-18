@@ -1335,6 +1335,11 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .settings-stack { display: flex; flex-direction: column; gap: 14px; max-width: 820px; }
 .set-card { padding: 0; overflow: hidden; }
 .set-head { padding: 16px 20px 0; display: flex; flex-direction: column; gap: 3px; }
+/* product photo picker */
+.photo-row { display: flex; align-items: center; gap: 10px; margin: 4px 0 8px; }
+.photo-prev { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid var(--edge); background: #111; flex: none; }
+.photo-prev[hidden] { display: none; }
+
 .set-head h3 { margin: 0; font-size: 15px; }
 .set-head .card-sub { margin: 0; }
 .set-card > .field, .set-card > .share-row, .set-card > .field-err, .set-card > #billing-body { margin: 12px 20px 0; }

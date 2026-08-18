@@ -32,6 +32,7 @@ import onboard from '../api/onboard.js';
 import billing from '../api/billing.js';
 import adminDiscounts from '../api/admin/discounts.js';
 import adminStore from '../api/admin/store.js';
+import img from '../api/img.js';
 
 const PUBLIC_DIR = path.join(config.root, 'public');
 const MIME = {
@@ -87,6 +88,7 @@ const routes = {
   '/api/billing': billing,
   '/api/admin/discounts': adminDiscounts,
   '/api/admin/store': adminStore,
+  '/api/img': img,
 };
 
 const server = http.createServer(async (req, res) => {
