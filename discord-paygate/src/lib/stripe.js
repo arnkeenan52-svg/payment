@@ -228,9 +228,10 @@ export async function createCheckoutSession({ plan, discordId, note = '', store 
       `no usable Stripe price for plan "${plan.id}" (configured ${plan.stripePriceId}, and no active USD ${lifetime ? 'one-time' : plan.interval} price of $${plan.priceUsd} on this account)`,
     );
   }
-  const storeQ = store && !store.isDefault ? `&store=${encodeURIComponent(store.slug)}` : '';
-  // Every store — the built-in one included — returns buyers to its own slug.
-  const backTo = store?.slug ? `/${encodeURIComponent(store.slug)}` : '/store';
+  // Every store — the built-in one included — is addressed by its own slug,
+  // on the receipt and on the way back from a cancelled checkout alike.
+  const storeQ = store?.slug ? `&store=${encodeURIComponent(store.slug)}` : '';
+  const backTo = store?.slug ? `/${encodeURIComponent(store.slug)}` : '/';
   const successUrl = /^https:\/\/\S+$/.test(plan.successUrl ?? '')
     ? plan.successUrl
     : `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}${storeQ}`;

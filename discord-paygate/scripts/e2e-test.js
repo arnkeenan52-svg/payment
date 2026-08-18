@@ -626,18 +626,17 @@ test('npm start entry prints the config banner (storage + cron lines)', async ()
 
 test('storefront serves the tenant-generic checkout, plans API exposes capabilities', async () => {
   // "/" is the Ripley platform landing. The built-in store is NOT special:
-  // it lives at its brand slug like every other store, and the legacy /store
-  // path is only a permanent redirect there.
+  // it lives at its brand slug like every other store. /store belongs to NO
+  // store — it is a reserved word nobody can claim, the built-in one included.
   const home = await (await fetch(`${appUrl}/`)).text();
   assert.match(home, /Sell Discord access/);
-  assert.match(home, /href="\/store"/); // the "Visit a live store" showcase link
+  assert.match(home, /href="\/tradeleaks"/); // the "Visit a live store" showcase link
+  assert.doesNotMatch(home, /href="\/store"/, 'no platform link may point at /store');
   for (const p of ['/terms', '/privacy']) {
     const res = await fetch(`${appUrl}${p}`);
     assert.equal(res.status, 200, `${p} must serve`);
   }
-  const legacy = await fetch(`${appUrl}/store?plan=insider`, { redirect: 'manual' });
-  assert.equal(legacy.status, 308, 'legacy /store must permanently redirect');
-  assert.equal(legacy.headers.get('location'), '/tradeleaks?plan=insider', 'redirect lands on the brand slug, query intact');
+  assert.equal((await fetch(`${appUrl}/api/plans?store=store`)).status, 404, '"store" resolves to no store');
   const page = await (await fetch(`${appUrl}/tradeleaks`)).text();
   assert.match(page, /Confirm Order/);
   // The checkout shell is shared by every tenant store — no store's branding
@@ -703,7 +702,7 @@ test('OAuth login requests guilds.join, stores the token, and carries the plan b
     headers: { cookie: cookies.join('; ') },
   });
   assert.equal(cb.status, 302);
-  assert.equal(cb.headers.get('location'), '/store?plan=insider', 'buyer must land back on the plan, ready to pay');
+  assert.equal(cb.headers.get('location'), '/dashboard?plan=insider', 'a store-less sign-in lands on the dashboard, never on any store');
   u1Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
 
   assert.equal((await userRow(U1)).access_token, 'tok_code_u1');
@@ -743,7 +742,7 @@ test('checkout endpoint creates a Stripe session with the buyer wired in', async
   assert.equal(form['metadata[plan_id]'], 'insider');
   assert.equal(form['metadata[buyer_note]'], 'purchased by @e2e on discord', 'buyer note must reach Stripe metadata');
   assert.equal(form['line_items[0][price]'], 'price_insider_month');
-  assert.match(form.success_url, /\/receipt\?plan=insider$/, 'buyers must land on the order receipt');
+  assert.match(form.success_url, /\/receipt\?plan=insider&store=tradeleaks$/, 'buyers must land on the order receipt, store identified by its slug');
 });
 
 const SUB1_END = nowSec() + 31 * 86400;
@@ -1770,7 +1769,7 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
   const blockedBody = await blocked.text();
   assert.equal(blocked.status, 409, blockedBody);
   assert.match(JSON.parse(blockedBody).error, /member limit/);
-  assert.equal((await tryCheckout('store', PLANS[0].id)).status, 200, 'the platform owner store is never gated');
+  assert.equal((await tryCheckout('tradeleaks', PLANS[0].id)).status, 200, 'the platform owner store is never gated');
   // An EXISTING member is never hostage to the owner's plan: U9 re-checks out fine.
   discord.oauthUsers.code_u9b = { id: U9_BILLING, username: 'manual_member' };
   const u9Cookie = await loginAs('code_u9b');

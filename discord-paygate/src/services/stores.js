@@ -12,12 +12,10 @@ import { openSecret } from '../lib/secretbox.js';
 
 // The built-in store is NOT special to buyers: it lives at its own slug
 // derived from its brand name (e.g. /tradeleaks), exactly like every other
-// store. 'store' survives only as a legacy alias for old links.
-const LEGACY_DEFAULT_SLUG = 'store';
-
+// store. 'store' maps to NO store — it is a reserved platform word that no
+// store may claim or squat, the built-in one included.
 export function defaultSlug() {
-  const s = slugify(config.brand);
-  return s === 'server' ? LEGACY_DEFAULT_SLUG : s;
+  return slugify(config.brand);
 }
 
 export function defaultStore() {
@@ -53,7 +51,9 @@ function hydrate(row) {
 }
 
 export async function storeBySlug(slug) {
-  if (!slug || slug === LEGACY_DEFAULT_SLUG) return defaultStore();
+  // No slug = internal callers (legacy webhooks, reconcile) meaning the
+  // built-in store. By URL it is reachable ONLY at its own unique slug.
+  if (!slug) return defaultStore();
   // Managed store first — if the owner onboards the built-in server under
   // the same name, the managed store takes the slug over (same precedence
   // rule as storeByGuild).

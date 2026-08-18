@@ -1,12 +1,10 @@
 const $ = (sel) => document.querySelector(sel);
-// Which store this page shows: /<slug> (or legacy /s/<slug>) → that store,
-// /store → the default. This file only ever runs on store.html, so any other
-// single-segment path IS a store slug.
+// Which store this page shows: /<slug> (or legacy /s/<slug>). Every store —
+// the platform's own included — lives at its unique slug; there is no
+// special path that belongs to any store.
 const STORE_SLUG =
   (location.pathname.match(/^\/s\/([a-z0-9-]+)$/) ?? [])[1] ??
-  ((location.pathname.match(/^\/([a-z0-9-]+)$/) ?? [])[1] === 'store'
-    ? ''
-    : ((location.pathname.match(/^\/([a-z0-9-]+)$/) ?? [])[1] ?? ''));
+  ((location.pathname.match(/^\/([a-z0-9-]+)$/) ?? [])[1] ?? '');
 const storeQS = STORE_SLUG ? `?store=${encodeURIComponent(STORE_SLUG)}` : '';
 const loginStoreQ = STORE_SLUG ? `&store=${encodeURIComponent(STORE_SLUG)}` : '';
 
@@ -342,6 +340,15 @@ async function main() {
   checkSetup();
   renderNotice();
   const [plansRes, meRes] = await Promise.all([fetch(`/api/plans${storeQS}`), fetch('/api/me')]);
+  if (!plansRes.ok) {
+    // Unclaimed or renamed slug: a clear dead-end beats a ghost checkout.
+    document.querySelector('.order-card').innerHTML = `
+      <h1 class="order-title">Store Not Found</h1>
+      <p class="order-sub">There is no store at this link${STORE_SLUG ? ` (/${STORE_SLUG})` : ''}.
+        Check the link your community shared — or start your own store with Ripley.</p>
+      <a class="btn-pill" style="display:inline-block;text-decoration:none;margin-top:8px" href="/">Go to ripleybot.com</a>`;
+    return;
+  }
   const plansBody = await plansRes.json();
   state.plans = plansBody.plans;
   state.capabilities = plansBody.capabilities;
