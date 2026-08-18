@@ -3,7 +3,7 @@ import { ownerAuthorized } from '../../src/lib/authz.js';
 import { cronAuthorized } from '../cron/reconcile.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { allSubscriptionsWithUsers, isEntitled } from '../../src/db.js';
-import { storesOwnedBy, everyStore, plansOf } from '../../src/services/stores.js';
+import { storesOwnedBy, everyStore, plansOf, defaultStore } from '../../src/services/stores.js';
 
 // Payments timeline + totals, scoped to the stores the caller owns. The
 // platform owner (OWNER_DISCORD_ID) and the cron secret see everything.
@@ -32,6 +32,15 @@ export default guard(async function handler(req, res) {
   }
 
   const byId = new Map(visible.map((s) => [s.id, s]));
+  // Pre-multi-tenant rows carry store_id null (the env-configured store).
+  // When a managed store has taken that guild over, attribute those legacy
+  // payments to it — one server, one store, one history — while still
+  // pricing them from the env catalog they were sold from.
+  const def = defaultStore();
+  if (def && !byId.has(null)) {
+    const twin = visible.find((s) => String(s.guildId) === String(def.guildId));
+    if (twin) byId.set(null, twin);
+  }
   const planCache = new Map();
   const plansFor = async (store) => {
     const key = store.id ?? 'default';
@@ -39,13 +48,16 @@ export default guard(async function handler(req, res) {
     return planCache.get(key);
   };
 
-  const raw = await allSubscriptionsWithUsers(visible.map((s) => s.id));
+  const fetchIds = visible.map((s) => s.id);
+  if (byId.has(null) && !fetchIds.includes(null)) fetchIds.push(null);
+  const raw = await allSubscriptionsWithUsers(fetchIds);
   const rows = [];
   for (const s of raw) {
     const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
     const store = byId.get(sid);
     if (!store) continue;
-    const plan = (await plansFor(store)).find((p) => p.id === s.plan_id);
+    const catalog = sid === null && def ? await plansFor(def) : await plansFor(store);
+    const plan = catalog.find((p) => p.id === s.plan_id);
     rows.push({
       createdAt: Number(s.created_at),
       discordId: s.discord_id,

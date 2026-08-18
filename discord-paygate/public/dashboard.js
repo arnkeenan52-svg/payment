@@ -165,11 +165,16 @@ function guildRow(g) {
     : g.owner
       ? '<span class="chip chip-off">Owner</span>'
       : '<span class="chip chip-off">Admin</span>';
+  const action = g.store
+    ? g.store.status === 'live'
+      ? `Open ${I.arrow}`
+      : `Finish setup ${I.arrow}`
+    : `Set up ${I.plus}`;
   return `
     <a class="g-row" href="${g.store ? `#/store/${esc(g.store.slug)}` : `#/setup/${esc(g.id)}`}">
       ${icon}
       <span class="g-name">${esc(g.name)} ${chip}</span>
-      <span class="g-action">${g.store ? I.arrow : I.plus}</span>
+      <span class="g-action">${action}</span>
     </a>`;
 }
 
@@ -1010,7 +1015,9 @@ function sectionProductsDefault(data) {
   return `
     <h2 class="sec-title">Products</h2>
     <section class="panel table-panel">
-      <div class="card-head"><div><h3>Products</h3><p class="card-sub">This store’s catalog is configured by the platform.</p></div></div>
+      <div class="card-head"><div><h3>Products</h3><p class="card-sub">This is the built-in store — its catalog comes from the deployment configuration.
+        Set up your server’s own store to create and edit products right here.</p></div>
+        <a class="btn-pill" style="text-decoration:none" href="#/">Set up your store</a></div>
     </section>`;
 }
 
@@ -1289,7 +1296,7 @@ async function viewStore(slug) {
   else if (section === 'products') body = store.isDefault ? sectionProductsDefault(data) : sectionProducts(products, data, slug);
   else if (section === 'discounts')
     body = store.isDefault
-      ? '<h2 class="sec-title">Discounts</h2><section class="panel wiz-panel"><p class="note-help">Discount codes are available on stores created through onboarding.</p></section>'
+      ? '<h2 class="sec-title">Discounts</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store. Set up your server’s own store to create discount codes here.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
       : sectionDiscounts(discounts, products, slug);
   else if (section === 'store') body = sectionStore(store, link);
   else if (section === 'settings') body = sectionSettings(store, isPlatformOwner);

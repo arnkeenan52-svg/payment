@@ -1710,6 +1710,17 @@ test('the built-in server can be onboarded as a managed store: products, discoun
   // …while the legacy built-in checkout keeps serving its env catalog untouched.
   const legacy = await (await fetch(`${appUrl}/api/plans`)).json();
   assert.equal(legacy.plans.length, PLANS.length, 'the built-in store must keep working');
+
+  // One server, one store: the virtual twin leaves every dashboard list, and
+  // the pre-multi-tenant payments are attributed to the managed store with
+  // their original env-catalog pricing intact.
+  const merged = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { authorization: `Bearer ${CRON_SECRET}` } })).json();
+  assert.ok(!merged.stores.some((s) => s.isDefault), 'the virtual store must leave the list once its guild is managed');
+  assert.equal(merged.stores.filter((s) => String(s.guildId) === GUILD).length, 1, 'exactly one store per guild');
+  assert.ok(
+    merged.payments.some((p) => p.storeSlug === 'tradeleaks-pro' && p.amountUsd > 0),
+    'legacy payments ride the managed store, still priced from the env catalog',
+  );
 });
 
 test('platform billing: Free gates at 10 members, paid tiers unlock, switch cancels the old sub, cancel re-gates', async () => {

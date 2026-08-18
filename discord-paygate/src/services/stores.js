@@ -89,14 +89,25 @@ export async function storeByGuild(guildId) {
 export async function storesOwnedBy(discordId) {
   const rows = (await db.storesByOwner(discordId)).map(hydrate);
   const def = defaultStore();
-  if (def && config.ownerDiscordId && discordId === config.ownerDiscordId) rows.unshift(def);
+  // One server, one store: the virtual env-configured store steps aside in
+  // every dashboard list once a managed (editable) store exists for its
+  // guild — otherwise the owner sees a read-only twin next to the real one.
+  if (
+    def &&
+    config.ownerDiscordId &&
+    discordId === config.ownerDiscordId &&
+    !(await managedStoreByGuild(def.guildId))
+  ) {
+    rows.unshift(def);
+  }
   return rows;
 }
 
 export async function everyStore() {
   const rows = (await db.allStores()).map(hydrate);
   const def = defaultStore();
-  return def ? [def, ...rows] : rows;
+  if (!def || rows.some((r) => String(r.guildId) === String(def.guildId))) return rows;
+  return [def, ...rows];
 }
 
 // The store's product catalog in the same shape plans.json uses, so the
