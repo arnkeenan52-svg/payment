@@ -842,6 +842,9 @@ body.app { display: flex; flex-direction: column; min-height: 100dvh; }
 .stat-ic { color: var(--dim); display: flex; }
 
 .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px; }
+/* grid items default to min-width auto, which lets a wide table push the
+   whole page into horizontal scroll instead of scrolling inside its panel */
+.chart-grid > * { min-width: 0; }
 @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
 .chart-card { padding: 18px; text-align: left; }
 .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
@@ -1249,9 +1252,11 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
   .seg { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; max-width: 100%; }
   .seg::-webkit-scrollbar { display: none; }
   .seg-btn { flex: 1 0 auto; }
-  /* card headers stack so action buttons never wrap mid-word */
-  .card-head { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .card-head .btn-pill, .card-head .btn-secondary { white-space: nowrap; }
+  /* card headers stay one row: the title block shrinks and wraps while the
+     action holds the top-right corner, like on desktop */
+  .card-head { align-items: flex-start; gap: 10px; }
+  .card-head > div { min-width: 0; }
+  .card-head .btn-pill, .card-head .btn-secondary { white-space: nowrap; flex: none; }
   /* Column priority: keep what an owner acts on; the table still scrolls
      sideways for the full record. Payments: drop Date + raw Discord id.
      Products: drop Billing/Members/Revenue. Discounts: drop Scope/Expires.
@@ -1353,13 +1358,21 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .order-card .pay-panel { border: none; padding: 4px 0 0; display: flex; flex-direction: column; gap: 8px; }
 .order-card #pay-title { font-size: 16px; margin: 0; }
 .order-card .pay-sub { margin: 0; font-size: 13px; color: var(--dim); }
-.order-extra { border: 1px solid var(--edge); border-radius: 8px; padding: 0; }
-.order-extra summary { cursor: pointer; padding: 11px 14px; font-size: 13px; font-weight: 600; color: var(--dim); list-style: none; }
-.order-extra summary::-webkit-details-marker { display: none; }
-.order-extra summary::after { content: '+'; float: right; }
-.order-extra[open] summary::after { content: '–'; }
-.order-extra .field { padding: 0 14px 12px; }
-.order-extra textarea { width: 100%; resize: vertical; background: var(--bg); color: var(--ink); border: 1px solid var(--edge); border-radius: 6px; padding: 10px; font: inherit; font-size: 13.5px; }
+.order-extra { border: 1px solid var(--edge); border-radius: 8px; padding: 12px 14px; }
+.order-extra .field { padding: 0; }
+.discount-row { display: flex; gap: 8px; }
+.discount-row input { flex: 1 1 auto; min-width: 0; }
+.apply-btn {
+  flex: none; background: transparent; border: 1px solid var(--edge); border-radius: 6px;
+  color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 600;
+  padding: 10px 18px; min-height: 44px; cursor: pointer;
+}
+.apply-btn:hover { border-color: var(--dim); }
+.apply-btn:disabled { opacity: 0.6; cursor: default; }
+.discount-msg { margin: 8px 0 0; font-size: 13px; min-height: 0; }
+.discount-msg:empty { display: none; }
+.discount-msg.ok { color: var(--accent); }
+.discount-msg.err { color: #f87171; }
 
 /* ── settings: single stacked column of consistent cards ────────────────────── */
 .settings-stack { display: flex; flex-direction: column; gap: 14px; max-width: 820px; }
@@ -1445,6 +1458,9 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
   padding: 8px 11px; font-size: 12.5px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   display: flex; flex-direction: column; gap: 4px; min-width: 130px;
 }
+/* author display beats the hidden attribute — without this the EMPTY tooltip
+   renders as a stray box under the chart until the first hover */
+.chart-tip[hidden] { display: none; }
 .chart-tip-title { color: var(--dim); font-size: 11px; font-weight: 700; }
 .chart-tip-row { display: flex; align-items: center; gap: 7px; }
 .chart-tip-row strong { font-variant-numeric: tabular-nums; }
@@ -1626,3 +1642,52 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 }
 .seo-page .account .btn-fill { padding: 9px 16px; font-size: 13.5px; }
 .seo-page .faq { margin-top: 16px; }
+
+/* ── hero, top-shelf pass ─────────────────────────────────────────────────────
+   Butterick: balanced headline wraps, no orphaned sub lines. Kowalski:
+   transform/opacity only, ease-out, entrance is a one-time (rare) moment,
+   buttons answer the press. Flat rules intact: no new glows, no pills. */
+.xhero::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(ellipse 100% 65% at 50% 0%, #000 25%, transparent 72%);
+  mask-image: radial-gradient(ellipse 100% 65% at 50% 0%, #000 25%, transparent 72%);
+}
+.xhero h1 { text-wrap: balance; }
+.xhero .hero-sub { text-wrap: pretty; }
+
+.btn-hero { transition: transform 130ms ease-out, filter 130ms ease-out; }
+.btn-hero:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.btn-hero:active { transform: scale(0.98); }
+.btn-hero span { display: inline-block; transition: transform 150ms ease-out; }
+.btn-hero:hover span { transform: translateX(3px); }
+
+.hero-trust svg { vertical-align: -2px; color: var(--accent); margin-right: 2px; }
+.bf-url { display: inline-flex; align-items: center; gap: 5px; }
+.bf-url svg { opacity: 0.65; flex: none; }
+
+/* the tour frame reads as a lifted object, lit by the app inside it */
+.hero-shot.browser-frame {
+  box-shadow:
+    0 30px 90px -30px color-mix(in srgb, var(--accent) 24%, transparent),
+    0 18px 60px -18px rgba(0, 0, 0, 0.75);
+}
+
+/* one-time staged entrance; first paint only, compositor-only properties */
+@keyframes hero-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+body.home .xhero h1, body.home .xhero .hero-sub, body.home .hero-ctas,
+body.home .hero-trust, body.home .hero-shot {
+  animation: hero-rise 560ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+body.home .xhero .hero-sub { animation-delay: 70ms; }
+body.home .hero-ctas { animation-delay: 130ms; }
+body.home .hero-trust { animation-delay: 180ms; }
+body.home .hero-shot { animation-delay: 230ms; }
+@media (prefers-reduced-motion: reduce) {
+  body.home .xhero h1, body.home .xhero .hero-sub, body.home .hero-ctas,
+  body.home .hero-trust, body.home .hero-shot { animation: none; }
+  .btn-hero, .btn-hero span { transition: none; }
+}

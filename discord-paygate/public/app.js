@@ -29,6 +29,9 @@ const state = {
   me: { loggedIn: false },
   planId: null,
   method: null,
+  // Set by the Apply button after the server confirms the code for the
+  // selected plan: { code, planId, discountedUsd, saveUsd }.
+  discount: null,
 };
 
 const selectedPlan = () => state.plans.find((p) => p.id === state.planId) ?? state.plans[0];
@@ -161,6 +164,8 @@ function renderOptions() {
     row.onclick = () => {
       state.planId = plan.id;
       render();
+      // A code applied to the old plan is re-checked against the new one.
+      if (state.discount && state.discount.planId !== plan.id) applyDiscount();
     };
     box.append(row);
   }
@@ -252,11 +257,77 @@ function renderCta() {
     return;
   }
 
+  const applied = state.discount && state.discount.planId === plan.id ? state.discount : null;
   const btn = document.createElement('button');
   btn.className = 'pay-btn';
-  btn.textContent = `Pay ${fmtPrice(plan.priceUsd)} with ${state.method === 'coinbase' ? 'Crypto' : 'Card'}`;
+  btn.textContent = `Pay ${fmtPrice(applied ? applied.discountedUsd : plan.priceUsd)} with ${state.method === 'coinbase' ? 'Crypto' : 'Card'}`;
   btn.onclick = () => pay(btn, plan);
   area.append(btn);
+}
+
+// The Apply button: confirm the code with the server and show the buyer the
+// real discounted total before they ever reach Stripe.
+async function applyDiscount() {
+  const input = $('#discount-code');
+  const btn = $('#discount-apply');
+  const msg = $('#discount-msg');
+  const plan = selectedPlan();
+  if (!input || !plan) return;
+  const code = input.value.trim().toUpperCase();
+  if (!code) {
+    state.discount = null;
+    msg.textContent = 'Enter a code first.';
+    msg.className = 'discount-msg err';
+    renderCta();
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  try {
+    const res = await fetch(
+      `/api/discount?store=${encodeURIComponent(STORE_SLUG)}&code=${encodeURIComponent(code)}&plan=${encodeURIComponent(plan.id)}`,
+    );
+    let data = {};
+    try {
+      data = JSON.parse(await res.text());
+    } catch {
+      data = {};
+    }
+    if (!res.ok) throw new Error(data.error || 'That discount code is not valid for this product.');
+    state.discount = { code, planId: plan.id, discountedUsd: data.discountedUsd, saveUsd: data.saveUsd };
+    msg.textContent = `${code} applied — you save ${fmtPrice(data.saveUsd)}. New total: ${fmtPrice(data.discountedUsd)}.`;
+    msg.className = 'discount-msg ok';
+  } catch (err) {
+    state.discount = null;
+    msg.textContent = err.message;
+    msg.className = 'discount-msg err';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Apply';
+  renderCta();
+}
+
+function wireDiscount() {
+  const input = $('#discount-code');
+  const btn = $('#discount-apply');
+  const msg = $('#discount-msg');
+  if (!input || !btn) return;
+  btn.onclick = () => applyDiscount();
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyDiscount();
+    }
+  });
+  // Editing the code voids the previous approval until Apply is hit again.
+  input.addEventListener('input', () => {
+    if (state.discount) {
+      state.discount = null;
+      msg.textContent = '';
+      msg.className = 'discount-msg';
+      renderCta();
+    }
+  });
 }
 
 // Reference-style error panel below the pay card: heading, message,
@@ -287,7 +358,6 @@ async function pay(btn, plan) {
   btn.disabled = true;
   const original = btn.textContent;
   btn.textContent = 'Redirecting…';
-  const note = $('#buyer-note')?.value.trim() ?? '';
   const discountCode = $('#discount-code')?.value.trim() ?? '';
   try {
     const res = await fetch(`/api/checkout/${state.method}`, {
@@ -296,7 +366,6 @@ async function pay(btn, plan) {
       body: JSON.stringify({
         planId: plan.id,
         ...(STORE_SLUG ? { store: STORE_SLUG } : {}),
-        ...(note ? { note } : {}),
         ...(discountCode ? { discountCode } : {}),
       }),
     });
@@ -361,6 +430,7 @@ async function main() {
   const requested = new URLSearchParams(window.location.search).get('plan');
   const requestedPlan = state.plans.find((p) => p.id === requested);
   state.planId = requestedPlan?.id ?? state.plans[0]?.id ?? null;
+  wireDiscount();
   render();
   if (requestedPlan && state.me.loggedIn) {
     $('#cta-area')?.scrollIntoView({ block: 'center' });

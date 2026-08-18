@@ -3,19 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- og:begin — replaced per store by api/store-page.js so link previews
+       (Discord/Twitter/iMessage) carry the store's name and product photo.
+       Unfurlers never run JS; only server-rendered tags count. -->
   <title>Checkout — Ripley</title>
   <meta name="description" content="Secure checkout for Discord communities — pay once, roles delivered in seconds." />
-  <!-- Link previews (Discord/Twitter/iMessage). The title is set per store by
-       app.js once the store loads; these statics are the platform fallback. -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Checkout — Ripley" />
   <meta property="og:description" content="Secure checkout for Discord communities — pay once, roles delivered in seconds." />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="Checkout — Ripley" />
   <meta name="twitter:description" content="Secure checkout for Discord communities — pay once, roles delivered in seconds." />
+  <!-- og:end -->
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=30" />
+  <link rel="stylesheet" href="/styles.css?v=31" />
 </head>
 <body>
   <header class="top">
@@ -59,13 +61,14 @@
       <section class="pay-panel" id="pay-panel">
         <h2 id="pay-title">Pay with Card</h2>
         <p class="pay-sub" id="pay-sub">Secure payment processed by Stripe</p>
-        <details class="order-extra">
-          <summary>Add a note or discount code</summary>
-          <label class="field"><span class="field-label">Note to the owner</span>
-            <textarea id="buyer-note" maxlength="500" rows="2" placeholder="e.g., bought for @friend"></textarea></label>
-          <label class="field" id="discount-field" hidden><span class="field-label">Discount code</span>
-            <input id="discount-code" type="text" maxlength="32" placeholder="LAUNCH20" spellcheck="false" style="text-transform:uppercase" /></label>
-        </details>
+        <div class="order-extra" id="discount-field" hidden>
+          <label class="field"><span class="field-label">Discount code</span>
+            <span class="discount-row">
+              <input id="discount-code" type="text" maxlength="32" placeholder="LAUNCH20" spellcheck="false" autocomplete="off" style="text-transform:uppercase" />
+              <button type="button" class="apply-btn" id="discount-apply">Apply</button>
+            </span></label>
+          <p class="discount-msg" id="discount-msg" role="status"></p>
+        </div>
         <div id="cta-area"></div>
         <p class="redirect-note" id="redirect-note"></p>
         <div class="trust-row" id="trust-row"></div>
@@ -80,6 +83,6 @@
     <img class="powered-mark" src="/ripley.png" alt="Ripley" height="18" />
   </footer>
 
-  <script src="/app.js?v=30"></script>
+  <script src="/app.js?v=31"></script>
 </body>
 </html>

@@ -34,6 +34,8 @@ import adminDiscounts from '../api/admin/discounts.js';
 import adminStore from '../api/admin/store.js';
 import img from '../api/img.js';
 import invite from '../api/invite.js';
+import discount from '../api/discount.js';
+import storePage from '../api/store-page.js';
 
 const PUBLIC_DIR = path.join(config.root, 'public');
 const MIME = {
@@ -93,6 +95,7 @@ const routes = {
   '/api/admin/store': adminStore,
   '/api/img': img,
   '/api/invite': invite,
+  '/api/discount': discount,
 };
 
 const server = http.createServer(async (req, res) => {
@@ -105,8 +108,9 @@ const server = http.createServer(async (req, res) => {
       await webhookStripe(req, res);
       return;
     }
-    if (/^\/s\/[a-z0-9-]+$/.test(url.pathname) && req.method === 'GET') {
-      serveStatic(res, 'store.html');
+    if ((m = url.pathname.match(/^\/s\/([a-z0-9-]+)$/)) && req.method === 'GET') {
+      req.url = `/api/store-page?store=${m[1]}`;
+      await storePage(req, res);
       return;
     }
     const handler = routes[url.pathname];
@@ -150,9 +154,11 @@ const server = http.createServer(async (req, res) => {
         }
       }
       // Store links live at the root (vercel.json's /:slug rewrite): any
-      // slug-shaped path with no matching static file is a storefront.
+      // slug-shaped path with no matching static file is a storefront,
+      // served with per-store link-preview tags.
       if (/^\/[a-z0-9-]+$/.test(url.pathname)) {
-        serveStatic(res, 'store.html');
+        req.url = `/api/store-page?store=${url.pathname.slice(1)}`;
+        await storePage(req, res);
         return;
       }
     }

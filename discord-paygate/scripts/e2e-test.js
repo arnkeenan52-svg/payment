@@ -644,9 +644,12 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   assert.equal((await fetch(`${appUrl}/api/plans?store=store`)).status, 404, '"store" resolves to no store');
   const page = await (await fetch(`${appUrl}/tradeleaks`)).text();
   assert.match(page, /Confirm Order/);
-  // The checkout shell is shared by every tenant store — no store's branding
-  // may be baked into the static HTML. Store identity arrives via the API.
-  assert.doesNotMatch(page, /Tradeleaks/i, 'checkout HTML must be tenant-generic');
+  // The checkout shell is shared by every tenant store: the HEAD is
+  // server-rendered per store (link unfurlers never run JS, so previews
+  // need the name there), while the BODY stays tenant-generic — store
+  // identity arrives via the API.
+  assert.match(page, /property="og:title" content="Tradeleaks — Membership"/, 'link preview carries the store name');
+  assert.doesNotMatch(page.slice(page.indexOf('<body')), /Tradeleaks/i, 'checkout BODY must be tenant-generic');
   const bySlug = await (await fetch(`${appUrl}/api/plans?store=tradeleaks`)).json();
   assert.equal(bySlug.brand, 'Tradeleaks', 'the built-in store resolves at its brand slug');
   const { plans, capabilities, server } = await (await fetch(`${appUrl}/api/plans`)).json();
@@ -2102,6 +2105,12 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal(served.status, 200);
   assert.equal(served.headers.get('content-type'), 'image/png');
   assert.equal(Buffer.from(await served.arrayBuffer()).toString('base64'), PNG1, 'served bytes match the upload');
+  // Link previews: the store page is SERVER-rendered with the product photo,
+  // so sharing the link unfurls with the image the owner added (unfurlers
+  // never run JS — client-set tags don't count).
+  const shared = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.match(shared, /property="og:image" content="[^"]*\/api\/img\?store=vip-signals/, 'link previews carry the uploaded product photo');
+  assert.match(shared, /property="og:title" content="[^"]*VIP Signals[^"]*"/, 'link previews carry the store name');
   assert.equal(
     (await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: 'data:image/png;base64,@@@' })).status,
     400,
@@ -2130,6 +2139,18 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal((await disc({ action: 'create', code: 'launch20', kind: 'percent', amount: 20 })).status, 200);
   assert.equal((await disc({ action: 'create', code: 'FIVER', kind: 'fixed', amount: 5, planKey: plan2.planKey, maxUses: 1 })).status, 200);
   assert.equal((await disc({ action: 'create', code: 'launch20', kind: 'percent', amount: 10 })).status, 409, 'duplicate codes refused');
+  // The checkout page's Apply button previews codes here before paying.
+  const vipNow = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => p.id === vip.planKey);
+  const preview = await (await fetch(`${appUrl}/api/discount?store=vip-signals&code=launch20&plan=${vip.planKey}`)).json();
+  assert.equal(preview.discountedUsd, Math.round(vipNow.priceUsd * 0.8 * 100) / 100, 'percent preview math');
+  assert.equal((await fetch(`${appUrl}/api/discount?store=vip-signals&code=NOPE&plan=${vip.planKey}`)).status, 404);
+  assert.equal(
+    (await fetch(`${appUrl}/api/discount?store=vip-signals&code=FIVER&plan=${vip.planKey}`)).status,
+    404,
+    'a scoped code previews only for its own product',
+  );
+  const fixedPrev = await (await fetch(`${appUrl}/api/discount?store=vip-signals&code=FIVER&plan=${plan2.planKey}`)).json();
+  assert.equal(fixedPrev.saveUsd, 5, 'fixed-amount preview math');
   const bad = await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'NOPE' });
   assert.equal(bad.status, 400);
   const withCode = await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'launch20' });

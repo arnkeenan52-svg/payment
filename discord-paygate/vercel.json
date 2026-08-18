@@ -4,7 +4,7 @@
     { "path": "/api/cron/reconcile", "schedule": "0 * * * *" }
   ],
   "rewrites": [
-    { "source": "/s/:slug", "destination": "/store" },
+    { "source": "/s/:slug", "destination": "/api/store-page?store=:slug" },
     { "source": "/vs", "destination": "/vs/index.html" },
     { "source": "/tools", "destination": "/tools/index.html" },
     { "source": "/use-cases", "destination": "/use-cases/index.html" },
@@ -19,11 +19,12 @@
     { "source": "/auth/logout", "destination": "/api/auth/logout" },
     { "source": "/webhooks/stripe", "destination": "/api/webhooks/stripe" },
     { "source": "/webhooks/coinbase", "destination": "/api/webhooks/coinbase" },
-    { "source": "/:slug", "destination": "/store" }
+    { "source": "/:slug", "destination": "/api/store-page?store=:slug" }
   ],
   "functions": {
     "api/webhooks/stripe.js": { "maxDuration": 60 },
     "api/webhooks/coinbase.js": { "maxDuration": 60 },
-    "api/cron/reconcile.js": { "maxDuration": 60 }
+    "api/cron/reconcile.js": { "maxDuration": 60 },
+    "api/store-page.js": { "includeFiles": "public/store.html" }
   }
 }
