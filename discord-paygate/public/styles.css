@@ -2315,3 +2315,8 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 }
 .alt-grid { grid-template-columns: 1fr; }
 .alt-card .seo-card-cta a { color: var(--ink); text-decoration: none; }
+
+/* hero compat marks in their real brand colors */
+.hc-discord svg { color: #5865f2; }
+.hc-discord, .hc-stripe { color: #9a9a9a; }
+.hc-stripe { color: #635bff; }
