@@ -1887,8 +1887,28 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   const rb = await get('/robots.txt');
   assert.equal(rb.status, 200);
   assert.match(rb.body, /Sitemap: https:\/\/www\.ripleybot\.com\/sitemap\.xml/);
+  assert.match(rb.body, /User-agent: GPTBot/, 'AI crawlers are explicitly welcomed');
+  const sub = await get('/vs/subscord');
+  assert.equal(sub.status, 200);
+  assert.match(sub.body, /Ripley vs Subscord/);
+  assert.match(sub.body, /plan-dependent/i, 'Subscord claims stay hedged');
+  const guide = await get('/guides/how-to-monetize-a-discord-server');
+  assert.equal(guide.status, 200);
+  assert.match(guide.body, /How to Monetize a Discord Server/);
+  assert.match(guide.body, /application\/ld\+json/, 'guides carry structured data');
+  const alt = await get('/alternatives/subscord-alternatives');
+  assert.equal(alt.status, 200);
+  assert.match(alt.body, /Subscord Alternatives/i);
+  assert.match(alt.body, /our product/, 'the Ripley entry is disclosed as ours');
+  const llms = await get('/llms.txt');
+  assert.equal(llms.status, 200);
+  assert.match(llms.body, /0% of sales/);
+  assert.match(sm.body, /\/guides\/how-to-monetize-a-discord-server<\/loc>/);
+  assert.match(sm.body, /\/alternatives\/subscord-alternatives<\/loc>/);
   // Reach paths resolve to pages, never to a store.
   assert.equal((await fetch(`${appUrl}/api/plans?store=vs`)).status, 404);
+  assert.equal((await fetch(`${appUrl}/api/plans?store=guides`)).status, 404);
+  assert.equal((await fetch(`${appUrl}/api/plans?store=alternatives`)).status, 404);
 
   // The homepage's "Invite Ripley" button: a stable hop to Discord's
   // authorize screen, bot scope + Manage Roles — same as the wizard.

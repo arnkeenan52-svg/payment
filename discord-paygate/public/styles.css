@@ -2279,3 +2279,20 @@ html.menu-open, html.menu-open body { overflow: hidden; }
   .rev-chart .end-halo { opacity: 0.14; }
   .top-bar span { animation: none; }
 }
+
+/* ── guide pages: readable long-form typography ────────────────────────────── */
+.guide-body h2 { font-size: 21px; letter-spacing: -0.015em; margin: 34px 0 10px; }
+.guide-body h2:first-child { margin-top: 0; }
+.guide-body p { color: rgba(255, 255, 255, 0.68); font-size: 15px; line-height: 1.75; margin: 0 0 14px; }
+.guide-body ul { margin: 0 0 14px 20px; display: flex; flex-direction: column; gap: 8px; }
+.guide-body li { color: rgba(255, 255, 255, 0.68); font-size: 15px; line-height: 1.7; }
+.guide-body a { color: var(--ink); text-underline-offset: 3px; }
+.guide-body strong { color: rgba(255, 255, 255, 0.92); }
+.alt-card { cursor: default; }
+.alt-ours {
+  margin-left: 8px; vertical-align: 2px; background: #ededed; color: #0a0a0a;
+  border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 750;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.alt-grid { grid-template-columns: 1fr; }
+.alt-card .seo-card-cta a { color: var(--ink); text-decoration: none; }

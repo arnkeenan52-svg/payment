@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to Sell Discord Roles (Step by Step)</title>
+  <meta name="description" content="Sell Discord roles with automatic delivery: create the role, gate your channels, connect Stripe, set a price, and share your store link." />
+  <link rel="canonical" href="https://www.ripleybot.com/guides/how-to-sell-discord-roles" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="How to Sell Discord Roles (Step by Step)" />
+  <meta property="og:description" content="Sell Discord roles with automatic delivery: create the role, gate your channels, connect Stripe, set a price, and share your store link." />
+  <meta property="og:image" content="https://www.ripleybot.com/shot-dashboard.png" />
+  <meta property="og:url" content="https://www.ripleybot.com/guides/how-to-sell-discord-roles" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="stylesheet" href="/styles.css?v=48" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Ripley","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.ripleybot.com/guides"},{"@type":"ListItem","position":3,"name":"How to Sell Discord Roles","item":"https://www.ripleybot.com/guides/how-to-sell-discord-roles"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can a bot really remove the role when someone stops paying?","acceptedAnswer":{"@type":"Answer","text":"Yes — that is the core of a subscription bot. On Ripley, lapsed and canceled subscriptions lose the role automatically, and access is re-verified hourly."}},{"@type":"Question","name":"What if the buyer is not in my server yet?","acceptedAnswer":{"@type":"Answer","text":"Ripley pulls buyers into the server with the role already attached when they complete checkout, using the authorization they grant at sign-in."}},{"@type":"Question","name":"Why is the bot not assigning my role?","acceptedAnswer":{"@type":"Answer","text":"Almost always role hierarchy: drag the bot’s role above the roles it delivers in Server Settings → Roles."}},{"@type":"Question","name":"Do buyers need Stripe accounts?","acceptedAnswer":{"@type":"Answer","text":"No. Buyers pay with a card or wallet on a standard Stripe checkout page. Only the store owner needs a Stripe account, and payments land there directly."}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How to Sell Discord Roles","description":"Sell Discord roles with automatic delivery: create the role, gate your channels, connect Stripe, set a price, and share your store link.","author":{"@type":"Organization","name":"Ripley"},"publisher":{"@type":"Organization","name":"Ripley","url":"https://www.ripleybot.com"},"mainEntityOfPage":"https://www.ripleybot.com/guides/how-to-sell-discord-roles"}</script>
+</head>
+<body class="home seo-page">
+
+  <header class="top xoe-nav">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="20" /></a>
+    </div>
+    <nav class="top-center" aria-label="Main">
+      <a class="nav-link" href="/#features">Features</a>
+      <a class="nav-link" href="/#pricing">Pricing</a>
+      <a class="nav-link" href="/vs">Compare</a>
+      <a class="nav-link" href="/tools">Tools</a>
+    </nav>
+    <div class="account"><a class="btn-fill" href="/dashboard">Start free</a></div>
+  </header>
+  <main class="landing">
+
+    <section class="xhero seo-hero">
+      <div class="hero-inner">
+        <h1>How to Sell Discord Roles</h1>
+        <p class="hero-sub">A paid role is the cleanest product a Discord server can sell: buyers pay, the role lands, the channels unlock. Here is the whole setup, end to end.</p>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow guide-body">
+        <h2>1. Create the role and gate the channels</h2>
+        <p>Make a role named after the product (<em>@VIP</em>, <em>@Signals</em>, <em>@Inner Circle</em>) and set your premium channels to be visible only with it. Leave a public lobby so non-members can see what they are missing.</p>
+        <h2>2. Connect a checkout that delivers roles</h2>
+        <p>Invite the payment bot, connect your Stripe account, and map the product to the role. On <a href="/">Ripley</a> that is the whole onboarding: invite → paste your Stripe key → create the product → pick the role. Your store goes live at ripleybot.com/yourname.</p>
+        <h2>3. Price it</h2>
+        <p>Monthly for ongoing value (signals, picks, coaching), lifetime for a one-time unlock, or both at different price points. Each product maps to its own role, so tiers are just more products.</p>
+        <h2>4. Share the link</h2>
+        <p>Pin it, put it in the server description, link it from your socials. Buyers sign in with Discord, pay on Stripe’s checkout, and the role is delivered in seconds — buyers who are not in the server yet get pulled in with the role attached.</p>
+        <h2>5. Let lapses handle themselves</h2>
+        <p>When a subscription ends, the role should come off without you doing anything. Ripley removes it automatically and re-checks access hourly, so the members list and the paying list never drift apart.</p>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow">
+        <h2 class="section-title center">Frequently asked</h2>
+        <div class="faq">
+          <details class="panel faq-item"><summary>Can a bot really remove the role when someone stops paying?</summary><p>Yes — that is the core of a subscription bot. On Ripley, lapsed and canceled subscriptions lose the role automatically, and access is re-verified hourly.</p></details>
+          <details class="panel faq-item"><summary>What if the buyer is not in my server yet?</summary><p>Ripley pulls buyers into the server with the role already attached when they complete checkout, using the authorization they grant at sign-in.</p></details>
+          <details class="panel faq-item"><summary>Why is the bot not assigning my role?</summary><p>Almost always role hierarchy: drag the bot’s role above the roles it delivers in Server Settings → Roles.</p></details>
+          <details class="panel faq-item"><summary>Do buyers need Stripe accounts?</summary><p>No. Buyers pay with a card or wallet on a standard Stripe checkout page. Only the store owner needs a Stripe account, and payments land there directly.</p></details>
+        </div>
+      </div></section>
+
+    <section class="xsection">
+      <div class="wrap narrow center">
+        <h2 class="section-title">Start selling with 0% platform fees</h2>
+        <p class="section-sub">Free for your first 10 paying members — no card required.</p>
+        <p><a class="btn-fill btn-hero" href="/dashboard">Start free <span aria-hidden="true">→</span></a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer cols seo-footer">
+    <div class="footer-brand">
+      <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
+      <span class="footer-copy">© Ripley</span>
+    </div>
+    <nav class="footer-col"><span class="footer-head">Product</span>
+      <a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
+      <a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
+    <nav class="footer-col"><span class="footer-head">Compare</span>
+      <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
+      <a href="/vs/subscord">Ripley vs Subscord</a><a href="/vs/patreon">Ripley vs Patreon</a>
+      <a href="/vs/upgrade-chat">Ripley vs Upgrade.Chat</a><a href="/vs/gumroad">Ripley vs Gumroad</a>
+      <a href="/alternatives/whop-alternatives">Whop alternatives</a>
+      <a href="/alternatives/subscord-alternatives">Subscord alternatives</a></nav>
+    <nav class="footer-col"><span class="footer-head">Guides</span>
+      <a href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
+      <a href="/guides/how-to-sell-discord-roles">Sell Discord roles</a>
+      <a href="/guides/paid-discord-server">Make a paid server</a>
+      <a href="/guides/discord-subscription-bot">Discord subscription bots</a>
+      <a href="/guides/discord-monetization-ideas">Monetization ideas</a></nav>
+    <nav class="footer-col"><span class="footer-head">Tools</span>
+      <a href="/tools/discord-fee-calculator">Discord fee calculator</a>
+      <a href="/tools/whop-fee-calculator">Whop fee calculator</a>
+      <a href="/tools/launchpass-fee-calculator">LaunchPass fee calculator</a>
+      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a></nav>
+    <nav class="footer-col"><span class="footer-head">Use cases</span>
+      <a href="/use-cases/trading">Trading signals</a><a href="/use-cases/sports-betting">Sports picks</a>
+      <a href="/use-cases/fitness">Fitness coaching</a><a href="/use-cases/reselling">Cook groups</a>
+      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a></nav>
+    <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
+    <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
+  </footer>
+</body>
+</html>
