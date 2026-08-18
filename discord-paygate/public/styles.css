@@ -1352,6 +1352,15 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .xhero { padding-top: 84px; }
 .hero-left .hero-inner { gap: 14px; }
 .hero-shot { margin-top: 44px; }
+/* phone: the headline starts right under the header and the tour video sits
+   close enough to peek above the fold */
+@media (max-width: 760px) {
+  .xhero { padding-top: 30px; }
+  .xhero .hero-inner { padding-top: 2px; padding-bottom: 0; }
+  .hero-left .hero-inner { gap: 11px; }
+  .hero-shot { margin-top: 20px; }
+  .hero-trust { margin-top: 0; }
+}
 .landing > .xsection { border-top: 1px solid rgba(255,255,255,0.05); }
 .landing > .xinset + .xsection { border-top: none; }
 .section-title { margin-bottom: 8px; }
