@@ -736,8 +736,6 @@ function sectionOverview(data, store, slug) {
   const newMembers = newIn(win.cur);
   const newMembersPrev = prevRange ? newIn(win.prev) : 0;
 
-  const aov = sales ? rev / sales : 0;
-  const aovPrev = salesPrev ? revPrev / salesPrev : 0;
 
   const mrr = sum(data.payments.filter((p) => p.entitled && !p.lifetime));
   const mrrNew = sum(data.payments.filter((p) => p.entitled && !p.lifetime && inWin(p, win.cur)));
@@ -775,7 +773,6 @@ function sectionOverview(data, store, slug) {
       ${statCard('Revenue', usd(rev), I.dollar, pct(rev, revPrev), prevSub(revPrev))}
       ${statCard('Sales', sales, I.cart, pct(sales, salesPrev), prevSub(salesPrev, (v) => v))}
       ${statCard('New members', newMembers, I.users, pct(newMembers, newMembersPrev), prevSub(newMembersPrev, (v) => v))}
-      ${statCard('Avg order', usd(aov), I.dollar, pct(aov, aovPrev), prevSub(aovPrev))}
       ${statCard('MRR', usd(mrr), I.infinity, null, mrrNew > 0 ? `+${usd(mrrNew)} added this period` : 'recurring, right now')}
     </div>
     <div class="chart-grid">

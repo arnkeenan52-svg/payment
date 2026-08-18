@@ -50,7 +50,7 @@ if (menuBtn) {
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=17'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=18'; // hold a still frame instead
     return;
   }
 
@@ -67,8 +67,8 @@ if (menuBtn) {
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=17', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=17', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=18', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=18', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays

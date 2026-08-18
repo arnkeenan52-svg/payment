@@ -1000,12 +1000,6 @@ body.home .top {
 
 /* hero polish: gradient keyword + primary button glow */
 .hl-grad { color: var(--accent); }
-.metric-strip {
-  display: flex; gap: 34px; flex-wrap: wrap; justify-content: center;
-  color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 600; margin-top: 26px;
-}
-.metric-strip strong { color: rgba(255,255,255,0.92); font-size: 15px; }
-.metric-strip span { display: inline-flex; flex-direction: column; gap: 2px; align-items: center; }
 
 /* cards: quieter surfaces, hover lift */
 body.home .panel { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
@@ -1039,8 +1033,6 @@ body.home .landing { overflow-x: clip; }
 .hero-left .hero-inner { max-width: 1060px; align-items: flex-start; }
 .hero-left h1 { max-width: 720px; }
 .hero-left .hero-sub { max-width: 600px; }
-.hero-left .metric-strip { justify-content: flex-start; }
-.hero-left .metric-strip span { align-items: flex-start; }
 .hero-trust { color: rgba(255,255,255,0.45); font-size: 13px; margin: 0; }
 .section-sub { color: rgba(255,255,255,0.58); font-size: 15px; line-height: 1.65; margin: 0 auto; max-width: 620px; }
 .wrap.center { text-align: center; }
