@@ -6,6 +6,15 @@
 
 import { config, capabilities } from '../config.js';
 import { effectiveRoleMap, invalidateGuildRolesCache } from './plan-config.js';
+import {
+  resolvePlanPrice,
+  invalidatePriceCache,
+  listWebhookEndpoints,
+  createWebhookEndpoint,
+  webhookUrlCandidates,
+  canonicalWebhookUrl,
+} from '../lib/stripe.js';
+import { getAppSecret, setAppSecret, acquireLock, releaseLock } from '../db.js';
 
 const MANAGE_ROLES = 1n << 28n;
 const ADMINISTRATOR = 1n << 3n;
@@ -14,9 +23,10 @@ const mask = (v) => (v ? `${String(v).slice(0, 8)}…(${String(v).length} chars)
 const isSnowflake = (v) => /^\d{17,20}$/.test(String(v ?? ''));
 
 export async function runDoctor() {
-  // Grade against a FRESH role mapping — "Re-run checks" right after the
-  // owner fixes a role must not read a cached list up to a minute old.
+  // Grade against FRESH state — "Re-run checks" right after the owner fixes
+  // a role or price must not read caches up to a minute old.
   invalidateGuildRolesCache();
+  invalidatePriceCache();
   const checks = [];
   const add = (id, name, status, detail, fix = null) =>
     checks.push({ id, name, status, detail, ...(fix ? { fix } : {}) });
@@ -135,8 +145,18 @@ export async function runDoctor() {
         headers: { authorization: `Bearer ${stripeKey}` },
       });
       if (res.status === 404) {
-        add(id, name, 'fail', `price ${plan.stripePriceId} does not exist in this ${stripeMode}-mode account`,
-          `Create it: Stripe dashboard → Product catalog → Add product → $${plan.priceUsd} USD → ${plan.lifetime ? 'One-off' : 'Recurring'} → copy the price_… id into plans.json (stripePriceId). Test and live mode have separate catalogs.`);
+        // The configured id is dead on this account — the store falls back to
+        // the newest active price matching the plan's own terms ($, USD,
+        // one-time/interval). Surface which price checkout will really use.
+        const resolved = await resolvePlanPrice(plan);
+        if (resolved?.source === 'amount') {
+          add(id, name, 'warn',
+            `stripePriceId ${plan.stripePriceId} does not exist in this ${stripeMode}-mode account — checkout resolves by amount to ${resolved.price.id} ($${(resolved.price.unit_amount / 100).toFixed(2)} USD ${plan.lifetime ? 'one-time' : `every ${resolved.price.recurring?.interval}`}${resolved.price.nickname ? `, "${resolved.price.nickname}"` : ''})`,
+            `Pin it: put ${resolved.price.id} into plans.json (stripePriceId) so the choice is explicit.`);
+        } else {
+          add(id, name, 'fail', `price ${plan.stripePriceId} does not exist in this ${stripeMode}-mode account, and no active $${plan.priceUsd} USD ${plan.lifetime ? 'one-off' : plan.interval} price was found to fall back to`,
+            `Create it: Stripe dashboard → Product catalog → Add product → $${plan.priceUsd} USD → ${plan.lifetime ? 'One-off' : 'Recurring'} → copy the price_… id into plans.json (stripePriceId). Test and live mode have separate catalogs.`);
+        }
         continue;
       }
       if (!res.ok) {
@@ -182,6 +202,40 @@ export async function runDoctor() {
   } else if (stripeAuthed) {
     add('stripe:live-vs-domain', 'Live Stripe key vs. deployment domain', 'pass',
       stripeMode === 'live' ? 'live mode on a production domain' : 'test mode — safe anywhere');
+  }
+
+  // Without a webhook endpoint on THIS account pointing at THIS deployment,
+  // buyers pay and no role is ever granted. Verify it exists — and when it
+  // does not, register it ourselves and keep its signing secret in the
+  // database, so deliveries verify with zero manual configuration.
+  if (stripeAuthed) {
+    const wid = 'stripe:webhook-endpoint';
+    const wname = 'Stripe webhook endpoint delivers to this deployment';
+    try {
+      const endpoints = await listWebhookEndpoints();
+      const candidates = new Set(webhookUrlCandidates());
+      const found = endpoints.find((e) => e.status === 'enabled' && candidates.has(e.url));
+      if (found) {
+        const stored = await getAppSecret('stripe_webhook_secret');
+        add(wid, wname, 'pass',
+          `endpoint ${found.id} → ${found.url}${found.metadata?.managed_by === 'ripley-paygate' && stored ? ' (registered automatically; deliveries verify with its stored signing secret)' : ' — make sure STRIPE_WEBHOOK_SECRET is THIS endpoint\'s signing secret'}`);
+      } else if (await acquireLock('lock:stripe-endpoint-register', 600)) {
+        try {
+          const url = await canonicalWebhookUrl();
+          const created = await createWebhookEndpoint(url);
+          await setAppSecret('stripe_webhook_secret', created.secret);
+          add(wid, wname, 'pass',
+            `no endpoint pointed here, so one was registered automatically: ${created.id} → ${url}. Its signing secret is stored; deliveries verify with it (STRIPE_WEBHOOK_SECRET keeps working too).`);
+        } finally {
+          await releaseLock('lock:stripe-endpoint-register');
+        }
+      } else {
+        add(wid, wname, 'warn', 'another instance is registering the endpoint right now — re-run checks in a moment');
+      }
+    } catch (err) {
+      add(wid, wname, 'fail', `could not verify or register the webhook endpoint: ${err.message}`,
+        `Create it manually: Stripe dashboard → Developers → Webhooks → Add endpoint → ${config.publicBaseUrl}/webhooks/stripe (checkout.session.completed and invoice/subscription events) → put its signing secret in STRIPE_WEBHOOK_SECRET.`);
+    }
   }
 
   // ── Discord, live ───────────────────────────────────────────────────────────

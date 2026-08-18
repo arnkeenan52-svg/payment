@@ -1,6 +1,7 @@
 import { readRawBody, sendText, guard } from '../../src/lib/http.js';
 import { verifyStripeSignature } from '../../src/lib/stripe.js';
-import { claimEvent, releaseEvent } from '../../src/db.js';
+import { config as appConfig } from '../../src/config.js';
+import { claimEvent, releaseEvent, getAppSecret } from '../../src/db.js';
 import { processStripeEvent } from '../../src/services/stripe-events.js';
 
 // The signature is computed over the exact bytes Stripe sent. readRawBody is
@@ -28,7 +29,13 @@ export default guard(async function handler(req, res) {
     sendText(res, 400, err.message === 'RAW_BODY_UNAVAILABLE' ? 'raw body unavailable' : 'unreadable body');
     return;
   }
-  if (!verifyStripeSignature(raw, req.headers['stripe-signature'])) {
+  // Deliveries may be signed by the endpoint the owner configured (env
+  // STRIPE_WEBHOOK_SECRET) or by the endpoint the setup doctor registered
+  // automatically (secret stored in the database). Accept either.
+  const secrets = [appConfig.stripe.webhookSecret, await getAppSecret('stripe_webhook_secret').catch(() => null)].filter(
+    Boolean,
+  );
+  if (!secrets.some((secret) => verifyStripeSignature(raw, req.headers['stripe-signature'], { secret }))) {
     sendText(res, 400, 'invalid signature');
     return;
   }

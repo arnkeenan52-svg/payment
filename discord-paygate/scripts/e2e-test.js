@@ -74,7 +74,11 @@ const stripe = {
   failSubFetchOnce: new Set(),  // subscription ids whose next GET answers 500
   subFetches: {},               // subscription id -> fetch count
   failCheckoutSessionsWith: null, // when set, POST /v1/checkout/sessions answers 400 with this message
+  // Registered webhook endpoints; a matching one exists by default so the
+  // doctor's endpoint check passes without registering.
+  webhookEndpoints: [{ id: 'we_e2e_default', url: 'https://tradeleaks.e2e/webhooks/stripe', status: 'enabled', metadata: {} }],
 };
+const AUTO_ENDPOINT_SECRET = 'whsec_auto_e2e_secret_1';
 
 const coinbase = { charges: [] };
 
@@ -241,6 +245,13 @@ async function stripeHandler(req, res) {
     json(res, 200, { id: 'acct_e2e' });
     return;
   }
+  if (url.pathname === '/v1/prices' && req.method === 'GET') {
+    const type = url.searchParams.get('type');
+    json(res, 200, {
+      data: Object.values(MOCK_PRICES).filter((p) => p.active && (!type || p.type === type)),
+    });
+    return;
+  }
   if ((m = url.pathname.match(/^\/v1\/prices\/([^/]+)$/)) && req.method === 'GET') {
     const price = MOCK_PRICES[m[1]];
     if (!price) {
@@ -248,6 +259,22 @@ async function stripeHandler(req, res) {
       return;
     }
     json(res, 200, price);
+    return;
+  }
+  if (url.pathname === '/v1/webhook_endpoints' && req.method === 'GET') {
+    json(res, 200, { data: stripe.webhookEndpoints });
+    return;
+  }
+  if (url.pathname === '/v1/webhook_endpoints' && req.method === 'POST') {
+    const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
+    const ep = {
+      id: `we_auto_${stripe.webhookEndpoints.length + 1}`,
+      url: form.url,
+      status: 'enabled',
+      metadata: { managed_by: form['metadata[managed_by]'] ?? null },
+    };
+    stripe.webhookEndpoints.push(ep);
+    json(res, 200, { ...ep, secret: AUTO_ENDPOINT_SECRET });
     return;
   }
   if (url.pathname === '/v1/checkout/sessions' && req.method === 'POST') {
@@ -312,6 +339,7 @@ async function initTestDb() {
     await tq('DROP TABLE IF EXISTS webhook_events');
     await tq('DROP TABLE IF EXISTS plan_overrides');
     await tq('DROP TABLE IF EXISTS managed_role_history');
+    await tq('DROP TABLE IF EXISTS app_secrets');
   } else {
     const { DatabaseSync } = await import('node:sqlite');
     let sqlite;
@@ -344,8 +372,8 @@ const claimRows = async (like) => (await tq('SELECT event_id FROM webhook_events
 
 let appUrl;
 
-function signStripe(payload, t = nowSec()) {
-  const v1 = crypto.createHmac('sha256', STRIPE_SECRET).update(`${t}.${payload}`).digest('hex');
+function signStripe(payload, t = nowSec(), secret = STRIPE_SECRET) {
+  const v1 = crypto.createHmac('sha256', secret).update(`${t}.${payload}`).digest('hex');
   return `t=${t},v1=${v1}`;
 }
 
@@ -1122,6 +1150,86 @@ test('a plan with stale roleIds grants by role NAME, and the doctor goes green',
   } finally {
     discord.extraRoles = [];
     discord.failRolesFetchOnce = false;
+  }
+});
+
+test('a stale stripePriceId resolves by amount; checkout works and the doctor warns', async () => {
+  // The plan points at a dead price id, but the account holds an active
+  // one-time USD price of the exact amount — checkout must find and use it.
+  const ghostPlans = [
+    {
+      id: 'ghost',
+      name: 'Ghost Tier',
+      description: 'price resolved by amount',
+      priceUsd: 299,
+      interval: 'lifetime',
+      lifetime: true,
+      durationDays: null,
+      stripePriceId: 'price_ghost_zzz', // no such price on the account
+      roleIds: [R_NEW],
+    },
+  ];
+  const ghostPlansPath = path.join(path.dirname(dbPath), 'ghost-plans.json');
+  fs.writeFileSync(ghostPlansPath, JSON.stringify(ghostPlans, null, 2));
+  const env = {
+    ...phase1Env,
+    PLANS_PATH: ghostPlansPath,
+    ...(PG_URL ? {} : { DB_PATH: path.join(path.dirname(dbPath), 'ghost.sqlite') }),
+  };
+  const app3 = await spawnApp(env);
+
+  const before = stripe.checkoutSessions.length;
+  const res = await fetch(`${app3.url}/api/checkout/stripe`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u1Cookie }, // same SESSION_SECRET across apps
+    body: JSON.stringify({ planId: 'ghost' }),
+  });
+  assert.equal(res.status, 200, await res.text());
+  assert.equal(stripe.checkoutSessions.length, before + 1);
+  assert.equal(
+    stripe.checkoutSessions.at(-1)['line_items[0][price]'],
+    'price_lifetime_once',
+    'checkout must use the amount-matched price, not the dead configured id',
+  );
+
+  const doctor = await runDoctorCli(env);
+  assert.match(doctor.out, /resolves by amount to price_lifetime_once/, `doctor must name the fallback price:\n${doctor.out}`);
+  assert.equal(doctor.code, 0, `an amount-resolved price is a warning, not a failure:\n${doctor.out}`);
+});
+
+test('doctor auto-registers the missing webhook endpoint; deliveries verify with its stored secret', async () => {
+  const saved = stripe.webhookEndpoints;
+  stripe.webhookEndpoints = [];
+  try {
+    const doctor = await runDoctorCli(phase1Env);
+    assert.equal(doctor.code, 0, `registration must leave the doctor green:\n${doctor.out}`);
+    assert.match(doctor.out, /registered automatically/, `doctor must report the registration:\n${doctor.out}`);
+    assert.equal(stripe.webhookEndpoints.length, 1, 'exactly one endpoint must be created');
+    assert.equal(stripe.webhookEndpoints[0].url, 'https://tradeleaks.e2e/webhooks/stripe');
+    assert.equal(stripe.webhookEndpoints[0].metadata.managed_by, 'ripley-paygate');
+
+    // A delivery signed with the NEW endpoint's secret (not the env secret)
+    // must verify via the database-stored secret and complete the grant.
+    const U5 = '505500000000000005';
+    discord.members.set(U5, new Set());
+    const evt = {
+      id: 'evt_auto_secret_1',
+      type: 'checkout.session.completed',
+      data: {
+        object: { id: 'cs_auto_1', mode: 'payment', client_reference_id: U5, metadata: { plan_id: 'lifetime', discord_id: U5 } },
+      },
+    };
+    const payload = JSON.stringify(evt);
+    const viaStored = await deliverStripe(evt, { header: signStripe(payload, nowSec(), AUTO_ENDPOINT_SECRET) });
+    assert.equal(viaStored.status, 200, viaStored.body);
+    assert.ok(memberRoles(U5).has(R_LIFETIME), 'the stored-secret delivery must grant the role');
+
+    // Deliveries signed with the env secret keep working alongside it.
+    const evt2 = { ...evt, id: 'evt_auto_secret_2', data: { object: { ...evt.data.object, id: 'cs_auto_2' } } };
+    const viaEnv = await deliverStripe(evt2);
+    assert.equal(viaEnv.status, 200, viaEnv.body);
+  } finally {
+    stripe.webhookEndpoints = saved;
   }
 });
 

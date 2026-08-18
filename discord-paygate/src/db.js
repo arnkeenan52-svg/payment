@@ -47,6 +47,15 @@ const ddl = (dialect) => {
     updated_at ${int} NOT NULL
   );
 
+  -- Small runtime key/value store. Holds the signing secret of the Stripe
+  -- webhook endpoint the doctor registers automatically (the deployed
+  -- filesystem and env are read-only at runtime), plus short-lived locks.
+  CREATE TABLE IF NOT EXISTS app_secrets (
+    name       TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at ${int} NOT NULL
+  );
+
   -- Every role id the paygate has ever resolved as grantable (from plans.json,
   -- the picker override, or a name match). The reconciler removes only roles
   -- it manages, so this ledger keeps roles granted under an OLD mapping
@@ -175,6 +184,41 @@ export async function setPlanOverride(planId, roleIds, roleNames) {
        updated_at = excluded.updated_at`,
     [planId, JSON.stringify(roleIds), JSON.stringify(roleNames), now()],
   );
+}
+
+export async function getAppSecret(name) {
+  const { rows } = await q('SELECT value FROM app_secrets WHERE name = ?', [name]);
+  return rows[0] ? String(rows[0].value) : null;
+}
+
+export async function setAppSecret(name, value) {
+  await q(
+    `INSERT INTO app_secrets (name, value, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT (name) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    [name, value, now()],
+  );
+}
+
+// Cross-instance lock via the app_secrets PRIMARY KEY: first inserter wins;
+// a stale lock (older than ttlSeconds) can be taken over.
+export async function acquireLock(name, ttlSeconds) {
+  const t = now();
+  const ins = await q(
+    'INSERT INTO app_secrets (name, value, updated_at) VALUES (?, ?, ?) ON CONFLICT (name) DO NOTHING',
+    [name, String(t), t],
+  );
+  if (ins.changes > 0) return true;
+  const upd = await q('UPDATE app_secrets SET value = ?, updated_at = ? WHERE name = ? AND updated_at < ?', [
+    String(t),
+    t,
+    name,
+    t - ttlSeconds,
+  ]);
+  return upd.changes > 0;
+}
+
+export async function releaseLock(name) {
+  await q('DELETE FROM app_secrets WHERE name = ?', [name]);
 }
 
 // Ledger of every role id the paygate has ever been able to grant — see the

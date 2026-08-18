@@ -4,8 +4,8 @@ import { config } from '../config.js';
 // Verifies a `stripe-signature` header (format: t=<unix>,v1=<hex>[,v1=<hex>…])
 // against the raw body. Constant-time compare, and the signed timestamp must
 // be within the replay tolerance — a captured delivery is useless later.
-export function verifyStripeSignature(rawBody, header, { now = Math.floor(Date.now() / 1000) } = {}) {
-  if (!header) return false;
+export function verifyStripeSignature(rawBody, header, { now = Math.floor(Date.now() / 1000), secret = config.stripe.webhookSecret } = {}) {
+  if (!header || !secret) return false;
   const parts = header.split(',').map((p) => p.trim().split('='));
   const t = parts.find(([k]) => k === 't')?.[1];
   const v1s = parts.filter(([k]) => k === 'v1').map(([, v]) => v).filter(Boolean);
@@ -14,7 +14,7 @@ export function verifyStripeSignature(rawBody, header, { now = Math.floor(Date.n
   if (Math.abs(now - Number(t)) > config.webhookToleranceSeconds) return false;
 
   const expected = crypto
-    .createHmac('sha256', config.stripe.webhookSecret)
+    .createHmac('sha256', secret)
     .update(`${t}.`)
     .update(rawBody)
     .digest('hex');
@@ -63,6 +63,111 @@ export async function stripeFetch(path, { method = 'GET', form } = {}) {
 
 export const getSubscription = (id) => stripeFetch(`/v1/subscriptions/${id}`);
 
+// ── price resolution ──────────────────────────────────────────────────────────
+
+// The configured stripePriceId wins. When it does not exist on this account
+// (wrong mode, wrong account, stale id), fall back to the newest ACTIVE price
+// matching the plan's own terms: USD, the exact amount, one-time for lifetime
+// plans, or the plan's interval for recurring ones. The doctor surfaces the
+// fallback as a warning so the owner can pin the real id.
+const PRICE_TTL_MS = 5 * 60_000;
+const priceCache = new Map(); // planId -> { at, promise }
+
+export function invalidatePriceCache() {
+  priceCache.clear();
+}
+
+export function resolvePlanPrice(plan) {
+  const cached = priceCache.get(plan.id);
+  const at = Date.now();
+  if (cached && at - cached.at <= PRICE_TTL_MS) return cached.promise;
+  const promise = (async () => {
+    if (plan.stripePriceId) {
+      try {
+        return { price: await stripeFetch(`/v1/prices/${plan.stripePriceId}`), source: 'configured' };
+      } catch {
+        /* fall through to amount matching */
+      }
+    }
+    try {
+      const cents = Math.round(Number(plan.priceUsd) * 100);
+      const type = plan.lifetime ? 'one_time' : 'recurring';
+      const list = await stripeFetch(`/v1/prices?active=true&limit=100&type=${type}`);
+      const matches = (list.data ?? [])
+        .filter((p) => p.active && String(p.currency).toLowerCase() === 'usd' && p.unit_amount === cents)
+        .filter((p) => plan.lifetime || p.recurring?.interval === plan.interval)
+        .sort((a, b) => (b.created ?? 0) - (a.created ?? 0));
+      return matches.length ? { price: matches[0], source: 'amount' } : null;
+    } catch {
+      return null;
+    }
+  })();
+  priceCache.set(plan.id, { at, promise });
+  promise.then((r) => {
+    if (!r) priceCache.delete(plan.id);
+  });
+  return promise;
+}
+
+// ── webhook endpoint management ───────────────────────────────────────────────
+
+export async function listWebhookEndpoints() {
+  return (await stripeFetch('/v1/webhook_endpoints?limit=100')).data ?? [];
+}
+
+export function createWebhookEndpoint(url) {
+  return stripeFetch('/v1/webhook_endpoints', {
+    method: 'POST',
+    form: {
+      url,
+      enabled_events: [
+        'checkout.session.completed',
+        'invoice.paid',
+        'invoice.payment_succeeded',
+        'invoice.payment_failed',
+        'customer.subscription.updated',
+        'customer.subscription.deleted',
+      ],
+      description: 'Ripley paygate — registered automatically by the setup doctor',
+      metadata: { managed_by: 'ripley-paygate' },
+    },
+  });
+}
+
+// The URLs an already-registered endpoint may legitimately live on: the
+// configured base plus its www/apex sibling (either can be the serving host).
+export function webhookUrlCandidates() {
+  const configured = `${config.publicBaseUrl}/webhooks/stripe`;
+  const candidates = new Set([configured]);
+  try {
+    const u = new URL(configured);
+    if (u.hostname.startsWith('www.')) candidates.add(configured.replace('://www.', '://'));
+    else if (u.hostname.split('.').length === 2) candidates.add(configured.replace('://', '://www.'));
+  } catch {
+    /* keep just the configured form */
+  }
+  return [...candidates];
+}
+
+// Where Stripe must deliver. Stripe never follows redirects, so if the
+// configured host answers our probe with one (apex → www), register on the
+// host the redirect points at instead.
+export async function canonicalWebhookUrl() {
+  const configured = `${config.publicBaseUrl}/webhooks/stripe`;
+  try {
+    const res = await fetch(configured, {
+      method: 'POST',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(5000),
+    });
+    const location = res.headers.get('location');
+    if (res.status >= 300 && res.status < 400 && location) return new URL(location, configured).toString();
+  } catch {
+    /* unreachable from here (local dev, tests) — register the configured form */
+  }
+  return configured;
+}
+
 // Stripe moved current_period_end off the subscription and onto its items
 // (API 2025-03-31+). Read the top-level field for old API versions, fall back
 // to the first item for new ones. May still be null — callers must treat that
@@ -79,12 +184,18 @@ export function invoiceSubscriptionId(invoice) {
 
 export async function createCheckoutSession({ plan, discordId, note = '' }) {
   const lifetime = Boolean(plan.lifetime);
+  const resolved = await resolvePlanPrice(plan);
+  if (!resolved) {
+    throw new Error(
+      `no usable Stripe price for plan "${plan.id}" (configured ${plan.stripePriceId}, and no active USD ${lifetime ? 'one-time' : plan.interval} price of $${plan.priceUsd} on this account)`,
+    );
+  }
   return stripeFetch('/v1/checkout/sessions', {
     method: 'POST',
     form: {
       mode: lifetime ? 'payment' : 'subscription',
       client_reference_id: discordId,
-      line_items: [{ price: plan.stripePriceId, quantity: 1 }],
+      line_items: [{ price: resolved.price.id, quantity: 1 }],
       metadata: { plan_id: plan.id, discord_id: discordId, ...(note ? { buyer_note: note } : {}) },
       ...(lifetime ? {} : { subscription_data: { metadata: { plan_id: plan.id, discord_id: discordId } } }),
       success_url: `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}`,
