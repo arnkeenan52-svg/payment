@@ -95,9 +95,8 @@ body {
   letter-spacing: 0.04em;
 }
 
-/* Ripley wordmark images sit on pure black; screen-blending makes the black
-   transparent against the page so they read as clean marks, not rectangles. */
-.platform-mark, .powered-mark { mix-blend-mode: screen; display: block; }
+/* The lockup PNG is transparent; no blend tricks needed. */
+.platform-mark, .powered-mark { display: block; }
 .platform-mark { height: 18px; width: auto; }
 .powered-mark { height: 18px; width: auto; margin: 6px auto 0; }
 
@@ -2013,3 +2012,22 @@ a.kicker:hover { color: var(--ink); }
   .hero-ctas { width: 100%; flex-direction: column; }
   .hero-ctas .btn-hero { width: 100%; text-align: center; justify-content: center; }
 }
+
+/* features rebuilt on the dark-grid blueprint (8712): compact cards, icon
+   tile + title inline, one sentence each — no tags, no embedded shots */
+.fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
+@media (max-width: 900px) { .fgrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .fgrid { grid-template-columns: 1fr; } }
+.feat-cell { padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: background 140ms ease-out, border-color 140ms ease-out; }
+.feat-cell:hover { background: var(--panel-hover); border-color: rgba(255, 255, 255, 0.16); }
+.feat-head { display: flex; align-items: center; gap: 11px; }
+.feat-ic {
+  width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+  background: #161616; border: 1px solid #262626; color: #fff; flex: none;
+}
+.feat-head h3 { margin: 0; font-size: 15px; letter-spacing: -0.01em; font-weight: 650; }
+.feat-chip {
+  margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--dim);
+  border: 1px solid var(--edge); border-radius: 999px; padding: 3px 8px; white-space: nowrap;
+}
+.feat-cell p { margin: 0; font-size: 13px; line-height: 1.6; color: rgba(255, 255, 255, 0.55); }
