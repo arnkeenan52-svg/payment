@@ -2317,3 +2317,40 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .hc-discord svg { color: #5865f2; }
 .hc-discord, .hc-stripe { color: #9a9a9a; }
 .hc-stripe { color: #635bff; }
+
+/* ── small semantic color accents ───────────────────────────────────────────
+   Color earns its place only where it carries meaning: Discord blurple for
+   Discord concepts, money-green for revenue/verified/live, Stripe purple for
+   Stripe. Everything else stays black and white. */
+:root { --money: #22c55e; --amber: #f2b03c; }
+
+/* savings calculator: the money you keep reads as money */
+.calc-result-num { color: var(--money); }
+.calc-bar.mine span { background: var(--money); }
+
+/* the four steps: each icon tinted by what that step actually touches */
+.hiw-step:nth-child(1) .hiw-ic { color: #7a85f6; background: rgba(88, 101, 242, 0.12); border-color: rgba(88, 101, 242, 0.34); }
+.hiw-step:nth-child(2) .hiw-ic { color: #8b85ff; background: rgba(99, 91, 255, 0.12); border-color: rgba(99, 91, 255, 0.34); }
+.hiw-step:nth-child(3) .hiw-ic { color: var(--amber); background: rgba(242, 176, 60, 0.11); border-color: rgba(242, 176, 60, 0.3); }
+.hiw-step:nth-child(4) .hiw-ic { color: var(--money); background: rgba(34, 197, 94, 0.11); border-color: rgba(34, 197, 94, 0.3); }
+.hiw-step .vz-amt { color: var(--money); }
+
+/* feature vignettes: a Discord role is blurple, verified and live are green */
+.vz-chip { background: var(--blurple); color: #fff; }
+.vz-chip svg { color: #fff; }
+.vz-chip-ok { background: var(--money); color: #07230f; }
+.vz-chip-ok svg { color: #07230f; }
+.vz-ok, .vz-ok svg { color: var(--money); }
+.vz-delta { color: var(--money); background: rgba(34, 197, 94, 0.13); }
+.vz-dot { background: var(--money); }
+@keyframes vz-ping {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* a "Live" label gets a live dot */
+.feat-chip.is-live { display: inline-flex; align-items: center; gap: 6px; }
+.feat-chip.is-live::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--money); flex: none;
+}
