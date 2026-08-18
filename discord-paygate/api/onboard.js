@@ -4,7 +4,7 @@ import { sessionUserId } from '../src/lib/session.js';
 import * as db from '../src/db.js';
 import { sealSecret } from '../src/lib/secretbox.js';
 import { getUser } from '../src/db.js';
-import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember } from '../src/lib/discord.js';
+import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember, getGuildChannels } from '../src/lib/discord.js';
 import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache } from '../src/lib/stripe.js';
 import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf } from '../src/services/stores.js';
 
@@ -223,6 +223,17 @@ export default guard(async function handler(req, res) {
                     : null,
           })),
       });
+    }
+
+    // Text channels of the store's server, for the sale-notification picker.
+    case 'channels': {
+      const row = await ownedStore(uid, body.storeId);
+      if (!row) return sendJson(res, 403, { error: 'not your store' });
+      const channels = await getGuildChannels(row.guild_id);
+      if (!channels) {
+        return sendJson(res, 409, { error: 'Could not list channels — is the Ripley bot still in your server?' });
+      }
+      return sendJson(res, 200, { channels });
     }
 
     // ── 4. pick the role, go live ───────────────────────────────────────────

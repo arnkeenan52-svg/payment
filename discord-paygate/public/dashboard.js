@@ -76,7 +76,7 @@ async function api(path, body) {
     body: JSON.stringify(body),
   });
   const out = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(out.detail ?? out.error ?? 'Something went wrong — try again.');
+  if (!res.ok) throw new Error(out.detail ?? out.error ?? 'That did not work. Try again.');
   return out;
 }
 
@@ -1090,7 +1090,7 @@ function sectionProducts(products, data, slug) {
   return `
     <h2 class="sec-title">Products</h2>
     <section class="panel table-panel">
-      <div class="card-head"><div><h3>Products</h3><p class="card-sub">Everything is created and edited here — you never need the Stripe dashboard.</p></div>
+      <div class="card-head"><div><h3>Products</h3><p class="card-sub">Create and edit everything here. You never need the Stripe dashboard.</p></div>
         <button class="btn-pill" id="prod-new">${I.plus} Add product</button></div>
       <form class="add-member" id="prod-form" hidden>
         <h3 id="pe-title">New product</h3>
@@ -1196,7 +1196,7 @@ function sectionStore(store, link) {
     })}
     ${setCard({
       title: 'Store link',
-      sub: `${store.status === 'live' ? 'Live — taking payments.' : 'Draft — finish setup to go live.'}`,
+      sub: `${store.status === 'live' ? 'Live and taking payments.' : 'Draft. Finish setup to go live.'}`,
       body: `
         ${linkRow}
         <label class="field"><span class="field-label">Custom link</span>
@@ -1221,7 +1221,7 @@ function sectionSettings(store, isPlatformOwner) {
       !store.isDefault
         ? setCard({
             title: 'Payment method',
-            sub: 'Payments land in your own Stripe account. Paste a new secret key to rotate it — validated with Stripe before anything is saved.',
+            sub: 'Payments land in your own Stripe account. Paste a new secret key to rotate it. Stripe validates it before anything is saved.',
             body: `
               <label class="field"><span class="field-label">Stripe secret key</span>
                 <input id="pm-key" type="password" placeholder="sk_live_…" autocomplete="off" spellcheck="false" /></label>
@@ -1230,9 +1230,23 @@ function sectionSettings(store, isPlatformOwner) {
           })
         : ''
     }
+    ${
+      !store.isDefault
+        ? setCard({
+            title: 'Sale notifications',
+            sub: 'Ripley posts every order to a channel in your server the moment payment clears.',
+            body: `
+              <label class="field"><span class="field-label">Channel</span>
+                <select id="nc-channel"><option value="">Loading channels…</option></select>
+                <span class="field-help">Pick a channel the Ripley bot can post in, or Off to disable.</span></label>
+              <p class="field-err" id="err-nc" role="alert"></p>`,
+            foot: `<button class="btn-secondary" id="nc-save">Save</button>`,
+          })
+        : ''
+    }
     ${setCard({
       title: 'Receipt emails',
-      sub: 'Handled by Ripley automatically — every buyer gets a membership confirmation after checkout. Nothing to configure.',
+      sub: 'Ripley emails every buyer a membership confirmation after checkout. Nothing to configure.',
     })}
     ${
       !store.isDefault
@@ -1845,7 +1859,41 @@ function wireStoreSettings(store, slug) {
 // Receipts are platform-run and always on — nothing to wire in Settings any
 // more. The API for rotating the platform Resend key still exists for
 // machine use; it just has no owner-facing UI.
+// Sale notifications: pick the channel every order gets posted to. The
+// server validates the pick and posts a test message before saving.
+async function wireSaleNotifications(store, slug) {
+  const sel = $('#nc-channel');
+  const save = $('#nc-save');
+  if (!sel || !save) return;
+  save.onclick = async () => {
+    fieldErr('nc', '');
+    save.disabled = true;
+    save.textContent = 'Saving…';
+    try {
+      await api('/api/admin/store', { store: slug, notifyChannelId: sel.value || null });
+      state.data = null;
+      save.textContent = sel.value ? 'Saved — check the channel' : 'Saved';
+      setTimeout(() => { save.disabled = false; save.textContent = 'Save'; }, 1800);
+    } catch (err) {
+      save.disabled = false;
+      save.textContent = 'Save';
+      fieldErr('nc', err.message);
+    }
+  };
+  try {
+    const { channels } = await api('/api/onboard', { step: 'channels', storeId: store.id });
+    sel.innerHTML =
+      `<option value="">Off — no notifications</option>` +
+      channels.map((c) => `<option value="${esc(c.id)}">#${esc(c.name)}</option>`).join('');
+    if (store.notifyChannelId && channels.some((c) => c.id === store.notifyChannelId)) sel.value = store.notifyChannelId;
+  } catch (err) {
+    sel.innerHTML = `<option value="">Couldn’t load channels</option>`;
+    fieldErr('nc', err.message);
+  }
+}
+
 function wireReceiptSettings(store, slug) {
+  wireSaleNotifications(store, slug);
   const del = $('#store-delete');
   if (!del) return;
   del.onclick = async () => {

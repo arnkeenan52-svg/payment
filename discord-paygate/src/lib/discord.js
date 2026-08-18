@@ -128,6 +128,33 @@ export async function getUserGuilds(accessToken) {
   return res.json();
 }
 
+// ── channels ──────────────────────────────────────────────────────────────────
+
+// Text channels of a guild, for the dashboard's sale-notification picker.
+// Returns null when the bot cannot list them (kicked, no access).
+export async function getGuildChannels(guildId) {
+  const res = await discordFetch(`/guilds/${guildId}/channels`);
+  if (res.status !== 200) return null;
+  const channels = await res.json();
+  return channels
+    .filter((c) => c.type === 0 || c.type === 5) // text + announcement
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .map((c) => ({ id: c.id, name: c.name }));
+}
+
+// Best effort, like DMs: a sale ping that cannot be posted must never fail
+// the payment that triggered it.
+export async function postChannelMessage(channelId, payload) {
+  try {
+    const res = await discordFetch(`/channels/${channelId}/messages`, { method: 'POST', body: payload });
+    await expect(res, [200], `post to channel ${channelId}`);
+    return true;
+  } catch (err) {
+    console.warn(`[discord] channel message to ${channelId} failed: ${err.message}`);
+    return false;
+  }
+}
+
 // ── DMs ───────────────────────────────────────────────────────────────────────
 
 // Best effort: members can disable DMs, and a failed DM must never fail the

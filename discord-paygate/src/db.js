@@ -61,6 +61,7 @@ const ddl = (dialect) => {
     guild_id         TEXT NOT NULL UNIQUE,
     stripe_secret_enc     TEXT,
     stripe_webhook_secret TEXT,
+    notify_channel_id TEXT,
     status           TEXT NOT NULL DEFAULT 'draft',
     created_at       ${int} NOT NULL,
     updated_at       ${int} NOT NULL
@@ -203,6 +204,7 @@ function db() {
       // Columns added after multi-tenancy shipped — same in-place pattern.
       await driver.exec('ALTER TABLE stores ADD COLUMN description TEXT').catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN banner_url TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN notify_channel_id TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE store_plans ADD COLUMN active ${intType} NOT NULL DEFAULT 1`).catch(() => {});
       await driver.exec(`ALTER TABLE store_plans ADD COLUMN purchase_limit ${intType}`).catch(() => {});
       await driver.exec('ALTER TABLE store_plans ADD COLUMN success_url TEXT').catch(() => {});
@@ -439,6 +441,7 @@ export async function updateStore(id, fields) {
     status: 'status',
     stripeSecretEnc: 'stripe_secret_enc',
     stripeWebhookSecret: 'stripe_webhook_secret',
+    notifyChannelId: 'notify_channel_id',
   };
   const sets = [];
   const params = [];

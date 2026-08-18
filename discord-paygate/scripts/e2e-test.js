@@ -62,6 +62,7 @@ const discord = {
   joins: [],                    // { uid, roles, accessToken }
   roleCalls: [],                // { method, uid, roleId }
   dms: [],                      // { uid, content }
+  channelPosts: [],             // { channelId, body } — sale pings + test messages
   rateLimit429Remaining: 0,     // next N role PUT/DELETEs answer 429 first
   botRolePosition: 50,          // doctor: set below the managed roles (10-12) to break hierarchy
   botInG2: false,               // the invite step flips this
@@ -202,6 +203,26 @@ async function discordHandler(req, res) {
     const body = JSON.parse(await readBody(req));
     discord.dms.push({ uid: m[1], content: body.content });
     json(res, 200, { id: `msg_${discord.dms.length}` });
+    return;
+  }
+
+  // Text channels of a guild (the sale-notification picker) — G2 only.
+  if ((m = p.match(/^\/guilds\/([^/]+)\/channels$/)) && req.method === 'GET') {
+    if (m[1] !== G2) {
+      json(res, 200, []);
+      return;
+    }
+    json(res, 200, [
+      { id: '800000000000000001', name: 'general', type: 0, position: 0 },
+      { id: '800000000000000002', name: 'sales-feed', type: 0, position: 1 },
+      { id: '800000000000000003', name: 'voice-lounge', type: 2, position: 2 },
+    ]);
+    return;
+  }
+  if ((m = p.match(/^\/channels\/(\d+)\/messages$/)) && req.method === 'POST') {
+    const body = JSON.parse(await readBody(req));
+    discord.channelPosts.push({ channelId: m[1], body });
+    json(res, 200, { id: `chmsg_${discord.channelPosts.length}` });
     return;
   }
 
@@ -2144,6 +2165,18 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal((await checkout(u9Cookie, { planId: vip.planKey })).status, 200, 'existing buyers pass the purchase limit');
   assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, purchaseLimit: null })).status, 200);
 
+  // ── sale notifications ────────────────────────────────────────────────────
+  const chans = await (await onboard({ step: 'channels', storeId })).json();
+  assert.ok(chans.channels.some((c) => c.name === 'sales-feed'), 'text channels are listed');
+  assert.ok(!chans.channels.some((c) => c.name === 'voice-lounge'), 'voice channels are not');
+  const storeCallEarly = (body) => call(u7Cookie, '/api/admin/store', { store: 'vip-signals', ...body });
+  assert.equal((await storeCallEarly({ notifyChannelId: 'abc' })).status, 400, 'channel ids are validated');
+  assert.equal((await storeCallEarly({ notifyChannelId: '999999999999999999' })).status, 409, 'foreign channels are refused');
+  assert.equal((await storeCallEarly({ notifyChannelId: '800000000000000002' })).status, 200);
+  const testPost = discord.channelPosts.at(-1);
+  assert.equal(testPost.channelId, '800000000000000002');
+  assert.match(testPost.body.embeds[0].title, /Sale notifications are on/, 'saving posts a proof message');
+
   // ── discounts ─────────────────────────────────────────────────────────────
   const disc = (body) => call(u7Cookie, '/api/admin/discounts', { store: 'vip-signals', ...body });
   assert.equal((await disc({ action: 'create', code: 'launch20', kind: 'percent', amount: 20 })).status, 200);
@@ -2177,6 +2210,12 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   });
   const discs = (await (await disc({ action: 'list' })).json()).discounts;
   assert.equal(discs.find((d) => d.code === 'LAUNCH20').uses, 1, 'the webhook counts discount uses');
+  // The completed order also pinged the configured sales channel.
+  const salePost = discord.channelPosts.at(-1);
+  assert.equal(salePost.channelId, '800000000000000002');
+  assert.match(salePost.body.embeds[0].title, /New order/, 'every order posts to the sales channel');
+  assert.match(salePost.body.embeds[0].description, /VIP Access/, 'the ping names the product');
+  assert.match(salePost.body.embeds[0].fields[0].value, /\$59\.99/, 'the ping carries the amount');
   // FIVER is scoped to plan2 — wrong product refused, then its single use is spent.
   assert.equal((await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'FIVER' })).status, 400, 'scoped code refuses other products');
   // (owner deletes it instead of spending it — delete works)

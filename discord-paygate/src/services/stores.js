@@ -45,6 +45,7 @@ function hydrate(row) {
     guildId: row.guild_id,
     stripeKey: row.stripe_secret_enc ? openSecret(row.stripe_secret_enc) : config.stripe.secretKey,
     webhookSecret: row.stripe_webhook_secret ?? null,
+    notifyChannelId: row.notify_channel_id ?? null,
     status: row.status,
     isDefault: false,
   };

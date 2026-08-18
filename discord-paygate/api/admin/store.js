@@ -5,6 +5,7 @@ import * as db from '../../src/db.js';
 import { adminStoreBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
 import { stripeFetch } from '../../src/lib/stripe.js';
+import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
 
 // Store identity settings: name, description, banner, custom link (slug).
 // Tenant stores only — the built-in store is env-configured.
@@ -67,6 +68,37 @@ export default guard(async function handler(req, res) {
     if (u && !/^https:\/\/\S+$/.test(u)) return sendJson(res, 400, { error: 'The banner URL must start with https:// (1500×400 works best).' });
     fields.bannerUrl = u ? u.slice(0, 500) : null;
   }
+  // Sale notifications: the channel the bot posts each order to. Validated
+  // against the store's own guild, and a test message proves the bot can
+  // actually post there before anything is saved.
+  if (body.notifyChannelId !== undefined) {
+    if (body.notifyChannelId === null || body.notifyChannelId === '') {
+      fields.notifyChannelId = null;
+    } else {
+      const channelId = String(body.notifyChannelId);
+      if (!/^\d{17,20}$/.test(channelId)) {
+        return sendJson(res, 400, { error: 'Pick a channel from the list.' });
+      }
+      const channels = await getGuildChannels(store.guildId);
+      const channel = channels?.find((c) => c.id === channelId);
+      if (!channel) {
+        return sendJson(res, 409, { error: 'That channel is not in your server — is the Ripley bot still there?' });
+      }
+      const posted = await postChannelMessage(channelId, {
+        embeds: [{
+          title: 'Sale notifications are on',
+          description: `New orders in **${store.name}** will land here.`,
+          color: 0x4ade80,
+        }],
+      });
+      if (!posted) {
+        return sendJson(res, 409, {
+          error: `The bot cannot post in #${channel.name}. Give the Ripley role View Channel and Send Messages there, then retry.`,
+        });
+      }
+      fields.notifyChannelId = channelId;
+    }
+  }
   if (body.slug !== undefined) {
     const slug = String(body.slug).trim().toLowerCase();
     if (!/^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/.test(slug)) {
@@ -82,6 +114,6 @@ export default guard(async function handler(req, res) {
   const row = await db.updateStore(store.id, fields);
   sendJson(res, 200, {
     ok: true,
-    store: { slug: row.slug, name: row.name, description: row.description ?? null, bannerUrl: row.banner_url ?? null, status: row.status },
+    store: { slug: row.slug, name: row.name, description: row.description ?? null, bannerUrl: row.banner_url ?? null, notifyChannelId: row.notify_channel_id ?? null, status: row.status },
   });
 });

@@ -4,6 +4,7 @@ import { getSubscriptionByRef, setSubscriptionStatus } from '../db.js';
 import { grant, markPastDue, cancel, reconcile } from './entitlements.js';
 import { storeById, defaultStore, planOf } from './stores.js';
 import { sendReceiptEmail } from '../lib/email.js';
+import { postChannelMessage } from '../lib/discord.js';
 import { getUser } from '../db.js';
 import { activatePlatformPlan, applyPlatformSubscriptionEvent, isPlatformSubscription } from './billing.js';
 
@@ -46,6 +47,28 @@ export async function processStripeEvent(event, routeStore = null) {
         const { incrementDiscountUse } = await import('../db.js');
         await incrementDiscountUse(store.id, obj.metadata.discount_code).catch(() => {});
       }
+      // Sale ping to the owner's chosen channel (best-effort): every order
+      // posts an embed the moment the grant lands.
+      const notifySale = async () => {
+        if (!store?.notifyChannelId) return;
+        const plan = await planOf(store, planId);
+        const user = await getUser(discordId).catch(() => null);
+        const buyer = user?.username ? `@${user.username}` : `<@${discordId}>`;
+        const amount = plan?.priceUsd ?? (obj.amount_total ?? 0) / 100;
+        await postChannelMessage(store.notifyChannelId, {
+          embeds: [{
+            title: 'New order',
+            description: `**${buyer}** bought **${plan?.name ?? planId}**`,
+            color: 0x4ade80,
+            fields: [
+              { name: 'Amount', value: `$${Number(amount).toFixed(2)}`, inline: true },
+              { name: 'Access', value: plan?.lifetime ? 'Lifetime' : 'Monthly', inline: true },
+            ],
+            footer: { text: store.name },
+            timestamp: new Date().toISOString(),
+          }],
+        });
+      };
       // Emailed receipt (best-effort, bounded): Stripe checkout collects the
       // buyer's email — a failed send never fails the grant.
       const emailReceipt = async () => {
@@ -76,6 +99,7 @@ export async function processStripeEvent(event, routeStore = null) {
           store,
         });
         await emailReceipt();
+        await notifySale();
       } else {
         // One-time payment (lifetime plans; grant() maps lifetime → NULL
         // expiry, and falls back to plan duration for any one-off term plan).
@@ -88,6 +112,7 @@ export async function processStripeEvent(event, routeStore = null) {
           store,
         });
         await emailReceipt();
+        await notifySale();
       }
       return;
     }
