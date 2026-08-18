@@ -32,7 +32,16 @@
       <a class="nav-link" href="#faq">FAQ</a>
     </nav>
     <div id="account" class="account"><a class="nav-link" href="/store">Store</a></div>
+    <button class="menu-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
   </header>
+  <nav class="mobile-menu" id="mobile-menu" hidden aria-label="Menu">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <div class="mobile-menu-account" id="menu-account"></div>
+  </nav>
 
   <main class="landing">
     <section class="xhero hero-left">
@@ -52,8 +61,20 @@
           <span><strong>24/7</strong>self-healing access</span>
         </div>
       </div>
-      <div class="shot-frame hero-shot">
-        <img src="/shot-dashboard.png" alt="The Ripley dashboard: revenue chart, stat cards and recent transactions" width="1400" height="817" loading="eager" />
+      <div class="shot-frame hero-shot hero-demo" id="hero-demo">
+        <div class="demo-slide active" data-caption="Live analytics">
+          <img src="/shot-dashboard.png" alt="The Ripley dashboard: revenue compared against the previous period, stat cards and recent transactions" width="1400" height="817" loading="eager" />
+        </div>
+        <div class="demo-slide" data-caption="Checkout">
+          <img src="/shot-store.png" alt="The hosted checkout: Confirm Order card with product, roles and Stripe payment" width="1200" height="750" loading="lazy" />
+        </div>
+        <div class="demo-slide" data-caption="Member management">
+          <img src="/shot-members.png" alt="Member management: revoke, extend, add and re-sync members" width="1400" height="817" loading="lazy" />
+        </div>
+        <div class="demo-hud" aria-hidden="false">
+          <span class="demo-caption" id="demo-caption">Live analytics</span>
+          <span class="demo-dots" id="demo-dots" role="tablist" aria-label="Product views"></span>
+        </div>
       </div>
     </section>
 

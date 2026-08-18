@@ -5,6 +5,7 @@ async function load() {
   const me = await (await fetch('/api/me')).json().catch(() => ({ loggedIn: false }));
 
   const account = $('#account');
+  const menuAccount = $('#menu-account');
   if (me.loggedIn) {
     account.innerHTML =
       `<a class="nav-link" href="/store">Store</a>` +
@@ -12,13 +13,82 @@ async function load() {
       `<a class="nav-link" href="/dashboard">Dashboard</a>` +
       `<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
     $('#logout').onclick = () => (window.location.href = '/auth/logout');
+    if (menuAccount)
+      menuAccount.innerHTML =
+        `<a href="/dashboard">Dashboard</a><a href="/store">Store</a><a href="/account">Account</a>` +
+        `<a href="/auth/logout">Sign out <span class="dim">@${esc(me.username ?? me.discordId)}</span></a>`;
   } else {
     account.innerHTML =
       '<a class="nav-link" href="/store">Store</a><button class="btn-pill" id="login">Sign in with Discord</button>';
     $('#login').onclick = () => (window.location.href = '/auth/login');
+    if (menuAccount) menuAccount.innerHTML = `<a href="/store">Store</a><a class="accent" href="/auth/login">Sign in with Discord</a>`;
   }
-
 }
+
+// ── mobile menu ───────────────────────────────────────────────────────────────
+
+const menuBtn = $('#menu-btn');
+if (menuBtn) {
+  const menu = $('#mobile-menu');
+  const setOpen = (open) => {
+    menu.hidden = !open;
+    menuBtn.setAttribute('aria-expanded', String(open));
+  };
+  menuBtn.onclick = () => setOpen(menu.hidden);
+  menu.addEventListener('click', (e) => {
+    if (e.target.closest('a')) setOpen(false);
+  });
+}
+
+// ── hero demo: auto-cycling product views (crossfade, pause on hover) ─────────
+// Reads like a product gif but stays crisp: the three real screenshots rotate
+// with a caption + dots. Reduced motion disables the auto-advance; the dots
+// still switch views by hand.
+
+(() => {
+  const demo = $('#hero-demo');
+  if (!demo) return;
+  const slides = [...demo.querySelectorAll('.demo-slide')];
+  const dotsBox = $('#demo-dots');
+  const caption = $('#demo-caption');
+  let at = 0;
+  let timer = null;
+  const dots = slides.map((s, i) => {
+    const d = document.createElement('button');
+    d.type = 'button';
+    d.className = 'hd-dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', s.dataset.caption);
+    d.onclick = () => {
+      show(i);
+      restart();
+    };
+    dotsBox.append(d);
+    return d;
+  });
+  const show = (i) => {
+    at = i;
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    dots.forEach((d, k) => d.classList.toggle('active', k === i));
+    caption.textContent = slides[i].dataset.caption;
+  };
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const start = () => {
+    if (reduce.matches || timer) return;
+    timer = setInterval(() => show((at + 1) % slides.length), 3800);
+  };
+  const stop = () => {
+    clearInterval(timer);
+    timer = null;
+  };
+  const restart = () => {
+    stop();
+    start();
+  };
+  demo.addEventListener('pointerenter', stop);
+  demo.addEventListener('pointerleave', start);
+  document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+  start();
+})();
 
 // ── savings calculator ────────────────────────────────────────────────────────
 // Ripley's flat tiers vs. publicly listed competitor pricing. Percentages are
