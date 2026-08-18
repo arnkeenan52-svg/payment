@@ -24,7 +24,10 @@ import setupCheck from '../api/setup-check.js';
 import adminRoles from '../api/admin/roles.js';
 import adminPlanRole from '../api/admin/plan-role.js';
 import adminPayments from '../api/admin/payments.js';
+import adminSettings from '../api/admin/settings.js';
 import resync from '../api/resync.js';
+import myGuilds from '../api/my/guilds.js';
+import onboard from '../api/onboard.js';
 
 const PUBLIC_DIR = path.join(config.root, 'public');
 const MIME = {
@@ -68,12 +71,26 @@ const routes = {
   '/api/admin/roles': adminRoles,
   '/api/admin/plan-role': adminPlanRole,
   '/api/admin/payments': adminPayments,
+  '/api/admin/settings': adminSettings,
   '/api/resync': resync,
+  '/api/my/guilds': myGuilds,
+  '/api/onboard': onboard,
 };
 
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
+    // Per-store webhook endpoints and slug storefronts (vercel.json rewrites).
+    let m;
+    if ((m = url.pathname.match(/^\/webhooks\/stripe\/(\d+)$/))) {
+      req.url = `/api/webhooks/stripe?store=${m[1]}`;
+      await webhookStripe(req, res);
+      return;
+    }
+    if (/^\/s\/[a-z0-9-]+$/.test(url.pathname) && req.method === 'GET') {
+      serveStatic(res, 'store.html');
+      return;
+    }
     const handler = routes[url.pathname];
     if (handler) {
       await handler(req, res);

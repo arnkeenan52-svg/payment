@@ -2,8 +2,8 @@ import { sendText, redirect, parseCookies, cookieHeader, guard } from '../../src
 import { exchangeOAuthCode, fetchOAuthUser } from '../../src/lib/discord.js';
 import { createSessionCookie, cookieAttrs } from '../../src/lib/session.js';
 import { upsertUser } from '../../src/db.js';
-import { reconcile } from '../../src/services/entitlements.js';
-import { STATE_COOKIE, PLAN_COOKIE } from './login.js';
+import { reconcileEverywhere } from '../../src/services/entitlements.js';
+import { STATE_COOKIE, PLAN_COOKIE, STORE_COOKIE } from './login.js';
 
 // OAuth callback: state check → code exchange → identify → store the access
 // token (we need it later for guilds.join) → reconcile so an already-paid
@@ -41,17 +41,20 @@ export default guard(async function handler(req, res) {
   });
 
   try {
-    await reconcile(me.id);
+    await reconcileEverywhere(me.id);
   } catch (err) {
     console.error(`[auth] post-login reconcile for ${me.id} failed: ${err.message}`);
   }
 
   const plan = /^[a-z0-9_-]{1,64}$/i.test(cookies[PLAN_COOKIE] ?? '') ? cookies[PLAN_COOKIE] : '';
-  redirect(res, plan ? `/store?plan=${encodeURIComponent(plan)}` : '/store', {
+  const storeSlug = /^[a-z0-9-]{1,40}$/.test(cookies[STORE_COOKIE] ?? '') ? cookies[STORE_COOKIE] : '';
+  const base = storeSlug && storeSlug !== 'store' ? `/s/${encodeURIComponent(storeSlug)}` : '/store';
+  redirect(res, plan ? `${base}?plan=${encodeURIComponent(plan)}` : base, {
     'set-cookie': [
       createSessionCookie(me.id),
       cookieHeader(STATE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
       cookieHeader(PLAN_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
+      cookieHeader(STORE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
     ],
   });
 });

@@ -45,11 +45,11 @@ function encodeForm(obj, prefix = '') {
   return pairs;
 }
 
-export async function stripeFetch(path, { method = 'GET', form } = {}) {
+export async function stripeFetch(path, { method = 'GET', form, key = config.stripe.secretKey } = {}) {
   const res = await fetch(`${config.stripe.apiBase}${path}`, {
     method,
     headers: {
-      authorization: `Bearer ${config.stripe.secretKey}`,
+      authorization: `Bearer ${key}`,
       ...(form ? { 'content-type': 'application/x-www-form-urlencoded' } : {}),
     },
     body: form ? encodeForm(form).join('&') : undefined,
@@ -61,7 +61,7 @@ export async function stripeFetch(path, { method = 'GET', form } = {}) {
   return res.json();
 }
 
-export const getSubscription = (id) => stripeFetch(`/v1/subscriptions/${id}`);
+export const getSubscription = (id, key = config.stripe.secretKey) => stripeFetch(`/v1/subscriptions/${id}`, { key });
 
 // ── price resolution ──────────────────────────────────────────────────────────
 
@@ -77,14 +77,15 @@ export function invalidatePriceCache() {
   priceCache.clear();
 }
 
-export function resolvePlanPrice(plan) {
-  const cached = priceCache.get(plan.id);
+export function resolvePlanPrice(plan, key = config.stripe.secretKey) {
+  const cacheKey = `${key.slice(-8)}:${plan.id}`;
+  const cached = priceCache.get(cacheKey);
   const at = Date.now();
   if (cached && at - cached.at <= PRICE_TTL_MS) return cached.promise;
   const promise = (async () => {
     if (plan.stripePriceId) {
       try {
-        return { price: await stripeFetch(`/v1/prices/${plan.stripePriceId}`), source: 'configured' };
+        return { price: await stripeFetch(`/v1/prices/${plan.stripePriceId}`, { key }), source: 'configured' };
       } catch {
         /* fall through to amount matching */
       }
@@ -92,7 +93,7 @@ export function resolvePlanPrice(plan) {
     try {
       const cents = Math.round(Number(plan.priceUsd) * 100);
       const type = plan.lifetime ? 'one_time' : 'recurring';
-      const list = await stripeFetch(`/v1/prices?active=true&limit=100&type=${type}`);
+      const list = await stripeFetch(`/v1/prices?active=true&limit=100&type=${type}`, { key });
       const matches = (list.data ?? [])
         .filter((p) => p.active && String(p.currency).toLowerCase() === 'usd' && p.unit_amount === cents)
         .filter((p) => plan.lifetime || p.recurring?.interval === plan.interval)
@@ -102,22 +103,23 @@ export function resolvePlanPrice(plan) {
       return null;
     }
   })();
-  priceCache.set(plan.id, { at, promise });
+  priceCache.set(cacheKey, { at, promise });
   promise.then((r) => {
-    if (!r) priceCache.delete(plan.id);
+    if (!r) priceCache.delete(cacheKey);
   });
   return promise;
 }
 
 // ── webhook endpoint management ───────────────────────────────────────────────
 
-export async function listWebhookEndpoints() {
-  return (await stripeFetch('/v1/webhook_endpoints?limit=100')).data ?? [];
+export async function listWebhookEndpoints(key = config.stripe.secretKey) {
+  return (await stripeFetch('/v1/webhook_endpoints?limit=100', { key })).data ?? [];
 }
 
-export function createWebhookEndpoint(url) {
+export function createWebhookEndpoint(url, key = config.stripe.secretKey) {
   return stripeFetch('/v1/webhook_endpoints', {
     method: 'POST',
+    key,
     form: {
       url,
       enabled_events: [
@@ -182,24 +184,43 @@ export function invoiceSubscriptionId(invoice) {
   return invoice?.subscription ?? invoice?.parent?.subscription_details?.subscription ?? null;
 }
 
-export async function createCheckoutSession({ plan, discordId, note = '' }) {
+export async function createCheckoutSession({ plan, discordId, note = '', store = null }) {
   const lifetime = Boolean(plan.lifetime);
-  const resolved = await resolvePlanPrice(plan);
+  const key = store?.stripeKey ?? config.stripe.secretKey;
+  const resolved = await resolvePlanPrice(plan, key);
   if (!resolved) {
     throw new Error(
       `no usable Stripe price for plan "${plan.id}" (configured ${plan.stripePriceId}, and no active USD ${lifetime ? 'one-time' : plan.interval} price of $${plan.priceUsd} on this account)`,
     );
   }
+  const storeQ = store && !store.isDefault ? `&store=${encodeURIComponent(store.slug)}` : '';
+  const backTo = store && !store.isDefault ? `/s/${encodeURIComponent(store.slug)}` : '/store';
   return stripeFetch('/v1/checkout/sessions', {
     method: 'POST',
+    key,
     form: {
       mode: lifetime ? 'payment' : 'subscription',
       client_reference_id: discordId,
       line_items: [{ price: resolved.price.id, quantity: 1 }],
-      metadata: { plan_id: plan.id, discord_id: discordId, ...(note ? { buyer_note: note } : {}) },
-      ...(lifetime ? {} : { subscription_data: { metadata: { plan_id: plan.id, discord_id: discordId } } }),
-      success_url: `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}`,
-      cancel_url: `${config.publicBaseUrl}/?checkout=cancelled`,
+      metadata: {
+        plan_id: plan.id,
+        discord_id: discordId,
+        ...(store && !store.isDefault ? { store_id: String(store.id) } : {}),
+        ...(note ? { buyer_note: note } : {}),
+      },
+      ...(lifetime
+        ? {}
+        : {
+            subscription_data: {
+              metadata: {
+                plan_id: plan.id,
+                discord_id: discordId,
+                ...(store && !store.isDefault ? { store_id: String(store.id) } : {}),
+              },
+            },
+          }),
+      success_url: `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}${storeQ}`,
+      cancel_url: `${config.publicBaseUrl}${backTo}?checkout=cancelled`,
     },
   });
 }

@@ -4,6 +4,8 @@
   ],
   "rewrites": [
     { "source": "/store", "destination": "/store.html" },
+    { "source": "/s/:slug", "destination": "/store.html" },
+    { "source": "/webhooks/stripe/:storeid", "destination": "/api/webhooks/stripe?store=:storeid" },
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/receipt", "destination": "/receipt.html" },

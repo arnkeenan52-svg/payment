@@ -49,9 +49,9 @@ async function expect(res, allowed, what) {
 
 // The guild object (name, icon hash) — used to show the server's own icon on
 // the storefront. Returns null on any failure; callers must have a fallback.
-export async function getGuild() {
+export async function getGuild(guildId = config.discord.guildId) {
   try {
-    const res = await discordFetch(`/guilds/${config.discord.guildId}`);
+    const res = await discordFetch(`/guilds/${guildId}`);
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -76,32 +76,32 @@ export async function getBotUser() {
 
 // Full role list of the guild (id, name, color, position, managed) — used by
 // the doctor and the owner diagnostics role picker.
-export async function getGuildRoles() {
-  const res = await discordFetch(`/guilds/${config.discord.guildId}/roles`);
+export async function getGuildRoles(guildId = config.discord.guildId) {
+  const res = await discordFetch(`/guilds/${guildId}/roles`);
   await expect(res, [200], 'list guild roles');
   return res.json();
 }
 
 // ── guild members and roles ───────────────────────────────────────────────────
 
-export async function getGuildMember(discordId) {
-  const res = await discordFetch(`/guilds/${config.discord.guildId}/members/${discordId}`);
+export async function getGuildMember(discordId, guildId = config.discord.guildId) {
+  const res = await discordFetch(`/guilds/${guildId}/members/${discordId}`);
   if (res.status === 404) return null;
   await expect(res, [200], `get member ${discordId}`);
   return res.json();
 }
 
-export async function addRole(discordId, roleId) {
+export async function addRole(discordId, roleId, guildId = config.discord.guildId) {
   const res = await discordFetch(
-    `/guilds/${config.discord.guildId}/members/${discordId}/roles/${roleId}`,
+    `/guilds/${guildId}/members/${discordId}/roles/${roleId}`,
     { method: 'PUT' },
   );
   await expect(res, [204], `add role ${roleId} to ${discordId}`);
 }
 
-export async function removeRole(discordId, roleId) {
+export async function removeRole(discordId, roleId, guildId = config.discord.guildId) {
   const res = await discordFetch(
-    `/guilds/${config.discord.guildId}/members/${discordId}/roles/${roleId}`,
+    `/guilds/${guildId}/members/${discordId}/roles/${roleId}`,
     { method: 'DELETE' },
   );
   await expect(res, [204], `remove role ${roleId} from ${discordId}`);
@@ -110,13 +110,22 @@ export async function removeRole(discordId, roleId) {
 // Puts a user who isn't in the guild yet inside it, with their entitled roles
 // already applied — needs the guilds.join scope on their OAuth access token.
 // 201 = joined, 204 = was already a member (roles are NOT applied then).
-export async function joinGuildWithRoles(discordId, accessToken, roleIds) {
-  const res = await discordFetch(`/guilds/${config.discord.guildId}/members/${discordId}`, {
+export async function joinGuildWithRoles(discordId, accessToken, roleIds, guildId = config.discord.guildId) {
+  const res = await discordFetch(`/guilds/${guildId}/members/${discordId}`, {
     method: 'PUT',
     body: { access_token: accessToken, roles: roleIds },
   });
   await expect(res, [201, 204], `join ${discordId} to guild`);
   return res.status === 201;
+}
+
+// The guilds the USER belongs to, via their OAuth access token (scope:
+// guilds). Used by the dashboard's server picker; owner/permissions fields
+// let us show only servers they can actually set up.
+export async function getUserGuilds(accessToken) {
+  const res = await discordFetch('/users/@me/guilds', { auth: `Bearer ${accessToken}` });
+  await expect(res, [200], 'list user guilds');
+  return res.json();
 }
 
 // ── DMs ───────────────────────────────────────────────────────────────────────
@@ -145,7 +154,9 @@ export async function dmUser(discordId, content) {
 
 // ── OAuth2 ────────────────────────────────────────────────────────────────────
 
-export const OAUTH_SCOPES = 'identify guilds.join';
+// guilds: the dashboard server picker lists the user's servers.
+// guilds.join: paid buyers can be pulled into a server automatically.
+export const OAUTH_SCOPES = 'identify guilds guilds.join';
 
 export function authorizeUrl(state) {
   const params = new URLSearchParams({

@@ -37,7 +37,9 @@ function showStillPending(server) {
 }
 
 async function main() {
-  const [plansRes, meRes] = await Promise.all([fetch('/api/plans'), fetch('/api/me')]);
+  const STORE_SLUG = new URLSearchParams(location.search).get('store') ?? '';
+  const storeQS = /^[a-z0-9-]{1,40}$/.test(STORE_SLUG) ? `?store=${encodeURIComponent(STORE_SLUG)}` : '';
+  const [plansRes, meRes] = await Promise.all([fetch(`/api/plans${storeQS}`), fetch('/api/me')]);
   const { plans, server } = await plansRes.json();
   let me = await meRes.json();
   renderAccount(me);

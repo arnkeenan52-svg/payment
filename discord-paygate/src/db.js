@@ -24,6 +24,7 @@ const ddl = (dialect) => {
 
   CREATE TABLE IF NOT EXISTS subscriptions (
     ${id},
+    store_id      ${int},               -- NULL = the built-in default store
     discord_id    TEXT NOT NULL,
     plan_id       TEXT NOT NULL,
     provider      TEXT NOT NULL,
@@ -45,6 +46,41 @@ const ddl = (dialect) => {
     role_ids   TEXT NOT NULL,               -- JSON array of role snowflakes
     role_names TEXT NOT NULL,               -- JSON array of display names
     updated_at ${int} NOT NULL
+  );
+
+  -- Multi-tenant stores: any Discord server owner can run a storefront.
+  -- stripe_secret_enc is AES-GCM-sealed (src/lib/secretbox.js); NULL means
+  -- "use the platform env configuration" (the built-in default store).
+  CREATE TABLE IF NOT EXISTS stores (
+    ${id},
+    slug             TEXT NOT NULL UNIQUE,
+    name             TEXT NOT NULL,
+    owner_discord_id TEXT NOT NULL,
+    guild_id         TEXT NOT NULL UNIQUE,
+    stripe_secret_enc     TEXT,
+    stripe_webhook_secret TEXT,
+    status           TEXT NOT NULL DEFAULT 'draft',
+    created_at       ${int} NOT NULL,
+    updated_at       ${int} NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_stores_owner ON stores (owner_discord_id);
+
+  -- Products of a store (the default store's products live in plans.json).
+  CREATE TABLE IF NOT EXISTS store_plans (
+    ${id},
+    store_id        ${int} NOT NULL,
+    plan_key        TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    description     TEXT,
+    image_url       TEXT,
+    price_usd       REAL NOT NULL,
+    lifetime        ${int} NOT NULL DEFAULT 1,
+    duration_days   ${int},
+    stripe_price_id TEXT,
+    role_ids        TEXT NOT NULL DEFAULT '[]',
+    role_names      TEXT NOT NULL DEFAULT '[]',
+    created_at      ${int} NOT NULL,
+    UNIQUE (store_id, plan_key)
   );
 
   -- Small runtime key/value store. Holds the signing secret of the Stripe
@@ -126,6 +162,10 @@ function db() {
     driverPromise = (async () => {
       const driver = await createDriver();
       await driver.exec(ddl(driver.dialect));
+      // Databases created before multi-tenancy lack subscriptions.store_id —
+      // add it in place (both dialects error harmlessly when it exists).
+      const intType = driver.dialect === 'pg' ? 'BIGINT' : 'INTEGER';
+      await driver.exec(`ALTER TABLE subscriptions ADD COLUMN store_id ${intType}`).catch(() => {});
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -258,18 +298,19 @@ export async function getSubscriptionByRef(provider, providerRef) {
   return rows[0] ?? null;
 }
 
-export async function upsertSubscription({ discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil = null }) {
+export async function upsertSubscription({ discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil = null, storeId = null }) {
   await q(
-    `INSERT INTO subscriptions (discord_id, plan_id, provider, provider_ref, status, current_period_end, grace_until, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, current_period_end, grace_until, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (provider, provider_ref) DO UPDATE SET
+       store_id = excluded.store_id,
        discord_id = excluded.discord_id,
        plan_id = excluded.plan_id,
        status = excluded.status,
        current_period_end = excluded.current_period_end,
        grace_until = excluded.grace_until,
        updated_at = excluded.updated_at`,
-    [discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil, now(), now()],
+    [storeId, discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil, now(), now()],
   );
   return getSubscriptionByRef(provider, providerRef);
 }
@@ -308,21 +349,142 @@ export function isEntitled(sub, at = now()) {
   return false;
 }
 
+// ── stores (multi-tenant) ─────────────────────────────────────────────────────
+
+const storeRow = (r) => (r ? { ...r, id: Number(r.id) } : null);
+
+export async function createStore({ slug, name, ownerDiscordId, guildId, stripeSecretEnc, status = 'draft' }) {
+  await q(
+    `INSERT INTO stores (slug, name, owner_discord_id, guild_id, stripe_secret_enc, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [slug, name, ownerDiscordId, guildId, stripeSecretEnc, status, now(), now()],
+  );
+  return getStoreBySlug(slug);
+}
+
+export async function getStoreBySlug(slug) {
+  const { rows } = await q('SELECT * FROM stores WHERE slug = ?', [slug]);
+  return storeRow(rows[0]);
+}
+
+export async function getStoreById(id) {
+  const { rows } = await q('SELECT * FROM stores WHERE id = ?', [id]);
+  return storeRow(rows[0]);
+}
+
+export async function getStoreByGuild(guildId) {
+  const { rows } = await q('SELECT * FROM stores WHERE guild_id = ?', [guildId]);
+  return storeRow(rows[0]);
+}
+
+export async function storesByOwner(ownerDiscordId) {
+  const { rows } = await q('SELECT * FROM stores WHERE owner_discord_id = ? ORDER BY id', [ownerDiscordId]);
+  return rows.map(storeRow);
+}
+
+export async function allStores() {
+  const { rows } = await q('SELECT * FROM stores ORDER BY id', []);
+  return rows.map(storeRow);
+}
+
+export async function updateStore(id, fields) {
+  const cols = { name: 'name', status: 'status', stripeSecretEnc: 'stripe_secret_enc', stripeWebhookSecret: 'stripe_webhook_secret' };
+  const sets = [];
+  const params = [];
+  for (const [k, col] of Object.entries(cols)) {
+    if (fields[k] !== undefined) {
+      sets.push(`${col} = ?`);
+      params.push(fields[k]);
+    }
+  }
+  if (!sets.length) return getStoreById(id);
+  params.push(now(), id);
+  await q(`UPDATE stores SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`, params);
+  return getStoreById(id);
+}
+
+const planRow = (r) =>
+  r
+    ? {
+        id: Number(r.id),
+        storeId: Number(r.store_id),
+        planKey: r.plan_key,
+        name: r.name,
+        description: r.description,
+        imageUrl: r.image_url,
+        priceUsd: Number(r.price_usd),
+        lifetime: Number(r.lifetime) === 1,
+        durationDays: r.duration_days === null ? null : Number(r.duration_days),
+        stripePriceId: r.stripe_price_id,
+        roleIds: JSON.parse(r.role_ids ?? '[]'),
+        roleNames: JSON.parse(r.role_names ?? '[]'),
+      }
+    : null;
+
+export async function createStorePlan({ storeId, planKey, name, description, imageUrl, priceUsd, lifetime, durationDays, stripePriceId }) {
+  await q(
+    `INSERT INTO store_plans (store_id, plan_key, name, description, image_url, price_usd, lifetime, duration_days, stripe_price_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (store_id, plan_key) DO UPDATE SET
+       name = excluded.name, description = excluded.description, image_url = excluded.image_url,
+       price_usd = excluded.price_usd, lifetime = excluded.lifetime, duration_days = excluded.duration_days,
+       stripe_price_id = excluded.stripe_price_id`,
+    [storeId, planKey, name, description ?? null, imageUrl ?? null, priceUsd, lifetime ? 1 : 0, durationDays ?? null, stripePriceId ?? null, now()],
+  );
+  return getStorePlan(storeId, planKey);
+}
+
+export async function getStorePlan(storeId, planKey) {
+  const { rows } = await q('SELECT * FROM store_plans WHERE store_id = ? AND plan_key = ?', [storeId, planKey]);
+  return planRow(rows[0]);
+}
+
+export async function storePlansFor(storeId) {
+  const { rows } = await q('SELECT * FROM store_plans WHERE store_id = ? ORDER BY id', [storeId]);
+  return rows.map(planRow);
+}
+
+export async function setStorePlanRoles(storeId, planKey, roleIds, roleNames) {
+  await q('UPDATE store_plans SET role_ids = ?, role_names = ? WHERE store_id = ? AND plan_key = ?', [
+    JSON.stringify(roleIds),
+    JSON.stringify(roleNames),
+    storeId,
+    planKey,
+  ]);
+  return getStorePlan(storeId, planKey);
+}
+
 // Every subscription with its buyer's username — the owner dashboard's
 // payments timeline (one row per purchase, newest first).
-export async function allSubscriptionsWithUsers() {
+// storeIds filter: null entries mean the built-in default store. Pass null
+// for everything (platform admin).
+export async function allSubscriptionsWithUsers(storeIds = null) {
+  let where = '';
+  const params = [];
+  if (storeIds !== null) {
+    const parts = [];
+    const concrete = storeIds.filter((x) => x !== null);
+    if (storeIds.includes(null)) parts.push('s.store_id IS NULL');
+    if (concrete.length) {
+      parts.push(`s.store_id IN (${concrete.map(() => '?').join(', ')})`);
+      params.push(...concrete);
+    }
+    where = parts.length ? `WHERE ${parts.join(' OR ')}` : 'WHERE 1 = 0';
+  }
   const { rows } = await q(
     `SELECT s.*, u.username FROM subscriptions s
      LEFT JOIN users u ON u.discord_id = s.discord_id
+     ${where}
      ORDER BY s.created_at DESC, s.id DESC`,
-    [],
+    params,
   );
   return rows;
 }
 
+// (store_id, discord_id) pairs — reconciliation is per store, per member.
 export async function membersWithLiveSubscriptions() {
-  const { rows } = await q("SELECT DISTINCT discord_id FROM subscriptions WHERE status IN ('active', 'past_due')", []);
-  return rows.map((r) => r.discord_id);
+  const { rows } = await q("SELECT DISTINCT store_id, discord_id FROM subscriptions WHERE status IN ('active', 'past_due')", []);
+  return rows.map((r) => ({ storeId: r.store_id === null ? null : Number(r.store_id), discordId: r.discord_id }));
 }
 
 // Rows whose entitlement has lapsed but still carry a live status; the cron

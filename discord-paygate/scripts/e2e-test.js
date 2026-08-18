@@ -41,6 +41,11 @@ const STRIPE_SECRET = 'whsec_e2e_secret';
 const COINBASE_SECRET = 'cb_e2e_secret';
 const CRON_SECRET = 'cron_e2e_secret_1'; // ≥16 chars so the doctor's own check passes
 const BOT_ID = '600000000000000001';
+const G2 = '900000000000000002';           // second tenant guild (VIP Signals)
+const R2_VIP = '2200000000000000101';      // grantable role in G2
+const R2_BOT = '2200000000000000999';      // the bot's role in G2
+const OWNER2_KEY = 'sk_test_owner2';       // second owner's own Stripe key
+const RESEND_KEY = 're_e2e_1234567890';
 const R_BOT = '1200000000000000999';
 const R_ADMIN = '1200000000000000555';   // above the bot — must be flagged unusable
 const R_NEW = '1200000000000000200';     // below the bot — pickable
@@ -58,6 +63,8 @@ const discord = {
   dms: [],                      // { uid, content }
   rateLimit429Remaining: 0,     // next N role PUT/DELETEs answer 429 first
   botRolePosition: 50,          // doctor: set below the managed roles (10-12) to break hierarchy
+  botInG2: false,               // the invite step flips this
+  userGuilds: {},               // uid -> guilds visible to /users/@me/guilds
   failRolesFetchOnce: false,    // next GET /guilds/:id/roles answers 500
   extraRoles: [],               // appended to the role list (e.g. a same-named decoy)
   oauthUsers: {
@@ -81,6 +88,20 @@ const stripe = {
 const AUTO_ENDPOINT_SECRET = 'whsec_auto_e2e_secret_1';
 
 const coinbase = { charges: [] };
+const resend = { emails: [] };
+
+async function resendHandler(req, res) {
+  const url = new URL(req.url, 'http://mock');
+  if (url.pathname === '/emails' && req.method === 'POST') {
+    if (req.headers.authorization !== `Bearer ${RESEND_KEY}`) {
+      json(res, 401, { message: 'invalid key' });
+      return;
+    }
+    resend.emails.push(JSON.parse(await readBody(req)));
+    json(res, 200, { id: `email_${resend.emails.length}` });
+    return;
+  }
+}
 
 // ── mock servers ──────────────────────────────────────────────────────────────
 
@@ -149,6 +170,10 @@ async function discordHandler(req, res) {
     return;
   }
 
+  if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'GET' && m[2] === BOT_ID && m[1] === G2) {
+    json(res, 200, { user: { id: BOT_ID }, roles: [R2_BOT] });
+    return;
+  }
   if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'GET') {
     const [, , uid] = m;
     if (!discord.members.has(uid)) {
@@ -200,7 +225,26 @@ async function discordHandler(req, res) {
   // Guild object with an ANIMATED icon hash (a_ prefix) — the storefront must
   // surface it as the .gif CDN url so the server's animated logo plays.
   if ((m = p.match(/^\/guilds\/([^/]+)$/)) && req.method === 'GET') {
+    if (m[1] === G2) {
+      if (!discord.botInG2) {
+        json(res, 404, { message: 'Unknown Guild' });
+        return;
+      }
+      json(res, 200, { id: G2, name: 'VIP Signals', icon: null });
+      return;
+    }
     json(res, 200, { id: m[1], name: 'Tradeleaks', icon: 'a_e2eicon' });
+    return;
+  }
+
+  if (p === '/users/@me/guilds' && req.method === 'GET') {
+    const auth = req.headers.authorization ?? '';
+    const user = discord.oauthUsers[auth.replace('Bearer tok_', '')];
+    if (!user) {
+      json(res, 401, { message: 'Unauthorized' });
+      return;
+    }
+    json(res, 200, discord.userGuilds[user.id] ?? []);
     return;
   }
 
@@ -210,6 +254,14 @@ async function discordHandler(req, res) {
     if (discord.failRolesFetchOnce) {
       discord.failRolesFetchOnce = false;
       json(res, 500, { message: 'mock: roles fetch exploded' });
+      return;
+    }
+    if (m[1] === G2) {
+      json(res, 200, [
+        { id: G2, name: '@everyone', position: 0, permissions: '0', color: 0 },
+        { id: R2_BOT, name: 'Ripley', position: 40, permissions: String(1 << 28), color: 0, managed: true },
+        { id: R2_VIP, name: 'VIP', position: 7, permissions: '0', color: 5793266 },
+      ]);
       return;
     }
     json(res, 200, [
@@ -238,11 +290,32 @@ async function stripeHandler(req, res) {
   const url = new URL(req.url, 'http://mock');
   let m;
   if (url.pathname === '/v1/account' && req.method === 'GET') {
-    if (req.headers.authorization !== 'Bearer sk_test_e2e') {
-      json(res, 401, { error: { message: 'Invalid API Key' } });
+    if (req.headers.authorization === 'Bearer sk_test_e2e') {
+      json(res, 200, { id: 'acct_e2e' });
       return;
     }
-    json(res, 200, { id: 'acct_e2e' });
+    if (req.headers.authorization === `Bearer ${OWNER2_KEY}`) {
+      json(res, 200, { id: 'acct_owner2' });
+      return;
+    }
+    json(res, 401, { error: { message: 'Invalid API Key' } });
+    return;
+  }
+  if (url.pathname === '/v1/products' && req.method === 'POST') {
+    const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
+    const n = (stripe.products ??= []).length + 1;
+    const priceId = `price_auto_${n}`;
+    MOCK_PRICES[priceId] = {
+      id: priceId,
+      active: true,
+      type: form['default_price_data[recurring][interval]'] ? 'recurring' : 'one_time',
+      unit_amount: Number(form['default_price_data[unit_amount]']),
+      currency: form['default_price_data[currency]'],
+      ...(form['default_price_data[recurring][interval]'] ? { recurring: { interval: form['default_price_data[recurring][interval]'] } } : {}),
+    };
+    const product = { id: `prod_auto_${n}`, name: form.name, images: form['images[0]'] ? [form['images[0]']] : [], default_price: priceId };
+    stripe.products.push(product);
+    json(res, 200, product);
     return;
   }
   if (url.pathname === '/v1/prices' && req.method === 'GET') {
@@ -469,6 +542,8 @@ const baseEnv = (mocks) => ({
   STRIPE_API_BASE: mocks.stripe.url,
   WEBHOOK_TOLERANCE_SECONDS: '300',
   GRACE_PERIOD_HOURS: '72',
+  RESEND_API_KEY: RESEND_KEY,
+  RESEND_API_BASE: mocks.resend.url,
 });
 
 // ── tiny sequential harness ───────────────────────────────────────────────────
@@ -526,7 +601,7 @@ test('storefront serves the Tradeleaks page, plans API exposes capabilities', as
   const diagPage = await fetch(`${appUrl}/diagnostics`);
   assert.equal(diagPage.status, 200);
   assert.match(await diagPage.text(), /Setup diagnostics/);
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'interval', 'lifetime', 'name', 'priceUsd', 'roleNames']);
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'imageUrl', 'interval', 'lifetime', 'name', 'priceUsd', 'roleNames']);
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
@@ -555,7 +630,7 @@ test('OAuth login requests guilds.join, stores the token, and carries the plan b
   const login = await fetch(`${appUrl}/auth/login?plan=insider`, { redirect: 'manual' });
   assert.equal(login.status, 302);
   const authorize = new URL(login.headers.get('location'));
-  assert.equal(authorize.searchParams.get('scope'), 'identify guilds.join');
+  assert.equal(authorize.searchParams.get('scope'), 'identify guilds guilds.join');
   const state = authorize.searchParams.get('state');
   const rawStateCookie = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
   assert.match(rawStateCookie, /Domain=tradeleaks\.e2e/, 'auth cookies must be registrable-domain scoped (apex↔www hop)');
@@ -1328,16 +1403,174 @@ test('platform: payments dashboard endpoint is owner-gated and its totals add up
   assert.deepEqual(times, [...times].sort((a, b) => b - a), 'payments must be newest-first');
 });
 
+test('multi-tenant: a second owner onboards their server end-to-end and sells through their own Stripe', async () => {
+  // U7 owns "VIP Signals" (G2). Sign them in.
+  const U7 = '507700000000000007';
+  discord.oauthUsers.code_u7 = { id: U7, username: 'vip_owner' };
+  discord.userGuilds[U7] = [
+    { id: G2, name: 'VIP Signals', icon: null, owner: true, permissions: '0' },
+    { id: GUILD, name: 'Tradeleaks', icon: null, owner: false, permissions: '0' }, // no admin — must not be settable
+  ];
+  const login7 = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st7 = new URL(login7.headers.get('location')).searchParams.get('state');
+  const sc7 = login7.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb7 = await fetch(`${appUrl}/auth/callback?code=code_u7&state=${st7}`, {
+    redirect: 'manual',
+    headers: { cookie: sc7.split(';')[0] },
+  });
+  const u7Cookie = cb7.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+
+  // Server picker: G2 shows up manageable without the bot; Tradeleaks does not.
+  const picker = await (await fetch(`${appUrl}/api/my/guilds`, { headers: { cookie: u7Cookie } })).json();
+  assert.equal(picker.guilds.length, 1, 'only servers the user can manage are listed');
+  assert.deepEqual(
+    { id: picker.guilds[0].id, botIn: picker.guilds[0].botIn, store: picker.guilds[0].store },
+    { id: G2, botIn: false, store: null },
+  );
+  assert.match(picker.botInvite, /client_id=/);
+
+  const onboard = (body) =>
+    fetch(`${appUrl}/api/onboard`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u7Cookie },
+      body: JSON.stringify(body),
+    });
+
+  // Without the bot in the guild the store step refuses with the invite hint.
+  const noBot = await onboard({ step: 'store', guildId: G2, name: 'VIP Signals', stripeKey: OWNER2_KEY });
+  assert.equal(noBot.status, 409);
+  assert.equal((await noBot.json()).error, 'bot_missing');
+
+  discord.botInG2 = true; // the owner invited the bot
+
+  // A wrong key is rejected before anything is stored.
+  const badKey = await onboard({ step: 'store', guildId: G2, name: 'VIP Signals', stripeKey: 'sk_test_wrong' });
+  assert.equal(badKey.status, 400);
+
+  const made = await onboard({ step: 'store', guildId: G2, name: 'VIP Signals', stripeKey: OWNER2_KEY });
+  const store = (await made.json()).store;
+  assert.equal(made.status, 200, JSON.stringify(store));
+  assert.equal(store.slug, 'vip-signals');
+  assert.equal(store.stripeAccount, 'acct_owner2');
+  const storeEndpoint = stripe.webhookEndpoints.find((e) => e.url.endsWith(`/webhooks/stripe/${store.id}`));
+  assert.ok(storeEndpoint, 'a per-store webhook endpoint must be registered on the owner Stripe account');
+
+  // Product creation lands on THEIR Stripe account with image + description.
+  const prod = await onboard({
+    step: 'product',
+    storeId: store.id,
+    name: 'VIP Access',
+    description: 'Every signal, for life.',
+    imageUrl: 'https://cdn.e2e.test/vip.png',
+    priceUsd: 49.99,
+    lifetime: true,
+  });
+  const plan = (await prod.json()).plan;
+  assert.equal(prod.status, 200, JSON.stringify(plan));
+  assert.match(plan.stripePriceId, /^price_auto_/);
+  assert.deepEqual(stripe.products.at(-1).images, ['https://cdn.e2e.test/vip.png']);
+
+  // Role picker: VIP usable, the bot's own managed role is not.
+  const roles = await (await onboard({ step: 'roles', storeId: store.id })).json();
+  assert.equal(roles.botTop.position, 40);
+  assert.equal(roles.roles.find((r) => r.id === R2_VIP).usable, true);
+  assert.equal(roles.roles.find((r) => r.id === R2_BOT).usable, false);
+
+  const live = await onboard({ step: 'role', storeId: store.id, planKey: plan.planKey, roleId: R2_VIP });
+  assert.equal(live.status, 200);
+  assert.equal((await live.json()).store.status, 'live');
+
+  // The slug storefront serves, and its plans API shows the tenant catalog.
+  assert.equal((await fetch(`${appUrl}/s/vip-signals`)).status, 200);
+  const tenantPlans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  assert.equal(tenantPlans.server.guildId, G2);
+  assert.deepEqual(
+    { id: tenantPlans.plans[0].id, imageUrl: tenantPlans.plans[0].imageUrl, roleNames: tenantPlans.plans[0].roleNames },
+    { id: plan.planKey, imageUrl: 'https://cdn.e2e.test/vip.png', roleNames: ['@VIP'] },
+  );
+
+  // Buyer U8: signs in, checks out on the tenant store.
+  const U8 = '508800000000000008';
+  discord.oauthUsers.code_u8 = { id: U8, username: 'vip_buyer' };
+  const login8 = await fetch(`${appUrl}/auth/login?plan=${plan.planKey}&store=vip-signals`, { redirect: 'manual' });
+  const st8 = new URL(login8.headers.get('location')).searchParams.get('state');
+  const sc8 = login8.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+  const cb8 = await fetch(`${appUrl}/auth/callback?code=code_u8&state=${st8}`, {
+    redirect: 'manual',
+    headers: { cookie: sc8 },
+  });
+  assert.equal(cb8.headers.get('location'), `/s/vip-signals?plan=${plan.planKey}`, 'buyer lands back on the tenant store');
+  const u8Cookie = cb8.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+
+  const co = await fetch(`${appUrl}/api/checkout/stripe`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u8Cookie },
+    body: JSON.stringify({ planId: plan.planKey, store: 'vip-signals' }),
+  });
+  assert.equal(co.status, 200, await co.text());
+  const sessionForm = stripe.checkoutSessions.at(-1);
+  assert.equal(sessionForm['line_items[0][price]'], plan.stripePriceId);
+  assert.equal(sessionForm['metadata[store_id]'], String(store.id));
+  assert.match(sessionForm.success_url, /store=vip-signals/);
+
+  // Stripe notifies the PER-STORE endpoint, signed with ITS secret; the env
+  // secret must NOT be accepted there.
+  const evt = {
+    id: 'evt_tenant_1',
+    type: 'checkout.session.completed',
+    data: {
+      object: {
+        id: 'cs_tenant_1',
+        mode: 'payment',
+        client_reference_id: U8,
+        customer_details: { email: 'buyer8@e2e.test' },
+        metadata: { plan_id: plan.planKey, discord_id: U8, store_id: String(store.id) },
+      },
+    },
+  };
+  const payload = JSON.stringify(evt);
+  const wrongSecret = await deliverStripe(evt, { path: `/webhooks/stripe/${store.id}` });
+  assert.equal(wrongSecret.status, 400, 'the platform secret must not verify on a tenant endpoint');
+  const delivered = await deliverStripe(evt, {
+    path: `/webhooks/stripe/${store.id}`,
+    header: signStripe(payload, nowSec(), AUTO_ENDPOINT_SECRET),
+  });
+  assert.equal(delivered.status, 200, delivered.body);
+  assert.ok(memberRoles(U8).has(R2_VIP), 'the buyer must receive the tenant role (joined with it)');
+  assert.ok(discord.joins.some((j) => j.uid === U8 && j.roles.includes(R2_VIP)), 'buyer was pulled into G2 with the role');
+
+  // The emailed receipt went out via Resend with the right details.
+  const receipt = resend.emails.at(-1);
+  assert.ok(receipt, 'a receipt email must be sent');
+  assert.deepEqual(receipt.to, ['buyer8@e2e.test']);
+  assert.match(receipt.subject, /VIP Signals/);
+  assert.match(receipt.html, /VIP Access/);
+  assert.match(receipt.html, /\$49\.99/);
+
+  // The tenant owner's dashboard sees exactly their store — nothing else.
+  const pay7 = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  assert.equal(pay7.totals.payments, 1);
+  assert.deepEqual(
+    { store: pay7.payments[0].storeSlug, amount: pay7.payments[0].amountUsd, buyer: pay7.payments[0].username },
+    { store: 'vip-signals', amount: 49.99, buyer: 'vip_buyer' },
+  );
+  // The platform owner still sees everything, including the tenant sale.
+  const pay1 = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u1Cookie } })).json();
+  assert.ok(pay1.payments.some((p) => p.storeSlug === 'vip-signals'));
+  assert.ok(pay1.payments.some((p) => p.storeSlug === 'store'));
+});
+
 // ═══ runner ═══════════════════════════════════════════════════════════════════
 
 async function main() {
   await initTestDb();
-  const [discordMock, stripeMock, coinbaseMock] = await Promise.all([
+  const [discordMock, stripeMock, coinbaseMock, resendMock] = await Promise.all([
     startMock('discord', discordHandler),
     startMock('stripe', stripeHandler),
     startMock('coinbase', coinbaseHandler),
+    startMock('resend', resendHandler),
   ]);
-  const mocks = { discord: discordMock, stripe: stripeMock, coinbase: coinbaseMock };
+  const mocks = { discord: discordMock, stripe: stripeMock, coinbase: coinbaseMock, resend: resendMock };
 
   // Phase 1: full configuration (Stripe + Coinbase) — the main scenario ladder.
   phase1Env = {

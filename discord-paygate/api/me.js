@@ -1,7 +1,8 @@
-import { config, planById } from '../src/config.js';
+import { config } from '../src/config.js';
 import { sendJson, guard } from '../src/lib/http.js';
 import { sessionUserId } from '../src/lib/session.js';
 import { getUser, subscriptionsForMember, isEntitled } from '../src/db.js';
+import { storeById, planOf } from '../src/services/stores.js';
 
 export default guard(async function handler(req, res) {
   const uid = sessionUserId(req);
@@ -12,13 +13,23 @@ export default guard(async function handler(req, res) {
   const user = await getUser(uid);
   // Lapsed rows are included too (entitled: false) so the storefront can show
   // "expired on …" on a plan card instead of pretending it was never bought.
-  const subs = (await subscriptionsForMember(uid)).map((s) => {
-    const plan = planById(s.plan_id);
-    return {
+  const storeCache = new Map();
+  const storeFor = async (sid) => {
+    const key = sid ?? 'default';
+    if (!storeCache.has(key)) storeCache.set(key, await storeById(sid ?? null));
+    return storeCache.get(key);
+  };
+  const subs = [];
+  for (const s of await subscriptionsForMember(uid)) {
+    const store = await storeFor(s.store_id === null || s.store_id === undefined ? null : Number(s.store_id));
+    const plan = store ? await planOf(store, s.plan_id) : null;
+    subs.push({
       planId: s.plan_id,
       planName: plan?.name ?? s.plan_id,
       priceUsd: plan?.priceUsd ?? null,
       roleNames: plan?.roleNames ?? [],
+      storeSlug: store?.slug ?? null,
+      storeName: store?.name ?? null,
       provider: s.provider,
       status: s.status,
       entitled: isEntitled(s),
@@ -26,8 +37,8 @@ export default guard(async function handler(req, res) {
       currentPeriodEnd: s.current_period_end === null ? null : Number(s.current_period_end),
       graceUntil: s.grace_until === null ? null : Number(s.grace_until),
       createdAt: Number(s.created_at),
-    };
-  });
+    });
+  }
   sendJson(res, 200, {
     loggedIn: true,
     discordId: uid,

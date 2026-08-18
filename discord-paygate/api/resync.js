@@ -1,6 +1,6 @@
 import { sendJson, sendText, guard } from '../src/lib/http.js';
 import { sessionUserId } from '../src/lib/session.js';
-import { reconcile } from '../src/services/entitlements.js';
+import { reconcileEverywhere } from '../src/services/entitlements.js';
 
 // "Fix my access": re-runs the same idempotent reconcile the webhooks use for
 // the signed-in member — heals a manually-removed role, a missed join, or a
@@ -16,7 +16,7 @@ export default guard(async function handler(req, res) {
     return;
   }
   try {
-    const result = await reconcile(uid);
+    const result = await reconcileEverywhere(uid);
     sendJson(res, 200, { ok: true, ...result });
   } catch (err) {
     console.error(`[resync] ${uid} failed: ${err.message}`);

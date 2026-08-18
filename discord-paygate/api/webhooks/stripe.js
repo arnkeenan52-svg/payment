@@ -3,6 +3,7 @@ import { verifyStripeSignature } from '../../src/lib/stripe.js';
 import { config as appConfig } from '../../src/config.js';
 import { claimEvent, releaseEvent, getAppSecret } from '../../src/db.js';
 import { processStripeEvent } from '../../src/services/stripe-events.js';
+import { storeById } from '../../src/services/stores.js';
 
 // The signature is computed over the exact bytes Stripe sent. readRawBody is
 // descriptor-aware so Vercel's lazy body parser is never triggered; the
@@ -19,6 +20,18 @@ export default guard(async function handler(req, res) {
     sendText(res, 405, 'method not allowed');
     return;
   }
+  // Per-store endpoints deliver at /webhooks/stripe/<id> (rewritten to
+  // ?store=<id>); each store's endpoint verifies with ITS signing secret.
+  const url = new URL(req.url, 'http://localhost');
+  const storeParam = url.searchParams.get('store');
+  let routeStore = null;
+  if (storeParam !== null && storeParam !== '') {
+    routeStore = /^\d+$/.test(storeParam) ? await storeById(Number(storeParam)) : null;
+    if (!routeStore || routeStore.isDefault) {
+      sendText(res, 404, 'unknown store endpoint');
+      return;
+    }
+  }
   let raw;
   try {
     raw = await readRawBody(req);
@@ -32,9 +45,11 @@ export default guard(async function handler(req, res) {
   // Deliveries may be signed by the endpoint the owner configured (env
   // STRIPE_WEBHOOK_SECRET) or by the endpoint the setup doctor registered
   // automatically (secret stored in the database). Accept either.
-  const secrets = [appConfig.stripe.webhookSecret, await getAppSecret('stripe_webhook_secret').catch(() => null)].filter(
-    Boolean,
-  );
+  const secrets = (
+    routeStore
+      ? [routeStore.webhookSecret]
+      : [appConfig.stripe.webhookSecret, await getAppSecret('stripe_webhook_secret').catch(() => null)]
+  ).filter(Boolean);
   if (!secrets.some((secret) => verifyStripeSignature(raw, req.headers['stripe-signature'], { secret }))) {
     sendText(res, 400, 'invalid signature');
     return;
@@ -56,7 +71,7 @@ export default guard(async function handler(req, res) {
     return;
   }
   try {
-    await processStripeEvent(event);
+    await processStripeEvent(event, routeStore);
     sendText(res, 200, 'ok');
   } catch (err) {
     await releaseEvent('stripe', event.id);

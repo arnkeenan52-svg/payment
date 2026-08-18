@@ -1,4 +1,8 @@
 const $ = (sel) => document.querySelector(sel);
+// Which store this page shows: /s/<slug> → that store, /store → the default.
+const STORE_SLUG = (location.pathname.match(/^\/s\/([a-z0-9-]+)$/) ?? [])[1] ?? '';
+const storeQS = STORE_SLUG ? `?store=${encodeURIComponent(STORE_SLUG)}` : '';
+const loginStoreQ = STORE_SLUG ? `&store=${encodeURIComponent(STORE_SLUG)}` : '';
 
 const fmtDate = (unix) =>
   new Date(unix * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -35,6 +39,7 @@ const ownedSub = (plan) =>
 // deployment must never quietly accept money. The public endpoint returns
 // only { ok }, no configuration detail.
 async function checkSetup() {
+  if (STORE_SLUG) return;
   try {
     const { ok } = await (await fetch('/api/setup-check')).json();
     if (ok === false) {
@@ -61,7 +66,7 @@ function renderAccount() {
   const me = state.me;
   if (!me.loggedIn) {
     el.innerHTML = '<button class="btn-pill" id="login">Sign in with Discord</button>';
-    $('#login').onclick = () => (window.location.href = '/auth/login');
+    $('#login').onclick = () => (window.location.href = `/auth/login?x=1${loginStoreQ}`);
     return;
   }
   const entitled = (me.subscriptions ?? []).filter((s) => s.entitled);
@@ -89,6 +94,15 @@ function renderTagline(el, text, highlight) {
 function renderBrand() {
   const plan = selectedPlan();
   if (!plan) return;
+  // Tenant stores show their product's own image (or none); the built-in
+  // store keeps its bundled animated shot.
+  if (STORE_SLUG) {
+    const shot = $('#product-shot');
+    if (shot) {
+      if (plan.imageUrl) shot.src = plan.imageUrl;
+      else shot.remove();
+    }
+  }
   // ONLY the server's own Discord icon (animated GIF when the guild has
   // one) is ever shown — no stand-in logo. Hidden until Discord answers.
   const logo = $('.logo');
@@ -209,7 +223,7 @@ function renderCta() {
     const btn = document.createElement('button');
     btn.className = 'pay-btn';
     btn.textContent = 'Sign in with Discord to continue';
-    btn.onclick = () => (window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}`);
+    btn.onclick = () => (window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}${loginStoreQ}`);
     area.append(btn);
     return; // no extra note — the reference keeps this area clean
   }
@@ -265,10 +279,10 @@ async function pay(btn, plan) {
     const res = await fetch(`/api/checkout/${state.method}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ planId: plan.id, ...(note ? { note } : {}) }),
+      body: JSON.stringify({ planId: plan.id, ...(STORE_SLUG ? { store: STORE_SLUG } : {}), ...(note ? { note } : {}) }),
     });
     if (res.status === 401) {
-      window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}`;
+      window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}${loginStoreQ}`;
       return;
     }
     // The body may not be JSON (a proxy error page, an empty 500) — parse
@@ -306,7 +320,7 @@ function render() {
 async function main() {
   checkSetup();
   renderNotice();
-  const [plansRes, meRes] = await Promise.all([fetch('/api/plans'), fetch('/api/me')]);
+  const [plansRes, meRes] = await Promise.all([fetch(`/api/plans${storeQS}`), fetch('/api/me')]);
   const plansBody = await plansRes.json();
   state.plans = plansBody.plans;
   state.capabilities = plansBody.capabilities;
