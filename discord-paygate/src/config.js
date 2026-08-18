@@ -55,7 +55,7 @@ export const config = {
   // Ripley is the host checkout platform; the product being sold is the
   // Discord server itself (DISCORD_GUILD_NAME, e.g. Tradeleaks).
   platform: env('PLATFORM_NAME', 'Ripley'),
-  brand: 'Tradeleaks',
+  brand: env('BRAND') || 'Tradeleaks',
   // Discord user id of the store owner: unlocks the /diagnostics view.
   ownerDiscordId: env('OWNER_DISCORD_ID'),
   port: num('PORT', 4000),
