@@ -42,6 +42,7 @@ const COINBASE_SECRET = 'cb_e2e_secret';
 const CRON_SECRET = 'cron_e2e_secret_1'; // ≥16 chars so the doctor's own check passes
 const BOT_ID = '600000000000000001';
 const G2 = '900000000000000002';           // second tenant guild (VIP Signals)
+const G3 = '900000000000000003';           // third guild — draft-store slug-guard scenario
 const R2_VIP = '2200000000000000101';      // grantable role in G2
 const R2_BOT = '2200000000000000999';      // the bot's role in G2
 const OWNER2_KEY = 'sk_test_owner2';       // second owner's own Stripe key
@@ -236,6 +237,10 @@ async function discordHandler(req, res) {
     }
     if (m[1] === GUILD) {
       json(res, 200, { id: m[1], name: 'Tradeleaks', icon: 'a_e2eicon' });
+      return;
+    }
+    if (m[1] === G3) {
+      json(res, 200, { id: G3, name: 'Trade Hub', icon: null });
       return;
     }
     // Any other guild: the bot is not a member — exactly like real Discord.
@@ -1721,6 +1726,45 @@ test('the built-in server can be onboarded as a managed store: products, discoun
     merged.payments.some((p) => p.storeSlug === 'tradeleaks-pro' && p.amountUsd > 0),
     'legacy payments ride the managed store, still priced from the env catalog',
   );
+});
+
+test("a DRAFT store cannot hijack the built-in store's live link", async () => {
+  // An admin of a THIRD server names their store exactly like the brand, so
+  // its slug collides with the built-in store's. Until that store is LIVE,
+  // buyers at the link must keep getting the WORKING env catalog — never an
+  // empty half-set-up draft.
+  const U14 = '514400000000000014';
+  discord.oauthUsers.code_u14 = { id: U14, username: 'hub_admin' };
+  discord.userGuilds[U14] = [{ id: G3, name: 'Trade Hub', icon: null, owner: true, permissions: '8' }];
+  const login14 = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st14 = new URL(login14.headers.get('location')).searchParams.get('state');
+  const sc14 = login14.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb14 = await fetch(`${appUrl}/auth/callback?code=code_u14&state=${st14}`, {
+    redirect: 'manual',
+    headers: { cookie: sc14.split(';')[0] },
+  });
+  const u14Cookie = cb14.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  const made = await fetch(`${appUrl}/api/onboard`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u14Cookie },
+    body: JSON.stringify({ step: 'store', guildId: G3, name: 'Tradeleaks', stripeKey: OWNER2_KEY }),
+  });
+  const madeBody = await made.text();
+  assert.equal(made.status, 200, madeBody);
+  const { store } = JSON.parse(madeBody);
+  assert.equal(store.slug, 'tradeleaks', 'the colliding slug is granted (it will win once live)');
+
+  // Buyers at the link still get the working env store, not the empty draft…
+  const atLink = await (await fetch(`${appUrl}/api/plans?store=tradeleaks`)).json();
+  assert.equal(atLink.plans.length, PLANS.length, 'the live link keeps selling while the draft is unfinished');
+  assert.equal(atLink.store.status, 'live');
+  // …while the draft stays fully manageable by its owner.
+  const list = await fetch(`${appUrl}/api/onboard`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u14Cookie },
+    body: JSON.stringify({ step: 'products', storeId: store.id }),
+  });
+  assert.equal(list.status, 200);
 });
 
 test('platform billing: Free gates at 10 members, paid tiers unlock, switch cancels the old sub, cancel re-gates', async () => {

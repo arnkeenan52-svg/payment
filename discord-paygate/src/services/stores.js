@@ -54,11 +54,17 @@ export async function storeBySlug(slug) {
   // No slug = internal callers (legacy webhooks, reconcile) meaning the
   // built-in store. By URL it is reachable ONLY at its own unique slug.
   if (!slug) return defaultStore();
-  // Managed store first — if the owner onboards the built-in server under
-  // the same name, the managed store takes the slug over (same precedence
-  // rule as storeByGuild).
   const managed = hydrate(await db.getStoreBySlug(slug));
-  if (managed) return managed;
+  if (managed) {
+    // A managed store owns its slug — with one guard: while it is still a
+    // DRAFT and its slug is the built-in store's, buyers keep the WORKING
+    // env-configured store. A half-set-up store must never turn the live
+    // checkout link into an empty page; it takes the link over when it goes
+    // live (role attached), not before.
+    const def = defaultStore();
+    if (managed.status !== 'live' && def && slug === defaultSlug()) return def;
+    return managed;
+  }
   return slug === defaultSlug() ? defaultStore() : null;
 }
 
