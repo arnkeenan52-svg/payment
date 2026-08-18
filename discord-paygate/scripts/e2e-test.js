@@ -1147,6 +1147,19 @@ test('a plan with stale roleIds grants by role NAME, and the doctor goes green',
     });
     assert.equal(mixedDoctor.code, 1, `doctor must fail on a dead id even when another id is valid:\n${mixedDoctor.out}`);
     assert.match(mixedDoctor.out, /no role with that id/);
+
+    // An owner's /diagnostics pick supersedes the shipped placeholder id
+    // entirely — the doctor must go fully green, with no stale-id complaint.
+    const pick = await fetch(`${app2.url}/api/admin/plan-role`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u1Cookie },
+      body: JSON.stringify({ planId: 'named', roleId: R_NEW }),
+    });
+    assert.equal(pick.status, 200, await pick.text());
+    const pickedDoctor = await runDoctorCli(env);
+    assert.equal(pickedDoctor.code, 0, `doctor must pass after the pick:\n${pickedDoctor.out}`);
+    assert.match(pickedDoctor.out, /picked in \/diagnostics/);
+    assert.doesNotMatch(pickedDoctor.out, /buyers would be granted only/, 'a picked role must silence the stale placeholder id');
   } finally {
     discord.extraRoles = [];
     discord.failRolesFetchOnce = false;

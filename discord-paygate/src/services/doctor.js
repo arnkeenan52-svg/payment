@@ -335,9 +335,12 @@ export async function runDoctor() {
 
       // Configured ids that resolution dropped must never vanish silently: a
       // typo'd id next to a valid one is exactly the misconfiguration this
-      // doctor exists to catch.
+      // doctor exists to catch. An owner's /diagnostics pick is the one
+      // legitimate supersession — the override IS the pin, so the shipped
+      // placeholder ids stop mattering entirely.
       const mappedIds = new Set(mapping.roleIds);
       for (const cfgId of plan.roleIds ?? []) {
+        if (mapping.source === 'override') continue;
         if (mappedIds.has(cfgId) || byId.has(cfgId)) continue;
         if (mapping.source === 'name') {
           add(`discord:role:${cfgId}`, `Configured role id ${cfgId} (plan "${plan.id}") is stale`, 'warn',
