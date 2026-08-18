@@ -952,9 +952,12 @@ body.home { background: #0a0a0a; }
 @media (max-width: 760px) { .top-center { display: none; } }
 
 .glow { position: absolute; border-radius: 50%; pointer-events: none; }
+/* black-first hero: the green is a quiet halo up top, not a wash over
+   the whole section — the accent lives in the highlight text, the button
+   and the frame border */
 .glow-hero {
-  width: 900px; height: 900px; left: 50%; top: -320px; transform: translateX(-50%);
-  background: radial-gradient(circle, rgba(18, 183, 136, 0.22), transparent 70%);
+  width: 760px; height: 760px; left: 50%; top: -420px; transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(18, 183, 136, 0.10), transparent 65%);
 }
 .glow-side {
   width: 560px; height: 560px; right: -160px; top: -120px;
@@ -1667,15 +1670,6 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
    Butterick: balanced headline wraps, no orphaned sub lines. Kowalski:
    transform/opacity only, ease-out, entrance is a one-time (rare) moment,
    buttons answer the press. Flat rules intact: no new glows, no pills. */
-.xhero::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 42px 42px;
-  -webkit-mask-image: radial-gradient(ellipse 100% 65% at 50% 0%, #000 25%, transparent 72%);
-  mask-image: radial-gradient(ellipse 100% 65% at 50% 0%, #000 25%, transparent 72%);
-}
 .xhero h1 { text-wrap: balance; }
 .xhero .hero-sub { text-wrap: pretty; }
 
