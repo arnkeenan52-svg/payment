@@ -60,10 +60,14 @@
       </div>
       <div class="shot-frame hero-shot">
         <video class="hero-video" poster="/shot-dashboard.png"
-          autoplay muted loop playsinline preload="metadata" width="1280" height="800"
+          autoplay muted loop playsinline preload="auto" width="1280" height="800"
           aria-label="Ripley product tour: live analytics with period comparison, products, members and the checkout">
-          <source src="/hero-demo.webm" type="video/webm" />
-          <source src="/hero-demo.mp4" type="video/mp4" />
+          <!-- Codec strings matter: Safari "maybe"-claims bare video/webm, then
+               fails on VP9 and freezes on the poster. With codecs declared it
+               rejects the WebM and takes the H.264 MP4; Chromium builds without
+               H.264 skip the MP4 and take the WebM. -->
+          <source src="/hero-demo.mp4" type='video/mp4; codecs="avc1.640020"' />
+          <source src="/hero-demo.webm" type='video/webm; codecs="vp9"' />
         </video>
       </div>
     </section>
