@@ -40,54 +40,22 @@ if (menuBtn) {
   });
 }
 
-// ── hero demo: auto-cycling product views (crossfade, pause on hover) ─────────
-// Reads like a product gif but stays crisp: the three real screenshots rotate
-// with a caption + dots. Reduced motion disables the auto-advance; the dots
-// still switch views by hand.
-
+// ── hero video: a real product-tour recording ─────────────────────────────────
+// Autoplays muted and loops like Subscord's. Reduced motion: hold the poster.
 (() => {
-  const demo = $('#hero-demo');
-  if (!demo) return;
-  const slides = [...demo.querySelectorAll('.demo-slide')];
-  const dotsBox = $('#demo-dots');
-  const caption = $('#demo-caption');
-  let at = 0;
-  let timer = null;
-  const dots = slides.map((s, i) => {
-    const d = document.createElement('button');
-    d.type = 'button';
-    d.className = 'hd-dot' + (i === 0 ? ' active' : '');
-    d.setAttribute('aria-label', s.dataset.caption);
-    d.onclick = () => {
-      show(i);
-      restart();
-    };
-    dotsBox.append(d);
-    return d;
-  });
-  const show = (i) => {
-    at = i;
-    slides.forEach((s, k) => s.classList.toggle('active', k === i));
-    dots.forEach((d, k) => d.classList.toggle('active', k === i));
-    caption.textContent = slides[i].dataset.caption;
-  };
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const start = () => {
-    if (reduce.matches || timer) return;
-    timer = setInterval(() => show((at + 1) % slides.length), 3800);
-  };
-  const stop = () => {
-    clearInterval(timer);
-    timer = null;
-  };
-  const restart = () => {
-    stop();
-    start();
-  };
-  demo.addEventListener('pointerenter', stop);
-  demo.addEventListener('pointerleave', start);
-  document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
-  start();
+  const v = $('.hero-video');
+  if (!v) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    v.removeAttribute('autoplay');
+    v.pause();
+    return;
+  }
+  // Some browsers (low-power mode, strict autoplay policies) ignore the
+  // attributes — nudge explicitly; if refused, the poster stands.
+  v.muted = true;
+  const play = () => v.play().catch(() => {});
+  if (v.readyState >= 2) play();
+  else v.addEventListener('canplay', play, { once: true });
 })();
 
 // ── savings calculator ────────────────────────────────────────────────────────

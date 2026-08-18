@@ -61,20 +61,13 @@
           <span><strong>24/7</strong>self-healing access</span>
         </div>
       </div>
-      <div class="shot-frame hero-shot hero-demo" id="hero-demo">
-        <div class="demo-slide active" data-caption="Live analytics">
-          <img src="/shot-dashboard.png" alt="The Ripley dashboard: revenue compared against the previous period, stat cards and recent transactions" width="1400" height="817" loading="eager" />
-        </div>
-        <div class="demo-slide" data-caption="Checkout">
-          <img src="/shot-store.png" alt="The hosted checkout: Confirm Order card with product, roles and Stripe payment" width="1200" height="750" loading="lazy" />
-        </div>
-        <div class="demo-slide" data-caption="Member management">
-          <img src="/shot-members.png" alt="Member management: revoke, extend, add and re-sync members" width="1400" height="817" loading="lazy" />
-        </div>
-        <div class="demo-hud" aria-hidden="false">
-          <span class="demo-caption" id="demo-caption">Live analytics</span>
-          <span class="demo-dots" id="demo-dots" role="tablist" aria-label="Product views"></span>
-        </div>
+      <div class="shot-frame hero-shot">
+        <video class="hero-video" poster="/shot-dashboard.png"
+          autoplay muted loop playsinline preload="metadata" width="1280" height="800"
+          aria-label="Ripley product tour: live analytics with period comparison, products, members and the checkout">
+          <source src="/hero-demo.webm" type="video/webm" />
+          <source src="/hero-demo.mp4" type="video/mp4" />
+        </video>
       </div>
     </section>
 

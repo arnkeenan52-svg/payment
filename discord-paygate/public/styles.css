@@ -1427,3 +1427,6 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 @media (prefers-reduced-motion: reduce) {
   .hero-demo .demo-slide { transition: opacity 200ms ease; transform: none; }
 }
+
+/* hero video fills the frame like the screenshot did */
+.hero-video { display: block; width: 100%; height: auto; background: #0b0b0c; }
