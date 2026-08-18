@@ -45,17 +45,41 @@ if (menuBtn) {
 (() => {
   const v = $('.hero-video');
   if (!v) return;
+  const overlay = $('#video-play');
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     v.removeAttribute('autoplay');
     v.pause();
+    if (overlay) {
+      overlay.hidden = false;
+      overlay.onclick = () => {
+        v.muted = true;
+        v.play().then(() => (overlay.hidden = true)).catch(() => {});
+      };
+    }
     return;
   }
-  // Some browsers (low-power mode, strict autoplay policies) ignore the
-  // attributes — nudge explicitly; if refused, the poster stands.
+  // Autoplay is refused by some browsers (iOS Low Power Mode, strict
+  // policies). Strategy: nudge with play(); retry on the FIRST user gesture
+  // (a gesture always unlocks playback); and if it is still paused shortly
+  // after the video is ready, show a tap-to-play button so it never reads
+  // as a broken image.
   v.muted = true;
-  const play = () => v.play().catch(() => {});
-  if (v.readyState >= 2) play();
-  else v.addEventListener('canplay', play, { once: true });
+  const showOverlayIfPaused = () => {
+    if (overlay) overlay.hidden = !v.paused;
+  };
+  const tryPlay = () => v.play().then(showOverlayIfPaused).catch(showOverlayIfPaused);
+  if (v.readyState >= 2) tryPlay();
+  else v.addEventListener('canplay', tryPlay, { once: true });
+  for (const ev of ['touchstart', 'pointerdown', 'scroll']) {
+    window.addEventListener(ev, () => v.paused && tryPlay(), { once: true, passive: true });
+  }
+  if (overlay)
+    overlay.onclick = () => {
+      v.muted = true;
+      v.play().then(() => (overlay.hidden = true)).catch(() => {});
+    };
+  v.addEventListener('playing', () => overlay && (overlay.hidden = true));
+  setTimeout(showOverlayIfPaused, 2500);
 })();
 
 // ── pricing: monthly / yearly toggle (two months free on yearly) ─────────────

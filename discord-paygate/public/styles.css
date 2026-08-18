@@ -1500,3 +1500,35 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 #billing-body .bill-toggle { justify-content: flex-start; margin: 4px 0 12px; }
 
 .footer-disclaimer { flex-basis: 100%; color: rgba(255,255,255,0.35); font-size: 12px; margin: 14px 0 0; }
+
+/* ── hero: browser-chrome frame around the video (reference look) ───────────── */
+.browser-frame { border-color: color-mix(in srgb, var(--accent) 30%, rgba(255,255,255,0.1)); position: relative; }
+.bf-bar {
+  display: flex; align-items: center; gap: 12px; padding: 9px 12px;
+  background: #151516; border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.bf-dots { display: inline-flex; gap: 6px; }
+.bf-dots i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.bf-dots i:nth-child(1) { background: #f5655b; }
+.bf-dots i:nth-child(2) { background: #f6bd3b; }
+.bf-dots i:nth-child(3) { background: #43c645; }
+.bf-url {
+  flex: 1; max-width: 380px; margin: 0 auto; text-align: center;
+  background: rgba(255,255,255,0.06); border-radius: 6px; padding: 4px 14px;
+  font-size: 11.5px; color: rgba(255,255,255,0.55); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bf-live { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--accent); flex: none; }
+@media (max-width: 560px) { .bf-url { display: none; } .bf-live { margin-left: auto; } }
+
+/* tap-to-play overlay: only when autoplay was refused */
+.video-play {
+  position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); z-index: 6;
+  width: 64px; height: 64px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(10, 10, 10, 0.75); color: var(--ink); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+}
+.video-play:hover { background: rgba(10, 10, 10, 0.9); border-color: var(--accent); }
+.video-play:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.video-play[hidden] { display: none; }
+.video-play svg { margin-left: 3px; }
