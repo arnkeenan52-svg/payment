@@ -384,12 +384,14 @@ body {
   border-radius: 8px;
   padding: 15px;
   cursor: pointer;
-  background: var(--accent);
-  color: var(--accent-ink);
+  /* The buy action wears Discord's blurple: the thing being bought is a
+     Discord role, and it is the one place color carries meaning. */
+  background: var(--blurple);
+  color: #ffffff;
   transition: background 0.15s ease, transform 0.06s ease;
   min-height: 52px;
 }
-.pay-btn:hover:not(:disabled) { background: var(--accent-hot); }
+.pay-btn:hover:not(:disabled) { background: #4752c4; }
 .pay-btn:active:not(:disabled) { transform: scale(0.99); }
 .pay-btn:disabled { opacity: 0.55; cursor: wait; }
 .pay-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
@@ -1994,14 +1996,6 @@ a.kicker:hover { color: var(--ink); }
   font-size: 11px; letter-spacing: 0.12em;
 }
 .order-card .order-title { font-size: 22px; letter-spacing: -0.02em; }
-.role-list { display: flex; flex-direction: column; gap: 8px; }
-.role-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: rgba(255, 255, 255, 0.78); font-weight: 550; }
-.role-check svg { color: var(--dim); flex: none; }
-.order-roles { border: none; padding: 0; flex-direction: column; align-items: flex-start; gap: 8px; }
-.order-roles-label {
-  color: var(--dim); font-size: 11px; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase;
-}
 .totals { display: flex; flex-direction: column; gap: 7px; margin: 2px 0 4px; }
 .tot-row { display: flex; justify-content: space-between; gap: 12px; color: var(--dim); font-size: 13.5px; }
 .tot-row[hidden] { display: none; }
@@ -2010,7 +2004,9 @@ a.kicker:hover { color: var(--ink); }
 .tot-div { border-top: 1px dashed rgba(255, 255, 255, 0.16); margin: 4px 0; }
 .tot-row.tot-final { color: var(--ink); font-size: 15px; font-weight: 700; align-items: baseline; }
 .tot-row.tot-final strong { font-family: var(--font-head); font-size: 21px; font-weight: 700; }
-.pay-btn:hover:not(:disabled) { background: #ffffff; }
+.pay-btn:hover:not(:disabled) { background: #4752c4; }
+/* keep the buy action legible against the blurple fill */
+.pay-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 @media (max-width: 760px) {
   /* the kicker flows as centered text instead of squeezing its flex columns */
   .hero-pill { display: block; max-width: 36ch; margin: 0 auto; line-height: 1.7; }
@@ -2167,7 +2163,8 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .vz-prow { display: flex; justify-content: space-between; font-size: 12px; font-weight: 650; }
 .vz-price { font-variant-numeric: tabular-nums; }
 .vz-buy {
-  background: #ededed; color: #0a0a0a; border-radius: 6px; text-align: center;
+  /* mirrors the real checkout button, which wears Discord blurple */
+  background: var(--blurple); color: #fff; border-radius: 6px; text-align: center;
   font-size: 11px; font-weight: 700; padding: 6px;
 }
 /* roles */

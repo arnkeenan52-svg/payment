@@ -139,16 +139,14 @@ function renderBrand() {
   $('#plan-name').textContent = plan.name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
   $('#price').textContent = fmtPrice(plan.priceUsd);
-  // Roles the buyer receives, as an included-features checklist (the
-  // single-pricing-card blueprint) rather than chips.
+  // Roles the buyer receives, as blurple chips — Discord's own concept in
+  // Discord's own color.
   const rolesBox = $('#roles-box');
   const chips = $('#roles-chips');
   if (rolesBox && chips) {
     const names = plan.roleNames ?? [];
     if (names.length) {
-      chips.innerHTML = names
-        .map((n) => `<span class="role-check">${ICON_CHECK}${n.replace(/[&<>"']/g, '')}</span>`)
-        .join('');
+      chips.innerHTML = names.map((n) => `<span class="chip">${n.replace(/[&<>"']/g, '')}</span>`).join('');
       rolesBox.hidden = false;
     } else rolesBox.hidden = true;
   }
