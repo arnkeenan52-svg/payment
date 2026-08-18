@@ -454,6 +454,20 @@ export async function updateStore(id, fields) {
   return getStoreById(id);
 }
 
+// Payment history is the line a delete must not cross: a store with any
+// subscription row ever recorded stays (members' access and the money trail
+// both hang off it).
+export async function countStoreSubscriptions(storeId) {
+  const { rows } = await q('SELECT COUNT(*) AS n FROM subscriptions WHERE store_id = ?', [storeId]);
+  return Number(rows[0]?.n ?? 0);
+}
+
+export async function deleteStore(storeId) {
+  await q('DELETE FROM discounts WHERE store_id = ?', [storeId]);
+  await q('DELETE FROM store_plans WHERE store_id = ?', [storeId]);
+  await q('DELETE FROM stores WHERE id = ?', [storeId]);
+}
+
 const planRow = (r) =>
   r
     ? {

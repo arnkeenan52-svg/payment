@@ -183,7 +183,7 @@ async function viewPicker() {
   if (!me?.loggedIn) {
     $('#content').innerHTML = `
       <div class="picker-wrap"><section class="picker-card panel">
-        <div class="picker-head"><a class="wiz-back" href="/">${I.back} Back</a><img src="/ripley.png" alt="Ripley" height="20" class="platform-mark" /><span></span></div>
+        <div class="picker-head"><a class="wiz-back" href="/">${I.back} Back</a><span></span></div>
         <p class="note-help" style="text-align:center">Sign in with Discord to see your servers and set up a store.</p>
         <button class="btn-pill" id="login2" style="align-self:center">Sign in with Discord</button>
       </section></div>`;
@@ -192,7 +192,7 @@ async function viewPicker() {
   }
   $('#content').innerHTML = `
     <div class="picker-wrap"><section class="picker-card panel">
-      <div class="picker-head"><a class="wiz-back" href="/">${I.back} Back</a><img src="/ripley.png" alt="Ripley" height="20" class="platform-mark" /><span></span></div>
+      <div class="picker-head"><a class="wiz-back" href="/">${I.back} Back</a><span></span></div>
       <div class="picker-user">
         <span class="g-icon g-icon-fallback">${esc((me.username ?? '?').slice(0, 1).toUpperCase())}</span>
         <span>Logged in as <strong>${esc(me.username ?? me.discordId)}</strong></span>
@@ -1226,29 +1226,19 @@ function sectionSettings(store, isPlatformOwner) {
           })
         : ''
     }
+    ${setCard({
+      title: 'Receipt emails',
+      sub: 'Handled by Ripley automatically — every buyer gets a membership confirmation after checkout. Nothing to configure.',
+    })}
     ${
-      !isPlatformOwner
+      !store.isDefault
         ? setCard({
-            title: 'Receipt emails',
-            sub: 'Handled by Ripley automatically — every buyer gets an emailed receipt after checkout. Nothing to configure.',
+            title: 'Danger zone',
+            sub: 'Deleting removes this store, its products and discount codes. Stores with payment history cannot be deleted.',
+            body: `<p class="field-err" id="err-delete" role="alert"></p>`,
+            foot: `<button class="btn-danger" id="store-delete">Delete this store</button>`,
           })
-        : setCard({
-            title: 'Receipt emails <span class="chip chip-off">platform-wide</span>',
-            sub: '<span id="settings-state">Checking…</span>',
-            body: `
-              <label class="field">
-                <span class="field-label">Resend API key</span>
-                <input id="f-resend" type="password" placeholder="re_…" autocomplete="off" spellcheck="false" />
-                <span class="field-help">One key powers receipts for every store on Ripley — tenants never configure anything. Stored encrypted.</span>
-                <span class="field-err" id="err-resend" role="alert"></span>
-              </label>
-              <label class="field">
-                <span class="field-label">From address</span>
-                <input id="f-from" type="text" placeholder="Receipts <receipts@yourdomain.com>" />
-                <span class="field-help">Must be a domain verified in your Resend account.</span>
-              </label>`,
-            foot: `<button class="btn-pill" id="save-settings">Save</button>`,
-          })
+        : ''
     }
     </div>`;
 }
@@ -1488,7 +1478,7 @@ async function viewStore(slug) {
           fieldErr('pm', err.message);
         }
       };
-    if (isPlatformOwner) wireReceiptSettings();
+    wireReceiptSettings(store, slug);
   }
 }
 
@@ -1841,37 +1831,26 @@ function wireStoreSettings(store, slug) {
   };
 }
 
-function wireReceiptSettings() {
-  (async () => {
-    const res = await fetch('/api/admin/settings');
-    if (!res.ok) return;
-    const s = await res.json();
-    const el = $('#settings-state');
-    if (!el) return;
-    el.textContent = s.receiptEmails
-      ? `Receipt emails are ON — sending from ${s.receiptFrom}`
-      : 'Receipt emails are OFF — add a Resend API key to turn them on.';
-    $('#f-from').value = s.receiptFrom ?? '';
-  })();
-  const save = $('#save-settings');
-  if (!save) return;
-  save.onclick = async () => {
-    save.disabled = true;
-    save.textContent = 'Saving…';
-    const res = await fetch('/api/admin/settings', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ resendApiKey: $('#f-resend').value.trim(), receiptFrom: $('#f-from').value.trim() }),
-    });
-    const out = await res.json().catch(() => ({}));
-    save.disabled = false;
-    save.textContent = 'Save';
-    if (!res.ok) return fieldErr('resend', out.error ?? 'Could not save.');
-    fieldErr('resend', '');
-    $('#settings-state').textContent = out.receiptEmails
-      ? `Receipt emails are ON — sending from ${out.receiptFrom}`
-      : 'Receipt emails are OFF — add a Resend API key to turn them on.';
-    $('#f-resend').value = '';
+// Receipts are platform-run and always on — nothing to wire in Settings any
+// more. The API for rotating the platform Resend key still exists for
+// machine use; it just has no owner-facing UI.
+function wireReceiptSettings(store, slug) {
+  const del = $('#store-delete');
+  if (!del) return;
+  del.onclick = async () => {
+    if (!confirm(`Delete the store “${store.name}”?\n\nIts products and discount codes are removed and ${location.origin}/${store.slug} stops working. This cannot be undone.`)) return;
+    del.disabled = true;
+    del.textContent = 'Deleting…';
+    try {
+      await api('/api/admin/store', { store: slug, action: 'delete' });
+      state.data = null;
+      state.products = null;
+      location.hash = '#/';
+    } catch (err) {
+      del.disabled = false;
+      del.textContent = 'Delete this store';
+      fieldErr('delete', err.message);
+    }
   };
 }
 

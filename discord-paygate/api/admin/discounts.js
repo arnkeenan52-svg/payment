@@ -2,7 +2,7 @@ import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { ownerAuthorized } from '../../src/lib/authz.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import * as db from '../../src/db.js';
-import { storeBySlug, planOf } from '../../src/services/stores.js';
+import { adminStoreBySlug, planOf } from '../../src/services/stores.js';
 
 // Discount codes for a store: list / create / delete, owner-gated. Codes are
 // stored locally; checkout turns a valid code into a one-shot Stripe coupon
@@ -18,7 +18,7 @@ export default guard(async function handler(req, res) {
     return;
   }
   const body = await readJsonBody(req).catch(() => ({}));
-  const store = await storeBySlug(String(body.store ?? ''));
+  const store = await adminStoreBySlug(String(body.store ?? ''));
   if (!store || store.id === null || store.id === undefined) {
     sendJson(res, 404, { error: 'unknown store' });
     return;

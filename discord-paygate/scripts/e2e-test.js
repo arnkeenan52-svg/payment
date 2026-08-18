@@ -1767,6 +1767,80 @@ test("a DRAFT store cannot hijack the built-in store's live link", async () => {
   assert.equal(list.status, 200);
 });
 
+test('store delete: payment history refuses; a draft deletes, freeing its link and guild', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, {
+      redirect: 'manual',
+      headers: { cookie: sc.split(';')[0] },
+    });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u14Cookie = await loginAs('code_u14');
+  const u7Cookie = await loginAs('code_u7');
+  const del = (cookie, slug) =>
+    fetch(`${appUrl}/api/admin/store`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ store: slug, action: 'delete' }),
+    });
+
+  // Only the store's owner may delete it — even while it hides behind the
+  // built-in store's slug as a draft.
+  assert.equal((await del(u7Cookie, 'tradeleaks')).status, 403, "another owner must not delete the draft");
+  // A store with real payments is not deletable — the history stays.
+  const refused = await del(u7Cookie, 'vip-signals');
+  assert.equal(refused.status, 409, await refused.text());
+
+  // The empty draft deletes cleanly…
+  const ok = await del(u14Cookie, 'tradeleaks');
+  assert.equal(ok.status, 200, await ok.text());
+  // …its slug snaps back to the built-in store…
+  const back = await (await fetch(`${appUrl}/api/plans?store=tradeleaks`)).json();
+  assert.equal(back.plans.length, PLANS.length, 'the built-in store reclaims its link');
+  // …and the guild is free to onboard from scratch (the reset path).
+  const again = await fetch(`${appUrl}/api/onboard`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u14Cookie },
+    body: JSON.stringify({ step: 'store', guildId: G3, name: 'Trade Hub Prime', stripeKey: OWNER2_KEY }),
+  });
+  const againBody = await again.text();
+  assert.equal(again.status, 200, againBody);
+  assert.equal(JSON.parse(againBody).store.slug, 'trade-hub-prime');
+  // Leave the world as this scenario found it (minus the hijacking draft).
+  assert.equal((await del(u14Cookie, 'trade-hub-prime')).status, 200);
+});
+
+test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async () => {
+  const get = async (p) => {
+    const r = await fetch(`${appUrl}${p}`);
+    return { status: r.status, body: await r.text() };
+  };
+  const vs = await get('/vs/whop');
+  assert.equal(vs.status, 200);
+  assert.match(vs.body, /Ripley vs Whop/);
+  assert.match(vs.body, /rel="canonical" href="https:\/\/www\.ripleybot\.com\/vs\/whop"/);
+  const vsIdx = await get('/vs');
+  assert.equal(vsIdx.status, 200);
+  assert.match(vsIdx.body, /Compare Discord Monetization Platforms/);
+  const tool = await get('/tools/discord-fee-calculator');
+  assert.equal(tool.status, 200);
+  assert.match(tool.body, /Discord Monetization Fee Calculator/);
+  const uc = await get('/use-cases/trading');
+  assert.equal(uc.status, 200);
+  assert.match(uc.body, /Trading Discord/);
+  const sm = await get('/sitemap.xml');
+  assert.equal(sm.status, 200);
+  assert.match(sm.body, /\/vs\/whop<\/loc>/);
+  const rb = await get('/robots.txt');
+  assert.equal(rb.status, 200);
+  assert.match(rb.body, /Sitemap: https:\/\/www\.ripleybot\.com\/sitemap\.xml/);
+  // Reach paths resolve to pages, never to a store.
+  assert.equal((await fetch(`${appUrl}/api/plans?store=vs`)).status, 404);
+});
+
 test('platform billing: Free gates at 10 members, paid tiers unlock, switch cancels the old sub, cancel re-gates', async () => {
   const U9_BILLING = '509900000000000009'; // the manually-granted member from the previous scenario
   const loginAs = async (code) => {
@@ -2068,7 +2142,8 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal(pub.brand, 'VIP Signals Pro');
   assert.equal(pub.store.description, 'The alpha desk.');
   // Custom link: platform paths can never be claimed as store links.
-  for (const bad of ['dashboard', 'api', 'store', 'diagnostics']) {
+  // ('vs' is unclaimable too, but the 2-char format check 400s it first.)
+  for (const bad of ['dashboard', 'api', 'store', 'diagnostics', 'tools', 'use-cases']) {
     assert.equal((await storeCall({ slug: bad })).status, 409, `reserved slug "${bad}" must be refused`);
   }
   // New slug serves, the old one 404s, then restore.

@@ -47,6 +47,8 @@ const MIME = {
   '.webm': 'video/webm',
   '.woff2': 'font/woff2',
   '.webp': 'image/webp',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
 };
 
 function serveStatic(res, file) {
@@ -134,12 +136,16 @@ const server = http.createServer(async (req, res) => {
       serveStatic(res, 'dashboard.html');
       return;
     }
-    if (req.method === 'GET' && /^\/[a-zA-Z0-9._-]+$/.test(url.pathname)) {
-      const file = url.pathname.slice(1);
-      const resolved = path.join(PUBLIC_DIR, file);
-      if (resolved.startsWith(PUBLIC_DIR) && fs.existsSync(resolved) && fs.statSync(resolved).isFile()) {
-        serveStatic(res, file);
-        return;
+    if (req.method === 'GET' && /^\/[a-zA-Z0-9._/-]+$/.test(url.pathname) && !url.pathname.includes('..')) {
+      // Static files, nested included, with Vercel's cleanUrls behavior:
+      // /vs/whop serves vs/whop.html, /vs serves vs/index.html.
+      const rel = url.pathname.slice(1);
+      for (const candidate of [rel, `${rel}.html`, path.join(rel, 'index.html')]) {
+        const resolved = path.join(PUBLIC_DIR, candidate);
+        if (resolved.startsWith(PUBLIC_DIR) && fs.existsSync(resolved) && fs.statSync(resolved).isFile()) {
+          serveStatic(res, candidate);
+          return;
+        }
       }
       // Store links live at the root (vercel.json's /:slug rewrite): any
       // slug-shaped path with no matching static file is a storefront.

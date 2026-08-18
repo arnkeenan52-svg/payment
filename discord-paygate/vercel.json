@@ -1,9 +1,13 @@
 {
+  "cleanUrls": true,
   "crons": [
     { "path": "/api/cron/reconcile", "schedule": "0 * * * *" }
   ],
   "rewrites": [
     { "source": "/s/:slug", "destination": "/store.html" },
+    { "source": "/vs", "destination": "/vs/index.html" },
+    { "source": "/tools", "destination": "/tools/index.html" },
+    { "source": "/use-cases", "destination": "/use-cases/index.html" },
     { "source": "/webhooks/stripe/:storeid", "destination": "/api/webhooks/stripe?store=:storeid" },
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" },

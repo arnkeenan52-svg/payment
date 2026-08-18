@@ -3,7 +3,7 @@ import { ownerAuthorized } from '../../src/lib/authz.js';
 import { cronAuthorized } from '../cron/reconcile.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import * as db from '../../src/db.js';
-import { storeBySlug, planOf } from '../../src/services/stores.js';
+import { adminStoreBySlug, planOf } from '../../src/services/stores.js';
 import { reconcile } from '../../src/services/entitlements.js';
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -23,7 +23,7 @@ export default guard(async function handler(req, res) {
     return;
   }
   const body = await readJsonBody(req).catch(() => ({}));
-  const store = await storeBySlug(String(body.store ?? ''));
+  const store = await adminStoreBySlug(String(body.store ?? ''));
   if (!store) {
     sendJson(res, 404, { error: 'unknown store' });
     return;

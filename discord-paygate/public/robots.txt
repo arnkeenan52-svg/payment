@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /account
+Disallow: /receipt
+
+Sitemap: https://www.ripleybot.com/sitemap.xml

@@ -2,7 +2,7 @@ import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { ownerAuthorized } from '../../src/lib/authz.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import * as db from '../../src/db.js';
-import { storeBySlug, isReservedSlug } from '../../src/services/stores.js';
+import { adminStoreBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
 import { stripeFetch } from '../../src/lib/stripe.js';
 
@@ -19,13 +19,26 @@ export default guard(async function handler(req, res) {
     return;
   }
   const body = await readJsonBody(req).catch(() => ({}));
-  const store = await storeBySlug(String(body.store ?? ''));
+  const store = await adminStoreBySlug(String(body.store ?? ''));
   if (!store || store.id === null || store.id === undefined) {
     sendJson(res, 404, { error: 'unknown store' });
     return;
   }
   if (!(ownerAuthorized(req) || (store.ownerDiscordId && store.ownerDiscordId === uid))) {
     sendJson(res, 403, { error: 'not your store' });
+    return;
+  }
+
+  // Deleting a store frees its guild and link for a fresh onboarding run.
+  // Refused once real payments exist — that history (and members' access)
+  // must survive; the Stripe dashboard stays the source of truth for money.
+  if (body.action === 'delete') {
+    if ((await db.countStoreSubscriptions(store.id)) > 0) {
+      sendJson(res, 409, { error: 'This store has payment history and cannot be deleted.' });
+      return;
+    }
+    await db.deleteStore(store.id);
+    sendJson(res, 200, { ok: true, deleted: true });
     return;
   }
 

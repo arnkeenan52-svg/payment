@@ -68,6 +68,17 @@ export async function storeBySlug(slug) {
   return slug === defaultSlug() ? defaultStore() : null;
 }
 
+// Owner-side resolution: the managed row wins outright, draft or live. The
+// buyer-facing guard in storeBySlug (a draft cannot claim the built-in
+// store's link) must not hide a draft from its own dashboard — its owner
+// still needs to edit, finish or delete it.
+export async function adminStoreBySlug(slug) {
+  if (!slug) return defaultStore();
+  const managed = hydrate(await db.getStoreBySlug(slug));
+  if (managed) return managed;
+  return slug === defaultSlug() ? defaultStore() : null;
+}
+
 export async function storeById(id) {
   if (id === null || id === undefined || id === '') return defaultStore();
   return hydrate(await db.getStoreById(Number(id)));
@@ -168,6 +179,7 @@ const RESERVED_SLUGS = new Set([
   'store', 'account', 'dashboard', 'receipt', 'terms', 'privacy', 'diagnostics',
   'api', 'auth', 'webhooks', 's', 'admin', 'checkout', 'login', 'logout',
   'pricing', 'docs', 'help', 'support', 'status', 'assets', 'static',
+  'vs', 'tools', 'use-cases', 'compare', 'blog', 'sitemap', 'robots',
 ]);
 
 export function isReservedSlug(slug) {
