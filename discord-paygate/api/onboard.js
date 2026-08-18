@@ -6,7 +6,7 @@ import { sealSecret } from '../src/lib/secretbox.js';
 import { getUser } from '../src/db.js';
 import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember } from '../src/lib/discord.js';
 import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache } from '../src/lib/stripe.js';
-import { storeByGuild, storeBySlug, slugify, isReservedSlug, plansOf } from '../src/services/stores.js';
+import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf } from '../src/services/stores.js';
 
 const ADMINISTRATOR = 1n << 3n;
 const MANAGE_GUILD = 1n << 5n;
@@ -75,7 +75,7 @@ export default guard(async function handler(req, res) {
       if (!(await callerManagesGuild(uid, guildId))) {
         return sendJson(res, 403, { error: 'You need Manage Server or Administrator in that Discord server.' });
       }
-      if (await storeByGuild(guildId)) {
+      if (await managedStoreByGuild(guildId)) {
         return sendJson(res, 409, { error: 'That server already has a store.' });
       }
       if (!(await getGuild(guildId))) {

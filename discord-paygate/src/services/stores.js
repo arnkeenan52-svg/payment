@@ -54,9 +54,23 @@ export async function storeById(id) {
   return hydrate(await db.getStoreById(Number(id)));
 }
 
-export async function storeByGuild(guildId) {
-  if (config.discord.guildId && String(guildId) === String(config.discord.guildId)) return defaultStore();
+// A managed (database) store only — never the virtual built-in one. This is
+// what onboarding and the server picker must consult: the built-in store is
+// env configuration, and its guild stays onboardable until a real managed
+// store exists for it.
+export async function managedStoreByGuild(guildId) {
   return hydrate(await db.getStoreByGuild(String(guildId)));
+}
+
+export async function storeByGuild(guildId) {
+  // Managed store first: once the owner onboards the built-in server
+  // properly, every by-guild lookup sees the managed store (products,
+  // discounts, custom link — all dashboard-editable). The virtual env store
+  // remains the fallback so legacy /store checkouts keep working unchanged.
+  const managed = await managedStoreByGuild(guildId);
+  if (managed) return managed;
+  if (config.discord.guildId && String(guildId) === String(config.discord.guildId)) return defaultStore();
+  return null;
 }
 
 export async function storesOwnedBy(discordId) {

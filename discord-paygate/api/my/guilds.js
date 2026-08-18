@@ -3,7 +3,7 @@ import { sendJson, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { getUser } from '../../src/db.js';
 import { getUserGuilds, getGuild } from '../../src/lib/discord.js';
-import { storeByGuild } from '../../src/services/stores.js';
+import { managedStoreByGuild } from '../../src/services/stores.js';
 
 const ADMINISTRATOR = 1n << 3n;
 const MANAGE_GUILD = 1n << 5n;
@@ -44,7 +44,7 @@ export default guard(async function handler(req, res) {
 
   const out = [];
   for (const g of manageable.slice(0, 30)) {
-    const store = await storeByGuild(g.id);
+    const store = await managedStoreByGuild(g.id); // only managed stores count — the built-in server stays onboardable
     // Bot presence: the bot can fetch the guild object only for guilds it is
     // a member of, so a successful fetch IS the presence check.
     const botIn = Boolean(await getGuild(g.id));

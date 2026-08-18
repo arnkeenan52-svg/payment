@@ -1644,6 +1644,68 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   assert.ok(memberRoles(U9).has(R2_VIP), 'resync must restore the role');
 });
 
+test('the built-in server can be onboarded as a managed store: products, discounts and custom link become dashboard-editable', async () => {
+  // An admin of the BUILT-IN (env-configured) guild. Before this worked, the
+  // virtual store claimed the guild and onboarding answered "already has a
+  // store" — locking the platform's own server out of in-site products,
+  // discounts and custom links forever.
+  const U13 = '513300000000000013';
+  discord.oauthUsers.code_u13 = { id: U13, username: 'tl_admin' };
+  discord.userGuilds[U13] = [{ id: GUILD, name: 'Tradeleaks', icon: null, owner: true, permissions: '8' }];
+  const login13 = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st13 = new URL(login13.headers.get('location')).searchParams.get('state');
+  const sc13 = login13.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb13 = await fetch(`${appUrl}/auth/callback?code=code_u13&state=${st13}`, {
+    redirect: 'manual',
+    headers: { cookie: sc13.split(';')[0] },
+  });
+  const u13Cookie = cb13.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  const onboard13 = (payload) =>
+    fetch(`${appUrl}/api/onboard`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u13Cookie },
+      body: JSON.stringify(payload),
+    });
+
+  // The picker offers the built-in guild as onboardable — no store attached.
+  const picker = await (await fetch(`${appUrl}/api/my/guilds`, { headers: { cookie: u13Cookie } })).json();
+  const tl = picker.guilds.find((g) => g.id === GUILD);
+  assert.ok(tl, 'the built-in guild must be listed');
+  assert.equal(tl.store, null, 'the virtual store must not block onboarding the built-in guild');
+
+  // Onboard it for real.
+  const made = await onboard13({ step: 'store', guildId: GUILD, name: 'Tradeleaks Pro', stripeKey: OWNER2_KEY });
+  const madeBody = await made.text();
+  assert.equal(made.status, 200, madeBody);
+  const { store } = JSON.parse(madeBody);
+  assert.equal(store.slug, 'tradeleaks-pro');
+
+  // A second attempt is refused — now a MANAGED store owns the guild.
+  assert.equal((await onboard13({ step: 'store', guildId: GUILD, name: 'Again', stripeKey: OWNER2_KEY })).status, 409);
+
+  // Product created in the dashboard, role attached, discount created.
+  const prod = await onboard13({ step: 'product', storeId: store.id, name: 'Elite', priceUsd: 25, lifetime: true });
+  const prodBody = await prod.text();
+  assert.equal(prod.status, 200, prodBody);
+  const { plan } = JSON.parse(prodBody);
+  assert.equal((await onboard13({ step: 'role', storeId: store.id, planKey: plan.planKey, roleId: '1200000000000000101' })).status, 200);
+  const disc = await fetch(`${appUrl}/api/admin/discounts`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u13Cookie },
+    body: JSON.stringify({ store: 'tradeleaks-pro', action: 'create', code: 'TL10', kind: 'percent', amount: 10 }),
+  });
+  assert.equal(disc.status, 200, await disc.text());
+
+  // The managed store serves on its own link with the dashboard-made catalog…
+  const managedPlans = await (await fetch(`${appUrl}/api/plans?store=tradeleaks-pro`)).json();
+  assert.equal(managedPlans.plans.length, 1);
+  assert.equal(managedPlans.plans[0].id, plan.planKey);
+  assert.equal((await fetch(`${appUrl}/tradeleaks-pro`)).status, 200);
+  // …while the legacy built-in checkout keeps serving its env catalog untouched.
+  const legacy = await (await fetch(`${appUrl}/api/plans`)).json();
+  assert.equal(legacy.plans.length, PLANS.length, 'the built-in store must keep working');
+});
+
 test('platform billing: Free gates at 10 members, paid tiers unlock, switch cancels the old sub, cancel re-gates', async () => {
   const U9_BILLING = '509900000000000009'; // the manually-granted member from the previous scenario
   const loginAs = async (code) => {

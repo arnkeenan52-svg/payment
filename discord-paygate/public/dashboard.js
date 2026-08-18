@@ -441,12 +441,46 @@ function renderLive(g, slug) {
 
 // ── store dashboard: shared bits ─────────────────────────────────────────────
 
-function statCard(label, value, icon, delta = null, sub = '') {
-  const chip =
-    delta === null || delta === undefined
-      ? ''
-      : `<span class="delta ${delta >= 0 ? 'up' : 'down'}"><span aria-hidden="true">${delta >= 0 ? '▲' : '▼'}</span>${Math.abs(delta) >= 100 ? Math.round(Math.abs(delta)) : Math.abs(delta).toFixed(Math.abs(delta) < 10 ? 1 : 0)}%</span>`;
-  return `<div class="panel stat"><div class="stat-top"><span class="stat-label">${label}</span><span class="stat-ic">${icon}</span></div><span class="stat-value">${value}${chip}</span>${sub ? `<span class="stat-sub">${sub}</span>` : ''}</div>`;
+function deltaChip(delta) {
+  if (delta === null || delta === undefined) return '';
+  const n = Math.abs(delta) >= 100 ? Math.round(Math.abs(delta)) : Math.abs(delta).toFixed(Math.abs(delta) < 10 ? 1 : 0);
+  return `<span class="delta ${delta >= 0 ? 'up' : 'down'}"><span aria-hidden="true">${delta >= 0 ? '▲' : '▼'}</span>${n}%</span>`;
+}
+
+function statCard(label, value, icon, delta = null, sub = '', spark = '') {
+  return `<div class="panel stat"><div class="stat-top"><span class="stat-label">${label}</span><span class="stat-ic">${icon}</span></div><span class="stat-value">${value}${deltaChip(delta)}</span>${spark}${sub ? `<span class="stat-sub">${sub}</span>` : ''}</div>`;
+}
+
+// Straight segments with round joins — the Stripe treatment. Spiky
+// one-sale-a-day data stays honest and crisp; smoothing curves turned it
+// into a sine wave.
+function linePath(pts) {
+  return pts.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)} ${py.toFixed(1)}`).join('');
+}
+
+// Tiny trajectory line inside a stat card. Dense windows are aggregated down
+// to ~12 buckets (sums, so the shape stays truthful); all-zero windows render
+// a muted baseline so the cards keep the same height with or without data.
+function sparkSvg(vals) {
+  if (vals.length < 2) return '';
+  let v = vals;
+  if (v.length > 12) {
+    const size = Math.ceil(v.length / 12);
+    const packed = [];
+    for (let i = 0; i < v.length; i += size) packed.push(v.slice(i, i + size).reduce((s, n) => s + n, 0));
+    v = packed;
+  }
+  const n = v.length;
+  const W = 120, H = 34, p = 3;
+  const max = Math.max(...v, 1);
+  const x = (i) => p + (i / (n - 1)) * (W - 2 * p);
+  const y = (val) => H - p - (val / max) * (H - 2 * p);
+  const line = linePath(v.map((val, i) => [x(i), y(val)]));
+  const flat = v.every((val) => val === 0);
+  return `<svg class="stat-spark${flat ? ' flat' : ''}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <path class="spark-fill" d="${line} L${x(n - 1).toFixed(1)} ${(H - p).toFixed(1)} L${x(0).toFixed(1)} ${(H - p).toFixed(1)} Z" />
+    <path class="spark-line" d="${line}" fill="none" vector-effect="non-scaling-stroke" />
+  </svg>`;
 }
 
 // ── analytics: ranges, buckets, comparison ───────────────────────────────────
@@ -492,9 +526,11 @@ function rangeWindows(range, payments) {
 
 const inWin = (p, w) => w && p.createdAt * 1000 >= w[0] && p.createdAt * 1000 < w[1];
 
-// Aligned bucket series for the chart: current window bars + the previous
-// window as an overlay line (same bucket count, offset by one window).
-function bucketSeries(payments, win) {
+// Aligned bucket series for the chart: current window plus the previous
+// window mapped onto the same bucket index (offset by one window length).
+// valueOf decides what is summed per bucket: dollars for revenue, 1 for
+// counts — the same machinery feeds the big chart and the card sparklines.
+function bucketSeries(payments, win, valueOf = (p) => p.amountUsd) {
   const { cur, prev, grain } = win;
   const marks = [];
   if (grain === 'hour') {
@@ -532,10 +568,10 @@ function bucketSeries(payments, win) {
     const t = p.createdAt * 1000;
     if (t >= cur[0] && t < cur[1]) {
       const i = idxFor(t, 0);
-      if (i >= 0) curVals[i] += p.amountUsd;
+      if (i >= 0) curVals[i] += valueOf(p);
     } else if (prev && t >= prev[0] && t < prev[1]) {
       const i = idxFor(t, -offset);
-      if (i >= 0) prevVals[i] += p.amountUsd;
+      if (i >= 0) prevVals[i] += valueOf(p);
     }
   }
   const labelFor = (i) => {
@@ -555,9 +591,10 @@ function niceCeil(v) {
   return 10 * p;
 }
 
-// Revenue chart: current-period columns (≤24px, rounded data-end, square
-// baseline), previous period as a 2px muted overlay line, hairline gridlines
-// with clean tick labels. The crosshair tooltip is wired up after render.
+// Revenue chart: the current period as a smooth monotone line with a quiet
+// area beneath it, the previous period as a dashed muted line on the same
+// scale, hairline gridlines with clean tick labels. Hover (wired after
+// render) adds a crosshair, a dot on each line and a two-period tooltip.
 function revenueChart(series) {
   const W = 920, H = 190, padL = 44, padB = 20, padT = 8;
   const { curVals, prevVals, labels } = series;
@@ -567,56 +604,67 @@ function revenueChart(series) {
   const max = niceCeil(maxRaw);
   const y = (v) => padT + plotH - (v / max) * plotH;
   const band = plotW / n;
-  const bw = Math.min(24, Math.max(3, band * 0.6));
   const x = (i) => padL + i * band + band / 2;
   const money = (v) => (max >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : `$${v}`);
+  const base = padT + plotH;
 
-  const grid = [0, 0.5, 1]
+  const grid = [0, 0.25, 0.5, 0.75, 1]
     .map((f) => {
       const gy = y(max * f);
-      return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - 6}" y2="${gy.toFixed(1)}" stroke="var(--edge)" stroke-width="1" />
-        <text x="${padL - 8}" y="${(gy + 3.5).toFixed(1)}" text-anchor="end" class="tick">${money(max * f)}</text>`;
+      const major = f === 0 || f === 0.5 || f === 1;
+      return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - 6}" y2="${gy.toFixed(1)}" stroke="var(--edge)" stroke-width="1"${major ? '' : ' opacity="0.45"'} />${
+        major ? `<text x="${padL - 8}" y="${(gy + 3.5).toFixed(1)}" text-anchor="end" class="tick">${money(max * f)}</text>` : ''
+      }`;
     })
     .join('');
 
-  // Rounded top corners only — square at the baseline.
-  const bars = curVals
-    .map((v, i) => {
-      const h = Math.max(v > 0 ? 3 : 0, plotH * (v / max));
-      if (h === 0) return `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(padT + plotH - 1.5).toFixed(1)}" width="${bw.toFixed(1)}" height="1.5" fill="var(--edge)" data-i="${i}" class="bar" />`;
-      const r = Math.min(4, bw / 2, h);
-      const x0 = x(i) - bw / 2, y0 = padT + plotH - h;
-      return `<path class="bar" data-i="${i}" fill="var(--accent)" opacity="0.92"
-        d="M${x0.toFixed(1)} ${(padT + plotH).toFixed(1)} v${(-(h - r)).toFixed(1)} q0 ${-r} ${r} ${-r} h${(bw - 2 * r).toFixed(1)} q${r} 0 ${r} ${r} v${(h - r).toFixed(1)} z" />`;
-    })
-    .join('');
+  const curPts = curVals.map((v, i) => [x(i), y(v)]);
+  const curLine = linePath(curPts);
+  const area =
+    n > 1
+      ? `<path class="area-fill" d="${curLine} L${x(n - 1).toFixed(1)} ${base.toFixed(1)} L${x(0).toFixed(1)} ${base.toFixed(1)} Z" fill="url(#rev-fade)" />`
+      : '';
+  const line =
+    n > 1
+      ? `<path class="cur-line" d="${curLine}" fill="none" stroke="var(--accent)" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" />`
+      : `<circle cx="${x(0).toFixed(1)}" cy="${y(curVals[0] ?? 0).toFixed(1)}" r="3.5" fill="var(--accent)" />`;
 
-  const prevLine = prevVals
-    ? `<polyline fill="none" stroke="var(--dim)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"
-        points="${prevVals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}" />`
-    : '';
-
-  // Selective direct label: the peak bucket only — and only when it fits
-  // above the bar without clipping the frame (the tooltip still carries it).
-  const peak = curVals.indexOf(Math.max(...curVals));
-  const peakY = y(curVals[peak]) - 6;
-  const peakLabel =
-    curVals[peak] > 0 && peakY >= padT + 9
-      ? `<text x="${x(peak).toFixed(1)}" y="${peakY.toFixed(1)}" text-anchor="middle" class="peak">${usd(curVals[peak])}</text>`
+  const prevLine =
+    prevVals && n > 1
+      ? `<path class="prev-line" d="${linePath(prevVals.map((v, i) => [x(i), y(v)]))}" fill="none" stroke="var(--dim)" stroke-width="1.5" stroke-dasharray="5 5" stroke-linejoin="round" stroke-linecap="round" opacity="0.8" />`
       : '';
 
-  const xt = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i);
+  // Selective direct label: the peak bucket only — and only when it fits
+  // inside the frame (the tooltip still carries every bucket).
+  const peak = curVals.indexOf(Math.max(...curVals));
+  const peakY = y(curVals[peak]) - 8;
+  const peakLabel =
+    curVals[peak] > 0 && peakY >= padT + 9
+      ? `<circle cx="${x(peak).toFixed(1)}" cy="${y(curVals[peak]).toFixed(1)}" r="3" fill="var(--accent)" />
+         <text x="${x(peak).toFixed(1)}" y="${peakY.toFixed(1)}" text-anchor="middle" class="peak">${usd(curVals[peak])}</text>`
+      : '';
+
+  const xt = [0, Math.floor((n - 1) / 4), Math.floor((n - 1) / 2), Math.floor((3 * (n - 1)) / 4), n - 1].filter(
+    (v, i, a) => a.indexOf(v) === i,
+  );
   const xLabels = xt
     .map((i) => `<text x="${x(i).toFixed(1)}" y="${H - 5}" text-anchor="middle" class="tick">${esc(labels[i] ?? '')}</text>`)
     .join('');
 
-  return `<svg class="rev-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Revenue over time with previous-period comparison">
-    ${grid}${prevLine}${bars}${peakLabel}${xLabels}
-    <line class="xhairline" x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="var(--ink)" stroke-width="1" opacity="0" />
+  return `<svg class="rev-chart" viewBox="0 0 ${W} ${H}" data-max="${max}" role="img" aria-label="Revenue over time with previous-period comparison">
+    <defs><linearGradient id="rev-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--accent);stop-opacity:0.16" />
+      <stop offset="1" style="stop-color:var(--accent);stop-opacity:0.01" />
+    </linearGradient></defs>
+    ${grid}${area}${prevLine}${line}${peakLabel}${xLabels}
+    <line class="xhairline" x1="0" y1="${padT}" x2="0" y2="${base}" stroke="var(--ink)" stroke-width="1" opacity="0" />
+    <circle class="dot-prev" r="3" fill="var(--dim)" opacity="0" />
+    <circle class="dot-cur" r="4" fill="var(--accent)" stroke="var(--panel)" stroke-width="1.5" opacity="0" />
   </svg>`;
 }
 
-// Crosshair + one tooltip reading BOTH series at the hovered X.
+// Crosshair, a dot riding each line, and one tooltip reading BOTH series at
+// the hovered X — including the change between the two periods.
 function wireChartHover(card, series) {
   const svg = card.querySelector('.rev-chart');
   if (!svg) return;
@@ -625,9 +673,14 @@ function wireChartHover(card, series) {
   tip.hidden = true;
   card.append(tip);
   const hair = svg.querySelector('.xhairline');
+  const dotCur = svg.querySelector('.dot-cur');
+  const dotPrev = svg.querySelector('.dot-prev');
   const { curVals, prevVals, labels } = series;
   const n = curVals.length;
-  const padL = 44, W = 920;
+  const padL = 44, W = 920, H = 190, padT = 8, padB = 20;
+  const plotH = H - padB - padT;
+  const max = Number(svg.dataset.max) || 1;
+  const yFor = (v) => padT + plotH - (v / max) * plotH;
   const band = (W - padL - 6) / n;
   let last = -1;
   const show = (i, clientX, clientY) => {
@@ -653,12 +706,28 @@ function wireChartHover(card, series) {
         tip.append(r);
       };
       row('cur', 'this period', curVals[i]);
-      if (prevVals) row('prev', 'previous', prevVals[i]);
-      svg.querySelectorAll('.bar').forEach((b) => b.setAttribute('opacity', b.dataset.i == i ? '1' : '0.55'));
+      if (prevVals) {
+        row('prev', 'previous', prevVals[i]);
+        if (prevVals[i] > 0) {
+          const d = ((curVals[i] - prevVals[i]) / prevVals[i]) * 100;
+          const dr = document.createElement('div');
+          dr.className = `tip-delta ${d >= 0 ? 'up' : 'down'}`;
+          dr.textContent = `${d >= 0 ? '▲' : '▼'} ${Math.abs(d) >= 100 ? Math.round(Math.abs(d)) : Math.abs(d).toFixed(0)}% vs previous`;
+          tip.append(dr);
+        }
+      }
       const xPos = padL + i * band + band / 2;
       hair.setAttribute('x1', xPos);
       hair.setAttribute('x2', xPos);
-      hair.setAttribute('opacity', '0.25');
+      hair.setAttribute('opacity', '0.22');
+      dotCur.setAttribute('cx', xPos);
+      dotCur.setAttribute('cy', yFor(curVals[i]));
+      dotCur.setAttribute('opacity', '1');
+      if (dotPrev && prevVals) {
+        dotPrev.setAttribute('cx', xPos);
+        dotPrev.setAttribute('cy', yFor(prevVals[i]));
+        dotPrev.setAttribute('opacity', '0.9');
+      }
     }
     tip.hidden = false;
     const box = card.getBoundingClientRect();
@@ -675,7 +744,8 @@ function wireChartHover(card, series) {
     tip.hidden = true;
     last = -1;
     hair.setAttribute('opacity', '0');
-    svg.querySelectorAll('.bar').forEach((b) => b.setAttribute('opacity', '0.92'));
+    dotCur.setAttribute('opacity', '0');
+    if (dotPrev) dotPrev.setAttribute('opacity', '0');
   });
 }
 
@@ -745,6 +815,16 @@ function sectionOverview(data, store, slug) {
 
   const series = bucketSeries(data.payments, win);
 
+  // Card sparklines: each metric's trajectory across the current window,
+  // bucketed exactly like the big chart.
+  const firstBuys = [...firstBuy.values()].map((t) => ({ createdAt: t }));
+  const sparks = {
+    rev: sparkSvg(series.curVals),
+    sales: sparkSvg(bucketSeries(data.payments, win, () => 1).curVals),
+    members: sparkSvg(bucketSeries(firstBuys, win, () => 1).curVals),
+    mrr: sparkSvg(bucketSeries(data.payments.filter((p) => !p.lifetime), win).curVals),
+  };
+
   // Top products with per-product change vs the previous window.
   const byPlan = new Map();
   for (const p of inRange) byPlan.set(p.planName, (byPlan.get(p.planName) ?? 0) + p.amountUsd);
@@ -770,15 +850,15 @@ function sectionOverview(data, store, slug) {
     </div>
     <div id="checklist-slot"></div>
     <div class="stat-grid five">
-      ${statCard('Revenue', usd(rev), I.dollar, pct(rev, revPrev), prevSub(revPrev))}
-      ${statCard('Sales', sales, I.cart, pct(sales, salesPrev), prevSub(salesPrev, (v) => v))}
-      ${statCard('New members', newMembers, I.users, pct(newMembers, newMembersPrev), prevSub(newMembersPrev, (v) => v))}
-      ${statCard('MRR', usd(mrr), I.infinity, null, mrrNew > 0 ? `+${usd(mrrNew)} added this period` : 'recurring, right now')}
+      ${statCard('Revenue', usd(rev), I.dollar, pct(rev, revPrev), prevSub(revPrev), sparks.rev)}
+      ${statCard('Sales', sales, I.cart, pct(sales, salesPrev), prevSub(salesPrev, (v) => v), sparks.sales)}
+      ${statCard('New members', newMembers, I.users, pct(newMembers, newMembersPrev), prevSub(newMembersPrev, (v) => v), sparks.members)}
+      ${statCard('MRR', usd(mrr), I.infinity, null, mrrNew > 0 ? `+${usd(mrrNew)} added this period` : 'recurring, right now', sparks.mrr)}
     </div>
     <div class="chart-grid">
       <section class="panel chart-card" id="rev-card">
         <div class="card-head"><div><h3>Revenue</h3><p class="card-sub">${win.cmp ? `This period against ${win.cmp}` : 'Monthly, all time'}</p></div>
-          <div class="chart-side"><span class="chart-total">${usd(rev)}</span>
+          <div class="chart-side"><span class="chart-total">${usd(rev)}${deltaChip(pct(rev, revPrev))}</span>
             <span class="chart-legend"><span class="lg-key cur"></span>This period${series.prevVals ? '<span class="lg-key prev"></span>Previous' : ''}</span></div></div>
         ${revenueChart(series)}
       </section>
