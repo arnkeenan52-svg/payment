@@ -91,6 +91,18 @@ const server = http.createServer(async (req, res) => {
       serveStatic(res, 'diagnostics.html');
       return;
     }
+    if (req.method === 'GET' && url.pathname === '/store') {
+      serveStatic(res, 'store.html');
+      return;
+    }
+    if (req.method === 'GET' && url.pathname === '/terms') {
+      serveStatic(res, 'terms.html');
+      return;
+    }
+    if (req.method === 'GET' && url.pathname === '/privacy') {
+      serveStatic(res, 'privacy.html');
+      return;
+    }
     if (req.method === 'GET' && url.pathname === '/account') {
       serveStatic(res, 'account.html');
       return;

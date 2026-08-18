@@ -3,18 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Premium — Tradeleaks</title>
-  <meta name="description" content="All courses lifetime — one payment, instant Discord access." />
-  <!-- Link previews (Discord/Twitter/iMessage). og:image must be an absolute
-       URL — update the domain here if the deployment moves. -->
+  <title>Ripley — Sell Discord access</title>
+  <meta name="description" content="Ripley powers paid Discord communities: secure Stripe checkout, instant role delivery, self-healing access." />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Premium — Tradeleaks" />
-  <meta property="og:description" content="All courses lifetime — one payment, instant Discord access." />
+  <meta property="og:title" content="Ripley — Sell Discord access" />
+  <meta property="og:description" content="Secure Stripe checkout, instant Discord role delivery, self-healing access." />
   <meta property="og:image" content="https://ripleybot.com/product.jpg" />
   <meta property="og:url" content="https://ripleybot.com/" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Premium — Tradeleaks" />
-  <meta name="twitter:description" content="All courses lifetime — one payment, instant Discord access." />
+  <meta name="twitter:title" content="Ripley — Sell Discord access" />
+  <meta name="twitter:description" content="Secure Stripe checkout, instant Discord role delivery, self-healing access." />
   <meta name="twitter:image" content="https://ripleybot.com/product.jpg" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
@@ -23,67 +21,79 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body>
+<body class="home">
   <header class="top">
     <div class="top-left">
-      <img class="platform-mark" src="/ripley.png" alt="Ripley" height="18" />
+      <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="18" /></a>
     </div>
-    <div id="account" class="account"></div>
+    <div id="account" class="account"><a class="nav-link" href="/store">Store</a></div>
   </header>
 
-  <main class="checkout">
-    <div class="brand">
-      <img class="logo" src="/logo.png" alt="Tradeleaks" width="72" height="72" />
-      <h1 id="plan-name">&nbsp;</h1>
-      <p class="brand-name" id="server-name" hidden></p>
-      <p class="tagline" id="plan-desc"></p>
-    </div>
-
-    <div id="notice"></div>
-
-    <img class="product-shot" id="product-shot" src="/product.gif" alt="All courses lifetime"
-         onerror="this.remove()" />
-
-    <section class="panel row-panel">
-      <span class="row-label">Price</span>
-      <span class="row-value" id="price">&nbsp;</span>
-    </section>
-
-    <section class="panel note-panel">
-      <p class="note-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        Add a note (optional)
-      </p>
-      <textarea id="buyer-note" maxlength="500" rows="2" placeholder="e.g., purchases by @TomTq233 on discord"></textarea>
-      <p class="note-help">Add any additional information about your purchase. This will be visible to the server owner.</p>
-    </section>
-
-    <section class="panel" id="options-panel" hidden>
-      <p class="label">Select option</p>
-      <div id="options"></div>
-    </section>
-
-    <div class="methods" id="methods"></div>
-
-    <section class="panel pay-panel" id="pay-panel">
-      <div class="pay-head">
-        <h2 id="pay-title">Pay with Card</h2>
-        <span class="pill" id="pay-pill">0% Fee</span>
+  <main class="landing">
+    <section class="hero">
+      <video class="hero-video" autoplay muted loop playsinline preload="auto"
+             onerror="this.remove()" src="/hero.mp4"></video>
+      <div class="hero-shade"></div>
+      <div class="hero-inner">
+        <img class="hero-mark" src="/ripley.png" alt="Ripley" height="30" />
+        <h1>Sell Discord access.<br />Get paid instantly.</h1>
+        <p class="hero-sub" id="hero-sub">Secure card checkout, instant role delivery, and access that heals itself — powered by Ripley.</p>
+        <div class="hero-ctas">
+          <a class="btn-pill hero-cta" id="hero-buy" href="/store">Open the store →</a>
+          <a class="btn-secondary hero-alt" href="/account">Manage subscription</a>
+        </div>
       </div>
-      <p class="pay-sub" id="pay-sub">Pay with card or debit. Payment goes directly to the server owner via Stripe.</p>
-      <div class="trust-row" id="trust-row"></div>
-      <div id="cta-area"></div>
-      <p class="redirect-note" id="redirect-note"></p>
     </section>
 
-    <div id="error-slot"></div>
+    <section class="store-card panel" id="store-card" hidden>
+      <img id="store-icon" class="store-icon" src="/logo.png" alt="" width="56" height="56" />
+      <div class="store-meta">
+        <h2 id="store-name">&nbsp;</h2>
+        <p class="note-help" id="store-desc"></p>
+      </div>
+      <a class="btn-pill store-cta" id="store-cta" href="/store">Get&nbsp;Premium</a>
+    </section>
+
+    <section class="features">
+      <div class="panel feature">
+        <h3>⚡ Instant delivery</h3>
+        <p>The moment payment clears, the buyer's Discord role lands — usually within seconds. Not in the server yet? They're pulled in automatically with the role already attached.</p>
+      </div>
+      <div class="panel feature">
+        <h3>🔒 Secure checkout</h3>
+        <p>Payments run on Stripe's hosted checkout. Card details never touch this site, and every webhook is signature-verified before anything is granted.</p>
+      </div>
+      <div class="panel feature">
+        <h3>♾️ Lifetime access</h3>
+        <p>One payment, no renewals, no billing surprises. A lifetime purchase can never expire — it's structural, not a promise.</p>
+      </div>
+      <div class="panel feature">
+        <h3>🩹 Self-healing access</h3>
+        <p>Role removed by accident? Buyers fix it themselves with one click on their account page, and an hourly sweep keeps every membership in sync.</p>
+      </div>
+    </section>
+
+    <section class="steps">
+      <h2 class="steps-title">How it works</h2>
+      <div class="steps-grid">
+        <div class="panel step"><span class="step-n">1</span><p><strong>Sign in with Discord</strong><br />so we know where to deliver.</p></div>
+        <div class="panel step"><span class="step-n">2</span><p><strong>Pay with card</strong><br />on Stripe's secure checkout.</p></div>
+        <div class="panel step"><span class="step-n">3</span><p><strong>Role lands in seconds</strong><br />and it's yours for life.</p></div>
+      </div>
+    </section>
   </main>
 
-  <footer>
-    <span class="powered-label">Checkout powered by:</span>
-    <img class="powered-mark" src="/ripley.png" alt="Ripley" height="18" />
+  <footer class="site-footer">
+    <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
+    <nav class="footer-nav">
+      <a href="/store">Store</a>
+      <a href="/account">Account</a>
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+    </nav>
+    <span class="footer-copy">© Ripley</span>
   </footer>
 
-  <script src="/app.js"></script>
+  <script src="/home.js"></script>
 </body>
 </html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Premium — Tradeleaks</title>
+  <meta name="description" content="All courses lifetime — one payment, instant Discord access." />
+  <!-- Link previews (Discord/Twitter/iMessage). og:image must be an absolute
+       URL — update the domain here if the deployment moves. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Premium — Tradeleaks" />
+  <meta property="og:description" content="All courses lifetime — one payment, instant Discord access." />
+  <meta property="og:image" content="https://ripleybot.com/product.jpg" />
+  <meta property="og:url" content="https://ripleybot.com/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Premium — Tradeleaks" />
+  <meta name="twitter:description" content="All courses lifetime — one payment, instant Discord access." />
+  <meta name="twitter:image" content="https://ripleybot.com/product.jpg" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="18" /></a>
+    </div>
+    <div id="account" class="account"></div>
+  </header>
+
+  <main class="checkout">
+    <div class="brand">
+      <img class="logo" src="/logo.png" alt="Tradeleaks" width="72" height="72" />
+      <h1 id="plan-name">&nbsp;</h1>
+      <p class="brand-name" id="server-name" hidden></p>
+      <p class="tagline" id="plan-desc"></p>
+    </div>
+
+    <div id="notice"></div>
+
+    <img class="product-shot" id="product-shot" src="/product.gif" alt="All courses lifetime"
+         onerror="this.remove()" />
+
+    <section class="panel row-panel">
+      <span class="row-label">Price</span>
+      <span class="row-value" id="price">&nbsp;</span>
+    </section>
+
+    <section class="panel note-panel">
+      <p class="note-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Add a note (optional)
+      </p>
+      <textarea id="buyer-note" maxlength="500" rows="2" placeholder="e.g., purchases by @TomTq233 on discord"></textarea>
+      <p class="note-help">Add any additional information about your purchase. This will be visible to the server owner.</p>
+    </section>
+
+    <section class="panel" id="options-panel" hidden>
+      <p class="label">Select option</p>
+      <div id="options"></div>
+    </section>
+
+    <div class="methods" id="methods"></div>
+
+    <section class="panel pay-panel" id="pay-panel">
+      <div class="pay-head">
+        <h2 id="pay-title">Pay with Card</h2>
+        <span class="pill" id="pay-pill">0% Fee</span>
+      </div>
+      <p class="pay-sub" id="pay-sub">Pay with card or debit. Payment goes directly to the server owner via Stripe.</p>
+      <div class="trust-row" id="trust-row"></div>
+      <div id="cta-area"></div>
+      <p class="redirect-note" id="redirect-note"></p>
+    </section>
+
+    <div id="error-slot"></div>
+  </main>
+
+  <footer>
+    <span class="powered-label">Checkout powered by:</span>
+    <img class="powered-mark" src="/ripley.png" alt="Ripley" height="18" />
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

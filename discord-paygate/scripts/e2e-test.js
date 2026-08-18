@@ -504,7 +504,15 @@ test('npm start entry prints the config banner (storage + cron lines)', async ()
 });
 
 test('storefront serves the Tradeleaks page, plans API exposes capabilities', async () => {
-  const page = await (await fetch(`${appUrl}/`)).text();
+  // "/" is the Ripley platform landing; the checkout lives at /store.
+  const home = await (await fetch(`${appUrl}/`)).text();
+  assert.match(home, /Sell Discord access/);
+  assert.match(home, /href="\/store"/);
+  for (const p of ['/terms', '/privacy']) {
+    const res = await fetch(`${appUrl}${p}`);
+    assert.equal(res.status, 200, `${p} must serve`);
+  }
+  const page = await (await fetch(`${appUrl}/store`)).text();
   assert.match(page, /Tradeleaks/i);
   const { plans, capabilities, server } = await (await fetch(`${appUrl}/api/plans`)).json();
   assert.equal(plans.length, PLANS.length);
@@ -560,7 +568,7 @@ test('OAuth login requests guilds.join, stores the token, and carries the plan b
     headers: { cookie: cookies.join('; ') },
   });
   assert.equal(cb.status, 302);
-  assert.equal(cb.headers.get('location'), '/?plan=insider', 'buyer must land back on the plan, ready to pay');
+  assert.equal(cb.headers.get('location'), '/store?plan=insider', 'buyer must land back on the plan, ready to pay');
   u1Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
 
   assert.equal((await userRow(U1)).access_token, 'tok_code_u1');

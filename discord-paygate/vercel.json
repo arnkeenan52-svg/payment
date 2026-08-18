@@ -3,6 +3,9 @@
     { "path": "/api/cron/reconcile", "schedule": "0 * * * *" }
   ],
   "rewrites": [
+    { "source": "/store", "destination": "/store.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/receipt", "destination": "/receipt.html" },
     { "source": "/diagnostics", "destination": "/diagnostics.html" },
     { "source": "/account", "destination": "/account.html" },

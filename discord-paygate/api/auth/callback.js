@@ -47,7 +47,7 @@ export default guard(async function handler(req, res) {
   }
 
   const plan = /^[a-z0-9_-]{1,64}$/i.test(cookies[PLAN_COOKIE] ?? '') ? cookies[PLAN_COOKIE] : '';
-  redirect(res, plan ? `/?plan=${encodeURIComponent(plan)}` : '/', {
+  redirect(res, plan ? `/store?plan=${encodeURIComponent(plan)}` : '/store', {
     'set-cookie': [
       createSessionCookie(me.id),
       cookieHeader(STATE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
