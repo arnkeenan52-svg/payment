@@ -229,7 +229,8 @@ export async function createCheckoutSession({ plan, discordId, note = '', store 
     );
   }
   const storeQ = store && !store.isDefault ? `&store=${encodeURIComponent(store.slug)}` : '';
-  const backTo = store && !store.isDefault ? `/${encodeURIComponent(store.slug)}` : '/store';
+  // Every store — the built-in one included — returns buyers to its own slug.
+  const backTo = store?.slug ? `/${encodeURIComponent(store.slug)}` : '/store';
   const successUrl = /^https:\/\/\S+$/.test(plan.successUrl ?? '')
     ? plan.successUrl
     : `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}${storeQ}`;

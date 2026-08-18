@@ -10,13 +10,21 @@ import { config } from '../config.js';
 import * as db from '../db.js';
 import { openSecret } from '../lib/secretbox.js';
 
-const DEFAULT_SLUG = 'store';
+// The built-in store is NOT special to buyers: it lives at its own slug
+// derived from its brand name (e.g. /tradeleaks), exactly like every other
+// store. 'store' survives only as a legacy alias for old links.
+const LEGACY_DEFAULT_SLUG = 'store';
+
+export function defaultSlug() {
+  const s = slugify(config.brand);
+  return s === 'server' ? LEGACY_DEFAULT_SLUG : s;
+}
 
 export function defaultStore() {
   if (!config.discord.guildId) return null;
   return {
     id: null,
-    slug: DEFAULT_SLUG,
+    slug: defaultSlug(),
     name: config.brand,
     ownerDiscordId: config.ownerDiscordId || null,
     guildId: config.discord.guildId,
@@ -45,8 +53,13 @@ function hydrate(row) {
 }
 
 export async function storeBySlug(slug) {
-  if (!slug || slug === DEFAULT_SLUG) return defaultStore();
-  return hydrate(await db.getStoreBySlug(slug));
+  if (!slug || slug === LEGACY_DEFAULT_SLUG) return defaultStore();
+  // Managed store first — if the owner onboards the built-in server under
+  // the same name, the managed store takes the slug over (same precedence
+  // rule as storeByGuild).
+  const managed = hydrate(await db.getStoreBySlug(slug));
+  if (managed) return managed;
+  return slug === defaultSlug() ? defaultStore() : null;
 }
 
 export async function storeById(id) {

@@ -30,6 +30,7 @@ import resync from '../api/resync.js';
 import myGuilds from '../api/my/guilds.js';
 import onboard from '../api/onboard.js';
 import billing from '../api/billing.js';
+import storeRedirect from '../api/store-redirect.js';
 import adminDiscounts from '../api/admin/discounts.js';
 import adminStore from '../api/admin/store.js';
 
@@ -117,7 +118,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === 'GET' && url.pathname === '/store') {
-      serveStatic(res, 'store.html');
+      await storeRedirect(req, res);
       return;
     }
     if (req.method === 'GET' && url.pathname === '/terms') {

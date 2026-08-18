@@ -39,6 +39,11 @@ function showStillPending(server) {
 async function main() {
   const STORE_SLUG = new URLSearchParams(location.search).get('store') ?? '';
   const storeQS = /^[a-z0-9-]{1,40}$/.test(STORE_SLUG) ? `?store=${encodeURIComponent(STORE_SLUG)}` : '';
+  // Back to THIS buyer's store; /store stays as the legacy-redirect fallback.
+  if (storeQS) {
+    const back = document.getElementById('back-store');
+    if (back) back.href = `/${encodeURIComponent(STORE_SLUG)}`;
+  }
   const [plansRes, meRes] = await Promise.all([fetch(`/api/plans${storeQS}`), fetch('/api/me')]);
   const { plans, server } = await plansRes.json();
   let me = await meRes.json();

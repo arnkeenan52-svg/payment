@@ -3,7 +3,7 @@
     { "path": "/api/cron/reconcile", "schedule": "0 * * * *" }
   ],
   "rewrites": [
-    { "source": "/store", "destination": "/store.html" },
+    { "source": "/store", "destination": "/api/store-redirect" },
     { "source": "/s/:slug", "destination": "/store.html" },
     { "source": "/webhooks/stripe/:storeid", "destination": "/api/webhooks/stripe?store=:storeid" },
     { "source": "/terms", "destination": "/terms.html" },

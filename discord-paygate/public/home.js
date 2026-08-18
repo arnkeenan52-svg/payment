@@ -8,20 +8,18 @@ async function load() {
   const menuAccount = $('#menu-account');
   if (me.loggedIn) {
     account.innerHTML =
-      `<a class="nav-link" href="/store">Store</a>` +
       `<a class="nav-link" href="/account">Account</a>` +
       `<a class="nav-link" href="/dashboard">Dashboard</a>` +
       `<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
     $('#logout').onclick = () => (window.location.href = '/auth/logout');
     if (menuAccount)
       menuAccount.innerHTML =
-        `<a href="/dashboard">Dashboard</a><a href="/store">Store</a><a href="/account">Account</a>` +
+        `<a href="/dashboard">Dashboard</a><a href="/account">Account</a>` +
         `<a href="/auth/logout">Sign out <span class="dim">@${esc(me.username ?? me.discordId)}</span></a>`;
   } else {
-    account.innerHTML =
-      '<a class="nav-link" href="/store">Store</a><button class="btn-pill" id="login">Sign in with Discord</button>';
+    account.innerHTML = '<button class="btn-pill" id="login">Sign in with Discord</button>';
     $('#login').onclick = () => (window.location.href = '/auth/login');
-    if (menuAccount) menuAccount.innerHTML = `<a href="/store">Store</a><a class="accent" href="/auth/login">Sign in with Discord</a>`;
+    if (menuAccount) menuAccount.innerHTML = `<a class="accent" href="/auth/login">Sign in with Discord</a>`;
   }
 }
 
@@ -50,7 +48,7 @@ if (menuBtn) {
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=21'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=22'; // hold a still frame instead
     return;
   }
 
@@ -67,8 +65,8 @@ if (menuBtn) {
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=21', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=21', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=22', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=22', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays

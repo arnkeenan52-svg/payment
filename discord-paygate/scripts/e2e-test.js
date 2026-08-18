@@ -625,19 +625,26 @@ test('npm start entry prints the config banner (storage + cron lines)', async ()
 });
 
 test('storefront serves the tenant-generic checkout, plans API exposes capabilities', async () => {
-  // "/" is the Ripley platform landing; the checkout lives at /store.
+  // "/" is the Ripley platform landing. The built-in store is NOT special:
+  // it lives at its brand slug like every other store, and the legacy /store
+  // path is only a permanent redirect there.
   const home = await (await fetch(`${appUrl}/`)).text();
   assert.match(home, /Sell Discord access/);
-  assert.match(home, /href="\/store"/);
+  assert.match(home, /href="\/store"/); // the "Visit a live store" showcase link
   for (const p of ['/terms', '/privacy']) {
     const res = await fetch(`${appUrl}${p}`);
     assert.equal(res.status, 200, `${p} must serve`);
   }
-  const page = await (await fetch(`${appUrl}/store`)).text();
+  const legacy = await fetch(`${appUrl}/store?plan=insider`, { redirect: 'manual' });
+  assert.equal(legacy.status, 308, 'legacy /store must permanently redirect');
+  assert.equal(legacy.headers.get('location'), '/tradeleaks?plan=insider', 'redirect lands on the brand slug, query intact');
+  const page = await (await fetch(`${appUrl}/tradeleaks`)).text();
   assert.match(page, /Confirm Order/);
   // The checkout shell is shared by every tenant store — no store's branding
   // may be baked into the static HTML. Store identity arrives via the API.
   assert.doesNotMatch(page, /Tradeleaks/i, 'checkout HTML must be tenant-generic');
+  const bySlug = await (await fetch(`${appUrl}/api/plans?store=tradeleaks`)).json();
+  assert.equal(bySlug.brand, 'Tradeleaks', 'the built-in store resolves at its brand slug');
   const { plans, capabilities, server } = await (await fetch(`${appUrl}/api/plans`)).json();
   assert.equal(plans.length, PLANS.length);
   assert.deepEqual(capabilities, { stripe: true, crypto: true }); // coinbase configured in this phase
@@ -1613,7 +1620,7 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   // The platform owner still sees everything, including the tenant sale.
   const pay1 = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u1Cookie } })).json();
   assert.ok(pay1.payments.some((p) => p.storeSlug === 'vip-signals'));
-  assert.ok(pay1.payments.some((p) => p.storeSlug === 'store'));
+  assert.ok(pay1.payments.some((p) => p.storeSlug === 'tradeleaks'), 'the built-in store reports its brand slug');
 
   // ── member management: revoke / manual grant / resync ─────────────────────
   const member = (cookie, payload) =>

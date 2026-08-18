@@ -94,11 +94,11 @@ function renderNav() {
   const el = $('#account');
   const me = state.me;
   if (!me?.loggedIn) {
-    el.innerHTML = '<a class="nav-link" href="/store">Store</a><button class="btn-pill" id="login">Sign in with Discord</button>';
+    el.innerHTML = '<button class="btn-pill" id="login">Sign in with Discord</button>';
     $('#login').onclick = () => (window.location.href = '/auth/login');
     return;
   }
-  el.innerHTML = `<a class="nav-link" href="/store">Store</a><a class="nav-link" href="/account">Account</a><span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
+  el.innerHTML = `<a class="nav-link" href="/account">Account</a><span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }
 
@@ -1188,7 +1188,7 @@ async function viewStore(slug) {
     return;
   }
   const store = data.stores.find((s) => s.slug === slug) ?? data.stores[0];
-  const link = store.isDefault ? `${location.origin}/store` : `${location.origin}/${store.slug}`;
+  const link = `${location.origin}/${store.slug}`;
   const section = location.hash.split('/')[3] ?? 'overview';
   const isPlatformOwner = Boolean(state.me?.isOwner);
 
@@ -1554,6 +1554,11 @@ function wireProducts(store, slug, products) {
           step: 'product-update', storeId: store.id, planKey: out.plan.planKey,
           purchaseLimit: fields.purchaseLimit, successUrl: fields.successUrl,
         }).catch(() => {});
+        // The product EXISTS now — drop the caches immediately, so even if
+        // the role picker fails to load or the owner clicks away, the next
+        // Products render shows the new product instead of a stale list.
+        state.products = null;
+        state.data = null;
         form.hidden = true;
         await pickRoleFor(store, slug, out.plan.planKey, fields.name);
       }
@@ -1609,7 +1614,7 @@ async function pickRoleFor(store, slug, planKey, productName) {
   try {
     data = await api('/api/onboard', { step: 'roles', storeId: store.id });
   } catch (err) {
-    $('#pr-hint').textContent = err.message;
+    $('#pr-hint').textContent = `${err.message} — your product is saved; you can attach its role any time from the product list.`;
     return;
   }
   $('#pr-hint').innerHTML = `Greyed roles sit at or above the bot’s top role <strong>${esc(data.botTop.name)}</strong>.`;

@@ -62,10 +62,10 @@ async function load() {
 
   const account = $('#account');
   if (me.loggedIn) {
-    account.innerHTML = `<a class="nav-link" href="/store">Store</a>${me.isOwner ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
+    account.innerHTML = `${me.isOwner ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
     $('#logout').onclick = () => (window.location.href = '/auth/logout');
   } else {
-    account.innerHTML = '<a class="nav-link" href="/store">Store</a>';
+    account.innerHTML = '';
   }
 
   if (!me.loggedIn) {
@@ -82,8 +82,7 @@ async function load() {
   if (!subs.length) {
     el.innerHTML = `
       <section class="panel sub-card">
-        <p class="note-help">No membership on this account yet.</p>
-        <a class="btn-pill" style="display:inline-block;text-decoration:none" href="/store">Get Premium →</a>
+        <p class="note-help">No membership on this account yet. Buy through a server's store link and it will appear here.</p>
       </section>`;
     return;
   }
