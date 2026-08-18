@@ -51,9 +51,10 @@ export default guard(async function handler(req, res) {
       sendJson(res, 400, { error: 'You run the platform — no plan needed.' });
       return;
     }
+    const interval = body.interval === 'year' ? 'year' : 'month';
     let session;
     try {
-      session = await createBillingCheckout(uid, tier);
+      session = await createBillingCheckout(uid, tier, interval);
     } catch (err) {
       console.error(`[billing] checkout for ${uid}/${tier.id} failed: ${err.message}`);
       sendJson(res, 502, { error: 'Could not start the upgrade — please try again shortly.' });

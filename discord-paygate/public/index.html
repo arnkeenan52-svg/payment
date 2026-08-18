@@ -47,8 +47,8 @@
         <h1>The Discord Payment Platform with <span class="hl-grad">0% Platform Fees</span></h1>
         <p class="hero-sub">Monetize your server and receive payments straight to your own Stripe account — Ripley never holds your funds. Sell subscriptions or one-time products with roles delivered in seconds.</p>
         <div class="hero-ctas">
-          <a class="btn-fill" href="/dashboard">Start free <span aria-hidden="true">→</span></a>
-          <a class="btn-secondary hero-alt" href="#pricing">See pricing</a>
+          <a class="btn-fill btn-hero" href="/dashboard">Start free <span aria-hidden="true">→</span></a>
+          <a class="link-quiet" href="#pricing">See pricing <span aria-hidden="true">→</span></a>
         </div>
         <p class="hero-trust">Free for your first 10 paying members — no card required.</p>
         <div class="metric-strip" aria-label="Platform highlights">
@@ -207,6 +207,43 @@
       </div>
     </section>
 
+    <section class="xsection" id="payments-methods">
+      <div class="wrap narrow center">
+        <h2 class="section-title">Accept Payments Your Way</h2>
+        <p class="section-sub">Buyers pay with the cards and wallets they already use — on Stripe Checkout, connected to your own account.</p>
+      </div>
+      <div class="wrap">
+        <div class="panel pm-card">
+          <div class="pm-chips" aria-label="Supported payment methods">
+            <span class="pm-chip pm-visa">VISA</span>
+            <span class="pm-chip"><span class="mc-dots" aria-hidden="true"><i></i><i></i></span>Mastercard</span>
+            <span class="pm-chip">AMEX</span>
+            <span class="pm-chip"> Pay</span>
+            <span class="pm-chip">G Pay</span>
+            <span class="pm-chip">Link</span>
+          </div>
+          <p class="pm-note">Supported via <strong>Stripe</strong> — availability follows the store owner’s Stripe settings, and money never touches Ripley.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="xinset" id="use-cases">
+      <div class="wrap narrow center">
+        <h2 class="section-title">Built for Every Kind of Server</h2>
+        <p class="section-sub">If your community has something worth paying for, Ripley sells it and delivers the role.</p>
+      </div>
+      <div class="wrap">
+        <div class="uc-grid">
+          <div class="panel uc"><strong>Trading &amp; signals</strong><p>Sell alpha channels and lifetime course bundles with instant access.</p></div>
+          <div class="panel uc"><strong>Courses &amp; coaching</strong><p>One-time lifetime products for content, monthly for ongoing coaching.</p></div>
+          <div class="panel uc"><strong>Gaming &amp; esports</strong><p>Clan memberships, coaching slots and supporter perks by role.</p></div>
+          <div class="panel uc"><strong>Creators &amp; fan clubs</strong><p>A private floor for superfans — payments land on your own Stripe.</p></div>
+          <div class="panel uc"><strong>Software &amp; tools</strong><p>License access gated by role, with purchase limits for scarce seats.</p></div>
+          <div class="panel uc"><strong>Clubs &amp; communities</strong><p>Dues collected automatically, expiring memberships that clean up after themselves.</p></div>
+        </div>
+      </div>
+    </section>
+
     <section class="xsection" id="how">
       <div class="wrap">
         <h2 class="section-title">Get set up in three steps</h2>
@@ -224,10 +261,15 @@
         <p class="section-sub">No sales fees on any plan — 100% of your revenue is yours. Pay a flat monthly rate sized by how many paying members you have.</p>
       </div>
       <div class="wrap">
+        <div class="bill-toggle" role="group" aria-label="Billing interval">
+          <button type="button" class="seg-btn bt-m active" aria-pressed="true">Monthly</button>
+          <button type="button" class="seg-btn bt-y" aria-pressed="false">Yearly</button>
+          <span class="bt-free">2 months free<br /><span>on yearly plans</span></span>
+        </div>
         <div class="price-grid">
           <div class="panel price-card">
             <span class="price-name">Free</span>
-            <span class="price-amt">$0<span class="price-per">/month</span></span>
+            <span class="price-amt" data-m="0" data-y="0"><span class="pa-num">$0</span><span class="price-per">/month</span></span>
             <ul class="price-list">
               <li>Up to 10 active members</li>
               <li>0% platform fees</li>
@@ -241,7 +283,7 @@
           </div>
           <div class="panel price-card">
             <span class="price-name">Starter</span>
-            <span class="price-amt">$5.99<span class="price-per">/month</span></span>
+            <span class="price-amt" data-m="5.99" data-y="59.90"><span class="pa-num">$5.99</span><span class="price-per">/month</span></span>
             <ul class="price-list">
               <li>Up to 50 active members</li>
               <li>0% platform fees</li>
@@ -256,7 +298,7 @@
           <div class="panel price-card popular">
             <span class="price-badge">Popular</span>
             <span class="price-name">Growth</span>
-            <span class="price-amt">$19.99<span class="price-per">/month</span></span>
+            <span class="price-amt" data-m="19.99" data-y="199.90"><span class="pa-num">$19.99</span><span class="price-per">/month</span></span>
             <ul class="price-list">
               <li>Up to 500 active members</li>
               <li>0% platform fees</li>
@@ -270,7 +312,7 @@
           </div>
           <div class="panel price-card">
             <span class="price-name">Scale</span>
-            <span class="price-amt">$49.99<span class="price-per">/month</span></span>
+            <span class="price-amt" data-m="49.99" data-y="499.90"><span class="pa-num">$49.99</span><span class="price-per">/month</span></span>
             <ul class="price-list">
               <li>Unlimited active members</li>
               <li>0% platform fees</li>
@@ -342,6 +384,7 @@
     <nav class="footer-col"><span class="footer-head">Navigation</span><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
     <nav class="footer-col"><span class="footer-head">Platform</span><a href="/store">Store</a><a href="/account">Account</a><a href="/dashboard">Dashboard</a></nav>
     <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
+    <p class="footer-disclaimer">Not affiliated with Discord Inc. Payments are processed by Stripe on each store owner’s own account.</p>
   </footer>
 
   <script src="/home.js"></script>

@@ -58,6 +58,27 @@ if (menuBtn) {
   else v.addEventListener('canplay', play, { once: true });
 })();
 
+// ── pricing: monthly / yearly toggle (two months free on yearly) ─────────────
+(() => {
+  const bt = document.querySelector('.bill-toggle');
+  if (!bt) return;
+  const m = bt.querySelector('.bt-m');
+  const y = bt.querySelector('.bt-y');
+  const set = (yearly) => {
+    m.classList.toggle('active', !yearly);
+    y.classList.toggle('active', yearly);
+    m.setAttribute('aria-pressed', String(!yearly));
+    y.setAttribute('aria-pressed', String(yearly));
+    document.querySelectorAll('.price-amt').forEach((el) => {
+      const v = Number(yearly ? el.dataset.y : el.dataset.m);
+      el.querySelector('.pa-num').textContent = `$${v % 1 === 0 ? v : v.toFixed(2)}`;
+      el.querySelector('.price-per').textContent = yearly ? '/year' : '/month';
+    });
+  };
+  m.onclick = () => set(false);
+  y.onclick = () => set(true);
+})();
+
 // ── savings calculator ────────────────────────────────────────────────────────
 // Ripley's flat tiers vs. publicly listed competitor pricing. Percentages are
 // applied to gross monthly sales; the footnote on the page covers the caveats.

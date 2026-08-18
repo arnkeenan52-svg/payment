@@ -1461,3 +1461,42 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
   .hero-ctas { flex-direction: column; width: 100%; }
   .hero-ctas .btn-fill, .hero-ctas .btn-secondary { width: 100%; justify-content: center; text-align: center; }
 }
+
+/* ── Subscord-parity landing additions ──────────────────────────────────────── */
+.btn-hero { padding: 15px 30px; font-size: 16px; min-height: 52px; }
+.link-quiet { color: var(--dim); text-decoration: none; font-size: 14.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; padding: 12px 6px; }
+.link-quiet:hover { color: var(--ink); }
+
+/* payment methods band */
+.pm-card { margin-top: 34px; padding: 30px 26px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.pm-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.pm-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--edge); border-radius: 6px; padding: 10px 16px;
+  font-size: 14px; font-weight: 750; letter-spacing: 0.01em; color: rgba(255,255,255,0.88);
+  background: rgba(255,255,255,0.02);
+}
+.pm-visa { font-style: italic; letter-spacing: 0.06em; }
+.mc-dots { display: inline-flex; }
+.mc-dots i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+.mc-dots i:first-child { background: #eb001b; }
+.mc-dots i:last-child { background: #f79e1b; margin-left: -6px; mix-blend-mode: screen; }
+.pm-note { color: rgba(255,255,255,0.5); font-size: 13px; margin: 0; text-align: center; }
+
+/* use-case band */
+.uc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 34px; }
+@media (max-width: 900px) { .uc-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .uc-grid { grid-template-columns: 1fr; } }
+.uc { padding: 20px; display: flex; flex-direction: column; gap: 7px; }
+.uc strong { font-size: 15px; font-weight: 750; }
+.uc p { margin: 0; font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,0.55); }
+
+/* billing interval toggle (+ the "2 months free" tag) */
+.bill-toggle { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 30px 0 6px; }
+.bill-toggle .seg-btn { border: 1px solid var(--edge); border-radius: 6px; min-width: 84px; }
+.bill-toggle .seg-btn.active { background: rgba(255,255,255,0.08); color: var(--ink); }
+.bt-free { font-size: 12px; font-weight: 700; color: var(--accent); line-height: 1.25; }
+.bt-free span { color: var(--dim); font-weight: 500; }
+#billing-body .bill-toggle { justify-content: flex-start; margin: 4px 0 12px; }
+
+.footer-disclaimer { flex-basis: 100%; color: rgba(255,255,255,0.35); font-size: 12px; margin: 14px 0 0; }

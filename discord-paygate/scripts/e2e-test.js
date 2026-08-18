@@ -1753,6 +1753,17 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
   assert.ok(stripe.subDeletes.includes('sub_plat_2'), 'cancel ends the Stripe subscription');
   assert.equal((await billingState(u7Cookie)).current.tier, 'free');
   assert.equal((await tryCheckout('vip-signals')).status, 409, 'back on Free the full store is gated again');
+
+  // Yearly billing: two months free — the session carries a yearly price
+  // provisioned under its own lookup key. (No webhook: state stays Free.)
+  assert.equal((await billing(u7Cookie, { action: 'checkout', tier: 'starter', interval: 'year' })).status, 200);
+  const yearForm = stripe.checkoutSessions.at(-1);
+  const yearPrice = Object.values(MOCK_PRICES).find((p) => p.lookup_key === 'ripley_platform_starter_year');
+  assert.ok(yearPrice, 'yearly price created with its lookup key');
+  assert.deepEqual(
+    { price: yearForm['line_items[0][price]'], amount: yearPrice.unit_amount, interval: yearPrice.recurring.interval },
+    { price: yearPrice.id, amount: 5990, interval: 'year' },
+  );
 });
 
 test('onboarding: the Continue check uses only the bot token (never user-guild listing)', async () => {

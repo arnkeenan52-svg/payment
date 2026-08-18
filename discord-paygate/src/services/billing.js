@@ -12,11 +12,12 @@ import * as db from '../db.js';
 import { stripeFetch, subscriptionPeriodEnd, getSubscription } from '../lib/stripe.js';
 import { storesOwnedBy } from './stores.js';
 
+// yearlyUsd = 10 months — two months free on yearly, like the reference.
 export const TIERS = [
-  { id: 'free', name: 'Free', priceUsd: 0, maxMembers: 10 },
-  { id: 'starter', name: 'Starter', priceUsd: 5.99, maxMembers: 50 },
-  { id: 'growth', name: 'Growth', priceUsd: 19.99, maxMembers: 500 },
-  { id: 'scale', name: 'Scale', priceUsd: 49.99, maxMembers: null }, // unlimited
+  { id: 'free', name: 'Free', priceUsd: 0, yearlyUsd: 0, maxMembers: 10 },
+  { id: 'starter', name: 'Starter', priceUsd: 5.99, yearlyUsd: 59.9, maxMembers: 50 },
+  { id: 'growth', name: 'Growth', priceUsd: 19.99, yearlyUsd: 199.9, maxMembers: 500 },
+  { id: 'scale', name: 'Scale', priceUsd: 49.99, yearlyUsd: 499.9, maxMembers: null }, // unlimited
 ];
 
 export const tierById = (id) => TIERS.find((t) => t.id === id) ?? null;
@@ -76,21 +77,21 @@ export async function memberLimitBlocks(store, buyerDiscordId) {
 // gets a product + monthly price created once via lookup_key and reused
 // forever; the cached id is re-verified before use so a deleted price heals.
 
-const lookupKey = (tier) => `ripley_platform_${tier.id}`;
+const lookupKey = (tier, interval) => `ripley_platform_${tier.id}${interval === 'year' ? '_year' : ''}`;
 
-async function findPriceByLookup(tier) {
-  const list = await stripeFetch(`/v1/prices?active=true&limit=10&lookup_keys[0]=${encodeURIComponent(lookupKey(tier))}`);
+async function findPriceByLookup(tier, interval) {
+  const list = await stripeFetch(`/v1/prices?active=true&limit=10&lookup_keys[0]=${encodeURIComponent(lookupKey(tier, interval))}`);
   return (list.data ?? [])[0] ?? null;
 }
 
-export async function ensureTierPrice(tier) {
-  const cacheName = `platform_price_${tier.id}`;
+export async function ensureTierPrice(tier, interval = 'month') {
+  const cacheName = interval === 'year' ? `platform_price_${tier.id}_year` : `platform_price_${tier.id}`;
   const cached = await db.getAppSecret(cacheName);
   if (cached) {
     const price = await stripeFetch(`/v1/prices/${cached}`).catch(() => null);
     if (price && price.active) return price;
   }
-  let price = await findPriceByLookup(tier);
+  let price = await findPriceByLookup(tier, interval);
   if (!price) {
     const product = await stripeFetch('/v1/products', {
       method: 'POST',
@@ -105,9 +106,9 @@ export async function ensureTierPrice(tier) {
       form: {
         product: product.id,
         currency: 'usd',
-        unit_amount: Math.round(tier.priceUsd * 100),
-        recurring: { interval: 'month' },
-        lookup_key: lookupKey(tier),
+        unit_amount: Math.round((interval === 'year' ? tier.yearlyUsd : tier.priceUsd) * 100),
+        recurring: { interval },
+        lookup_key: lookupKey(tier, interval),
         transfer_lookup_key: 'true',
         metadata: { managed_by: 'ripley-paygate', tier: tier.id },
       },
@@ -119,8 +120,8 @@ export async function ensureTierPrice(tier) {
 
 // Stripe Checkout for a tier upgrade. metadata.kind routes the webhook away
 // from the buyer-grant path and into platform billing.
-export async function createBillingCheckout(ownerDiscordId, tier) {
-  const price = await ensureTierPrice(tier);
+export async function createBillingCheckout(ownerDiscordId, tier, interval = 'month') {
+  const price = await ensureTierPrice(tier, interval);
   return stripeFetch('/v1/checkout/sessions', {
     method: 'POST',
     form: {

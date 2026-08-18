@@ -33,6 +33,7 @@ const I = {
 const state = {
   me: null, guilds: null, botInvite: '', data: null, dataSlug: undefined,
   range: '30',
+  billInterval: 'month',
   products: null, productsSlug: undefined,
   discounts: null, discountsSlug: undefined,
 };
@@ -1700,6 +1701,7 @@ async function renderBillingPanel() {
   }
   const pct = b.usage.limit ? Math.min(100, Math.round((b.usage.members / b.usage.limit) * 100)) : 0;
   const over = b.usage.limit !== null && b.usage.members >= b.usage.limit;
+  const yearly = state.billInterval === 'year';
   el.innerHTML = `
     <p class="note-help">Free covers your first 10 paying members. One plan covers every store on your account.${
       over ? ' <strong>You are at your limit — new checkouts are paused until you upgrade.</strong>' : ''
@@ -1707,10 +1709,16 @@ async function renderBillingPanel() {
     <div class="usage-row"><span class="usage-nums">${b.usage.members} of ${b.usage.limit ?? 'unlimited'} members</span>
       ${b.usage.limit ? `<div class="usage-bar${over ? ' over' : ''}" role="img" aria-label="${pct}% of member limit used"><span style="width:${pct}%"></span></div>` : ''}
     </div>
+    <div class="bill-toggle" role="group" aria-label="Billing interval">
+      <button type="button" class="seg-btn bp-m${yearly ? '' : ' active'}">Monthly</button>
+      <button type="button" class="seg-btn bp-y${yearly ? ' active' : ''}">Yearly</button>
+      <span class="bt-free">2 months free<br /><span>on yearly plans</span></span>
+    </div>
     <div class="tier-grid">
       ${b.tiers
         .map((t) => {
           const current = t.id === b.current.tier;
+          const price = yearly ? (t.yearlyUsd ?? t.priceUsd * 10) : t.priceUsd;
           const btn = current
             ? '<button class="btn-secondary" disabled>Current plan</button>'
             : t.priceUsd > 0
@@ -1718,7 +1726,7 @@ async function renderBillingPanel() {
               : '<span class="tier-cap dim">Default</span>';
           return `<div class="tier-card${current ? ' current' : ''}">
             <span class="tier-name">${esc(t.name)}</span>
-            <span class="tier-price">$${t.priceUsd}<span class="tier-per">/mo</span></span>
+            <span class="tier-price">$${price % 1 === 0 ? price : price.toFixed(2)}<span class="tier-per">/${yearly ? 'yr' : 'mo'}</span></span>
             <span class="tier-cap">${t.maxMembers === null ? 'Unlimited members' : `Up to ${t.maxMembers} members`}</span>
             ${btn}
           </div>`;
@@ -1727,12 +1735,20 @@ async function renderBillingPanel() {
     </div>
     ${b.current.tier !== 'free' ? '<button class="btn-ghost" id="cancel-plan">Cancel plan — back to Free</button>' : ''}
     <p class="field-err" id="err-billing" role="alert"></p>`;
+  el.querySelector('.bp-m').onclick = () => {
+    state.billInterval = 'month';
+    renderBillingPanel();
+  };
+  el.querySelector('.bp-y').onclick = () => {
+    state.billInterval = 'year';
+    renderBillingPanel();
+  };
   document.querySelectorAll('.tier-buy').forEach((btn) => {
     btn.onclick = async () => {
       btn.disabled = true;
       btn.textContent = 'Opening Stripe…';
       try {
-        const out = await api('/api/billing', { action: 'checkout', tier: btn.dataset.tier });
+        const out = await api('/api/billing', { action: 'checkout', tier: btn.dataset.tier, interval: state.billInterval === 'year' ? 'year' : 'month' });
         window.location.href = out.url;
       } catch (err) {
         btn.disabled = false;
