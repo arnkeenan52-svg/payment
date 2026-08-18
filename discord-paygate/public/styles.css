@@ -1220,6 +1220,36 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
   .side-store-name { display: none; }
 }
 
+/* ── phone (≤640px): the dashboard as a one-hand tool ──────────────────────── */
+@media (max-width: 640px) {
+  .app-body { padding: 16px 12px 40px; }
+  /* toolbar stacks; the range picker scrolls sideways instead of clipping */
+  .ov-toolbar { flex-direction: column; align-items: stretch; }
+  .seg { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; max-width: 100%; }
+  .seg::-webkit-scrollbar { display: none; }
+  .seg-btn { flex: 1 0 auto; }
+  /* card headers stack so action buttons never wrap mid-word */
+  .card-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .card-head .btn-pill, .card-head .btn-secondary { white-space: nowrap; }
+  /* Column priority: keep what an owner acts on; the table still scrolls
+     sideways for the full record. Payments: drop Date + raw Discord id.
+     Products: drop Billing/Members/Revenue. Discounts: drop Scope/Expires.
+     Members: drop Products + raw id. */
+  .t-pay th:nth-child(5), .t-pay td:nth-child(5) { display: none; }
+  .t-pay td:first-child .dim { display: none; }
+  .t-products th:nth-child(3), .t-products td:nth-child(3),
+  .t-products th:nth-child(4), .t-products td:nth-child(4),
+  .t-products th:nth-child(5), .t-products td:nth-child(5) { display: none; }
+  .t-disc th:nth-child(3), .t-disc td:nth-child(3),
+  .t-disc th:nth-child(5), .t-disc td:nth-child(5) { display: none; }
+  .t-members th:nth-child(2), .t-members td:nth-child(2) { display: none; }
+  .t-members td:first-child .dim { display: none; }
+  .row-actions { white-space: nowrap; }
+  .data-table th, .data-table td { padding: 10px 8px; }
+  .data-table .btn-ghost { padding: 8px 10px; } /* real touch targets */
+  .stat-value { font-size: 22px; }
+}
+
 /* overview extras */
 .delta { font-size: 11px; font-weight: 700; margin-left: 8px; padding: 2px 6px; border-radius: 4px; vertical-align: 3px; }
 .delta.up { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }

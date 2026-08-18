@@ -883,7 +883,7 @@ function sectionOverview(data, store, slug) {
         <a class="btn-secondary" href="#/store/${esc(slug)}/payments">View all ${I.arrow}</a></div>
         ${
           data.payments.length
-            ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>${paymentsRows(data.payments.slice(0, 8))}</tbody></table></div>`
+            ? `<div class="table-scroll"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>${paymentsRows(data.payments.slice(0, 8))}</tbody></table></div>`
             : `<div class="empty-chart">No transactions yet — share your store link from the Store section.</div>`
         }
       </section>
@@ -1018,7 +1018,7 @@ function sectionProducts(products, data, slug) {
       <div id="prod-roles-slot"></div>
       ${
         products.length
-          ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>Product</th><th class="num">Price</th><th>Billing</th><th class="num">Members</th><th class="num">Revenue</th><th>Active</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+          ? `<div class="table-scroll"><table class="data-table t-products"><thead><tr><th>Product</th><th class="num">Price</th><th>Billing</th><th class="num">Members</th><th class="num">Revenue</th><th>Active</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
           : '<div class="empty-chart">No products yet. <button class="btn-pill" id="prod-new-2">Add your first product</button></div>'
       }
       <p class="field-err" id="err-products" role="alert"></p>
@@ -1065,7 +1065,7 @@ function sectionDiscounts(discounts, products, slug) {
       </form>
       ${
         discounts.length
-          ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>Code</th><th>Discount</th><th>Scope</th><th class="num">Uses</th><th>Expires</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+          ? `<div class="table-scroll"><table class="data-table t-disc"><thead><tr><th>Code</th><th>Discount</th><th>Scope</th><th class="num">Uses</th><th>Expires</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
           : '<div class="empty-chart">No discount codes yet.</div>'
       }
       <p class="field-err" id="err-discounts" role="alert"></p>
@@ -1233,7 +1233,7 @@ async function viewStore(slug) {
             <option value="">Status: all</option><option value="lifetime">Lifetime</option><option value="active">Active</option><option value="ended">Ended</option>
           </select>
         </div>
-        <div class="table-scroll"><table class="data-table"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="tx-body">${paymentsRows(data.payments)}</tbody></table></div>
+        <div class="table-scroll"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="tx-body">${paymentsRows(data.payments)}</tbody></table></div>
         <p class="rows-note" id="tx-count">${data.payments.length} row(s)</p>
       </section>`;
   } else if (section === 'members') {
@@ -1281,7 +1281,7 @@ async function viewStore(slug) {
         </form>
         ${
           members.length
-            ? `<div class="table-scroll"><table class="data-table"><thead><tr><th>Member</th><th>Products</th><th class="num">Total spent</th><th>Status</th><th></th></tr></thead><tbody>${memberRows}</tbody></table></div>
+            ? `<div class="table-scroll"><table class="data-table t-members"><thead><tr><th>Member</th><th>Products</th><th class="num">Total spent</th><th>Status</th><th></th></tr></thead><tbody>${memberRows}</tbody></table></div>
                <p class="rows-note">${members.length} member(s)</p>`
             : '<div class="empty-chart">No members yet.</div>'
         }
