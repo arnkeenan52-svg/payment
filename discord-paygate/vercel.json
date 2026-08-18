@@ -4,7 +4,7 @@
     { "path": "/api/cron/reconcile", "schedule": "0 * * * *" }
   ],
   "rewrites": [
-    { "source": "/s/:slug", "destination": "/store.html" },
+    { "source": "/s/:slug", "destination": "/store" },
     { "source": "/vs", "destination": "/vs/index.html" },
     { "source": "/tools", "destination": "/tools/index.html" },
     { "source": "/use-cases", "destination": "/use-cases/index.html" },
@@ -19,7 +19,7 @@
     { "source": "/auth/logout", "destination": "/api/auth/logout" },
     { "source": "/webhooks/stripe", "destination": "/api/webhooks/stripe" },
     { "source": "/webhooks/coinbase", "destination": "/api/webhooks/coinbase" },
-    { "source": "/:slug", "destination": "/store.html" }
+    { "source": "/:slug", "destination": "/store" }
   ],
   "functions": {
     "api/webhooks/stripe.js": { "maxDuration": 60 },
