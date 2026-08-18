@@ -89,12 +89,15 @@ function renderTagline(el, text, highlight) {
 function renderBrand() {
   const plan = selectedPlan();
   if (!plan) return;
-  // The server's own Discord icon (animated GIF when the guild has one);
-  // /logo.png stays as the fallback when Discord can't be reached.
+  // ONLY the server's own Discord icon (animated GIF when the guild has
+  // one) is ever shown — no stand-in logo. Hidden until Discord answers.
+  const logo = $('.logo');
   if (state.server?.iconUrl) {
-    const logo = $('.logo');
     logo.src = state.server.iconUrl;
-    logo.alt = state.server.name;
+    logo.alt = state.server.name ?? '';
+    logo.hidden = false;
+  } else {
+    logo.hidden = true;
   }
   // Never render filler as though it were real content: the line shows only
   // when Discord (or an explicit env override) gave us an actual name.

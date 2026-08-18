@@ -29,9 +29,12 @@ async function load() {
     $('#store-desc').textContent = `${plan.name} — ${plan.description}`;
     $('#store-cta').textContent = `Get ${plan.name} · $${plan.priceUsd}`;
     $('#hero-buy').textContent = `Get ${plan.name} · $${plan.priceUsd} →`;
+    // Only the server's real Discord icon is ever shown — no stand-in logo.
     if (data.server?.iconUrl) {
-      $('#store-icon').src = data.server.iconUrl;
-      $('#store-icon').alt = data.server?.name ?? '';
+      const icon = $('#store-icon');
+      icon.src = data.server.iconUrl;
+      icon.alt = data.server?.name ?? '';
+      icon.hidden = false;
     }
   }
 }
