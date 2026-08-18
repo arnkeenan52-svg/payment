@@ -782,85 +782,104 @@ function sectionDiscounts(discounts, products, slug) {
     </section>`;
 }
 
+// One consistent settings card: title + description on the left of the head
+// row, fields below, actions right-aligned in a hairline footer.
+function setCard({ id = '', title, sub = '', body = '', foot = '' }) {
+  return `<section class="panel set-card"${id ? ` id="${id}"` : ''}>
+    <div class="set-head"><h3>${title}</h3>${sub ? `<p class="card-sub">${sub}</p>` : ''}</div>
+    ${body}
+    ${foot ? `<div class="set-foot">${foot}</div>` : ''}
+  </section>`;
+}
+
 function sectionStore(store, link) {
+  const linkRow = `<div class="share-row"><code class="share-link">${esc(link)}</code><button class="btn-secondary" id="copy-link">${I.copy} Copy</button></div>`;
   if (store.isDefault) {
     return `
       <h2 class="sec-title">Store</h2>
-      <section class="panel wiz-panel">
-        <h3>Store link</h3>
-        <div class="share-row"><code class="share-link">${esc(link)}</code><button class="btn-secondary" id="copy-link">${I.copy} Copy</button></div>
-        <p class="note-help">This is the platform’s built-in store — its identity comes from the deployment configuration.</p>
-      </section>`;
+      <div class="settings-stack">
+      ${setCard({
+        title: 'Store link',
+        sub: 'This is the platform’s built-in store — its identity comes from the deployment configuration.',
+        body: linkRow,
+      })}
+      </div>`;
   }
   return `
     <h2 class="sec-title">Store</h2>
-    <div class="settings-grid">
-    <section class="panel wiz-panel">
-      <h3>Store page</h3>
-      <label class="field"><span class="field-label">Store name</span>
-        <input id="st-name" type="text" maxlength="60" value="${esc(store.name)}" /></label>
-      <label class="field"><span class="field-label">Description</span>
-        <input id="st-desc" type="text" maxlength="500" value="${esc(store.description ?? '')}" placeholder="One or two lines shown under your store name." /></label>
-      <label class="field"><span class="field-label">Banner URL</span>
-        <input id="st-banner" type="url" value="${esc(store.bannerUrl ?? '')}" placeholder="https://…  (1500×400 works best)" spellcheck="false" /></label>
-      <div class="wiz-actions"><button class="btn-pill" id="st-save">Save changes</button></div>
-      <p class="field-err" id="err-store" role="alert"></p>
-    </section>
-    <section class="panel wiz-panel">
-      <h3>Store link</h3>
-      <div class="share-row"><code class="share-link">${esc(link)}</code><button class="btn-secondary" id="copy-link">${I.copy} Copy</button></div>
-      <label class="field"><span class="field-label">Custom link</span>
-        <div class="slug-row"><span class="slug-prefix">${esc(location.origin)}/s/</span><input id="st-slug" type="text" maxlength="40" value="${esc(store.slug)}" spellcheck="false" /></div>
-        <span class="field-help">Changing the link breaks the old one immediately.</span></label>
-      <div class="wiz-actions"><button class="btn-secondary" id="st-slug-save">Update link</button></div>
-      <p class="field-err" id="err-slug" role="alert"></p>
-      <p class="note-help">Status: ${store.status === 'live' ? 'Live — taking payments.' : 'Draft — finish setup to go live.'}</p>
-    </section>
+    <div class="settings-stack">
+    ${setCard({
+      title: 'Store page',
+      sub: 'What buyers see at the top of your store.',
+      body: `
+        <label class="field"><span class="field-label">Store name</span>
+          <input id="st-name" type="text" maxlength="60" value="${esc(store.name)}" /></label>
+        <label class="field"><span class="field-label">Description</span>
+          <input id="st-desc" type="text" maxlength="500" value="${esc(store.description ?? '')}" placeholder="One or two lines shown under your store name." /></label>
+        <label class="field"><span class="field-label">Banner URL</span>
+          <input id="st-banner" type="url" value="${esc(store.bannerUrl ?? '')}" placeholder="https://…  (1500×400 works best)" spellcheck="false" /></label>
+        <p class="field-err" id="err-store" role="alert"></p>`,
+      foot: `<button class="btn-pill" id="st-save">Save changes</button>`,
+    })}
+    ${setCard({
+      title: 'Store link',
+      sub: `${store.status === 'live' ? 'Live — taking payments.' : 'Draft — finish setup to go live.'}`,
+      body: `
+        ${linkRow}
+        <label class="field"><span class="field-label">Custom link</span>
+          <div class="slug-row"><span class="slug-prefix">${esc(location.origin)}/s/</span><input id="st-slug" type="text" maxlength="40" value="${esc(store.slug)}" spellcheck="false" /></div>
+          <span class="field-help">Changing the link breaks the old one immediately.</span></label>
+        <p class="field-err" id="err-slug" role="alert"></p>`,
+      foot: `<button class="btn-secondary" id="st-slug-save">Update link</button>`,
+    })}
     </div>`;
 }
 
 function sectionSettings(store, isPlatformOwner) {
   return `
     <h2 class="sec-title">Settings</h2>
-    <div class="settings-grid">
+    <div class="settings-stack">
+    ${setCard({
+      id: 'billing-panel',
+      title: 'Ripley plan',
+      body: `<div id="billing-body"><p class="note-help">Loading your plan…</p></div>`,
+    })}
     ${
       !store.isDefault
-        ? `<section class="panel wiz-panel">
-            <h3>Payment method</h3>
-            <p class="note-help">Payments land in your own Stripe account. Paste a new secret key to rotate it — validated with Stripe before saving.</p>
-            <label class="field"><span class="field-label">Stripe secret key</span>
-              <input id="pm-key" type="password" placeholder="sk_live_…" autocomplete="off" spellcheck="false" /></label>
-            <div class="wiz-actions"><button class="btn-secondary" id="pm-save">Update key</button></div>
-            <p class="field-err" id="err-pm" role="alert"></p>
-          </section>`
+        ? setCard({
+            title: 'Payment method',
+            sub: 'Payments land in your own Stripe account. Paste a new secret key to rotate it — validated with Stripe before anything is saved.',
+            body: `
+              <label class="field"><span class="field-label">Stripe secret key</span>
+                <input id="pm-key" type="password" placeholder="sk_live_…" autocomplete="off" spellcheck="false" /></label>
+              <p class="field-err" id="err-pm" role="alert"></p>`,
+            foot: `<button class="btn-secondary" id="pm-save">Update key</button>`,
+          })
         : ''
     }
-    <section class="panel wiz-panel" id="billing-panel">
-      <h3>Ripley plan</h3>
-      <div id="billing-body"><p class="note-help">Loading your plan…</p></div>
-    </section>
     ${
       !isPlatformOwner
-        ? `<section class="panel wiz-panel">
-            <h3>Receipt emails</h3>
-            <p class="note-help">Handled by Ripley automatically — every buyer gets an emailed receipt after checkout. Nothing to configure.</p>
-          </section>`
-        : `<section class="panel wiz-panel">
-            <h3>Receipt emails <span class="chip chip-off">platform-wide</span></h3>
-            <p class="note-help" id="settings-state">Checking…</p>
-            <label class="field">
-              <span class="field-label">Resend API key</span>
-              <input id="f-resend" type="password" placeholder="re_…" autocomplete="off" spellcheck="false" />
-              <span class="field-help">One key powers receipts for EVERY store on Ripley — tenants never configure anything. Stored encrypted.</span>
-              <span class="field-err" id="err-resend" role="alert"></span>
-            </label>
-            <label class="field">
-              <span class="field-label">From address</span>
-              <input id="f-from" type="text" placeholder="Receipts <receipts@yourdomain.com>" />
-              <span class="field-help">Must be a domain verified in your Resend account.</span>
-            </label>
-            <div class="wiz-actions"><button class="btn-pill" id="save-settings">Save</button></div>
-          </section>`
+        ? setCard({
+            title: 'Receipt emails',
+            sub: 'Handled by Ripley automatically — every buyer gets an emailed receipt after checkout. Nothing to configure.',
+          })
+        : setCard({
+            title: 'Receipt emails <span class="chip chip-off">platform-wide</span>',
+            sub: '<span id="settings-state">Checking…</span>',
+            body: `
+              <label class="field">
+                <span class="field-label">Resend API key</span>
+                <input id="f-resend" type="password" placeholder="re_…" autocomplete="off" spellcheck="false" />
+                <span class="field-help">One key powers receipts for every store on Ripley — tenants never configure anything. Stored encrypted.</span>
+                <span class="field-err" id="err-resend" role="alert"></span>
+              </label>
+              <label class="field">
+                <span class="field-label">From address</span>
+                <input id="f-from" type="text" placeholder="Receipts <receipts@yourdomain.com>" />
+                <span class="field-help">Must be a domain verified in your Resend account.</span>
+              </label>`,
+            foot: `<button class="btn-pill" id="save-settings">Save</button>`,
+          })
     }
     </div>`;
 }
