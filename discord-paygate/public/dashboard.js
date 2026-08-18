@@ -114,6 +114,7 @@ async function viewPicker() {
         <span>Logged in as <strong>${esc(me.username ?? me.discordId)}</strong></span>
         <button class="btn-ghost" id="logout2">Logout</button>
       </div>
+      <div class="picker-welcome"><h1>Welcome to Ripley</h1><p>Let's get your Discord server monetized in a few steps.</p></div>
       <p class="picker-label">Your Servers</p>
       <div class="g-list" id="g-list"><div class="sk-row panel" aria-hidden="true"></div><div class="sk-row panel" aria-hidden="true"></div></div>
     </section></div>`;
@@ -595,14 +596,22 @@ async function viewStore(slug) {
         <p class="note-help">Status: ${store.status === 'live' ? 'Live — taking payments.' : 'Draft — finish setup to go live.'}</p>
       </section>
       ${
-        isPlatformOwner
+        !isPlatformOwner
           ? `<section class="panel wiz-panel">
               <h2>Receipt emails</h2>
+              <p class="note-help">Handled by Ripley automatically — every buyer gets an emailed receipt after checkout. Nothing to configure.</p>
+            </section>`
+          : ''
+      }
+      ${
+        isPlatformOwner
+          ? `<section class="panel wiz-panel">
+              <h2>Receipt emails <span class="chip chip-off">platform-wide</span></h2>
               <p class="note-help" id="settings-state">Checking…</p>
               <label class="field">
                 <span class="field-label">Resend API key</span>
                 <input id="f-resend" type="password" placeholder="re_…" autocomplete="off" spellcheck="false" />
-                <span class="field-help">Buyers get an emailed receipt after checkout. Get a key at resend.com — stored encrypted.</span>
+                <span class=\"field-help\">One key powers receipts for EVERY store on Ripley — tenants never configure anything. Stored encrypted.</span>
                 <span class="field-err" id="err-resend" role="alert"></span>
               </label>
               <label class="field">
