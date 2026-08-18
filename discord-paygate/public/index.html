@@ -18,7 +18,7 @@
   <meta name="twitter:image" content="https://www.ripleybot.com/shot-dashboard.png" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=45" />
+  <link rel="stylesheet" href="/styles.css?v=46" />
 </head>
 <body class="home">
   <header class="top xoe-nav">
@@ -56,6 +56,12 @@
           <a class="btn-secondary btn-hero hero-alt" href="/dashboard">Open dashboard</a>
         </div>
         <p class="hero-trust">Free for your first 10 paying members. No card required.</p>
+        <div class="hero-compat" aria-label="Works with">
+          <span class="hc-label">Works with</span>
+          <span class="hc-item"><svg width="16" height="13" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>Discord</span>
+          <span class="hc-item hc-stripe">stripe</span>
+          <span class="hc-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Cards &amp; wallets</span>
+        </div>
       </div>
       <div class="shot-frame hero-shot browser-frame">
         <div class="bf-bar" aria-hidden="true">
@@ -66,7 +72,7 @@
              browser with no codec negotiation, autoplay policy, range requests
              or JS in the way. home.js swaps in the real <video> only after the
              browser has proven it can actually play it. -->
-        <img class="hero-video" id="hero-media" src="/hero-demo.webp?v=45" width="1280" height="800"
+        <img class="hero-video" id="hero-media" src="/hero-demo.webp?v=46" width="1280" height="800"
           alt="Ripley product tour: live analytics with period comparison, products, members and the checkout" />
       </div>
     </section>
@@ -162,6 +168,11 @@
               <span class="feat-chip">Live</span>
             </div>
             <p>Your server&rsquo;s name, icon and products on a hosted checkout at ripleybot.com/yourname.</p>
+            <div class="feat-viz" aria-hidden="true"><div class="vz-browser">
+              <div class="vz-url"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>ripleybot.com/yourname</div>
+              <div class="vz-prow"><span>VIP Access</span><span class="vz-price">$49.99</span></div>
+              <div class="vz-buy">Pay $49.99</div>
+            </div></div>
           </article>
           <article class="panel feat-cell">
             <div class="feat-head">
@@ -170,6 +181,10 @@
               <span class="feat-chip">~2s</span>
             </div>
             <p>Payment clears and the role lands. Lapsed subscriptions lose it on their own.</p>
+            <div class="feat-viz" aria-hidden="true"><div class="vz-center">
+              <div class="vz-member"><span class="vz-av">J</span><span class="vz-name">@jordan</span><span class="vz-chip">@VIP<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span></div>
+              <span class="vz-sub">payment cleared &rarr; role delivered &middot; 1.8s</span>
+            </div></div>
           </article>
           <article class="panel feat-cell">
             <div class="feat-head">
@@ -177,6 +192,11 @@
               <h3>Verified payments</h3>
             </div>
             <p>Every payment is checked against Stripe&rsquo;s signatures before anything is granted.</p>
+            <div class="feat-viz" aria-hidden="true"><div class="vz-center vz-code">
+              <code>stripe-signature&nbsp; t=1723&hellip;</code>
+              <code>v1=9f2ab4c81d&hellip;</code>
+              <span class="vz-ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"/></svg>signature verified</span>
+            </div></div>
           </article>
           <article class="panel feat-cell">
             <div class="feat-head">
@@ -185,6 +205,11 @@
               <span class="feat-chip">Every sale</span>
             </div>
             <p>Buyers get a clean membership confirmation the moment their access turns on.</p>
+            <div class="feat-viz" aria-hidden="true"><div class="vz-mail">
+              <span class="vz-mail-tag">Membership activated</span>
+              <strong>Your VIP Access is active</strong>
+              <span class="vz-sub">Receipt &middot; $49.99 &middot; lifetime</span>
+            </div></div>
           </article>
           <article class="panel feat-cell">
             <div class="feat-head">
@@ -192,6 +217,13 @@
               <h3>Members &amp; revenue</h3>
             </div>
             <p>Revenue chart with period comparison, searchable transactions, one-click revoke and re-sync.</p>
+            <div class="feat-viz" aria-hidden="true"><div class="vz-chartbox">
+              <div class="vz-chart-top"><span>$2,449</span><span class="vz-delta">&#9650;55%</span></div>
+              <svg class="vz-chart" viewBox="0 0 210 54" preserveAspectRatio="none">
+                <path class="vz-area" d="M0 44 L26 34 L52 39 L78 22 L104 30 L130 14 L156 24 L182 9 L210 16 L210 54 L0 54 Z" />
+                <path class="vz-line" pathLength="1" fill="none" d="M0 44 L26 34 L52 39 L78 22 L104 30 L130 14 L156 24 L182 9 L210 16" />
+              </svg>
+            </div></div>
           </article>
           <article class="panel feat-cell">
             <div class="feat-head">
@@ -199,6 +231,10 @@
               <h3>Sale alerts</h3>
             </div>
             <p>A New Subscriber ping in the Discord channel you choose, on every order.</p>
+            <div class="feat-viz" aria-hidden="true"><div class="vz-notif">
+              <span class="vz-dot"></span>
+              <div class="vz-notif-body"><strong>New Subscriber!</strong><span class="vz-sub">@jordan just bought VIP Access &middot; $49.99</span></div>
+            </div></div>
           </article>
         </div>
       </div>
@@ -244,13 +280,16 @@
     </section>
 
     <section class="xsection" id="how">
-      <div class="wrap">
+      <div class="wrap narrow center">
         <span class="kicker">How it works</span>
-        <h2 class="section-title">Get set up in three steps</h2>
-        <div class="steps-grid">
-          <div class="panel step"><span class="step-n">1</span><p><strong>Add Ripley to your server</strong><br />Sign in with Discord, pick a server you manage, invite the bot.</p></div>
-          <div class="panel step"><span class="step-n">2</span><p><strong>Set prices &amp; connect Stripe</strong><br />Paste your Stripe key, create the product, pick the role.</p></div>
-          <div class="panel step"><span class="step-n">3</span><p><strong>Members pay in seconds</strong><br />Share your store link — delivery is automatic.</p></div>
+        <h2 class="section-title">Live in four steps</h2>
+      </div>
+      <div class="wrap">
+        <div class="hiw">
+          <div class="hiw-step"><span class="hiw-n">1</span><span class="hiw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8"/><path d="M9 14h.01M15 14h.01"/></svg></span><strong>Invite</strong><p>Add Ripley to your server and pick a name for your store.</p></div>
+          <div class="hiw-step"><span class="hiw-n">2</span><span class="hiw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span><strong>Connect</strong><p>Paste your Stripe key, set a price, pick the role it unlocks.</p></div>
+          <div class="hiw-step"><span class="hiw-n">3</span><span class="hiw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg></span><strong>Access</strong><p>Members pay on your store page and their role lands in seconds.</p></div>
+          <div class="hiw-step"><span class="hiw-n">4</span><span class="hiw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><strong>Payouts</strong><p>Money settles in your own Stripe account. Ripley never holds it.</p></div>
         </div>
       </div>
     </section>
@@ -424,6 +463,6 @@
     <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
   </footer>
 
-  <script src="/home.js?v=45"></script>
+  <script src="/home.js?v=46"></script>
 </body>
 </html>

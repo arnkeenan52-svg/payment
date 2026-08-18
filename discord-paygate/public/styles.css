@@ -2126,3 +2126,101 @@ html.menu-open, html.menu-open body { overflow: hidden; }
   .mobile-menu, .mobile-menu a, .mobile-menu-account, .menu-scrim, .mb-bar { transition: none; }
   .faq-item::details-content, .order-extra::details-content { transition: none; }
 }
+
+/* ── feature vignettes: tiny product moments inside each card (Linear-style,
+   pure DOM/SVG — no media weight). Animations key off the card's reveal. ──── */
+.feat-cell { min-height: 238px; }
+.feat-viz {
+  margin-top: auto; height: 116px; border: 1px solid #1e1e1e; border-radius: 10px;
+  background: #0c0c0c; padding: 12px 14px; display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.vz-sub { color: #7a7a7a; font-size: 10.5px; }
+/* store */
+.vz-browser { width: 100%; display: flex; flex-direction: column; gap: 7px; }
+.vz-url {
+  display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+  border: 1px solid #232323; border-radius: 999px; padding: 3px 9px;
+  color: #8a8a8a; font-size: 10px; background: #101010;
+}
+.vz-prow { display: flex; justify-content: space-between; font-size: 12px; font-weight: 650; }
+.vz-price { font-variant-numeric: tabular-nums; }
+.vz-buy {
+  background: #ededed; color: #0a0a0a; border-radius: 6px; text-align: center;
+  font-size: 11px; font-weight: 700; padding: 6px;
+}
+/* roles */
+.vz-center { display: flex; flex-direction: column; align-items: center; gap: 9px; width: 100%; }
+.vz-member {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  border: 1px solid #232323; border-radius: 8px; padding: 8px 10px; background: #101010;
+}
+.vz-av {
+  width: 22px; height: 22px; border-radius: 50%; background: #1f1f1f; color: #cfcfcf;
+  display: grid; place-items: center; font-size: 10px; font-weight: 700; flex: none;
+}
+.vz-name { font-size: 12px; font-weight: 650; }
+.vz-chip {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+  background: #ededed; color: #0a0a0a; border-radius: 999px; padding: 3px 8px;
+  font-size: 10.5px; font-weight: 750;
+}
+.feat-cell.rv .vz-chip { opacity: 0; scale: 0.7; transition: opacity 0.3s var(--ease-out) 0.5s, scale 0.3s var(--ease-out) 0.5s; }
+.feat-cell.rv.in .vz-chip { opacity: 1; scale: 1; }
+/* verify */
+.vz-code { align-items: flex-start; gap: 5px; }
+.vz-code code { font: 500 10.5px/1.5 ui-monospace, 'SF Mono', Menlo, monospace; color: #6f6f6f; }
+.vz-ok { display: inline-flex; align-items: center; gap: 5px; color: #f0f0f0; font-size: 11px; font-weight: 700; margin-top: 2px; }
+.feat-cell.rv .vz-ok { opacity: 0; transition: opacity 0.4s var(--ease-out) 0.55s; }
+.feat-cell.rv.in .vz-ok { opacity: 1; }
+/* email */
+.vz-mail { display: flex; flex-direction: column; gap: 5px; width: 100%; border-left: 2px solid #ededed; padding-left: 12px; }
+.vz-mail-tag { color: #8a8a8a; font-size: 9.5px; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
+.vz-mail strong { font-size: 12.5px; font-weight: 700; }
+/* chart */
+.vz-chartbox { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.vz-chart-top { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.vz-delta { font-size: 9.5px; background: rgba(255, 255, 255, 0.09); border-radius: 4px; padding: 2px 5px; }
+.vz-chart { width: 100%; height: 54px; }
+.vz-area { fill: rgba(255, 255, 255, 0.07); }
+.vz-line { stroke: #e8e8e8; stroke-width: 1.6; }
+.feat-cell.rv .vz-line { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1s var(--ease-out) 0.35s; }
+.feat-cell.rv .vz-area { opacity: 0; transition: opacity 0.6s ease-out 0.9s; }
+.feat-cell.rv.in .vz-line { stroke-dashoffset: 0; }
+.feat-cell.rv.in .vz-area { opacity: 1; }
+/* sale alert */
+.vz-notif {
+  display: flex; align-items: flex-start; gap: 9px; width: 100%;
+  border: 1px solid #232323; border-radius: 8px; padding: 10px 12px; background: #101010;
+}
+.vz-dot { width: 7px; height: 7px; border-radius: 50%; background: #ffffff; flex: none; margin-top: 4px; }
+.feat-cell.rv.in .vz-dot { animation: vz-ping 1.8s ease-out 0.6s 2; }
+@keyframes vz-ping { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.45); } 70% { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
+.vz-notif-body { display: flex; flex-direction: column; gap: 2px; }
+.vz-notif-body strong { font-size: 12px; }
+
+/* ── how it works: compact 4-step strip (sublyna steps pattern) ────────────── */
+.hiw { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 40px; }
+@media (max-width: 900px) { .hiw { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .hiw { grid-template-columns: 1fr; } }
+.hiw-step {
+  position: relative; display: flex; flex-direction: column; gap: 9px;
+  border: 1px solid var(--edge); border-radius: 12px; background: var(--panel); padding: 18px;
+}
+.hiw-n { position: absolute; top: 14px; right: 16px; color: #4a4a4a; font-family: var(--font-head); font-size: 13px; font-weight: 700; }
+.hiw-ic {
+  width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center;
+  background: #161616; border: 1px solid #262626; color: #fff;
+}
+.hiw-step strong { font-size: 14.5px; letter-spacing: -0.01em; }
+.hiw-step p { margin: 0; font-size: 12.5px; line-height: 1.55; color: rgba(255, 255, 255, 0.5); }
+
+/* ── hero: quiet compatibility strip ───────────────────────────────────────── */
+.hero-compat { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 6px; color: #5f5f5f; }
+.hc-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 650; }
+.hc-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 650; color: #8a8a8a; }
+.hc-stripe { font-family: var(--font-head); font-weight: 750; font-size: 14.5px; letter-spacing: -0.01em; }
+@media (prefers-reduced-motion: reduce) {
+  .feat-cell.rv .vz-chip, .feat-cell.rv .vz-ok, .feat-cell.rv .vz-line, .feat-cell.rv .vz-area { transition: none; opacity: 1; scale: 1; stroke-dasharray: none; }
+  .feat-cell.rv.in .vz-dot { animation: none; }
+}

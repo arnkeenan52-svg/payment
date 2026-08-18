@@ -83,7 +83,7 @@ if (menuBtn) {
 // ── scroll reveals: sections rise in as they enter the viewport ───────────────
 if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
   const els = document.querySelectorAll(
-    '.kicker, .section-title, .section-sub, .feat-cell, .price-card, .step, .faq-item, .trio, .calc, .cta-panel, .pm-chips, .pm-note, .uc-grid > *, .trio-title, .bill-toggle, .price-note, .xcta h2, .xcta .hero-ctas',
+    '.kicker, .section-title, .section-sub, .feat-cell, .price-card, .hiw-step, .faq-item, .trio, .calc, .cta-panel, .pm-chips, .pm-note, .uc-grid > *, .trio-title, .bill-toggle, .price-note, .xcta h2, .xcta .hero-ctas',
   );
   const io = new IntersectionObserver(
     (entries) => entries.forEach((en) => {
@@ -101,7 +101,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
     io.observe(el);
   });
   // Siblings in a grid land one after another, not all at once.
-  document.querySelectorAll('.fgrid, .price-grid, .steps-grid, .trio-grid, .uc-grid').forEach((grid) => {
+  document.querySelectorAll('.fgrid, .price-grid, .hiw, .trio-grid, .uc-grid').forEach((grid) => {
     [...grid.children].forEach((c, i) => { c.style.transitionDelay = `${Math.min(i * 55, 275)}ms`; });
   });
 }
@@ -116,7 +116,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=45'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=46'; // hold a still frame instead
     return;
   }
 
@@ -133,8 +133,8 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=45', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=45', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=46', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=46', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays
