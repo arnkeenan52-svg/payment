@@ -113,7 +113,9 @@ function parsePrice(v) {
 // Photo picker: read the chosen file, downscale on a canvas so uploads stay
 // around 100KB, hand back a data URL the API stores and serves via /api/img.
 function readPhoto(file, ok, err) {
-  if (!file || !file.type.startsWith('image/')) return err('Pick an image file.');
+  // Some iOS pickers hand files with an empty MIME type — let the actual
+  // decode below be the judge instead of refusing up front.
+  if (!file || (file.type && !file.type.startsWith('image/'))) return err('Pick an image file.');
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
@@ -387,7 +389,7 @@ function renderSetupStep(g, step) {
           <img id="f-photo-prev" class="photo-prev" alt="" hidden />
           <button type="button" class="btn-secondary" id="f-photo-btn">Choose photo</button>
           <button type="button" class="btn-ghost" id="f-photo-clear" hidden>Remove</button>
-          <input id="f-photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+          <input id="f-photo" type="file" accept="image/*" hidden />
         </div>
         <span class="field-help">Shown on your store page and in Stripe checkout. Or paste a link:</span>
         <input id="f-img" type="url" placeholder="https://…  (optional)" spellcheck="false" />
@@ -1041,12 +1043,15 @@ function productEditorFields(p = {}) {
         <input class="pe-limit" type="number" min="1" step="1" value="${p.purchaseLimit ?? ''}" placeholder="No cap" />
         <span class="field-help">Optional cap on total buyers.</span></label>
     </div>
+    <label class="field"><span class="field-label">Role this product gives <span aria-hidden="true">*</span></span>
+      <select class="pe-role"><option value="">Loading your server’s roles…</option></select>
+      <span class="field-help pe-role-help">Buyers get this Discord role the moment payment clears.</span></label>
     <div class="field"><span class="field-label">Product photo</span>
       <div class="photo-row">
         <img class="pe-photo-prev photo-prev" alt="" hidden />
         <button type="button" class="btn-secondary pe-photo-btn">Choose photo</button>
         <button type="button" class="btn-ghost pe-photo-clear" hidden>Remove</button>
-        <input class="pe-photo-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+        <input class="pe-photo-file" type="file" accept="image/*" hidden />
       </div>
       <span class="field-help">Or paste a link:</span>
       <input class="pe-img" type="url" value="${esc(p.imageUrl ?? '')}" placeholder="https://…  (optional)" spellcheck="false" /></div>
@@ -1094,7 +1099,6 @@ function sectionProducts(products, data, slug) {
           <button class="btn-secondary" type="button" id="pe-cancel">Cancel</button></div>
         <p class="field-err" id="err-prod" role="alert"></p>
       </form>
-      <div id="prod-roles-slot"></div>
       ${
         products.length
           ? `<div class="table-scroll"><table class="data-table t-products"><thead><tr><th>Product</th><th class="num">Price</th><th>Billing</th><th class="num">Members</th><th class="num">Revenue</th><th>Active</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
@@ -1569,10 +1573,44 @@ function wireMembers(slug) {
   };
 }
 
-// Products section wiring: create (then role pick), edit, toggle, copy, delete.
+// Products section wiring: create, edit (role picked right in the form),
+// toggle, copy, delete.
 function wireProducts(store, slug, products) {
   const form = $('#prod-form');
   let editing = null; // planKey when editing
+  let rolesLoaded = false; // false = never loaded, null = load failed
+  let rolesData = null;
+
+  // The role select lives inside the form: the guild's roles load once per
+  // section render, unusable ones stay visible but disabled with the reason.
+  const fillRoles = async (selectedId) => {
+    const sel = form.querySelector('.pe-role');
+    const help = form.querySelector('.pe-role-help');
+    if (rolesLoaded === false) {
+      try {
+        rolesData = await api('/api/onboard', { step: 'roles', storeId: store.id });
+        rolesLoaded = true;
+      } catch (err) {
+        rolesLoaded = null;
+        sel.innerHTML = `<option value="">Couldn’t load roles</option>`;
+        help.textContent = `${err.message} — invite the Ripley bot to your server, then reopen this form. You can still save the product and attach its role later.`;
+        return;
+      }
+    }
+    if (rolesLoaded === null) return;
+    const data = rolesData;
+    sel.innerHTML =
+      `<option value="">— pick a role —</option>` +
+      data.roles
+        .map((r) =>
+          r.usable
+            ? `<option value="${esc(r.id)}">@${esc(r.name)}</option>`
+            : `<option value="" disabled>@${esc(r.name)} — ${esc(r.reason ?? 'unavailable')}</option>`,
+        )
+        .join('');
+    if (selectedId && data.roles.some((r) => r.id === selectedId && r.usable)) sel.value = selectedId;
+    help.textContent = `Buyers get this Discord role the moment payment clears. Greyed roles sit at or above the bot’s top role “${data.botTop.name}”.`;
+  };
 
   const openForm = (p = null) => {
     editing = p?.planKey ?? null;
@@ -1586,6 +1624,7 @@ function wireProducts(store, slug, products) {
     form.querySelector('.pe-limit').value = p?.purchaseLimit ?? '';
     form.querySelector('.pe-img').value = p?.imageUrl ?? '';
     form.querySelector('.pe-success').value = p?.successUrl ?? '';
+    fillRoles(p?.roleIds?.[0]);
     // photo picker state: undefined = untouched, string = new upload, null = removed
     photoPick = undefined;
     const prev = form.querySelector('.pe-photo-prev');
@@ -1639,33 +1678,46 @@ function wireProducts(store, slug, products) {
     };
     if (!fields.name) return fieldErr('prod', 'Name your product.');
     if (!Number.isFinite(fields.priceUsd) || fields.priceUsd < 1) return fieldErr('prod', 'Set a price of at least $1 — e.g. 59.99');
+    const roleId = form.querySelector('.pe-role').value;
+    // A product that grants nothing sells nothing — require the role
+    // whenever the list actually loaded (if it didn't, the product can
+    // still be saved and the role attached once the bot is in the server).
+    if (!roleId && rolesLoaded === true) return fieldErr('prod', 'Pick the role this product gives.');
     const btn = $('#pe-save');
     btn.disabled = true;
     btn.textContent = 'Saving…';
     try {
+      let planKey = editing;
       if (editing) {
         await api('/api/onboard', { step: 'product-update', storeId: store.id, planKey: editing, ...fields });
-        state.products = null;
-        viewStore(slug);
       } else {
         const out = await api('/api/onboard', { step: 'product', storeId: store.id, ...fields });
+        planKey = out.plan.planKey;
+        // From here on a retry must EDIT this product, never create a twin.
+        editing = planKey;
         // apply the optional extras the create step doesn't take
         await api('/api/onboard', {
-          step: 'product-update', storeId: store.id, planKey: out.plan.planKey,
+          step: 'product-update', storeId: store.id, planKey,
           purchaseLimit: fields.purchaseLimit, successUrl: fields.successUrl,
         }).catch(() => {});
-        // The product EXISTS now — drop the caches immediately, so even if
-        // the role picker fails to load or the owner clicks away, the next
-        // Products render shows the new product instead of a stale list.
-        state.products = null;
-        state.data = null;
-        form.hidden = true;
-        await pickRoleFor(store, slug, out.plan.planKey, fields.name);
       }
+      // The product EXISTS now — drop the caches immediately so the next
+      // Products render shows it even if the role attach below fails.
+      state.products = null;
+      state.data = null;
+      const prevRole = editing ? products.find((x) => x.planKey === editing)?.roleIds?.[0] : null;
+      if (roleId && roleId !== prevRole) {
+        await api('/api/onboard', { step: 'role', storeId: store.id, planKey, roleId }).catch((err) => {
+          fieldErr('prod', `Product saved, but the role could not be attached: ${err.message}`);
+          throw { handled: true };
+        });
+      }
+      form.hidden = true;
+      viewStore(slug);
     } catch (err) {
       btn.disabled = false;
       btn.textContent = editing ? 'Save changes' : 'Create product';
-      fieldErr('prod', err.message);
+      if (!err?.handled) fieldErr('prod', err.message);
     }
   };
 
@@ -1701,47 +1753,6 @@ function wireProducts(store, slug, products) {
       }
     };
   });
-}
-
-// Inline role picker for a just-created product.
-async function pickRoleFor(store, slug, planKey, productName) {
-  const slot = $('#prod-roles-slot');
-  slot.innerHTML = `<section class="panel wiz-panel"><h3>Which role does “${esc(productName)}” grant?</h3>
-    <p class="note-help" id="pr-hint">Loading roles…</p><div class="role-list" id="pr-list"></div>
-    <p class="field-err" id="err-pr" role="alert"></p></section>`;
-  slot.scrollIntoView({ block: 'nearest' });
-  let data;
-  try {
-    data = await api('/api/onboard', { step: 'roles', storeId: store.id });
-  } catch (err) {
-    $('#pr-hint').textContent = `${err.message} — your product is saved; you can attach its role any time from the product list.`;
-    return;
-  }
-  $('#pr-hint').innerHTML = `Greyed roles sit at or above the bot’s top role <strong>${esc(data.botTop.name)}</strong>.`;
-  const list = $('#pr-list');
-  for (const role of data.roles) {
-    const row = document.createElement('button');
-    row.type = 'button';
-    row.className = 'role-row';
-    row.disabled = !role.usable;
-    row.innerHTML = `<span class="role-dot" style="background:${role.color ?? 'var(--dim)'}"></span>
-      <span class="role-name">${esc(role.name)}</span>
-      <span class="role-pos">${role.usable ? `#${role.position}` : esc(role.reason ?? '')}</span>`;
-    if (role.usable)
-      row.onclick = async () => {
-        row.disabled = true;
-        try {
-          await api('/api/onboard', { step: 'role', storeId: store.id, planKey, roleId: role.id });
-          state.products = null;
-          state.data = null;
-          viewStore(slug);
-        } catch (err) {
-          row.disabled = false;
-          fieldErr('pr', err.message);
-        }
-      };
-    list.append(row);
-  }
 }
 
 function wireDiscounts(store, slug) {

@@ -1385,17 +1385,18 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .hero-left .hero-inner { gap: 14px; }
 .hero-shot { margin-top: 44px; }
 /* phone: the headline starts right under the header and the copy is compact
-   enough that the WHOLE tour frame fits on the first screen */
+   enough that the WHOLE tour frame — bottom edge included — fits on the
+   first screen */
 @media (max-width: 760px) {
-  .xhero { padding-top: 18px; }
+  .xhero { padding-top: 12px; }
   .xhero .hero-inner { padding-top: 0; padding-bottom: 0; }
-  .hero-left .hero-inner { gap: 9px; }
+  .hero-left .hero-inner { gap: 8px; }
   .xhero h1 { font-size: 28px; line-height: 1.12; }
   .xhero .hero-sub { font-size: 14px; line-height: 1.5; }
-  .btn-hero { padding: 11px 22px; font-size: 14.5px; min-height: 44px; }
-  .hero-ctas { gap: 10px; }
-  .hero-trust { margin-top: 0; font-size: 12px; }
-  .hero-shot { margin-top: 14px; }
+  .btn-hero { padding: 10px 22px; font-size: 14.5px; min-height: 42px; }
+  .hero-ctas { gap: 8px; }
+  .hero-trust { margin-top: 0; font-size: 11.5px; }
+  .hero-shot { margin-top: 10px; }
 }
 .landing > .xsection { border-top: 1px solid rgba(255,255,255,0.05); }
 .landing > .xinset + .xsection { border-top: none; }

@@ -1765,6 +1765,22 @@ test("a DRAFT store cannot hijack the built-in store's live link", async () => {
     body: JSON.stringify({ step: 'products', storeId: store.id }),
   });
   assert.equal(list.status, 200);
+
+  // Photos uploaded while the draft hides behind the built-in slug must
+  // still serve — /api/img resolves the MANAGED row, not the buyer-facing
+  // guard (which would 404 every image with 'unknown store').
+  const DRAFT_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  const withPhoto = await fetch(`${appUrl}/api/onboard`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u14Cookie },
+    body: JSON.stringify({ step: 'product', storeId: store.id, name: 'Draft Pass', priceUsd: 9.99, lifetime: true, imageData: `data:image/png;base64,${DRAFT_PNG}` }),
+  });
+  const withPhotoBody = await withPhoto.text();
+  assert.equal(withPhoto.status, 200, withPhotoBody);
+  const draftPlan = JSON.parse(withPhotoBody).plan;
+  const draftImg = await fetch(`${appUrl}/api/img?store=tradeleaks&plan=${encodeURIComponent(draftPlan.planKey)}`);
+  assert.equal(draftImg.status, 200, "the draft's uploaded photo must serve at its slug");
+  assert.equal(Buffer.from(await draftImg.arrayBuffer()).toString('base64'), DRAFT_PNG, 'draft photo bytes intact');
 });
 
 test('store delete: payment history refuses; a draft deletes, freeing its link and guild', async () => {
@@ -1839,6 +1855,18 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.match(rb.body, /Sitemap: https:\/\/www\.ripleybot\.com\/sitemap\.xml/);
   // Reach paths resolve to pages, never to a store.
   assert.equal((await fetch(`${appUrl}/api/plans?store=vs`)).status, 404);
+
+  // The homepage's "Invite Ripley" button: a stable hop to Discord's
+  // authorize screen, bot scope + Manage Roles — same as the wizard.
+  const inv = await fetch(`${appUrl}/api/invite`, { redirect: 'manual' });
+  assert.equal(inv.status, 302);
+  const invUrl = new URL(inv.headers.get('location'));
+  assert.equal(invUrl.origin, 'https://discord.com');
+  assert.equal(invUrl.searchParams.get('scope'), 'bot');
+  assert.ok(invUrl.searchParams.get('client_id'), 'client id rides the invite link');
+  const homeHtml = await (await fetch(`${appUrl}/`)).text();
+  assert.match(homeHtml, /href="\/api\/invite"/, 'the hero links the invite');
+  assert.match(homeHtml, /Invite Ripley/);
 });
 
 test('platform billing: Free gates at 10 members, paid tiers unlock, switch cancels the old sub, cancel re-gates', async () => {

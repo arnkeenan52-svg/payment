@@ -3,7 +3,7 @@
 // endpoint turns it back into a real image response with cache headers, so
 // storefronts and Stripe checkout can reference a plain https URL.
 import { guard, sendText } from '../src/lib/http.js';
-import { storeBySlug } from '../src/services/stores.js';
+import { adminStoreBySlug } from '../src/services/stores.js';
 import { getPlanImage } from '../src/db.js';
 
 const DATA_URL = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/;
@@ -15,7 +15,10 @@ export default guard(async (req, res) => {
   if (!/^[a-z0-9-]{1,40}$/.test(slug) || !/^[a-z0-9-]{1,64}$/.test(planKey)) {
     return sendText(res, 400, 'bad request');
   }
-  const store = await storeBySlug(slug);
+  // adminStoreBySlug, not storeBySlug: the buyer-facing draft guard maps a
+  // draft that shares the built-in store's slug to the env store, which
+  // 404ed every photo the owner uploaded while setting that draft up.
+  const store = await adminStoreBySlug(slug);
   if (!store || store.id === null) return sendText(res, 404, 'not found');
   const data = await getPlanImage(store.id, planKey);
   const m = data ? DATA_URL.exec(data) : null;

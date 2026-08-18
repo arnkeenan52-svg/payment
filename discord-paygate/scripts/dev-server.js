@@ -33,6 +33,7 @@ import billing from '../api/billing.js';
 import adminDiscounts from '../api/admin/discounts.js';
 import adminStore from '../api/admin/store.js';
 import img from '../api/img.js';
+import invite from '../api/invite.js';
 
 const PUBLIC_DIR = path.join(config.root, 'public');
 const MIME = {
@@ -91,6 +92,7 @@ const routes = {
   '/api/admin/discounts': adminDiscounts,
   '/api/admin/store': adminStore,
   '/api/img': img,
+  '/api/invite': invite,
 };
 
 const server = http.createServer(async (req, res) => {
