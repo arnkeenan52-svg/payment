@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ripley — Sell Discord access</title>
-  <meta name="description" content="Ripley turns a Discord community into revenue: secure Stripe checkout, 0% platform fees, roles delivered in seconds." />
+  <title>Ripley — The Discord payment platform with 0% platform fees</title>
+  <meta name="description" content="Monetize your Discord server and receive payments straight to your own Stripe account. 0% platform fees, instant role delivery, free for your first 10 members." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Ripley — Sell Discord access" />
-  <meta property="og:description" content="Secure Stripe checkout, 0% platform fees, roles delivered in seconds." />
+  <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
   <meta property="og:image" content="https://ripleybot.com/product.jpg" />
   <meta property="og:url" content="https://ripleybot.com/" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Ripley — Sell Discord access" />
-  <meta name="twitter:description" content="Secure Stripe checkout, 0% platform fees, roles delivered in seconds." />
+  <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
   <meta name="twitter:image" content="https://ripleybot.com/product.jpg" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
@@ -28,23 +28,23 @@
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="#features">Features</a>
-      <a class="nav-link" href="#how">How it works</a>
+      <a class="nav-link" href="#pricing">Pricing</a>
       <a class="nav-link" href="#faq">FAQ</a>
     </nav>
     <div id="account" class="account"><a class="nav-link" href="/store">Store</a></div>
   </header>
 
   <main class="landing">
-    <section class="xhero">
+    <section class="xhero hero-left">
       <div class="glow glow-hero" aria-hidden="true"></div>
       <div class="hero-inner">
-        <span class="hero-kicker">0% platform fees · payments by Stripe</span>
-        <h1>Monetize your Discord<br />server in <span class="hl-grad">minutes</span>.</h1>
-        <p class="hero-sub">Sell roles and access directly from your own store page. Buyers pay by card and their role lands in seconds — every cent goes to your Stripe account.</p>
+        <h1>The Discord payment platform with <span class="hl-grad">0% platform fees</span></h1>
+        <p class="hero-sub">Monetize your server and receive payments straight to your own Stripe account — Ripley never holds your funds. Sell subscriptions or one-time products with roles delivered in seconds.</p>
         <div class="hero-ctas">
-          <a class="btn-fill" href="/dashboard">Start selling <span aria-hidden="true">→</span></a>
-          <a class="btn-secondary hero-alt" href="#features">See features</a>
+          <a class="btn-fill" href="/dashboard">Start free <span aria-hidden="true">→</span></a>
+          <a class="btn-secondary hero-alt" href="#pricing">See pricing</a>
         </div>
+        <p class="hero-trust">Free for your first 10 paying members — no card required.</p>
         <div class="metric-strip" aria-label="Platform highlights">
           <span><strong>0%</strong>platform fees</span>
           <span><strong>~2s</strong>role delivery</span>
@@ -57,14 +57,90 @@
       </div>
     </section>
 
+    <section class="xinset">
+      <div class="wrap narrow center">
+        <h2 class="section-title">Tired of platforms eating your earnings?</h2>
+        <p class="section-sub">Most Discord monetization platforms take a cut of every sale — some as much as 30%. Ripley charges a flat monthly plan and takes 0% of your revenue.</p>
+      </div>
+      <div class="wrap">
+        <div class="panel calc" aria-label="Savings calculator">
+          <div class="calc-head">
+            <h3>Calculate your savings</h3>
+            <p class="card-sub">See what platform fees would cost you elsewhere.</p>
+          </div>
+          <div class="calc-grid">
+            <div class="calc-inputs">
+              <label class="calc-field">
+                <span class="calc-label">Paying members <output id="c-subs-out">100</output></span>
+                <input id="c-subs" type="range" min="5" max="1000" step="5" value="100" />
+              </label>
+              <label class="calc-field">
+                <span class="calc-label">Average monthly price <output id="c-price-out">$50</output></span>
+                <input id="c-price" type="range" min="5" max="200" step="5" value="50" />
+              </label>
+              <div class="calc-result">
+                <span class="calc-result-label">Estimated annual savings</span>
+                <span class="calc-result-num" id="c-save">$0</span>
+                <span class="calc-result-sub">compared to the highest competitor fees</span>
+              </div>
+            </div>
+            <div class="calc-bars">
+              <span class="calc-bars-label">Monthly platform cost</span>
+              <div class="calc-bar-row" id="c-row-ripley">
+                <div class="calc-bar-meta"><span class="calc-bar-name">Ripley</span><span class="calc-bar-amt" id="c-ripley">$0</span></div>
+                <div class="calc-bar mine"><span id="c-bar-ripley"></span></div>
+                <span class="calc-bar-sub" id="c-ripley-plan">Free plan · 0% of sales</span>
+              </div>
+              <div class="calc-bar-row">
+                <div class="calc-bar-meta"><span class="calc-bar-name">Whop</span><span class="calc-bar-amt" id="c-whop">$0</span></div>
+                <div class="calc-bar"><span id="c-bar-whop"></span></div>
+                <span class="calc-bar-sub">3% of sales + payout fees*</span>
+              </div>
+              <div class="calc-bar-row">
+                <div class="calc-bar-meta"><span class="calc-bar-name">LaunchPass</span><span class="calc-bar-amt" id="c-lp">$0</span></div>
+                <div class="calc-bar"><span id="c-bar-lp"></span></div>
+                <span class="calc-bar-sub">$29/mo + 3.5% of sales*</span>
+              </div>
+              <div class="calc-bar-row">
+                <div class="calc-bar-meta"><span class="calc-bar-name">Upgrade.chat</span><span class="calc-bar-amt" id="c-uc">$0</span></div>
+                <div class="calc-bar"><span id="c-bar-uc"></span></div>
+                <span class="calc-bar-sub">$49/mo paid plan*</span>
+              </div>
+              <p class="calc-note">* Competitor pricing as publicly listed — check their sites for current numbers. Stripe's standard card-processing fees apply on every platform and are excluded from the comparison.</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="trio-title">Stop losing money to platform fees</h3>
+        <div class="trio-grid">
+          <div class="trio">
+            <span class="trio-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <strong>Keep your revenue</strong>
+            <p>Percentage fees eat your profits on every single sale. Ripley takes 0% — a flat plan, whatever you earn.</p>
+          </div>
+          <div class="trio">
+            <span class="trio-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <strong>Your money stays yours</strong>
+            <p>Payments land directly in your own Stripe account. Ripley never holds, routes, or freezes your funds.</p>
+          </div>
+          <div class="trio">
+            <span class="trio-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg></span>
+            <strong>No lock-in</strong>
+            <p>Your Stripe account, your customers, your data. Leave any time and your payment history goes with you.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="xsection" id="features">
       <div class="wrap frow">
         <div class="frow-copy">
-          <h2>Turn your Discord into a paid community</h2>
+          <h2>A complete Discord payment processor</h2>
           <p>Your store lives on its own page with your server's name and icon. Buyers sign in with Discord, pay on Stripe's secure checkout, and they're in — no bots to learn, no invites to manage.</p>
           <ul class="tick-list">
-            <li><strong>0% platform fees</strong> — payments run through your own Stripe account.</li>
-            <li><strong>One-time lifetime or monthly</strong> — your product, your price, your image.</li>
+            <li><strong>Automatic role assignment</strong> — delivered the second payment clears.</li>
+            <li><strong>Hosted store page</strong> — your name, your icon, your product images.</li>
+            <li><strong>Subscriptions &amp; one-time products</strong> — monthly or lifetime, your price.</li>
             <li><strong>Not in the server yet?</strong> Buyers are pulled in automatically, role attached.</li>
           </ul>
           <a class="btn-fill" href="/dashboard">Start selling <span aria-hidden="true">→</span></a>
@@ -79,10 +155,10 @@
     <section class="xsection">
       <div class="wrap frow flip">
         <div class="frow-copy">
-          <h2>Payments land in your Stripe. Nothing skimmed.</h2>
-          <p>Every sale is verified with Stripe's signatures before anything is granted, the buyer's role is delivered instantly, and a clean receipt goes to their inbox. If a role ever goes missing, access heals itself.</p>
+          <h2>Every sale verified. Every receipt sent.</h2>
+          <p>Every payment is verified with Stripe's signatures before anything is granted, the buyer's role is delivered instantly, and a clean receipt goes to their inbox — automatically, on every store.</p>
           <ul class="tick-list">
-            <li><strong>Instant delivery</strong> — roles land the second payment clears.</li>
+            <li><strong>Instant delivery</strong> — roles land in about two seconds.</li>
             <li><strong>Email receipts</strong> — sent automatically after every purchase.</li>
             <li><strong>Self-healing access</strong> — hourly checks plus one-click re-sync.</li>
           </ul>
@@ -127,12 +203,72 @@
       </div>
     </section>
 
-    <section class="xcta">
-      <div class="glow glow-cta" aria-hidden="true"></div>
-      <h2>Ready to monetize your<br />Discord community?</h2>
-      <div class="hero-ctas">
-        <a class="btn-fill" href="/dashboard">Start selling <span aria-hidden="true">→</span></a>
-        <a class="btn-secondary hero-alt" id="hero-store" href="/store">Visit a live store</a>
+    <section class="xsection" id="pricing">
+      <div class="wrap narrow center">
+        <h2 class="section-title">Pricing plans</h2>
+        <p class="section-sub">No sales fees on any plan — 100% of your revenue is yours. Pay a flat monthly rate sized by how many paying members you have.</p>
+      </div>
+      <div class="wrap">
+        <div class="price-grid">
+          <div class="panel price-card">
+            <span class="price-name">Free</span>
+            <span class="price-amt">$0<span class="price-per">/month</span></span>
+            <ul class="price-list">
+              <li>Up to 10 active members</li>
+              <li>0% platform fees</li>
+              <li>Stripe card payments</li>
+              <li>Automatic Discord roles</li>
+              <li>Hosted store page</li>
+              <li>Email receipts</li>
+              <li>Member management</li>
+            </ul>
+            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
+          </div>
+          <div class="panel price-card">
+            <span class="price-name">Starter</span>
+            <span class="price-amt">$5.99<span class="price-per">/month</span></span>
+            <ul class="price-list">
+              <li>Up to 50 active members</li>
+              <li>0% platform fees</li>
+              <li>Stripe card payments</li>
+              <li>Automatic Discord roles</li>
+              <li>Hosted store page</li>
+              <li>Email receipts</li>
+              <li>Member management</li>
+            </ul>
+            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
+          </div>
+          <div class="panel price-card popular">
+            <span class="price-badge">Popular</span>
+            <span class="price-name">Growth</span>
+            <span class="price-amt">$19.99<span class="price-per">/month</span></span>
+            <ul class="price-list">
+              <li>Up to 500 active members</li>
+              <li>0% platform fees</li>
+              <li>Stripe card payments</li>
+              <li>Automatic Discord roles</li>
+              <li>Hosted store page</li>
+              <li>Email receipts</li>
+              <li>Member management</li>
+            </ul>
+            <a class="btn-fill price-cta" href="/dashboard">Get started</a>
+          </div>
+          <div class="panel price-card">
+            <span class="price-name">Scale</span>
+            <span class="price-amt">$49.99<span class="price-per">/month</span></span>
+            <ul class="price-list">
+              <li>Unlimited active members</li>
+              <li>0% platform fees</li>
+              <li>Stripe card payments</li>
+              <li>Automatic Discord roles</li>
+              <li>Hosted store page</li>
+              <li>Email receipts</li>
+              <li>Member management</li>
+            </ul>
+            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
+          </div>
+        </div>
+        <p class="price-note">Every feature is on every plan — only the member limit changes. Start free and upgrade from your dashboard when your community grows.</p>
       </div>
     </section>
 
@@ -142,7 +278,11 @@
         <div class="faq" style="margin-top:26px">
           <details class="panel faq-item">
             <summary>How do I get paid?</summary>
-            <p>Directly. Buyers pay on Stripe checkout connected to your own Stripe account — money never passes through Ripley, and there is no platform fee.</p>
+            <p>Directly. Buyers pay on Stripe checkout connected to your own Stripe account — money never passes through Ripley, and there is no fee on sales.</p>
+          </details>
+          <details class="panel faq-item">
+            <summary>How much does Ripley cost?</summary>
+            <p>Free for your first 10 paying members. Past that it's a flat monthly plan — $5.99 up to 50 members, $19.99 up to 500, $49.99 unlimited. Never a percentage of your sales.</p>
           </details>
           <details class="panel faq-item">
             <summary>Do buyers have to be in my server before purchasing?</summary>
@@ -167,6 +307,16 @@
         </div>
       </div>
     </section>
+
+    <section class="xcta">
+      <div class="glow glow-cta" aria-hidden="true"></div>
+      <h2>Ready to make money with<br />your Discord server?</h2>
+      <p class="section-sub">Start selling access in minutes. Free for your first 10 members.</p>
+      <div class="hero-ctas center">
+        <a class="btn-fill" href="/dashboard">Start free <span aria-hidden="true">→</span></a>
+        <a class="btn-secondary hero-alt" id="hero-store" href="/store">Visit a live store</a>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer cols">
@@ -174,7 +324,7 @@
       <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
       <span class="footer-copy">© Ripley</span>
     </div>
-    <nav class="footer-col"><span class="footer-head">Navigation</span><a href="#features">Features</a><a href="#how">How it works</a><a href="#faq">FAQ</a></nav>
+    <nav class="footer-col"><span class="footer-head">Navigation</span><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
     <nav class="footer-col"><span class="footer-head">Platform</span><a href="/store">Store</a><a href="/account">Account</a><a href="/dashboard">Dashboard</a></nav>
     <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
   </footer>

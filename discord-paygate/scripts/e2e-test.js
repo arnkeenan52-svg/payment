@@ -81,6 +81,7 @@ const stripe = {
   failSubFetchOnce: new Set(),  // subscription ids whose next GET answers 500
   subFetches: {},               // subscription id -> fetch count
   failCheckoutSessionsWith: null, // when set, POST /v1/checkout/sessions answers 400 with this message
+  subDeletes: [],               // DELETE /v1/subscriptions/:id calls (platform-plan switches/cancels)
   // Registered webhook endpoints; a matching one exists by default so the
   // doctor's endpoint check passes without registering.
   webhookEndpoints: [{ id: 'we_e2e_default', url: 'https://tradeleaks.e2e/webhooks/stripe', status: 'enabled', metadata: {} }],
@@ -304,24 +305,47 @@ async function stripeHandler(req, res) {
   if (url.pathname === '/v1/products' && req.method === 'POST') {
     const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
     const n = (stripe.products ??= []).length + 1;
-    const priceId = `price_auto_${n}`;
-    MOCK_PRICES[priceId] = {
-      id: priceId,
-      active: true,
-      type: form['default_price_data[recurring][interval]'] ? 'recurring' : 'one_time',
-      unit_amount: Number(form['default_price_data[unit_amount]']),
-      currency: form['default_price_data[currency]'],
-      ...(form['default_price_data[recurring][interval]'] ? { recurring: { interval: form['default_price_data[recurring][interval]'] } } : {}),
-    };
+    // Only register a default price when the caller inlined one (tenant
+    // product creation does; platform-plan products create a price separately).
+    let priceId = null;
+    if (form['default_price_data[unit_amount]'] !== undefined) {
+      priceId = `price_auto_${n}`;
+      MOCK_PRICES[priceId] = {
+        id: priceId,
+        active: true,
+        type: form['default_price_data[recurring][interval]'] ? 'recurring' : 'one_time',
+        unit_amount: Number(form['default_price_data[unit_amount]']),
+        currency: form['default_price_data[currency]'],
+        ...(form['default_price_data[recurring][interval]'] ? { recurring: { interval: form['default_price_data[recurring][interval]'] } } : {}),
+      };
+    }
     const product = { id: `prod_auto_${n}`, name: form.name, images: form['images[0]'] ? [form['images[0]']] : [], default_price: priceId };
     stripe.products.push(product);
     json(res, 200, product);
     return;
   }
+  if (url.pathname === '/v1/prices' && req.method === 'POST') {
+    const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
+    const id = `price_lk_${Object.keys(MOCK_PRICES).length + 1}`;
+    MOCK_PRICES[id] = {
+      id,
+      active: true,
+      type: form['recurring[interval]'] ? 'recurring' : 'one_time',
+      unit_amount: Number(form.unit_amount),
+      currency: form.currency,
+      lookup_key: form.lookup_key ?? null,
+      ...(form['recurring[interval]'] ? { recurring: { interval: form['recurring[interval]'] } } : {}),
+    };
+    json(res, 200, MOCK_PRICES[id]);
+    return;
+  }
   if (url.pathname === '/v1/prices' && req.method === 'GET') {
     const type = url.searchParams.get('type');
+    const lookup = url.searchParams.get('lookup_keys[0]');
     json(res, 200, {
-      data: Object.values(MOCK_PRICES).filter((p) => p.active && (!type || p.type === type)),
+      data: Object.values(MOCK_PRICES).filter(
+        (p) => p.active && (!type || p.type === type) && (!lookup || p.lookup_key === lookup),
+      ),
     });
     return;
   }
@@ -358,6 +382,11 @@ async function stripeHandler(req, res) {
     const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
     stripe.checkoutSessions.push(form);
     json(res, 200, { id: `cs_${stripe.checkoutSessions.length}`, url: `https://stripe.mock/pay/cs_${stripe.checkoutSessions.length}` });
+    return;
+  }
+  if ((m = url.pathname.match(/^\/v1\/subscriptions\/([^/]+)$/)) && req.method === 'DELETE') {
+    stripe.subDeletes.push(m[1]);
+    json(res, 200, { id: m[1], object: 'subscription', status: 'canceled' });
     return;
   }
   if ((m = url.pathname.match(/^\/v1\/subscriptions\/([^/]+)$/)) && req.method === 'GET') {
@@ -413,6 +442,9 @@ async function initTestDb() {
     await tq('DROP TABLE IF EXISTS plan_overrides');
     await tq('DROP TABLE IF EXISTS managed_role_history');
     await tq('DROP TABLE IF EXISTS app_secrets');
+    await tq('DROP TABLE IF EXISTS stores');
+    await tq('DROP TABLE IF EXISTS store_plans');
+    await tq('DROP TABLE IF EXISTS platform_billing');
   } else {
     const { DatabaseSync } = await import('node:sqlite');
     let sqlite;
@@ -1586,6 +1618,128 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   const resynced = await member(u7Cookie, { action: 'resync', discordId: U9 });
   assert.equal(resynced.status, 200);
   assert.ok(memberRoles(U9).has(R2_VIP), 'resync must restore the role');
+});
+
+test('platform billing: Free gates at 10 members, paid tiers unlock, switch cancels the old sub, cancel re-gates', async () => {
+  const U9_BILLING = '509900000000000009'; // the manually-granted member from the previous scenario
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, {
+      redirect: 'manual',
+      headers: { cookie: sc.split(';')[0] },
+    });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const billing = (cookie, body) =>
+    body
+      ? fetch(`${appUrl}/api/billing`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify(body) })
+      : fetch(`${appUrl}/api/billing`, { headers: { cookie } });
+  const billingState = async (cookie) => (await billing(cookie)).json();
+
+  // The platform owner is exempt; the tenant owner starts on Free with the
+  // one member the previous scenario granted (U9) — the default store's many
+  // members must NOT count against them.
+  assert.equal((await billingState(u1Cookie)).exempt, true, 'the platform owner never pays');
+  const b0 = await billingState(u7Cookie);
+  assert.deepEqual(
+    { tier: b0.current.tier, members: b0.usage.members, limit: b0.usage.limit, exempt: b0.exempt },
+    { tier: 'free', members: 1, limit: 10, exempt: false },
+  );
+
+  // Fill the Free limit: 9 manual grants take vip-signals to exactly 10 live.
+  const planId = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans[0].id;
+  for (let i = 0; i < 9; i++) {
+    const uid = `5210000000000000${String(10 + i)}`;
+    discord.members.set(uid, new Set());
+    const granted = await fetch(`${appUrl}/api/admin/member`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u7Cookie },
+      body: JSON.stringify({ store: 'vip-signals', action: 'grant', discordId: uid, planId }),
+    });
+    assert.equal(granted.status, 200, await granted.text());
+  }
+  assert.equal((await billingState(u7Cookie)).usage.members, 10);
+
+  // A brand-new buyer is refused at checkout; the platform's own store is not.
+  const U10 = '511000000000000010';
+  discord.oauthUsers.code_u10 = { id: U10, username: 'late_buyer' };
+  const u10Cookie = await loginAs('code_u10');
+  const tryCheckout = (store, id = planId) =>
+    fetch(`${appUrl}/api/checkout/stripe`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u10Cookie },
+      body: JSON.stringify({ planId: id, store }),
+    });
+  const blocked = await tryCheckout('vip-signals');
+  const blockedBody = await blocked.text();
+  assert.equal(blocked.status, 409, blockedBody);
+  assert.match(JSON.parse(blockedBody).error, /member limit/);
+  assert.equal((await tryCheckout('store', PLANS[0].id)).status, 200, 'the platform owner store is never gated');
+  // An EXISTING member is never hostage to the owner's plan: U9 re-checks out fine.
+  discord.oauthUsers.code_u9b = { id: U9_BILLING, username: 'manual_member' };
+  const u9Cookie = await loginAs('code_u9b');
+  const renewal = await fetch(`${appUrl}/api/checkout/stripe`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u9Cookie },
+    body: JSON.stringify({ planId, store: 'vip-signals' }),
+  });
+  assert.equal(renewal.status, 200, 'existing members can always re-purchase');
+
+  // Upgrade to Starter: checkout runs on RIPLEY's account with a
+  // self-provisioned recurring price (lookup_key, $5.99/mo).
+  const up = await billing(u7Cookie, { action: 'checkout', tier: 'starter' });
+  assert.equal(up.status, 200, await up.text());
+  const upForm = stripe.checkoutSessions.at(-1);
+  const starterPrice = Object.values(MOCK_PRICES).find((p) => p.lookup_key === 'ripley_platform_starter');
+  assert.ok(starterPrice, 'the Starter price is created with its lookup key');
+  assert.deepEqual(
+    { mode: upForm.mode, price: upForm['line_items[0][price]'], kind: upForm['metadata[kind]'], amount: starterPrice.unit_amount },
+    { mode: 'subscription', price: starterPrice.id, kind: 'platform_plan', amount: 599 },
+  );
+
+  // Stripe confirms the plan on the DEFAULT endpoint → the gate opens.
+  const platEvt = (n, tier, subId) => ({
+    id: `evt_plat_${n}`,
+    type: 'checkout.session.completed',
+    data: {
+      object: {
+        id: `cs_plat_${n}`,
+        mode: 'subscription',
+        subscription: subId,
+        client_reference_id: '507700000000000007',
+        metadata: { kind: 'platform_plan', tier, owner_discord_id: '507700000000000007' },
+      },
+    },
+  });
+  assert.equal((await deliverStripe(platEvt(1, 'starter', 'sub_plat_1'))).status, 200);
+  const b1 = await billingState(u7Cookie);
+  assert.deepEqual({ tier: b1.current.tier, limit: b1.usage.limit }, { tier: 'starter', limit: 50 });
+  assert.equal((await tryCheckout('vip-signals')).status, 200, 'upgrading opens the gate');
+
+  // A platform-plan renewal never creates a buyer membership.
+  const inv = await deliverStripe({
+    id: 'evt_plat_inv_1',
+    type: 'invoice.paid',
+    data: { object: { id: 'in_plat_1', parent: { subscription_details: { subscription: 'sub_plat_1' } } } },
+  });
+  assert.equal(inv.status, 200);
+  assert.equal(await subRow('stripe', 'sub_plat_1'), null, 'platform subscriptions must never appear as buyer subscriptions');
+
+  // Switching tiers ends the old Stripe subscription — nobody pays twice.
+  assert.equal((await billing(u7Cookie, { action: 'checkout', tier: 'growth' })).status, 200);
+  assert.equal((await deliverStripe(platEvt(2, 'growth', 'sub_plat_2'))).status, 200);
+  assert.ok(stripe.subDeletes.includes('sub_plat_1'), 'the Starter subscription is canceled on switch');
+  const b2 = await billingState(u7Cookie);
+  assert.deepEqual({ tier: b2.current.tier, limit: b2.usage.limit }, { tier: 'growth', limit: 500 });
+
+  // Cancel drops back to Free — and with 10 live members the gate closes again.
+  assert.equal((await billing(u7Cookie, { action: 'cancel' })).status, 200);
+  assert.ok(stripe.subDeletes.includes('sub_plat_2'), 'cancel ends the Stripe subscription');
+  assert.equal((await billingState(u7Cookie)).current.tier, 'free');
+  assert.equal((await tryCheckout('vip-signals')).status, 409, 'back on Free the full store is gated again');
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════

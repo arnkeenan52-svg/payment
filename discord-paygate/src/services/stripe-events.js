@@ -5,6 +5,7 @@ import { grant, markPastDue, cancel, reconcile } from './entitlements.js';
 import { storeById, defaultStore, planOf } from './stores.js';
 import { sendReceiptEmail } from '../lib/email.js';
 import { getUser } from '../db.js';
+import { activatePlatformPlan, applyPlatformSubscriptionEvent, isPlatformSubscription } from './billing.js';
 
 // Which store an event belongs to: the per-store endpoint that received it
 // (routeStore), the store_id our checkout stamped into metadata, or the row
@@ -23,6 +24,16 @@ export async function processStripeEvent(event, routeStore = null) {
   const obj = event.data?.object ?? {};
   switch (event.type) {
     case 'checkout.session.completed': {
+      // A store owner buying a Ripley plan — platform billing, not a buyer
+      // membership. Lands on the default endpoint (Ripley's own account).
+      if (obj.metadata?.kind === 'platform_plan') {
+        await activatePlatformPlan({
+          ownerDiscordId: obj.metadata?.owner_discord_id ?? obj.client_reference_id,
+          tierId: obj.metadata?.tier,
+          subscriptionId: obj.subscription ?? null,
+        });
+        return;
+      }
       const discordId = obj.client_reference_id ?? obj.metadata?.discord_id;
       const planId = obj.metadata?.plan_id;
       if (!discordId || !planId) {
@@ -80,6 +91,13 @@ export async function processStripeEvent(event, routeStore = null) {
     case 'invoice.payment_succeeded': {
       const subId = invoiceSubscriptionId(obj);
       if (!subId) return;
+      // Platform-plan renewal: refresh the owner's paid period and stop —
+      // there is no buyer entitlement behind this subscription.
+      if (await isPlatformSubscription(subId)) {
+        const sub = await getSubscription(subId).catch(() => null);
+        await applyPlatformSubscriptionEvent(subId, { status: 'active', periodEnd: sub ? subscriptionPeriodEnd(sub) : undefined });
+        return;
+      }
       const row = await getSubscriptionByRef('stripe', subId);
       if (!row) {
         console.warn(`[webhooks] stripe ${event.id}: invoice for unknown subscription ${subId}, ignoring`);
@@ -100,11 +118,20 @@ export async function processStripeEvent(event, routeStore = null) {
 
     case 'invoice.payment_failed': {
       const subId = invoiceSubscriptionId(obj);
-      if (subId) await markPastDue('stripe', subId);
+      if (!subId) return;
+      if (await applyPlatformSubscriptionEvent(subId, { status: 'past_due' })) return;
+      await markPastDue('stripe', subId);
       return;
     }
 
     case 'customer.subscription.updated': {
+      if (
+        await applyPlatformSubscriptionEvent(obj.id, {
+          status: obj.status === 'active' || obj.status === 'trialing' ? 'active' : obj.status,
+          periodEnd: subscriptionPeriodEnd(obj) ?? undefined,
+        })
+      )
+        return;
       const row = await getSubscriptionByRef('stripe', obj.id);
       if (!row) return;
       if (obj.status === 'active' || obj.status === 'trialing') {
@@ -122,6 +149,7 @@ export async function processStripeEvent(event, routeStore = null) {
     }
 
     case 'customer.subscription.deleted': {
+      if (await applyPlatformSubscriptionEvent(obj.id, { status: 'canceled' })) return;
       await cancel('stripe', obj.id);
       return;
     }

@@ -43,6 +43,12 @@ async function loadGuilds() {
   return 'ok';
 }
 
+async function loadBilling() {
+  const res = await fetch('/api/billing');
+  if (!res.ok) return null;
+  return res.json();
+}
+
 async function loadPayments(slug) {
   if (state.data && state.dataSlug === slug) return state.data;
   const res = await fetch(`/api/admin/payments${slug ? `?store=${encodeURIComponent(slug)}` : ''}`);
@@ -595,6 +601,10 @@ async function viewStore(slug) {
         <button class="btn-secondary" id="copy-link">${I.copy} Copy</button></div>
         <p class="note-help">Status: ${store.status === 'live' ? 'Live — taking payments.' : 'Draft — finish setup to go live.'}</p>
       </section>
+      <section class="panel wiz-panel" id="billing-panel">
+        <h2>Ripley plan</h2>
+        <div id="billing-body"><p class="note-help">Loading your plan…</p></div>
+      </section>
       ${
         !isPlatformOwner
           ? `<section class="panel wiz-panel">
@@ -750,6 +760,21 @@ async function viewStore(slug) {
     };
   }
 
+  if (tab === 'overview') {
+    // Member-limit banner: shown only when the owner's Ripley plan is full.
+    loadBilling()
+      .then((b) => {
+        if (!b || b.exempt || b.usage.limit === null || b.usage.members < b.usage.limit) return;
+        const el = document.createElement('div');
+        el.className = 'limit-banner';
+        el.innerHTML = `<strong>Member limit reached</strong> — ${b.usage.members} of ${b.usage.limit} on the ${esc(b.current.name)} plan. New checkouts are paused. <a href="#/store/${esc(slug)}/settings">Upgrade your plan</a>`;
+        document.querySelector('.app-body')?.prepend(el);
+      })
+      .catch(() => {});
+  }
+
+  if (tab === 'settings') renderBillingPanel();
+
   if (tab === 'settings' && state.me?.isOwner) {
     (async () => {
       const res = await fetch('/api/admin/settings');
@@ -782,6 +807,83 @@ async function viewStore(slug) {
   }
 }
 
+// The Ripley-plan card on the Settings tab: usage meter + tier grid, wired to
+// /api/billing (upgrade → Stripe Checkout, cancel → back to Free).
+async function renderBillingPanel() {
+  const el = $('#billing-body');
+  if (!el) return;
+  const b = await loadBilling().catch(() => null);
+  if (!b) {
+    el.innerHTML = '<p class="note-help">Could not load your plan — refresh to try again.</p>';
+    return;
+  }
+  if (b.exempt) {
+    el.innerHTML = '<p class="note-help">Platform owner — unlimited members, nothing to pay.</p>';
+    return;
+  }
+  const pct = b.usage.limit ? Math.min(100, Math.round((b.usage.members / b.usage.limit) * 100)) : 0;
+  const over = b.usage.limit !== null && b.usage.members >= b.usage.limit;
+  el.innerHTML = `
+    <p class="note-help">Free covers your first 10 paying members. One plan covers every store on your account.${
+      over ? ' <strong>You are at your limit — new checkouts are paused until you upgrade.</strong>' : ''
+    }</p>
+    <div class="usage-row"><span class="usage-nums">${b.usage.members} of ${b.usage.limit ?? 'unlimited'} members</span>
+      ${b.usage.limit ? `<div class="usage-bar${over ? ' over' : ''}" role="img" aria-label="${pct}% of member limit used"><span style="width:${pct}%"></span></div>` : ''}
+    </div>
+    <div class="tier-grid">
+      ${b.tiers
+        .map((t) => {
+          const current = t.id === b.current.tier;
+          const btn = current
+            ? '<button class="btn-secondary" disabled>Current plan</button>'
+            : t.priceUsd > 0
+              ? `<button class="btn-pill tier-buy" data-tier="${esc(t.id)}">Upgrade</button>`
+              : '<span class="tier-cap dim">Default</span>';
+          return `<div class="tier-card${current ? ' current' : ''}">
+            <span class="tier-name">${esc(t.name)}</span>
+            <span class="tier-price">$${t.priceUsd}<span class="tier-per">/mo</span></span>
+            <span class="tier-cap">${t.maxMembers === null ? 'Unlimited members' : `Up to ${t.maxMembers} members`}</span>
+            ${btn}
+          </div>`;
+        })
+        .join('')}
+    </div>
+    ${b.current.tier !== 'free' ? '<button class="btn-ghost" id="cancel-plan">Cancel plan — back to Free</button>' : ''}
+    <p class="field-err" id="err-billing" role="alert"></p>`;
+  document.querySelectorAll('.tier-buy').forEach((btn) => {
+    btn.onclick = async () => {
+      btn.disabled = true;
+      btn.textContent = 'Opening Stripe…';
+      const res = await fetch('/api/billing', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'checkout', tier: btn.dataset.tier }),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok || !out.url) {
+        btn.disabled = false;
+        btn.textContent = 'Upgrade';
+        fieldErr('billing', out.error ?? 'Could not start the upgrade — try again.');
+        return;
+      }
+      window.location.href = out.url;
+    };
+  });
+  const cancelBtn = $('#cancel-plan');
+  if (cancelBtn)
+    cancelBtn.onclick = async () => {
+      if (!confirm('Cancel your Ripley plan?\n\nYour stores drop back to the Free limit (10 members). Existing members keep their roles.')) return;
+      cancelBtn.disabled = true;
+      cancelBtn.textContent = 'Canceling…';
+      await fetch('/api/billing', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel' }),
+      }).catch(() => {});
+      renderBillingPanel();
+    };
+}
+
 // ── router ────────────────────────────────────────────────────────────────────
 
 async function route() {
@@ -795,6 +897,17 @@ async function route() {
 window.addEventListener('hashchange', () => route().catch(() => {}));
 
 (async () => {
+  // Back from a plan upgrade on Stripe: acknowledge, then let the webhook land.
+  const upgraded = new URLSearchParams(location.search).get('upgraded');
+  if (upgraded) {
+    history.replaceState(null, '', location.pathname + location.hash);
+    const t = document.createElement('div');
+    t.className = 'toast-ok';
+    t.setAttribute('role', 'status');
+    t.textContent = 'Payment received — your Ripley plan is being activated.';
+    document.body.append(t);
+    setTimeout(() => t.remove(), 6000);
+  }
   await loadMe().catch(() => (state.me = { loggedIn: false }));
   renderNav();
   await route();

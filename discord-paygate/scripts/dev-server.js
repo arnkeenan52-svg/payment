@@ -29,6 +29,7 @@ import adminMember from '../api/admin/member.js';
 import resync from '../api/resync.js';
 import myGuilds from '../api/my/guilds.js';
 import onboard from '../api/onboard.js';
+import billing from '../api/billing.js';
 
 const PUBLIC_DIR = path.join(config.root, 'public');
 const MIME = {
@@ -77,6 +78,7 @@ const routes = {
   '/api/resync': resync,
   '/api/my/guilds': myGuilds,
   '/api/onboard': onboard,
+  '/api/billing': billing,
 };
 
 const server = http.createServer(async (req, res) => {

@@ -20,4 +20,51 @@ async function load() {
 
 }
 
+// ── savings calculator ────────────────────────────────────────────────────────
+// Ripley's flat tiers vs. publicly listed competitor pricing. Percentages are
+// applied to gross monthly sales; the footnote on the page covers the caveats.
+
+const RIPLEY_TIERS = [
+  { max: 10, cost: 0, label: 'Free plan · 0% of sales' },
+  { max: 50, cost: 5.99, label: 'Starter · $5.99/mo · 0% of sales' },
+  { max: 500, cost: 19.99, label: 'Growth · $19.99/mo · 0% of sales' },
+  { max: Infinity, cost: 49.99, label: 'Scale · $49.99/mo · 0% of sales' },
+];
+
+function calc() {
+  const subsEl = $('#c-subs');
+  if (!subsEl) return;
+  const subs = Number(subsEl.value);
+  const price = Number($('#c-price').value);
+  const revenue = subs * price;
+  const tier = RIPLEY_TIERS.find((t) => subs <= t.max);
+  const costs = {
+    ripley: tier.cost,
+    whop: revenue * 0.03,
+    lp: 29 + revenue * 0.035,
+    uc: 49,
+  };
+  const max = Math.max(...Object.values(costs), 1);
+  const money = (n) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  $('#c-subs-out').textContent = String(subs);
+  $('#c-price-out').textContent = `$${price}`;
+  $('#c-ripley').textContent = money(costs.ripley);
+  $('#c-ripley-plan').textContent = tier.label;
+  $('#c-whop').textContent = money(costs.whop);
+  $('#c-lp').textContent = money(costs.lp);
+  $('#c-uc').textContent = money(costs.uc);
+  $('#c-bar-ripley').style.width = `${Math.max((costs.ripley / max) * 100, 1.5)}%`;
+  $('#c-bar-whop').style.width = `${(costs.whop / max) * 100}%`;
+  $('#c-bar-lp').style.width = `${(costs.lp / max) * 100}%`;
+  $('#c-bar-uc').style.width = `${(costs.uc / max) * 100}%`;
+  const worst = Math.max(costs.whop, costs.lp, costs.uc);
+  $('#c-save').textContent = `$${Math.max(Math.round((worst - costs.ripley) * 12), 0).toLocaleString()}`;
+}
+
+for (const id of ['c-subs', 'c-price']) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', calc);
+}
+calc();
+
 load().catch(() => {});

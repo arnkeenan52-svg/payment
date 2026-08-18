@@ -101,6 +101,18 @@ const ddl = (dialect) => {
     recorded_at ${int} NOT NULL
   );
 
+  -- The Ripley plan a store owner is on (platform billing). One row per
+  -- owner: their paid tier covers every store they run. status active or
+  -- past_due keeps the paid limits; anything else falls back to Free.
+  CREATE TABLE IF NOT EXISTS platform_billing (
+    owner_discord_id   TEXT PRIMARY KEY,
+    tier               TEXT NOT NULL,
+    provider_ref       TEXT,              -- Stripe subscription id
+    status             TEXT NOT NULL,
+    current_period_end ${int},
+    updated_at         ${int} NOT NULL
+  );
+
   -- Idempotency: the PRIMARY KEY *is* the claim. INSERT ... ON CONFLICT DO
   -- NOTHING and check the affected row count — first delivery wins at the
   -- constraint, not at a racy SELECT-then-INSERT. Claims are deleted again
@@ -485,6 +497,54 @@ export async function allSubscriptionsWithUsers(storeIds = null) {
 export async function membersWithLiveSubscriptions() {
   const { rows } = await q("SELECT DISTINCT store_id, discord_id FROM subscriptions WHERE status IN ('active', 'past_due')", []);
   return rows.map((r) => ({ storeId: r.store_id === null ? null : Number(r.store_id), discordId: r.discord_id }));
+}
+
+// How many distinct members currently hold a live membership across these
+// stores — the number the owner's Ripley plan is priced on. storeIds may mix
+// concrete ids and null (the built-in default store).
+export async function countLiveMembers(storeIds) {
+  const parts = [];
+  const params = [];
+  const concrete = storeIds.filter((x) => x !== null && x !== undefined);
+  if (storeIds.includes(null)) parts.push('store_id IS NULL');
+  if (concrete.length) {
+    parts.push(`store_id IN (${concrete.map(() => '?').join(', ')})`);
+    params.push(...concrete);
+  }
+  if (!parts.length) return 0;
+  const { rows } = await q(
+    `SELECT COUNT(DISTINCT discord_id) AS n FROM subscriptions
+     WHERE status IN ('active', 'past_due') AND (${parts.join(' OR ')})`,
+    params,
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
+// ── platform billing (the owner's Ripley plan) ───────────────────────────────
+
+export async function getPlatformBilling(ownerDiscordId) {
+  const { rows } = await q('SELECT * FROM platform_billing WHERE owner_discord_id = ?', [ownerDiscordId]);
+  return rows[0] ?? null;
+}
+
+export async function getPlatformBillingByRef(providerRef) {
+  const { rows } = await q('SELECT * FROM platform_billing WHERE provider_ref = ?', [providerRef]);
+  return rows[0] ?? null;
+}
+
+export async function upsertPlatformBilling({ ownerDiscordId, tier, providerRef = null, status, currentPeriodEnd = null }) {
+  await q(
+    `INSERT INTO platform_billing (owner_discord_id, tier, provider_ref, status, current_period_end, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT (owner_discord_id) DO UPDATE SET
+       tier = excluded.tier,
+       provider_ref = excluded.provider_ref,
+       status = excluded.status,
+       current_period_end = excluded.current_period_end,
+       updated_at = excluded.updated_at`,
+    [ownerDiscordId, tier, providerRef, status, currentPeriodEnd, now()],
+  );
+  return getPlatformBilling(ownerDiscordId);
 }
 
 // Rows whose entitlement has lapsed but still carry a live status; the cron

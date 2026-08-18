@@ -3,6 +3,7 @@ import { storeBySlug, planOf } from '../../src/services/stores.js';
 import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { createCheckoutSession } from '../../src/lib/stripe.js';
+import { memberLimitBlocks } from '../../src/services/billing.js';
 
 export default guard(async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -27,6 +28,15 @@ export default guard(async function handler(req, res) {
   const plan = body?.planId ? await planOf(store, body.planId) : null;
   if (!plan) {
     sendJson(res, 400, { error: 'unknown plan' });
+    return;
+  }
+  // The owner's Ripley plan caps how many members their stores can hold.
+  // Existing members are never blocked — only brand-new signups wait until
+  // the owner upgrades.
+  if (await memberLimitBlocks(store, uid)) {
+    sendJson(res, 409, {
+      error: 'This store is at its member limit right now. The owner has been shown an upgrade prompt — please try again soon.',
+    });
     return;
   }
   // Optional buyer note — rides into Stripe metadata so the owner sees it on
