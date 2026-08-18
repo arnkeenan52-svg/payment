@@ -14,7 +14,7 @@ function renderAccount(me) {
     $('#login').onclick = () => (window.location.href = '/auth/login');
     return;
   }
-  el.innerHTML = `<span>@${me.username ?? me.discordId}</span>`;
+  el.innerHTML = `<span>@${String(me.username ?? me.discordId).replace(/[&<>"']/g, '')}</span>`;
 }
 
 const serverLabel = (server) => server.name || 'the server';

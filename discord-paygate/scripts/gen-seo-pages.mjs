@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '35'; // keep in step with the ?v= asset version on index.html
+const V = '36'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -84,7 +84,7 @@ const USE_CASES = {
     h1: 'Sell Access to Your Trading Discord',
     desc: 'Charge for your trading signals, analysis channels and mentorship with 0% platform fees. Payments go straight to your own Stripe account.',
     intro:
-      'Signal groups, futures rooms, options flow, crypto research — if your calls are worth following, they are worth paying for. Ripley puts a checkout in front of your premium channels and delivers the member role the second payment clears.',
+      'Signal groups, futures rooms, options flow, crypto research: if your calls are worth following, they are worth paying for. Ripley puts a checkout in front of your premium channels and delivers the member role the second payment clears.',
     points: [
       ['Premium role, instantly', 'Buyers get the role that unlocks your signals channels within seconds of paying.'],
       ['Monthly or lifetime', 'Sell a monthly membership, a lifetime seat, or both at different prices.'],
@@ -101,7 +101,7 @@ const USE_CASES = {
     h1: 'Sell Memberships to Your Sports Picks Discord',
     desc: 'Monetize your sports handicapping community with 0% platform fees, instant role delivery and payments straight to your own Stripe account.',
     intro:
-      'Cappers live and die by their record — your revenue should not also die by platform fees. Ripley gates your picks channels behind a clean checkout, keeps 0% of your sales, and removes access automatically when a subscription lapses.',
+      'Cappers live and die by their record. Platform fees should not decide your revenue. Ripley gates your picks channels behind a clean checkout, keeps 0% of your sales, and removes access when a subscription lapses.',
     points: [
       ['Gate your picks channels', 'Free lobby for the record, paid role for the plays. Buyers unlock instantly.'],
       ['Weekly-equivalent pricing', 'Sell monthly memberships at any price point, or lifetime seats for your core group.'],
@@ -118,7 +118,7 @@ const USE_CASES = {
     h1: 'Sell Your Coaching Community on Discord',
     desc: 'Turn your fitness coaching Discord into a paid membership with 0% platform fees and automatic role delivery.',
     intro:
-      'Programming channels, check-in threads, form review, accountability groups — coaching happens in Discord already. Ripley adds the paywall: members pay on a hosted checkout and get their client role instantly.',
+      'Programming channels, check-in threads, form review, accountability groups: coaching happens in Discord already. Ripley adds the paywall. Members pay on a hosted checkout and get their client role in seconds.',
     points: [
       ['Client-only channels', 'Map each membership to a role that unlocks your coaching channels.'],
       ['Subscriptions that renew', 'Monthly billing through Stripe, cancellations handled automatically.'],
@@ -135,7 +135,7 @@ const USE_CASES = {
     h1: 'Sell Access to Your Cook Group',
     desc: 'Monetize your reselling Discord — monitors, guides and restock alerts — with 0% platform fees and instant role delivery.',
     intro:
-      'Monitors, sitelists, restock pings and flip guides are only valuable while they are fast — your checkout should be too. Ripley delivers the member role seconds after payment and takes 0% of your sales.',
+      'Monitors, sitelists, restock pings and flip guides earn while they are fast, so your checkout should be fast too. Ripley delivers the member role seconds after payment and takes 0% of your sales.',
     points: [
       ['Limited seats', 'Set a purchase limit on any product and Ripley stops selling when it is full.'],
       ['Renewals enforced', 'Lapsed subscriptions lose the role automatically — no freeloaders in your pings.'],
@@ -152,7 +152,7 @@ const USE_CASES = {
     h1: 'Sell Your Ecommerce Mentorship on Discord',
     desc: 'Charge for your dropshipping or ecom mentorship community with 0% platform fees and payments straight to your Stripe account.',
     intro:
-      'Product research channels, supplier contacts, store teardowns, weekly Q&A — the mentorship already lives in your server. Ripley adds the payment layer without taking a cut of it.',
+      'Product research channels, supplier contacts, store teardowns, weekly Q&A: the mentorship already lives in your server. Ripley adds the payment layer and takes no cut of it.',
     points: [
       ['Tiered mentorship', 'Sell basic and inner-circle tiers as separate products with separate roles.'],
       ['Your own Stripe account', 'Revenue lands in your Stripe directly. Ripley never touches your money.'],
@@ -169,7 +169,7 @@ const USE_CASES = {
     h1: 'Sell Exclusive Content in Your Discord',
     desc: 'Put your exclusive drops, early access and behind-the-scenes channels behind a paid Discord role — 0% platform fees.',
     intro:
-      'Early videos, extended cuts, sample packs, presets, art drops — creators run exclusives through Discord because that is where the community already is. Ripley gates those channels with a role your fans buy in one checkout.',
+      'Early videos, extended cuts, sample packs, presets, art drops: creators run exclusives through Discord because the community already lives there. Ripley gates those channels with a role your fans buy in one checkout.',
     points: [
       ['One link to share', 'ripleybot.com/yourname — put it in every bio. It is your store.'],
       ['Lifetime or recurring', 'Sell a one-time supporter pass or a monthly membership.'],
@@ -318,7 +318,7 @@ function vsPage(slug, c) {
       <div class="hero-inner">
         <h1>Ripley vs ${esc(c.name)}</h1>
         <p class="hero-sub">${esc(c.blurb)}</p>
-        <p class="hero-sub">Ripley is the other model: a flat plan, <strong>0% of your sales</strong>, and payments that land in <strong>your own Stripe account</strong> while roles are delivered automatically.</p>
+        <p class="hero-sub">Ripley is the other model: a flat plan, <strong>0% of your sales</strong>, and payments that land in <strong>your own Stripe account</strong> with roles delivered in seconds.</p>
       </div>
     </section>
     <section class="xsection">

@@ -56,45 +56,47 @@ export async function receiptFrom() {
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// The site's own palette, in email-safe solid hex: near-black ground,
+// hairline borders, the green accent for the good news.
 export function receiptHtml({ storeName, planName, amountUsd, lifetime, discordUsername, reference, dateIso }) {
   const amount = `$${Number(amountUsd).toFixed(2)} USD`;
   const row = (k, v) => `
     <tr>
-      <td style="padding:9px 0;color:#8a8f98;font-size:13px;border-bottom:1px solid #eef0f3;">${esc(k)}</td>
-      <td style="padding:9px 0;color:#0b0b0c;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #eef0f3;">${esc(v)}</td>
+      <td style="padding:9px 0;color:#9a9f98;font-size:13px;border-bottom:1px solid #232323;">${esc(k)}</td>
+      <td style="padding:9px 0;color:#f2f2f0;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #232323;">${esc(v)}</td>
     </tr>`;
   return `
-  <div style="background:#f4f5f7;padding:36px 16px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <div style="max-width:460px;margin:0 auto;background:#ffffff;border-radius:8px;padding:32px;border:1px solid #e6e8ec;">
+  <div style="background:#0a0a0a;padding:36px 16px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <div style="max-width:460px;margin:0 auto;background:#141414;border-radius:8px;padding:32px;border:1px solid #262626;">
       <table role="presentation" style="border-collapse:collapse;margin:0 0 14px;"><tr>
-        <td style="width:34px;height:34px;background:#e9f9ef;border:1px solid #bfeccd;border-radius:6px;text-align:center;vertical-align:middle;color:#16a34a;font-size:17px;font-weight:700;line-height:34px;">&#10003;</td>
+        <td style="width:34px;height:34px;background:#122b1c;border:1px solid #1e5533;border-radius:6px;text-align:center;vertical-align:middle;color:#4ade80;font-size:17px;font-weight:700;line-height:34px;">&#10003;</td>
         <td style="padding-left:12px;">
-          <span style="display:block;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;font-weight:800;">Membership Activated</span>
+          <span style="display:block;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#4ade80;font-weight:800;">Membership Activated</span>
         </td>
       </tr></table>
-      <h1 style="margin:0 0 10px;font-size:21px;line-height:1.3;color:#0b0b0c;">Your ${esc(storeName)} membership is active</h1>
-      <p style="margin:0 0 20px;font-size:14px;color:#3f4450;line-height:1.65;">
-        <strong>${esc(planName)}</strong> is live on
-        <strong>@${esc(discordUsername ?? 'your Discord account')}</strong> — your roles have been
-        delivered and every members-only channel is now open to you.
+      <h1 style="margin:0 0 10px;font-size:21px;line-height:1.3;color:#f2f2f0;">Your ${esc(storeName)} membership is active</h1>
+      <p style="margin:0 0 20px;font-size:14px;color:#b9beb6;line-height:1.65;">
+        <strong style="color:#f2f2f0;">${esc(planName)}</strong> is active on
+        <strong style="color:#f2f2f0;">@${esc(discordUsername ?? 'your Discord account')}</strong>.
+        Your role is on, and every members-only channel is open to you.
       </p>
-      <table style="width:100%;border-collapse:collapse;border-top:1px solid #eef0f3;">
+      <table style="width:100%;border-collapse:collapse;border-top:1px solid #232323;">
         ${row('Server', storeName)}
         ${row('Membership', planName)}
-        ${row('Access', lifetime ? 'Lifetime — never expires' : 'Renews monthly')}
+        ${row('Access', lifetime ? 'Lifetime, never expires' : 'Renews monthly')}
         ${row('Amount paid', amount)}
         ${row('Date', dateIso)}
         ${row('Reference', reference)}
       </table>
       <div style="margin-top:20px;">
         <a href="${esc(config.publicBaseUrl)}/account"
-           style="display:inline-block;background:#0b0b0c;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:11px 20px;border-radius:6px;">
+           style="display:inline-block;background:#4ade80;color:#08130c;text-decoration:none;font-size:13px;font-weight:700;padding:11px 20px;border-radius:6px;">
           Manage Membership
         </a>
       </div>
-      <p style="margin:20px 0 0;font-size:11.5px;color:#8a8f98;line-height:1.6;">
-        Payment processed by Stripe. Sent by Ripley on behalf of ${esc(storeName)}.
-        If anything looks wrong, reply to this email.
+      <p style="margin:20px 0 0;font-size:11.5px;color:#9a9f98;line-height:1.6;">
+        Stripe processed your payment. Ripley sent this receipt for ${esc(storeName)}.
+        Reply to this email if anything looks wrong.
       </p>
     </div>
   </div>`;

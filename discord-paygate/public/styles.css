@@ -1355,20 +1355,15 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .order-card .label { font-size: 13.5px; font-weight: 700; margin: 4px 0 0; }
 .order-card .methods { grid-template-columns: repeat(auto-fill, 120px); }
 .order-card .method { flex-direction: column; gap: 8px; justify-content: center; min-height: 84px; font-size: 13.5px; font-weight: 600; }
-/* one payment method (the usual case): the tile owns the whole row, laid
-   out horizontally with the Stripe wordmark at logo size */
+/* one payment method (the usual case): the tile owns the whole row — a
+   card glyph with the label beneath it, centered */
 .order-card .methods:has(.method:only-child) { grid-template-columns: 1fr; }
 .order-card .method:only-child {
   grid-column: 1 / -1;
-  flex-direction: row;
-  /* label left, brand mark right — side by side they read as one word */
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 64px;
-  padding: 0 20px;
-  font-size: 15.5px;
+  min-height: 96px;
+  font-size: 15px;
 }
-.order-card .method:only-child .provider-badge { font-size: 19px; }
+.order-card .method:only-child svg { width: 30px; height: 30px; }
 .order-card .pay-panel { border: none; padding: 4px 0 0; display: flex; flex-direction: column; gap: 8px; }
 .order-card #pay-title { font-size: 16px; margin: 0; }
 .order-card .pay-sub { margin: 0; font-size: 13px; color: var(--dim); }

@@ -11,6 +11,9 @@ const loginStoreQ = STORE_SLUG ? `&store=${encodeURIComponent(STORE_SLUG)}` : ''
 const fmtDate = (unix) =>
   new Date(unix * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 const fmtPrice = (usd) => `$${usd.toFixed(2)}`;
+// Product names and usernames are other people's text — escape everything
+// that rides into innerHTML, no exceptions.
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const ICON_CARD =
   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>';
@@ -79,7 +82,7 @@ function renderAccount() {
   const entitled = (me.subscriptions ?? []).filter((s) => s.entitled);
   const badge = entitled.length ? `<span class="badge">${entitled.map((s) => s.planName).join(' · ')}</span>` : '';
   const links = `<a class="nav-link" href="/account">Account</a>${me.isOwner ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}`;
-  el.innerHTML = `${badge}${links}<span>@${me.username ?? me.discordId}</span><button class="btn-ghost" id="logout">Sign out</button>`;
+  el.innerHTML = `${badge}${links}<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }
 
@@ -159,7 +162,7 @@ function renderOptions() {
     row.type = 'button';
     row.className = `option${plan.id === state.planId ? ' selected' : ''}`;
     row.innerHTML = `
-      <span class="opt-name">${plan.lifetime ? (state.plans.length > 1 ? plan.name : 'One Time') : plan.name}<small>${plan.lifetime ? '(lifetime)' : `/ ${plan.interval}`}</small></span>
+      <span class="opt-name">${esc(plan.lifetime ? (state.plans.length > 1 ? plan.name : 'One Time') : plan.name)}<small>${plan.lifetime ? '(lifetime)' : `/ ${esc(plan.interval)}`}</small></span>
       <span class="opt-price">${fmtPrice(plan.priceUsd)}</span>`;
     row.onclick = () => {
       state.planId = plan.id;
@@ -176,7 +179,7 @@ function renderMethods() {
   box.innerHTML = '';
   const methods = [];
   if (state.capabilities.crypto) methods.push({ id: 'coinbase', html: `${ICON_CRYPTO}<span>Crypto</span>` });
-  if (state.capabilities.stripe) methods.push({ id: 'stripe', html: '<span>Card</span><span class="provider-badge">Stripe</span>' });
+  if (state.capabilities.stripe) methods.push({ id: 'stripe', html: `${ICON_CARD}<span>Card</span>` });
   if (!methods.some((m) => m.id === state.method)) state.method = methods.at(-1)?.id ?? null;
 
   for (const m of methods) {
@@ -205,7 +208,7 @@ function renderPayPanel() {
   if (!state.method) {
     panel.hidden = true;
     $('#notice').innerHTML =
-      '<div class="callout pending">Checkout is still being set up by the owner — check back soon.</div>';
+      '<div class="callout pending">The owner is still setting up checkout. Check back soon.</div>';
     return;
   }
   panel.hidden = false;
@@ -224,7 +227,7 @@ function renderPayPanel() {
   const note = $('#redirect-note');
   const showingPay = Boolean($('#cta-area .pay-btn')) && state.me.loggedIn;
   note.textContent = showingPay
-    ? `You’ll be redirected to ${card ? "Stripe’s" : "Coinbase’s"} secure checkout page to complete your payment.`
+    ? `${card ? 'Stripe' : 'Coinbase'}’s secure checkout opens next to finish your payment.`
     : '';
 }
 
@@ -295,7 +298,7 @@ async function applyDiscount() {
     }
     if (!res.ok) throw new Error(data.error || 'That discount code is not valid for this product.');
     state.discount = { code, planId: plan.id, discountedUsd: data.discountedUsd, saveUsd: data.saveUsd };
-    msg.textContent = `${code} applied — you save ${fmtPrice(data.saveUsd)}. New total: ${fmtPrice(data.discountedUsd)}.`;
+    msg.textContent = `${code} applied. You save ${fmtPrice(data.saveUsd)} — new total ${fmtPrice(data.discountedUsd)}.`;
     msg.className = 'discount-msg ok';
   } catch (err) {
     state.discount = null;
@@ -390,7 +393,7 @@ async function pay(btn, plan) {
     } catch {
       data = {};
     }
-    if (!res.ok || !data.url) throw new Error(data.error || 'Payment could not be started. Please try again in a moment.');
+    if (!res.ok || !data.url) throw new Error(data.error || 'The payment did not start. Try again in a moment.');
     window.location.href = data.url;
   } catch (err) {
     showPayError(err.message, () => pay(btn, plan));
