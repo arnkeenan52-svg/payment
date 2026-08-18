@@ -46,40 +46,85 @@ if (menuBtn) {
   const v = $('.hero-video');
   if (!v) return;
   const overlay = $('#video-play');
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Last resort: swap the <video> for the animated WebP. An <img> has no
+  // codec negotiation, no autoplay policy, no range requests — every modern
+  // phone and desktop simply plays it. The hero can no longer end up still.
+  let fellBack = false;
+  const fallbackToImage = () => {
+    if (fellBack) return;
+    fellBack = true;
+    const img = document.createElement('img');
+    img.src = '/hero-demo.webp?v=16';
+    img.alt = v.getAttribute('aria-label') ?? '';
+    img.className = 'hero-video';
+    img.width = 1280;
+    img.height = 800;
+    if (overlay) overlay.hidden = true;
+    v.replaceWith(img);
+  };
+
+  if (reduce) {
     v.removeAttribute('autoplay');
     v.pause();
     if (overlay) {
       overlay.hidden = false;
       overlay.onclick = () => {
         v.muted = true;
-        v.play().then(() => (overlay.hidden = true)).catch(() => {});
+        v.play().then(() => (overlay.hidden = true)).catch(fallbackToImage);
       };
     }
     return;
   }
-  // Autoplay is refused by some browsers (iOS Low Power Mode, strict
-  // policies). Strategy: nudge with play(); retry on the FIRST user gesture
-  // (a gesture always unlocks playback); and if it is still paused shortly
-  // after the video is ready, show a tap-to-play button so it never reads
-  // as a broken image.
+
+  // Explicit source management — Safari's <source> negotiation has failed us
+  // before. Pick what this browser says it can play, chain to the next on
+  // error, and give up into the animated image.
   v.muted = true;
+  const sources = [
+    ['/hero-demo.mp4?v=16', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=16', 'video/webm; codecs="vp9"'],
+  ];
+  const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
+  if (!playable.length) return fallbackToImage();
+
   const showOverlayIfPaused = () => {
-    if (overlay) overlay.hidden = !v.paused;
+    if (overlay) overlay.hidden = fellBack || !v.paused;
   };
   const tryPlay = () => v.play().then(showOverlayIfPaused).catch(showOverlayIfPaused);
-  if (v.readyState >= 2) tryPlay();
-  else v.addEventListener('canplay', tryPlay, { once: true });
+
+  let at = 0;
+  const load = () => {
+    v.src = playable[at][0];
+    v.load();
+    tryPlay();
+  };
+  v.addEventListener('error', () => {
+    at += 1;
+    if (at < playable.length) load();
+    else fallbackToImage();
+  });
+
   for (const ev of ['touchstart', 'pointerdown', 'scroll']) {
-    window.addEventListener(ev, () => v.paused && tryPlay(), { once: true, passive: true });
+    window.addEventListener(ev, () => !fellBack && v.paused && tryPlay(), { once: true, passive: true });
   }
   if (overlay)
     overlay.onclick = () => {
       v.muted = true;
-      v.play().then(() => (overlay.hidden = true)).catch(() => {});
+      v.play().then(() => (overlay.hidden = true)).catch(fallbackToImage);
     };
   v.addEventListener('playing', () => overlay && (overlay.hidden = true));
-  setTimeout(showOverlayIfPaused, 2500);
+
+  // Watchdog: if no frame data ever arrives, the media stack is broken here —
+  // use the image. Data but paused → show tap-to-play.
+  setTimeout(() => {
+    if (fellBack) return;
+    if (v.readyState < 2) fallbackToImage();
+    else showOverlayIfPaused();
+  }, 5000);
+
+  load();
 })();
 
 // ── pricing: monthly / yearly toggle (two months free on yearly) ─────────────

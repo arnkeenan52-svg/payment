@@ -1548,3 +1548,10 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 .hero-left .hero-sub { max-width: 640px; }
 .hero-shot { width: min(900px, calc(100% - 8px)); }
 .xhero { padding-top: 72px; }
+
+/* pre-aspect-ratio Safari: never let the media box collapse */
+@supports not (aspect-ratio: 1 / 1) {
+  .browser-frame .hero-video { min-height: 340px; }
+}
+.browser-frame { display: flex; flex-direction: column; }
+.browser-frame .hero-video { flex: none; }

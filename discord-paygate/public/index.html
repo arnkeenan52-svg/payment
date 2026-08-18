@@ -16,7 +16,7 @@
   <meta name="twitter:image" content="https://ripleybot.com/product.jpg" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css?v=16" />
 </head>
 <body class="home">
   <header class="top xoe-nav">
@@ -66,15 +66,15 @@
         <button class="video-play" id="video-play" hidden aria-label="Play the product tour">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
         </button>
-        <video class="hero-video" poster="/shot-dashboard.png"
+        <video class="hero-video" poster="/shot-dashboard.png?v=16"
           autoplay muted loop playsinline preload="auto" width="1280" height="800"
           aria-label="Ripley product tour: live analytics with period comparison, products, members and the checkout">
           <!-- Codec strings matter: Safari "maybe"-claims bare video/webm, then
                fails on VP9 and freezes on the poster. With codecs declared it
                rejects the WebM and takes the H.264 MP4; Chromium builds without
                H.264 skip the MP4 and take the WebM. -->
-          <source src="/hero-demo.mp4" type='video/mp4; codecs="avc1.640020"' />
-          <source src="/hero-demo.webm" type='video/webm; codecs="vp9"' />
+          <source src="/hero-demo.mp4?v=16" type='video/mp4; codecs="avc1.640020"' />
+          <source src="/hero-demo.webm?v=16" type='video/webm; codecs="vp9"' />
         </video>
       </div>
     </section>
@@ -394,6 +394,6 @@
     <p class="footer-disclaimer">Not affiliated with Discord Inc. Payments are processed by Stripe on each store owner’s own account.</p>
   </footer>
 
-  <script src="/home.js"></script>
+  <script src="/home.js?v=16"></script>
 </body>
 </html>
