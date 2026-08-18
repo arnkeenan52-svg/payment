@@ -17,7 +17,7 @@
   <!-- og:end -->
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=32" />
+  <link rel="stylesheet" href="/styles.css?v=33" />
 </head>
 <body>
   <header class="top">
@@ -61,14 +61,16 @@
       <section class="pay-panel" id="pay-panel">
         <h2 id="pay-title">Pay with Card</h2>
         <p class="pay-sub" id="pay-sub">Secure payment processed by Stripe</p>
-        <div class="order-extra" id="discount-field" hidden>
-          <label class="field"><span class="field-label">Discount code</span>
+        <details class="order-extra" id="discount-field" hidden>
+          <summary id="discount-summary">Have a discount code?</summary>
+          <div class="order-extra-body">
             <span class="discount-row">
-              <input id="discount-code" type="text" maxlength="32" placeholder="LAUNCH20" spellcheck="false" autocomplete="off" style="text-transform:uppercase" />
+              <input id="discount-code" type="text" maxlength="32" placeholder="LAUNCH20" spellcheck="false" autocomplete="off" style="text-transform:uppercase" aria-label="Discount code" />
               <button type="button" class="apply-btn" id="discount-apply">Apply</button>
-            </span></label>
-          <p class="discount-msg" id="discount-msg" role="status"></p>
-        </div>
+            </span>
+            <p class="discount-msg" id="discount-msg" role="status"></p>
+          </div>
+        </details>
         <div id="cta-area"></div>
         <p class="redirect-note" id="redirect-note"></p>
         <div class="trust-row" id="trust-row"></div>
@@ -83,6 +85,6 @@
     <img class="powered-mark" src="/ripley.png" alt="Ripley" height="18" />
   </footer>
 
-  <script src="/app.js?v=32"></script>
+  <script src="/app.js?v=33"></script>
 </body>
 </html>

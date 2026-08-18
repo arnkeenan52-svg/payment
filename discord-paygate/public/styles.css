@@ -1358,8 +1358,15 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .order-card .pay-panel { border: none; padding: 4px 0 0; display: flex; flex-direction: column; gap: 8px; }
 .order-card #pay-title { font-size: 16px; margin: 0; }
 .order-card .pay-sub { margin: 0; font-size: 13px; color: var(--dim); }
-.order-extra { border: 1px solid var(--edge); border-radius: 8px; padding: 12px 14px; }
-.order-extra .field { padding: 0; }
+.order-extra { border: 1px solid var(--edge); border-radius: 8px; padding: 0; }
+.order-extra summary {
+  cursor: pointer; padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--dim); list-style: none;
+}
+.order-extra summary::-webkit-details-marker { display: none; }
+.order-extra summary::after { content: '+'; float: right; font-weight: 700; }
+.order-extra[open] summary::after { content: '–'; }
+.order-extra summary:hover { color: var(--ink); }
+.order-extra-body { padding: 0 14px 12px; }
 .discount-row { display: flex; gap: 8px; }
 .discount-row input { flex: 1 1 auto; min-width: 0; }
 .apply-btn {

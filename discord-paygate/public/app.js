@@ -304,7 +304,15 @@ async function applyDiscount() {
   }
   btn.disabled = false;
   btn.textContent = 'Apply';
+  syncDiscountSummary();
   renderCta();
+}
+
+// The dropdown's label shows the applied code even while collapsed.
+function syncDiscountSummary() {
+  const summary = $('#discount-summary');
+  if (!summary) return;
+  summary.textContent = state.discount ? `Discount applied — ${state.discount.code}` : 'Have a discount code?';
 }
 
 function wireDiscount() {
@@ -325,6 +333,7 @@ function wireDiscount() {
       state.discount = null;
       msg.textContent = '';
       msg.className = 'discount-msg';
+      syncDiscountSummary();
       renderCta();
     }
   });

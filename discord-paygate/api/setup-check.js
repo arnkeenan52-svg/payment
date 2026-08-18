@@ -27,5 +27,11 @@ export default guard(async function handler(req, res) {
     sendJson(res, 200, cache.report);
     return;
   }
-  sendJson(res, 200, { ok: cache.report.ok });
+  // `receipts` says whether buyer confirmation emails actually deliver
+  // (key present AND a verified sender domain) — an on/off flag with zero
+  // configuration detail, so the pipeline is verifiable from the outside.
+  sendJson(res, 200, {
+    ok: cache.report.ok,
+    receipts: cache.report.checks.some((c) => c.id === 'email:resend-sender' && c.status === 'pass'),
+  });
 });

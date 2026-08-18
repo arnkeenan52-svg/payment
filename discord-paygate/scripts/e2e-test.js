@@ -1029,7 +1029,7 @@ test('setup doctor: healthy config passes; endpoint gates detail behind CRON_SEC
   assert.ok(full.checks.some((c) => c.id === 'discord:bot-auth' && /tradeleaks-bot/.test(c.detail)), 'reports bot username');
 
   const summary = await (await fetch(`${appUrl}/api/setup-check`)).json();
-  assert.deepEqual(summary, { ok: true }, 'unauthenticated callers get the bare ok flag and nothing else');
+  assert.deepEqual(summary, { ok: true, receipts: true }, 'unauthenticated callers get the bare flags and nothing else');
 
   // The signed-in OWNER gets the full report (drives the setup checklist) …
   const ownerView = await (await fetch(`${appUrl}/api/setup-check?fresh=1`, { headers: { cookie: u1Cookie } })).json();
@@ -1046,7 +1046,7 @@ test('setup doctor: healthy config passes; endpoint gates detail behind CRON_SEC
   });
   const u3Cookie = cb3.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
   const nonOwner = await (await fetch(`${appUrl}/api/setup-check`, { headers: { cookie: u3Cookie } })).json();
-  assert.deepEqual(nonOwner, { ok: true }, 'a non-owner session must not unlock the report');
+  assert.deepEqual(nonOwner, { ok: true, receipts: true }, 'a non-owner session must not unlock the report');
 });
 
 test('Vercel parsed-body regression: webhook never crashes, never touches the lazy body getter', async () => {
@@ -1118,7 +1118,7 @@ test('setup doctor: bot role at/below a managed role fails loudly with the drag-
     const broken = await spawnApp({ ...phase1Env, PORT: '0' });
     try {
       const summary = await (await fetch(`${broken.url}/api/setup-check`)).json();
-      assert.deepEqual(summary, { ok: false }, 'public summary must report failing (drives the storefront banner)');
+      assert.deepEqual(summary, { ok: false, receipts: true }, 'public summary must report failing (drives the storefront banner)');
       const detail = await (await fetch(`${broken.url}/api/setup-check`, {
         headers: { authorization: `Bearer ${CRON_SECRET}` },
       })).json();
