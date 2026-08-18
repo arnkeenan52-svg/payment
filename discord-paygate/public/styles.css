@@ -19,6 +19,9 @@
   --bad: #f87171;
   --font-head: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  /* Motion tokens (Emil Kowalski's curves — built-in easings are too weak). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1146,3 +1149,52 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
   color: var(--ink); font-size: 13.5px; font-weight: 600;
   padding: 12px 18px; border-radius: 999px; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
 }
+
+/* ── motion pass (emilkowalski/skills: animate + find-animation-opportunities) ─
+   Feedback: press scale on every pressable. State indication: FAQ open fade,
+   usage/calc bars. Preventing jarring change: scroll reveals on the marketing
+   page only, toast entrance. All transform/opacity, all under budget, hover
+   motion gated to fine pointers, reduced-motion keeps opacity drops movement. */
+.btn-fill, .btn-pill, .btn-secondary, .btn-ghost, .apptab, .g-row, .role-row {
+  transition-property: transform, background-color, border-color, color, opacity, filter;
+  transition-duration: 140ms;
+  transition-timing-function: var(--ease-out);
+}
+.btn-fill:active, .btn-pill:active, .btn-secondary:active, .btn-ghost:active { transform: scale(0.97); }
+.g-row:active, .role-row:active:not(:disabled), .tier-buy:active { transform: scale(0.985); }
+
+@media (hover: hover) and (pointer: fine) {
+  .price-card { transition: transform 200ms var(--ease-out), border-color 200ms var(--ease-out); }
+  .price-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.16); }
+  .price-card.popular:hover { border-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+}
+
+/* FAQ answer fades in as the details element opens (display toggle → @starting-style). */
+.faq-item > p { transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out); }
+@starting-style {
+  .faq-item[open] > p { opacity: 0; transform: translateY(-4px); }
+}
+
+/* Toast enters from where it lives (bottom), never teleports. */
+.toast-ok { transition: opacity 240ms var(--ease-out), transform 240ms var(--ease-out); }
+@starting-style {
+  .toast-ok { opacity: 0; transform: translateX(-50%) translateY(12px); }
+}
+
+/* Usage meter fills rather than snapping. */
+.usage-bar span { transition: width 300ms var(--ease-out); }
+
+/* Scroll reveal (marketing page only; occasional-frequency, explanation tier).
+   JS adds .rv on load-eligible blocks and .rv-in when they enter the viewport;
+   grids get a 40–70ms stagger via --rv-d. Without JS nothing is ever hidden. */
+.rv { opacity: 0; transform: translateY(14px); }
+.rv-in { opacity: 1; transform: none; transition: opacity 480ms var(--ease-out) var(--rv-d, 0ms), transform 480ms var(--ease-out) var(--rv-d, 0ms); }
+@media (prefers-reduced-motion: reduce) {
+  .rv { transform: none; }
+  .rv-in { transition: opacity 240ms ease; }
+  .btn-fill:active, .btn-pill:active, .btn-secondary:active, .btn-ghost:active,
+  .g-row:active, .role-row:active:not(:disabled), .tier-buy:active { transform: none; }
+  .price-card:hover { transform: none; }
+  .faq-item > p, .toast-ok { transition: opacity 200ms ease; }
+}
+@media print { .rv { opacity: 1; transform: none; } }

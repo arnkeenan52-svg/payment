@@ -67,4 +67,36 @@ for (const id of ['c-subs', 'c-price']) {
 }
 calc();
 
+// ── scroll reveal ─────────────────────────────────────────────────────────────
+// Marketing page only: sections fade up as they enter the viewport; grid items
+// stagger 60ms. Content is only hidden AFTER JS runs, so no-JS never blanks
+// the page, and reduced-motion gets a plain fast fade (see styles.css).
+(() => {
+  if (!('IntersectionObserver' in window)) return;
+  const singles = document.querySelectorAll('.frow-copy, .frow-visual, .calc, .section-title, .section-sub, .price-note, .xcta h2');
+  const grids = document.querySelectorAll('.trio-grid, .steps-grid, .price-grid');
+  const targets = [];
+  for (const el of singles) targets.push(el);
+  for (const grid of grids)
+    [...grid.children].forEach((el, i) => {
+      el.style.setProperty('--rv-d', `${Math.min(i * 60, 240)}ms`);
+      targets.push(el);
+    });
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries)
+        if (e.isIntersecting) {
+          e.target.classList.add('rv-in');
+          io.unobserve(e.target);
+        }
+    },
+    { rootMargin: '0px 0px -8% 0px' },
+  );
+  for (const el of targets) {
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.9) continue; // already visible: never hide it
+    el.classList.add('rv');
+    io.observe(el);
+  }
+})();
+
 load().catch(() => {});

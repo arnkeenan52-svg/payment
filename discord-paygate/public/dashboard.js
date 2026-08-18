@@ -120,7 +120,7 @@ async function viewPicker() {
         <span>Logged in as <strong>${esc(me.username ?? me.discordId)}</strong></span>
         <button class="btn-ghost" id="logout2">Logout</button>
       </div>
-      <div class="picker-welcome"><h1>Welcome to Ripley</h1><p>Let's get your Discord server monetized in a few steps.</p></div>
+      <div class="picker-welcome"><h1>Welcome to Ripley</h1><p>Let’s get your Discord server monetized in a few steps.</p></div>
       <p class="picker-label">Your Servers</p>
       <div class="g-list" id="g-list"><div class="sk-row panel" aria-hidden="true"></div><div class="sk-row panel" aria-hidden="true"></div></div>
     </section></div>`;
@@ -167,7 +167,7 @@ function wizShell(g, current, inner) {
   $('#content').innerHTML = `
     <div class="wiz-wrap"><section class="panel wiz-card">
       <div class="wiz-head">
-        <div><h1>Set up ${esc(g.name)}</h1><p class="note-help">Let's get your Discord server monetized in a few steps.</p></div>
+        <div><h1>Set up ${esc(g.name)}</h1><p class="note-help">Let’s get your Discord server monetized in a few steps.</p></div>
         <a class="wiz-back" href="#/">${I.back} All servers</a>
       </div>
       ${stepper(current)}
@@ -343,7 +343,7 @@ function renderSetupStep(g, step) {
       $('#role-hint').textContent = data.error ?? 'Could not load roles — refresh to retry.';
       return;
     }
-    $('#role-hint').innerHTML = `Greyed roles sit at or above the bot's top role <strong>${esc(data.botTop.name)}</strong> — drag Ripley's role higher in Server Settings → Roles to unlock them.`;
+    $('#role-hint').innerHTML = `Greyed roles sit at or above the bot’s top role <strong>${esc(data.botTop.name)}</strong> — drag Ripley’s role higher in Server Settings → Roles to unlock them.`;
     const list = $('#role-list');
     list.innerHTML = '';
     for (const role of data.roles) {

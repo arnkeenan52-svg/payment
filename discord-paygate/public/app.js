@@ -206,7 +206,7 @@ function renderPayPanel() {
   const note = $('#redirect-note');
   const showingPay = Boolean($('#cta-area .pay-btn')) && state.me.loggedIn;
   note.textContent = showingPay
-    ? `You'll be redirected to ${card ? "Stripe's" : "Coinbase's"} secure checkout page to complete your payment.`
+    ? `You’ll be redirected to ${card ? "Stripe’s" : "Coinbase’s"} secure checkout page to complete your payment.`
     : '';
 }
 
