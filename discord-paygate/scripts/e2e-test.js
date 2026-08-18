@@ -2213,9 +2213,9 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   // The completed order also pinged the configured sales channel.
   const salePost = discord.channelPosts.at(-1);
   assert.equal(salePost.channelId, '800000000000000002');
-  assert.match(salePost.body.embeds[0].title, /New order/, 'every order posts to the sales channel');
-  assert.match(salePost.body.embeds[0].description, /VIP Access/, 'the ping names the product');
-  assert.match(salePost.body.embeds[0].fields[0].value, /\$59\.99/, 'the ping carries the amount');
+  assert.match(salePost.body.embeds[0].title, /New Subscriber/, 'every order posts to the sales channel');
+  assert.match(salePost.body.embeds[0].description, /just subscribed to \*\*VIP Access\*\*/, 'the ping names the product');
+  assert.match(salePost.body.embeds[0].description, /Payment received: \*\*\$59\.99\*\*/, 'the ping carries the amount');
   // FIVER is scoped to plan2 — wrong product refused, then its single use is spent.
   assert.equal((await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'FIVER' })).status, 400, 'scoped code refuses other products');
   // (owner deletes it instead of spending it — delete works)

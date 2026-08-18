@@ -57,13 +57,11 @@ export async function processStripeEvent(event, routeStore = null) {
         const amount = plan?.priceUsd ?? (obj.amount_total ?? 0) / 100;
         await postChannelMessage(store.notifyChannelId, {
           embeds: [{
-            title: 'New order',
-            description: `**${buyer}** bought **${plan?.name ?? planId}**`,
+            title: '🎉 New Subscriber!',
+            description:
+              `**${buyer}** just subscribed to **${plan?.name ?? planId}**` +
+              `${plan?.lifetime ? ' (lifetime)' : ''}.\n\nPayment received: **$${Number(amount).toFixed(2)}**`,
             color: 0x4ade80,
-            fields: [
-              { name: 'Amount', value: `$${Number(amount).toFixed(2)}`, inline: true },
-              { name: 'Access', value: plan?.lifetime ? 'Lifetime' : 'Monthly', inline: true },
-            ],
             footer: { text: store.name },
             timestamp: new Date().toISOString(),
           }],
