@@ -2031,3 +2031,98 @@ a.kicker:hover { color: var(--ink); }
   border: 1px solid var(--edge); border-radius: 999px; padding: 3px 8px; white-space: nowrap;
 }
 .feat-cell p { margin: 0; font-size: 13px; line-height: 1.6; color: rgba(255, 255, 255, 0.55); }
+
+/* ── motion layer: load-in, reveals, menu, press feedback ───────────────────
+   Fast, transform/opacity only, every piece gated on reduced-motion. */
+
+/* anchors glide and never hide under the sticky nav */
+html { scroll-padding-top: 76px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+/* hero load-in: headline → sub → buttons → trust line → frame */
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.xhero h1 { animation: rise 0.65s var(--ease-out) backwards; }
+.xhero .hero-sub { animation: rise 0.65s var(--ease-out) 0.08s backwards; }
+.xhero .hero-ctas { animation: rise 0.65s var(--ease-out) 0.16s backwards; }
+.xhero .hero-trust { animation: rise 0.65s var(--ease-out) 0.22s backwards; }
+.xhero .hero-shot { animation: rise 0.8s var(--ease-out) 0.3s backwards; }
+
+/* scroll reveals (class applied by home.js only when motion is allowed) */
+.rv { opacity: 0; translate: 0 16px; transition: opacity 0.6s var(--ease-out), translate 0.6s var(--ease-out); }
+.rv.in { opacity: 1; translate: 0 0; }
+
+/* nav: floats over the hero, gains glass + hairline once scrolled */
+body.home .top {
+  background: transparent; border-bottom-color: transparent;
+  transition: background 0.25s ease-out, border-color 0.25s ease-out;
+}
+body.home .top.scrolled {
+  background: color-mix(in srgb, #0a0a0a 82%, transparent);
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+/* press feedback everywhere, via the standalone scale property so it
+   composes with existing transform hovers */
+.btn-fill, .btn-secondary, .btn-pill, .btn-ghost, .btn-blurple, .pay-btn,
+.apply-btn, .menu-btn, .seg-btn, .option, .method, .price-cta, .g-row { transition-property: background, border-color, color, filter; transition-duration: 140ms; }
+.btn-fill, .btn-secondary, .btn-pill, .btn-ghost, .btn-blurple, .pay-btn,
+.apply-btn, .menu-btn, .seg-btn, .option, .method, .price-cta {
+  scale: 1;
+  transition: scale 110ms var(--ease-out), background 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out, filter 140ms ease-out;
+}
+.btn-fill:active:not(:disabled), .btn-secondary:active:not(:disabled), .btn-pill:active:not(:disabled),
+.btn-ghost:active:not(:disabled), .btn-blurple:active:not(:disabled), .pay-btn:active:not(:disabled),
+.apply-btn:active:not(:disabled), .menu-btn:active, .seg-btn:active, .option:active, .method:active,
+.price-cta:active { scale: 0.97; }
+
+/* hamburger: two bars that morph into a clean X */
+.menu-btn { flex-direction: column; gap: 5px; }
+.mb-bar {
+  display: block; width: 16px; height: 1.8px; border-radius: 1px; background: var(--ink);
+  transition: transform 0.22s var(--ease-in-out);
+}
+.menu-btn[aria-expanded="true"] .mb-bar:first-child { transform: translateY(3.4px) rotate(45deg); }
+.menu-btn[aria-expanded="true"] .mb-bar:last-child { transform: translateY(-3.4px) rotate(-45deg); }
+
+/* menu sheet: slides down as glass, links land staggered; scrim dims the page */
+.menu-scrim {
+  position: fixed; inset: 0; z-index: 38; background: rgba(0, 0, 0, 0.55);
+  opacity: 0; transition: opacity 0.24s ease-out;
+}
+.menu-scrim.open { opacity: 1; }
+.menu-scrim[hidden] { display: none; }
+.mobile-menu {
+  background: color-mix(in srgb, #0a0a0a 90%, transparent);
+  backdrop-filter: blur(14px);
+  opacity: 0; translate: 0 -10px;
+  transition: opacity 0.24s var(--ease-out), translate 0.24s var(--ease-out);
+}
+.mobile-menu.open { opacity: 1; translate: 0 0; }
+.mobile-menu a, .mobile-menu-account {
+  opacity: 0; translate: 0 -6px;
+  transition: opacity 0.3s var(--ease-out), translate 0.3s var(--ease-out);
+}
+.mobile-menu.open a, .mobile-menu.open .mobile-menu-account { opacity: 1; translate: 0 0; }
+.mobile-menu.open a:nth-child(1) { transition-delay: 40ms; }
+.mobile-menu.open a:nth-child(2) { transition-delay: 75ms; }
+.mobile-menu.open a:nth-child(3) { transition-delay: 110ms; }
+.mobile-menu.open a:nth-child(4) { transition-delay: 145ms; }
+.mobile-menu.open .mobile-menu-account { transition-delay: 180ms; }
+html.menu-open, html.menu-open body { overflow: hidden; }
+
+/* details open smoothly where the browser can interpolate to auto */
+.faq-item, .order-extra { interpolate-size: allow-keywords; }
+.faq-item::details-content, .order-extra::details-content {
+  height: 0; overflow: clip;
+  transition: height 0.28s var(--ease-out), content-visibility 0.28s allow-discrete;
+}
+.faq-item[open]::details-content, .order-extra[open]::details-content { height: auto; }
+.faq-item summary::after, .order-extra summary::after { transition: rotate 0.2s var(--ease-out); display: inline-block; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .xhero h1, .xhero .hero-sub, .xhero .hero-ctas, .xhero .hero-trust, .xhero .hero-shot { animation: none; }
+  .rv { opacity: 1; translate: 0 0; transition: none; }
+  .mobile-menu, .mobile-menu a, .mobile-menu-account, .menu-scrim, .mb-bar { transition: none; }
+  .faq-item::details-content, .order-extra::details-content { transition: none; }
+}

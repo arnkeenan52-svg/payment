@@ -28,13 +28,81 @@ async function load() {
 const menuBtn = $('#menu-btn');
 if (menuBtn) {
   const menu = $('#mobile-menu');
+  const scrim = $('#menu-scrim');
+  let isOpen = false;
   const setOpen = (open) => {
-    menu.hidden = !open;
+    isOpen = open;
     menuBtn.setAttribute('aria-expanded', String(open));
+    document.documentElement.classList.toggle('menu-open', open);
+    if (open) {
+      menu.hidden = false;
+      if (scrim) scrim.hidden = false;
+      // Two frames so the browser commits display before the transition runs.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        menu.classList.add('open');
+        scrim?.classList.add('open');
+      }));
+    } else {
+      menu.classList.remove('open');
+      scrim?.classList.remove('open');
+      // Hide after the sheet finishes sliding, not mid-animation.
+      setTimeout(() => {
+        if (isOpen) return;
+        menu.hidden = true;
+        if (scrim) scrim.hidden = true;
+      }, 260);
+    }
   };
-  menuBtn.onclick = () => setOpen(menu.hidden);
+  menuBtn.onclick = () => setOpen(!isOpen);
   menu.addEventListener('click', (e) => {
     if (e.target.closest('a')) setOpen(false);
+  });
+  scrim?.addEventListener('click', () => setOpen(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen) {
+      setOpen(false);
+      menuBtn.focus();
+    }
+  });
+}
+
+// ── nav: hairline + glass only once the page scrolls ──────────────────────────
+{
+  const top = document.querySelector('body.home .top');
+  if (top) {
+    let raf = 0;
+    const sync = () => {
+      raf = 0;
+      top.classList.toggle('scrolled', window.scrollY > 8);
+    };
+    addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(sync); }, { passive: true });
+    sync();
+  }
+}
+
+// ── scroll reveals: sections rise in as they enter the viewport ───────────────
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+  const els = document.querySelectorAll(
+    '.kicker, .section-title, .section-sub, .feat-cell, .price-card, .step, .faq-item, .trio, .calc, .cta-panel, .pm-chips, .pm-note, .uc-grid > *, .trio-title, .bill-toggle, .price-note, .xcta h2, .xcta .hero-ctas',
+  );
+  const io = new IntersectionObserver(
+    (entries) => entries.forEach((en) => {
+      if (!en.isIntersecting) return;
+      en.target.classList.add('in');
+      io.unobserve(en.target);
+    }),
+    { rootMargin: '0px 0px -10% 0px', threshold: 0.05 },
+  );
+  els.forEach((el) => {
+    // Anything already on screen at load skips the reveal — no pop-in.
+    const r = el.getBoundingClientRect();
+    if (r.top < innerHeight * 0.85 && r.bottom > 0) return;
+    el.classList.add('rv');
+    io.observe(el);
+  });
+  // Siblings in a grid land one after another, not all at once.
+  document.querySelectorAll('.fgrid, .price-grid, .steps-grid, .trio-grid, .uc-grid').forEach((grid) => {
+    [...grid.children].forEach((c, i) => { c.style.transitionDelay = `${Math.min(i * 55, 275)}ms`; });
   });
 }
 
@@ -48,7 +116,7 @@ if (menuBtn) {
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=44'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=45'; // hold a still frame instead
     return;
   }
 
@@ -65,8 +133,8 @@ if (menuBtn) {
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=44', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=44', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=45', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=45', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays
