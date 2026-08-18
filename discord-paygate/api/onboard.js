@@ -5,7 +5,7 @@ import * as db from '../src/db.js';
 import { sealSecret } from '../src/lib/secretbox.js';
 import { getUser } from '../src/db.js';
 import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember } from '../src/lib/discord.js';
-import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl } from '../src/lib/stripe.js';
+import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache } from '../src/lib/stripe.js';
 import { storeByGuild, storeBySlug, slugify, plansOf } from '../src/services/stores.js';
 
 const ADMINISTRATOR = 1n << 3n;
@@ -53,6 +53,15 @@ export default guard(async function handler(req, res) {
   const body = await readJsonBody(req).catch(() => ({}));
 
   switch (body?.step) {
+    // ── 0. is the bot in this guild yet? ────────────────────────────────────
+    // Uses ONLY the bot token — deliberately no getUserGuilds call, because
+    // Discord rate-limits /users/@me/guilds hard and the wizard polls this.
+    case 'botcheck': {
+      const guildId = String(body.guildId ?? '');
+      if (!/^\d{17,20}$/.test(guildId)) return sendJson(res, 400, { error: 'Pick a server first.' });
+      return sendJson(res, 200, { botIn: Boolean(await getGuild(guildId)) });
+    }
+
     // ── 1. create the store: guild + Stripe secret key ──────────────────────
     case 'store': {
       const guildId = String(body.guildId ?? '');
@@ -227,6 +236,97 @@ export default guard(async function handler(req, res) {
       await db.updateStore(row.id, { status: 'live' });
       const store = await storeBySlug(row.slug);
       return sendJson(res, 200, { ok: true, store: { slug: store.slug, status: store.status }, plans: await plansOf(store) });
+    }
+
+    // ── manage products after onboarding (the dashboard Products tab) ───────
+    // The owner's full catalog — inactive products included (buyers never see
+    // those; this is the management view).
+    case 'products': {
+      const row = await ownedStore(uid, body.storeId);
+      if (!row) return sendJson(res, 403, { error: 'not your store' });
+      const plans = await db.storePlansFor(row.id);
+      const out = [];
+      for (const p of plans) {
+        out.push({ ...p, buyers: await db.countBuyersOfPlan(row.id, p.planKey), checkoutUrl: `${config.publicBaseUrl}/s/${row.slug}?plan=${encodeURIComponent(p.planKey)}` });
+      }
+      return sendJson(res, 200, { products: out, storeSlug: row.slug });
+    }
+
+    // Field edits. A price or billing change clears the pinned Stripe price —
+    // the next checkout lazily provisions a fresh one on their account, and
+    // existing Stripe subscriptions keep the price they were sold at.
+    case 'product-update': {
+      const row = await ownedStore(uid, body.storeId);
+      if (!row) return sendJson(res, 403, { error: 'not your store' });
+      const planKey = String(body.planKey ?? '');
+      const existing = await db.getStorePlan(row.id, planKey);
+      if (!existing) return sendJson(res, 404, { error: 'unknown product' });
+      const fields = {};
+      if (body.name !== undefined) {
+        const name = String(body.name).trim().slice(0, 80);
+        if (!name) return sendJson(res, 400, { error: 'Name your product.' });
+        fields.name = name;
+      }
+      if (body.description !== undefined) fields.description = String(body.description).trim().slice(0, 300);
+      if (body.imageUrl !== undefined) {
+        const u = String(body.imageUrl).trim();
+        fields.imageUrl = /^https:\/\/\S+$/.test(u) ? u.slice(0, 500) : null;
+      }
+      if (body.successUrl !== undefined) {
+        const u = String(body.successUrl).trim();
+        if (u && !/^https:\/\/\S+$/.test(u)) return sendJson(res, 400, { error: 'The success URL must start with https://' });
+        fields.successUrl = u ? u.slice(0, 500) : null;
+      }
+      if (body.purchaseLimit !== undefined) {
+        const n = body.purchaseLimit === null || body.purchaseLimit === '' ? null : Math.round(Number(body.purchaseLimit));
+        if (n !== null && (!Number.isFinite(n) || n < 1)) return sendJson(res, 400, { error: 'Purchase limit must be a whole number of at least 1.' });
+        fields.purchaseLimit = n;
+      }
+      if (body.active !== undefined) fields.active = Boolean(body.active);
+      if (body.priceUsd !== undefined) {
+        const priceUsd = Math.round(Number(body.priceUsd) * 100) / 100;
+        if (!Number.isFinite(priceUsd) || priceUsd < 1 || priceUsd > 10000) {
+          return sendJson(res, 400, { error: 'Price must be between $1 and $10,000.' });
+        }
+        if (priceUsd !== existing.priceUsd) {
+          fields.priceUsd = priceUsd;
+          fields.stripePriceId = null; // re-provisioned lazily; old subscribers unaffected
+        }
+      }
+      if (body.lifetime !== undefined) {
+        const lifetime = Boolean(body.lifetime);
+        if (lifetime !== existing.lifetime) {
+          fields.lifetime = lifetime ? 1 : 0;
+          fields.durationDays = lifetime ? null : Math.max(1, Math.min(366, Math.round(Number(body.durationDays ?? 31))));
+          fields.stripePriceId = null;
+        }
+      }
+      const plan = await db.updateStorePlan(row.id, planKey, fields);
+      // A cleared/changed price must take effect now, not after the cache TTL.
+      if (fields.stripePriceId !== undefined) invalidatePriceCache();
+      return sendJson(res, 200, { ok: true, plan });
+    }
+
+    case 'product-delete': {
+      const row = await ownedStore(uid, body.storeId);
+      if (!row) return sendJson(res, 403, { error: 'not your store' });
+      const planKey = String(body.planKey ?? '');
+      const plan = await db.getStorePlan(row.id, planKey);
+      if (!plan) return sendJson(res, 404, { error: 'unknown product' });
+      // Best-effort archive on their Stripe so the product stops being
+      // sellable there too — the local delete is what gates checkout.
+      if (plan.stripePriceId) {
+        try {
+          const { openSecret } = await import('../src/lib/secretbox.js');
+          const key = openSecret(row.stripe_secret_enc);
+          const price = await stripeFetch(`/v1/prices/${plan.stripePriceId}`, { key });
+          if (price?.product) await stripeFetch(`/v1/products/${price.product}`, { method: 'POST', key, form: { active: 'false' } });
+        } catch (err) {
+          console.warn(`[onboard] archiving Stripe product for ${row.slug}/${planKey} failed: ${err.message}`);
+        }
+      }
+      await db.deleteStorePlan(row.id, planKey);
+      return sendJson(res, 200, { ok: true, deleted: planKey });
     }
 
     default:

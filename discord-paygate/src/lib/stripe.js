@@ -184,29 +184,69 @@ export function invoiceSubscriptionId(invoice) {
   return invoice?.subscription ?? invoice?.parent?.subscription_details?.subscription ?? null;
 }
 
-export async function createCheckoutSession({ plan, discordId, note = '', store = null }) {
+// Owners never open Stripe: when a tenant product has no usable price yet
+// (created before price provisioning, or its price was edited), the price is
+// created HERE, on their account, at first checkout — and pinned for reuse.
+// Price edits clear the pinned id (updateStorePlan), so old Stripe
+// subscriptions keep the price they were sold at, untouched.
+export async function ensureTenantPrice(store, plan) {
+  const resolved = await resolvePlanPrice(plan, store.stripeKey);
+  if (resolved) return resolved.price;
+  const db = await import('../db.js');
+  const product = await stripeFetch('/v1/products', {
+    method: 'POST',
+    key: store.stripeKey,
+    form: {
+      name: plan.name,
+      ...(plan.description ? { description: plan.description } : {}),
+      ...(plan.imageUrl ? { images: [plan.imageUrl] } : {}),
+      default_price_data: {
+        currency: 'usd',
+        unit_amount: Math.round(plan.priceUsd * 100),
+        ...(plan.lifetime ? {} : { recurring: { interval: 'month' } }),
+      },
+    },
+  });
+  const priceId = typeof product.default_price === 'string' ? product.default_price : product.default_price?.id;
+  await db.updateStorePlan(store.id, plan.id, { stripePriceId: priceId ?? null });
+  invalidatePriceCache();
+  return { id: priceId };
+}
+
+export async function createCheckoutSession({ plan, discordId, note = '', store = null, couponId = null, discountCode = null }) {
   const lifetime = Boolean(plan.lifetime);
   const key = store?.stripeKey ?? config.stripe.secretKey;
+  let priceId;
   const resolved = await resolvePlanPrice(plan, key);
-  if (!resolved) {
+  if (resolved) {
+    priceId = resolved.price.id;
+  } else if (store && !store.isDefault) {
+    priceId = (await ensureTenantPrice(store, plan)).id;
+  }
+  if (!priceId) {
     throw new Error(
       `no usable Stripe price for plan "${plan.id}" (configured ${plan.stripePriceId}, and no active USD ${lifetime ? 'one-time' : plan.interval} price of $${plan.priceUsd} on this account)`,
     );
   }
   const storeQ = store && !store.isDefault ? `&store=${encodeURIComponent(store.slug)}` : '';
   const backTo = store && !store.isDefault ? `/s/${encodeURIComponent(store.slug)}` : '/store';
+  const successUrl = /^https:\/\/\S+$/.test(plan.successUrl ?? '')
+    ? plan.successUrl
+    : `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}${storeQ}`;
   return stripeFetch('/v1/checkout/sessions', {
     method: 'POST',
     key,
     form: {
       mode: lifetime ? 'payment' : 'subscription',
       client_reference_id: discordId,
-      line_items: [{ price: resolved.price.id, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
+      ...(couponId ? { discounts: [{ coupon: couponId }] } : {}),
       metadata: {
         plan_id: plan.id,
         discord_id: discordId,
         ...(store && !store.isDefault ? { store_id: String(store.id) } : {}),
         ...(note ? { buyer_note: note } : {}),
+        ...(discountCode ? { discount_code: discountCode } : {}),
       },
       ...(lifetime
         ? {}
@@ -219,7 +259,7 @@ export async function createCheckoutSession({ plan, discordId, note = '', store 
               },
             },
           }),
-      success_url: `${config.publicBaseUrl}/receipt?plan=${encodeURIComponent(plan.id)}${storeQ}`,
+      success_url: successUrl,
       cancel_url: `${config.publicBaseUrl}${backTo}?checkout=cancelled`,
     },
   });

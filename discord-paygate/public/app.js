@@ -94,13 +94,15 @@ function renderTagline(el, text, highlight) {
 function renderBrand() {
   const plan = selectedPlan();
   if (!plan) return;
-  // Tenant stores show their product's own image (or none); the built-in
-  // store keeps its bundled animated shot.
-  if (STORE_SLUG) {
-    const shot = $('#product-shot');
-    if (shot) {
-      if (plan.imageUrl) shot.src = plan.imageUrl;
-      else shot.remove();
+  // Product thumbnail: the tenant product's own image; the built-in store
+  // keeps its bundled animated shot. Nothing renders when there is none.
+  const shot = $('#product-shot');
+  if (shot) {
+    if (STORE_SLUG) {
+      if (plan.imageUrl) {
+        shot.src = plan.imageUrl;
+        shot.hidden = false;
+      } else shot.hidden = true;
     }
   }
   // ONLY the server's own Discord icon (animated GIF when the guild has
@@ -125,16 +127,22 @@ function renderBrand() {
   $('#plan-name').textContent = plan.name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
   $('#price').textContent = fmtPrice(plan.priceUsd);
+  // Roles the buyer receives, as chips (reference: "Discord Roles Included").
+  const rolesBox = $('#roles-box');
+  const chips = $('#roles-chips');
+  if (rolesBox && chips) {
+    const names = plan.roleNames ?? [];
+    if (names.length) {
+      chips.innerHTML = names.map((n) => `<span class="chip">${n.replace(/[&<>"']/g, '')}</span>`).join('');
+      rolesBox.hidden = false;
+    } else rolesBox.hidden = true;
+  }
+  // Discount codes exist on onboarded stores only.
+  const df = $('#discount-field');
+  if (df) df.hidden = !STORE_SLUG;
 }
 
 function renderOptions() {
-  const panel = $('#options-panel');
-  // A single-plan catalog needs no chooser — keep the page simple.
-  if (state.plans.length < 2) {
-    panel.hidden = true;
-    return;
-  }
-  panel.hidden = false;
   const box = $('#options');
   box.innerHTML = '';
   for (const plan of state.plans) {
@@ -142,7 +150,7 @@ function renderOptions() {
     row.type = 'button';
     row.className = `option${plan.id === state.planId ? ' selected' : ''}`;
     row.innerHTML = `
-      <span class="opt-name">${plan.lifetime ? 'One Time' : plan.name}<small>${plan.lifetime ? '(lifetime)' : `/ ${plan.interval}`}</small></span>
+      <span class="opt-name">${plan.lifetime ? (state.plans.length > 1 ? plan.name : 'One Time') : plan.name}<small>${plan.lifetime ? '(lifetime)' : `/ ${plan.interval}`}</small></span>
       <span class="opt-price">${fmtPrice(plan.priceUsd)}</span>`;
     row.onclick = () => {
       state.planId = plan.id;
@@ -193,10 +201,9 @@ function renderPayPanel() {
 
   const card = state.method === 'stripe';
   $('#pay-title').textContent = card ? 'Pay with Card' : 'Pay with Crypto';
-  $('#pay-pill').textContent = '0% Fee';
   $('#pay-sub').textContent = card
-    ? 'Pay with card or debit. Payment goes directly to the server owner via Stripe.'
-    : 'Pay with crypto via Coinbase Commerce. Payment goes directly to the server owner.';
+    ? 'Secure payment processed by Stripe'
+    : 'Secure payment processed by Coinbase Commerce';
   $('#trust-row').innerHTML = card
     ? `<span>${ICON_CHECK} Secured by Stripe</span><span>${ICON_LOCK} 100% Secure</span>`
     : `<span>${ICON_CHECK} Coinbase Commerce</span><span>${ICON_LOCK} 100% Secure</span>`;
@@ -275,11 +282,17 @@ async function pay(btn, plan) {
   const original = btn.textContent;
   btn.textContent = 'Redirecting…';
   const note = $('#buyer-note')?.value.trim() ?? '';
+  const discountCode = $('#discount-code')?.value.trim() ?? '';
   try {
     const res = await fetch(`/api/checkout/${state.method}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ planId: plan.id, ...(STORE_SLUG ? { store: STORE_SLUG } : {}), ...(note ? { note } : {}) }),
+      body: JSON.stringify({
+        planId: plan.id,
+        ...(STORE_SLUG ? { store: STORE_SLUG } : {}),
+        ...(note ? { note } : {}),
+        ...(discountCode ? { discountCode } : {}),
+      }),
     });
     if (res.status === 401) {
       window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}${loginStoreQ}`;

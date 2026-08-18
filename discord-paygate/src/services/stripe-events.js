@@ -41,6 +41,11 @@ export async function processStripeEvent(event, routeStore = null) {
         return;
       }
       const store = await resolveStore(routeStore, obj.metadata?.store_id);
+      // A redeemed discount counts its use only once payment completed.
+      if (obj.metadata?.discount_code && store?.id !== null && store?.id !== undefined) {
+        const { incrementDiscountUse } = await import('../db.js');
+        await incrementDiscountUse(store.id, obj.metadata.discount_code).catch(() => {});
+      }
       // Emailed receipt (best-effort, bounded): Stripe checkout collects the
       // buyer's email — a failed send never fails the grant.
       const emailReceipt = async () => {

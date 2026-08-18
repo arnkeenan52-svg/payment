@@ -2,7 +2,7 @@ import { config, capabilities } from '../src/config.js';
 import { sendJson, guard } from '../src/lib/http.js';
 import { getGuild, guildIconUrl } from '../src/lib/discord.js';
 import { effectiveRoleMap } from '../src/services/plan-config.js';
-import { storeBySlug, plansOf } from '../src/services/stores.js';
+import { storeBySlug, sellablePlansOf } from '../src/services/stores.js';
 
 // The server's own identity fronts every checkout: name and icon come from
 // the live guild lookup via the bot (animated icons surface as .gif).
@@ -33,11 +33,11 @@ export default guard(async function handler(req, res) {
   }
   const { name, iconUrl } = await serverInfo(store.guildId, store.isDefault ? config.discord.guildName : store.name);
   const roleMap = store.isDefault ? await effectiveRoleMap() : null;
-  const plans = await plansOf(store);
+  const plans = await sellablePlansOf(store);
   sendJson(res, 200, {
     brand: store.isDefault ? config.brand : store.name,
     platform: { name: config.platform },
-    store: { slug: store.slug, status: store.status },
+    store: { slug: store.slug, status: store.status, description: store.description ?? null, bannerUrl: store.bannerUrl ?? null },
     // Guild id is public (it's in every invite link); the receipt page needs
     // it for the "Open on Discord" deep link.
     server: { name, guildId: store.guildId, iconUrl },

@@ -234,7 +234,12 @@ async function discordHandler(req, res) {
       json(res, 200, { id: G2, name: 'VIP Signals', icon: null });
       return;
     }
-    json(res, 200, { id: m[1], name: 'Tradeleaks', icon: 'a_e2eicon' });
+    if (m[1] === GUILD) {
+      json(res, 200, { id: m[1], name: 'Tradeleaks', icon: 'a_e2eicon' });
+      return;
+    }
+    // Any other guild: the bot is not a member — exactly like real Discord.
+    json(res, 404, { message: 'Unknown Guild' });
     return;
   }
 
@@ -372,6 +377,14 @@ async function stripeHandler(req, res) {
     };
     stripe.webhookEndpoints.push(ep);
     json(res, 200, { ...ep, secret: AUTO_ENDPOINT_SECRET });
+    return;
+  }
+  if (url.pathname === '/v1/coupons' && req.method === 'POST') {
+    const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
+    const n = (stripe.coupons ??= []).length + 1;
+    const coupon = { id: `coupon_${n}`, ...form };
+    stripe.coupons.push(coupon);
+    json(res, 200, coupon);
     return;
   }
   if (url.pathname === '/v1/checkout/sessions' && req.method === 'POST') {
@@ -1740,6 +1753,165 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
   assert.ok(stripe.subDeletes.includes('sub_plat_2'), 'cancel ends the Stripe subscription');
   assert.equal((await billingState(u7Cookie)).current.tier, 'free');
   assert.equal((await tryCheckout('vip-signals')).status, 409, 'back on Free the full store is gated again');
+});
+
+test('onboarding: the Continue check uses only the bot token (never user-guild listing)', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, {
+      redirect: 'manual',
+      headers: { cookie: sc.split(';')[0] },
+    });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const botcheck = (cookie, guildId) =>
+    fetch(`${appUrl}/api/onboard`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
+      body: JSON.stringify({ step: 'botcheck', guildId }),
+    });
+  assert.equal((await botcheck(null, G2)).status, 401, 'botcheck needs a session');
+  // A guild the bot is NOT in: false. The guild it is in: true. Neither call
+  // touches /users/@me/guilds — the mock would 404 an unknown guild fetch.
+  assert.deepEqual(await (await botcheck(u7Cookie, '999900000000000099')).json(), { botIn: false });
+  assert.deepEqual(await (await botcheck(u7Cookie, G2)).json(), { botIn: true });
+});
+
+test('products managed in-site: edit/toggle/limit/success-url/lazy price/discounts/delete/store settings', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, {
+      redirect: 'manual',
+      headers: { cookie: sc.split(';')[0] },
+    });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const u9Cookie = await loginAs('code_u9b'); // existing member (manual grant)
+  const u10Cookie = await loginAs('code_u10'); // signed in, never purchased
+  const call = (cookie, path, body) =>
+    fetch(`${appUrl}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify(body),
+    });
+  const onboard = (body) => call(u7Cookie, '/api/onboard', body);
+  const checkout = (cookie, body) => call(cookie, '/api/checkout/stripe', { store: 'vip-signals', ...body });
+
+  // Headroom for the member-limit gate: back onto Starter.
+  assert.equal((await call(u7Cookie, '/api/billing', { action: 'checkout', tier: 'starter' })).status, 200);
+  await deliverStripe({
+    id: 'evt_plat_3',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_plat_3', mode: 'subscription', subscription: 'sub_plat_3', client_reference_id: '507700000000000007', metadata: { kind: 'platform_plan', tier: 'starter', owner_discord_id: '507700000000000007' } } },
+  });
+
+  // The owner's management list: buyers count + a copyable checkout link.
+  const storeRow = await tq("SELECT id FROM stores WHERE slug = 'vip-signals'");
+  const storeId = Number(storeRow.rows[0].id);
+  const list0 = await (await onboard({ step: 'products', storeId })).json();
+  assert.equal(list0.products.length, 1);
+  const vip = list0.products[0];
+  assert.ok(vip.buyers >= 10, `buyers counted (got ${vip.buyers})`);
+  assert.match(vip.checkoutUrl, /\/s\/vip-signals\?plan=/);
+
+  // Deactivate → hidden from buyers and refused at checkout; reactivate heals.
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, active: false })).status, 200);
+  assert.equal((await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.length, 0, 'inactive products are invisible to buyers');
+  const inactive = await checkout(u9Cookie, { planId: vip.planKey });
+  assert.equal(inactive.status, 409);
+  assert.match((await inactive.json()).error, /not for sale/);
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, active: true })).status, 200);
+
+  // Price edit clears the pinned Stripe price; the next checkout lazily
+  // provisions a fresh one on the OWNER'S account and pins it. Existing
+  // Stripe subscriptions are never touched.
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, priceUsd: 59.99 })).status, 200);
+  assert.equal((await tq('SELECT stripe_price_id FROM store_plans WHERE store_id = ? AND plan_key = ?', [storeId, vip.planKey])).rows[0].stripe_price_id, null);
+  assert.equal((await checkout(u9Cookie, { planId: vip.planKey })).status, 200, 'checkout provisions the price lazily');
+  const pinned = (await tq('SELECT stripe_price_id FROM store_plans WHERE store_id = ? AND plan_key = ?', [storeId, vip.planKey])).rows[0].stripe_price_id;
+  assert.match(String(pinned), /^price_auto_/, 'fresh price pinned after lazy provisioning');
+  assert.equal(stripe.checkoutSessions.at(-1)['line_items[0][price]'], pinned);
+
+  // Success URL: buyers land on the owner's page after paying.
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, successUrl: 'https://done.example/thanks' })).status, 200);
+  assert.equal((await checkout(u9Cookie, { planId: vip.planKey })).status, 200);
+  assert.equal(stripe.checkoutSessions.at(-1).success_url, 'https://done.example/thanks');
+
+  // Second product, monthly — created in the site, extras applied, role picked.
+  const made = await onboard({ step: 'product', storeId, name: 'Signals Monthly', description: 'Every signal, monthly.', priceUsd: 15, lifetime: false, durationDays: 31 });
+  const plan2 = (await made.json()).plan;
+  assert.equal(made.status, 200);
+  assert.equal((await onboard({ step: 'role', storeId, planKey: plan2.planKey, roleId: R2_VIP })).status, 200);
+  assert.equal((await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.length, 2);
+
+  // Purchase limit: sold out for NEW buyers, never for returning ones.
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, purchaseLimit: vip.buyers })).status, 200);
+  const soldOut = await checkout(u10Cookie, { planId: vip.planKey });
+  assert.equal(soldOut.status, 409);
+  assert.match((await soldOut.json()).error, /sold out/);
+  assert.equal((await checkout(u9Cookie, { planId: vip.planKey })).status, 200, 'existing buyers pass the purchase limit');
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, purchaseLimit: null })).status, 200);
+
+  // ── discounts ─────────────────────────────────────────────────────────────
+  const disc = (body) => call(u7Cookie, '/api/admin/discounts', { store: 'vip-signals', ...body });
+  assert.equal((await disc({ action: 'create', code: 'launch20', kind: 'percent', amount: 20 })).status, 200);
+  assert.equal((await disc({ action: 'create', code: 'FIVER', kind: 'fixed', amount: 5, planKey: plan2.planKey, maxUses: 1 })).status, 200);
+  assert.equal((await disc({ action: 'create', code: 'launch20', kind: 'percent', amount: 10 })).status, 409, 'duplicate codes refused');
+  const bad = await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'NOPE' });
+  assert.equal(bad.status, 400);
+  const withCode = await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'launch20' });
+  assert.equal(withCode.status, 200, await withCode.text());
+  const sess = stripe.checkoutSessions.at(-1);
+  assert.match(sess['discounts[0][coupon]'], /^coupon_/, 'a Stripe coupon rides the session');
+  assert.equal(sess['metadata[discount_code]'], 'LAUNCH20');
+  assert.equal(stripe.coupons.at(-1).percent_off, '20');
+  // Completed payment counts the use.
+  await deliverStripe({
+    id: 'evt_disc_1',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_disc_1', mode: 'payment', client_reference_id: '509900000000000009', metadata: { plan_id: vip.planKey, discord_id: '509900000000000009', store_id: String(storeId), discount_code: 'LAUNCH20' } } },
+  });
+  const discs = (await (await disc({ action: 'list' })).json()).discounts;
+  assert.equal(discs.find((d) => d.code === 'LAUNCH20').uses, 1, 'the webhook counts discount uses');
+  // FIVER is scoped to plan2 — wrong product refused, then its single use is spent.
+  assert.equal((await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'FIVER' })).status, 400, 'scoped code refuses other products');
+  // (owner deletes it instead of spending it — delete works)
+  assert.equal((await disc({ action: 'delete', code: 'FIVER' })).status, 200);
+  assert.equal((await (await disc({ action: 'list' })).json()).discounts.length, 1);
+
+  // ── member extend (monthly manual grant) ──────────────────────────────────
+  const U9 = '509900000000000009';
+  assert.equal((await call(u7Cookie, '/api/admin/member', { store: 'vip-signals', action: 'grant', discordId: U9, planId: plan2.planKey })).status, 200);
+  const before = asNum((await tq("SELECT current_period_end FROM subscriptions WHERE discord_id = ? AND plan_id = ?", [U9, plan2.planKey])).rows[0].current_period_end);
+  assert.ok(before > nowSec(), 'monthly manual grant carries an expiry');
+  assert.equal((await call(u7Cookie, '/api/admin/member', { store: 'vip-signals', action: 'extend', discordId: U9, days: 30 })).status, 200);
+  const after = asNum((await tq("SELECT current_period_end FROM subscriptions WHERE discord_id = ? AND plan_id = ?", [U9, plan2.planKey])).rows[0].current_period_end);
+  assert.ok(Math.abs(after - (before + 30 * 86400)) <= 2, `extend adds 30 days (${before} → ${after})`);
+
+  // ── store settings ────────────────────────────────────────────────────────
+  const storeCall = (body) => call(u7Cookie, '/api/admin/store', { store: 'vip-signals', ...body });
+  assert.equal((await storeCall({ stripeKey: 'sk_test_wrong' })).status, 400, 'key rotation validates with Stripe first');
+  assert.equal((await storeCall({ stripeKey: OWNER2_KEY })).status, 200);
+  assert.equal((await storeCall({ name: 'VIP Signals Pro', description: 'The alpha desk.', bannerUrl: 'https://cdn.e2e.test/banner.png' })).status, 200);
+  const pub = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  assert.equal(pub.brand, 'VIP Signals Pro');
+  assert.equal(pub.store.description, 'The alpha desk.');
+  // Custom link: new slug serves, the old one 404s, then restore.
+  assert.equal((await storeCall({ slug: 'vip-elite' })).status, 200);
+  assert.equal((await fetch(`${appUrl}/api/plans?store=vip-elite`)).status, 200);
+  assert.equal((await fetch(`${appUrl}/api/plans?store=vip-signals`)).status, 404);
+  assert.equal((await call(u7Cookie, '/api/admin/store', { store: 'vip-elite', slug: 'vip-signals' })).status, 200);
+
+  // ── delete a product ──────────────────────────────────────────────────────
+  assert.equal((await onboard({ step: 'product-delete', storeId, planKey: plan2.planKey })).status, 200);
+  assert.equal((await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.length, 1);
+  assert.equal((await checkout(u10Cookie, { planId: plan2.planKey })).status, 400, 'deleted products cannot be bought');
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════

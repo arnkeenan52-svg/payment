@@ -55,6 +55,8 @@ const ddl = (dialect) => {
     ${id},
     slug             TEXT NOT NULL UNIQUE,
     name             TEXT NOT NULL,
+    description      TEXT,
+    banner_url       TEXT,
     owner_discord_id TEXT NOT NULL,
     guild_id         TEXT NOT NULL UNIQUE,
     stripe_secret_enc     TEXT,
@@ -79,8 +81,27 @@ const ddl = (dialect) => {
     stripe_price_id TEXT,
     role_ids        TEXT NOT NULL DEFAULT '[]',
     role_names      TEXT NOT NULL DEFAULT '[]',
+    active          ${int} NOT NULL DEFAULT 1,
+    purchase_limit  ${int},
+    success_url     TEXT,
     created_at      ${int} NOT NULL,
     UNIQUE (store_id, plan_key)
+  );
+
+  -- Discount codes, scoped per store and optionally per product. uses counts
+  -- completed checkouts (incremented by the webhook, not at session time).
+  CREATE TABLE IF NOT EXISTS discounts (
+    ${id},
+    store_id   ${int} NOT NULL,
+    code       TEXT NOT NULL,
+    kind       TEXT NOT NULL,             -- 'percent' | 'fixed'
+    amount     REAL NOT NULL,             -- percent (1-100) or USD
+    plan_key   TEXT,                      -- NULL = every product in the store
+    max_uses   ${int},
+    uses       ${int} NOT NULL DEFAULT 0,
+    expires_at ${int},
+    created_at ${int} NOT NULL,
+    UNIQUE (store_id, code)
   );
 
   -- Small runtime key/value store. Holds the signing secret of the Stripe
@@ -178,6 +199,12 @@ function db() {
       // add it in place (both dialects error harmlessly when it exists).
       const intType = driver.dialect === 'pg' ? 'BIGINT' : 'INTEGER';
       await driver.exec(`ALTER TABLE subscriptions ADD COLUMN store_id ${intType}`).catch(() => {});
+      // Columns added after multi-tenancy shipped — same in-place pattern.
+      await driver.exec('ALTER TABLE stores ADD COLUMN description TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN banner_url TEXT').catch(() => {});
+      await driver.exec(`ALTER TABLE store_plans ADD COLUMN active ${intType} NOT NULL DEFAULT 1`).catch(() => {});
+      await driver.exec(`ALTER TABLE store_plans ADD COLUMN purchase_limit ${intType}`).catch(() => {});
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN success_url TEXT').catch(() => {});
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -400,7 +427,15 @@ export async function allStores() {
 }
 
 export async function updateStore(id, fields) {
-  const cols = { name: 'name', status: 'status', stripeSecretEnc: 'stripe_secret_enc', stripeWebhookSecret: 'stripe_webhook_secret' };
+  const cols = {
+    name: 'name',
+    description: 'description',
+    bannerUrl: 'banner_url',
+    slug: 'slug',
+    status: 'status',
+    stripeSecretEnc: 'stripe_secret_enc',
+    stripeWebhookSecret: 'stripe_webhook_secret',
+  };
   const sets = [];
   const params = [];
   for (const [k, col] of Object.entries(cols)) {
@@ -430,8 +465,99 @@ const planRow = (r) =>
         stripePriceId: r.stripe_price_id,
         roleIds: JSON.parse(r.role_ids ?? '[]'),
         roleNames: JSON.parse(r.role_names ?? '[]'),
+        active: r.active === null || r.active === undefined ? true : Number(r.active) === 1,
+        purchaseLimit: r.purchase_limit === null || r.purchase_limit === undefined ? null : Number(r.purchase_limit),
+        successUrl: r.success_url ?? null,
+        createdAt: r.created_at === null || r.created_at === undefined ? null : Number(r.created_at),
       }
     : null;
+
+// Field-level product edits. stripe_price_id is set here only when checkout
+// lazily provisions a price; a price EDIT clears it so the next checkout
+// provisions a fresh price — existing Stripe subscriptions keep the price
+// they were sold at and are never touched.
+export async function updateStorePlan(storeId, planKey, fields) {
+  const cols = {
+    name: 'name',
+    description: 'description',
+    imageUrl: 'image_url',
+    priceUsd: 'price_usd',
+    lifetime: 'lifetime',
+    durationDays: 'duration_days',
+    stripePriceId: 'stripe_price_id',
+    active: 'active',
+    purchaseLimit: 'purchase_limit',
+    successUrl: 'success_url',
+  };
+  const sets = [];
+  const params = [];
+  for (const [k, col] of Object.entries(cols)) {
+    if (fields[k] !== undefined) {
+      sets.push(`${col} = ?`);
+      params.push(typeof fields[k] === 'boolean' ? (fields[k] ? 1 : 0) : fields[k]);
+    }
+  }
+  if (sets.length) {
+    params.push(storeId, planKey);
+    await q(`UPDATE store_plans SET ${sets.join(', ')} WHERE store_id = ? AND plan_key = ?`, params);
+  }
+  return getStorePlan(storeId, planKey);
+}
+
+// Distinct buyers who ever completed a purchase of this product — the number
+// a purchase_limit caps. Canceled/expired rows still count (they bought).
+export async function countBuyersOfPlan(storeId, planKey) {
+  const { rows } = await q(
+    `SELECT COUNT(DISTINCT discord_id) AS n FROM subscriptions
+     WHERE plan_id = ? AND ${storeId === null ? 'store_id IS NULL' : 'store_id = ?'}`,
+    storeId === null ? [planKey] : [planKey, storeId],
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
+// ── discounts ─────────────────────────────────────────────────────────────────
+
+const discountRow = (r) =>
+  r
+    ? {
+        id: Number(r.id),
+        storeId: Number(r.store_id),
+        code: r.code,
+        kind: r.kind,
+        amount: Number(r.amount),
+        planKey: r.plan_key ?? null,
+        maxUses: r.max_uses === null || r.max_uses === undefined ? null : Number(r.max_uses),
+        uses: Number(r.uses ?? 0),
+        expiresAt: r.expires_at === null || r.expires_at === undefined ? null : Number(r.expires_at),
+      }
+    : null;
+
+export async function createDiscount({ storeId, code, kind, amount, planKey = null, maxUses = null, expiresAt = null }) {
+  await q(
+    `INSERT INTO discounts (store_id, code, kind, amount, plan_key, max_uses, uses, expires_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+    [storeId, code, kind, amount, planKey, maxUses, expiresAt, now()],
+  );
+  return getDiscount(storeId, code);
+}
+
+export async function getDiscount(storeId, code) {
+  const { rows } = await q('SELECT * FROM discounts WHERE store_id = ? AND code = ?', [storeId, code]);
+  return discountRow(rows[0]);
+}
+
+export async function discountsFor(storeId) {
+  const { rows } = await q('SELECT * FROM discounts WHERE store_id = ? ORDER BY id', [storeId]);
+  return rows.map(discountRow);
+}
+
+export async function deleteDiscount(storeId, code) {
+  await q('DELETE FROM discounts WHERE store_id = ? AND code = ?', [storeId, code]);
+}
+
+export async function incrementDiscountUse(storeId, code) {
+  await q('UPDATE discounts SET uses = uses + 1 WHERE store_id = ? AND code = ?', [storeId, code]);
+}
 
 export async function createStorePlan({ storeId, planKey, name, description, imageUrl, priceUsd, lifetime, durationDays, stripePriceId }) {
   await q(
@@ -454,6 +580,10 @@ export async function getStorePlan(storeId, planKey) {
 export async function storePlansFor(storeId) {
   const { rows } = await q('SELECT * FROM store_plans WHERE store_id = ? ORDER BY id', [storeId]);
   return rows.map(planRow);
+}
+
+export async function deleteStorePlan(storeId, planKey) {
+  await q('DELETE FROM store_plans WHERE store_id = ? AND plan_key = ?', [storeId, planKey]);
 }
 
 export async function setStorePlanRoles(storeId, planKey, roleIds, roleNames) {

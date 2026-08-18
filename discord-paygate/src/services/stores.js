@@ -33,6 +33,8 @@ function hydrate(row) {
     id: row.id,
     slug: row.slug,
     name: row.name,
+    description: row.description ?? null,
+    bannerUrl: row.banner_url ?? null,
     ownerDiscordId: row.owner_discord_id,
     guildId: row.guild_id,
     stripeKey: row.stripe_secret_enc ? openSecret(row.stripe_secret_enc) : config.stripe.secretKey,
@@ -88,7 +90,18 @@ export async function plansOf(store) {
     durationDays: p.durationDays,
     stripePriceId: p.stripePriceId,
     roleIds: p.roleIds,
+    active: p.active,
+    purchaseLimit: p.purchaseLimit,
+    successUrl: p.successUrl,
+    createdAt: p.createdAt,
   }));
+}
+
+// What buyers see: only products the owner has switched on. Entitlements and
+// role reconciliation keep using plansOf — a deactivated product must never
+// strip roles from people who already bought it.
+export async function sellablePlansOf(store) {
+  return (await plansOf(store)).filter((p) => p.active !== false);
 }
 
 export async function planOf(store, planId) {

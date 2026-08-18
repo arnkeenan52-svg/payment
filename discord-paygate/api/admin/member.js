@@ -91,6 +91,30 @@ export default guard(async function handler(req, res) {
       return;
     }
 
+    // Extend a live membership by N days (from its current expiry, or from
+    // now when it had already lapsed). Lifetime rows have nothing to extend.
+    case 'extend': {
+      const days = Math.round(Number(body.days));
+      if (!Number.isFinite(days) || days < 1 || days > 3660) {
+        sendJson(res, 400, { error: 'Days must be a whole number between 1 and 3660.' });
+        return;
+      }
+      const subs = (await db.subscriptionsForMember(memberId)).filter(
+        (s) => storeMatches(s) && (s.status === 'active' || s.status === 'past_due') && s.current_period_end !== null,
+      );
+      if (!subs.length) {
+        sendJson(res, 404, { error: 'No extendable membership (lifetime access never expires).' });
+        return;
+      }
+      for (const sub of subs) {
+        const base = Math.max(Number(sub.current_period_end), now());
+        await db.setSubscriptionStatus(sub.id, { status: 'active', currentPeriodEnd: base + days * 86400, graceUntil: null });
+      }
+      const result = await reconcile(memberId, store);
+      sendJson(res, 200, { ok: true, extended: subs.length, days, ...result });
+      return;
+    }
+
     default:
       sendJson(res, 400, { error: 'unknown action' });
   }

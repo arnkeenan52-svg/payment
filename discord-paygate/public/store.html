@@ -32,48 +32,50 @@
   </header>
 
   <main class="checkout">
-    <div class="brand">
-      <img class="logo" src="" alt="" width="72" height="72" hidden />
-      <h1 id="plan-name">&nbsp;</h1>
-      <p class="brand-name" id="server-name" hidden></p>
-      <p class="tagline" id="plan-desc"></p>
-    </div>
+    <section class="panel order-card">
+      <h1 class="order-title">Confirm Order</h1>
+      <p class="order-sub">You are about to purchase the following product:</p>
 
-    <div id="notice"></div>
-
-    <img class="product-shot" id="product-shot" src="/product.gif" alt="All courses lifetime"
-         onerror="this.remove()" />
-
-    <section class="panel row-panel">
-      <span class="row-label">Price</span>
-      <span class="row-value" id="price">&nbsp;</span>
-    </section>
-
-    <section class="panel note-panel">
-      <p class="note-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        Add a note (optional)
-      </p>
-      <textarea id="buyer-note" maxlength="500" rows="2" placeholder="e.g., purchases by @TomTq233 on discord"></textarea>
-      <p class="note-help">Add any additional information about your purchase. This will be visible to the server owner.</p>
-    </section>
-
-    <section class="panel" id="options-panel" hidden>
-      <p class="label">Select option</p>
-      <div id="options"></div>
-    </section>
-
-    <div class="methods" id="methods"></div>
-
-    <section class="panel pay-panel" id="pay-panel">
-      <div class="pay-head">
-        <h2 id="pay-title">Pay with Card</h2>
-        <span class="pill" id="pay-pill">0% Fee</span>
+      <div class="order-product">
+        <div class="op-left">
+          <img class="op-thumb" id="product-shot" src="/product.gif" alt="" onerror="this.hidden = true" />
+          <span class="op-name" id="plan-name">&nbsp;</span>
+        </div>
+        <span class="op-price" id="price">&nbsp;</span>
+        <div class="op-server">
+          <img class="logo op-server-icon" src="" alt="" width="34" height="34" hidden />
+          <span class="op-server-meta"><strong id="server-name" hidden></strong><span class="op-server-kind">Discord Server</span></span>
+        </div>
       </div>
-      <p class="pay-sub" id="pay-sub">Pay with card or debit. Payment goes directly to the server owner via Stripe.</p>
-      <div class="trust-row" id="trust-row"></div>
-      <div id="cta-area"></div>
-      <p class="redirect-note" id="redirect-note"></p>
+
+      <div class="order-roles" id="roles-box" hidden>
+        <span class="order-roles-label">Discord Roles Included:</span>
+        <span class="chips" id="roles-chips"></span>
+      </div>
+
+      <p class="tagline" id="plan-desc"></p>
+      <div id="notice"></div>
+
+      <p class="label" id="options-label">Select Option</p>
+      <div id="options"></div>
+
+      <p class="label">Payment Method:</p>
+      <div class="methods" id="methods"></div>
+
+      <section class="pay-panel" id="pay-panel">
+        <h2 id="pay-title">Pay with Card</h2>
+        <p class="pay-sub" id="pay-sub">Secure payment processed by Stripe</p>
+        <details class="order-extra">
+          <summary>Add a note or discount code</summary>
+          <label class="field"><span class="field-label">Note to the owner</span>
+            <textarea id="buyer-note" maxlength="500" rows="2" placeholder="e.g., bought for @friend"></textarea></label>
+          <label class="field" id="discount-field" hidden><span class="field-label">Discount code</span>
+            <input id="discount-code" type="text" maxlength="32" placeholder="LAUNCH20" spellcheck="false" style="text-transform:uppercase" /></label>
+        </details>
+        <div id="cta-area"></div>
+        <p class="redirect-note" id="redirect-note"></p>
+        <div class="trust-row" id="trust-row"></div>
+      </section>
     </section>
 
     <div id="error-slot"></div>
