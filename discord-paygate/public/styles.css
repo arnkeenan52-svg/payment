@@ -2224,3 +2224,26 @@ html.menu-open, html.menu-open body { overflow: hidden; }
   .feat-cell.rv .vz-chip, .feat-cell.rv .vz-ok, .feat-cell.rv .vz-line, .feat-cell.rv .vz-area { transition: none; opacity: 1; scale: 1; stroke-dasharray: none; }
   .feat-cell.rv.in .vz-dot { animation: none; }
 }
+
+/* ── how-it-works vignettes: the same living-moment language as the
+   feature cards, one small beat per step ───────────────────────────────────── */
+.hiw-viz {
+  margin-top: 4px; border: 1px solid #1e1e1e; border-radius: 9px; background: #0c0c0c;
+  padding: 10px 12px; display: flex; align-items: center; min-height: 54px;
+}
+.hiw-viz .vz-member { border: none; background: none; padding: 0; width: 100%; }
+.vz-av-sq { border-radius: 7px; }
+.vz-bot {
+  background: #2b2b2b; color: #bdbdbd; border-radius: 4px; padding: 1px 5px;
+  font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; vertical-align: 1px;
+}
+.vz-keyrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.vz-keyrow code { font: 500 11px/1 ui-monospace, 'SF Mono', Menlo, monospace; color: #8a8a8a; letter-spacing: 0.02em; }
+.vz-keyrow .vz-ok { margin: 0; font-size: 10.5px; }
+.vz-paid { color: #7a7a7a; font-size: 10.5px; font-weight: 600; margin-left: 4px; }
+.vz-payout { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+.vz-amt { font-family: var(--font-head); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* one shared pop-in for every step beat, keyed on the card's reveal */
+.hiw-step.rv .vz-pop { opacity: 0; scale: 0.75; transition: opacity 0.3s var(--ease-out) 0.5s, scale 0.3s var(--ease-out) 0.5s; }
+.hiw-step.rv.in .vz-pop { opacity: 1; scale: 1; }
+@media (prefers-reduced-motion: reduce) { .hiw-step.rv .vz-pop { opacity: 1; scale: 1; transition: none; } }
