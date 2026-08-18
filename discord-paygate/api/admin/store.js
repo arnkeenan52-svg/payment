@@ -88,7 +88,7 @@ export default guard(async function handler(req, res) {
         embeds: [{
           title: 'Sale notifications are on',
           description: `New orders in **${store.name}** will land here.`,
-          color: 0x4ade80,
+          color: 0xffffff,
         }],
       });
       if (!posted) {

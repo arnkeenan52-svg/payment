@@ -17,7 +17,7 @@
   <!-- og:end -->
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=41" />
+  <link rel="stylesheet" href="/styles.css?v=42" />
 </head>
 <body>
   <header class="top">
@@ -29,6 +29,7 @@
 
   <main class="checkout">
     <section class="panel order-card">
+      <span class="order-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Secure checkout</span>
       <h1 class="order-title">Confirm Order</h1>
       <p class="order-sub">You are about to purchase the following product:</p>
 
@@ -45,17 +46,17 @@
       </div>
 
       <div class="order-roles" id="roles-box" hidden>
-        <span class="order-roles-label">Discord Roles Included:</span>
-        <span class="chips" id="roles-chips"></span>
+        <span class="order-roles-label">Discord roles included</span>
+        <span class="role-list" id="roles-chips"></span>
       </div>
 
       <p class="tagline" id="plan-desc"></p>
       <div id="notice"></div>
 
-      <p class="label" id="options-label">Select Option</p>
+      <p class="label" id="options-label">Select option</p>
       <div id="options"></div>
 
-      <p class="label">Payment Method:</p>
+      <p class="label">Payment method</p>
       <div class="methods" id="methods"></div>
 
       <section class="pay-panel" id="pay-panel">
@@ -71,6 +72,12 @@
             <p class="discount-msg" id="discount-msg" role="status"></p>
           </div>
         </details>
+        <div class="totals" id="totals" hidden>
+          <div class="tot-row"><span>Subtotal</span><span id="tot-sub"></span></div>
+          <div class="tot-row tot-save" id="tot-save-row" hidden><span id="tot-save-label">Discount</span><span id="tot-save"></span></div>
+          <div class="tot-div" aria-hidden="true"></div>
+          <div class="tot-row tot-final"><span>Total</span><strong id="tot-final"></strong></div>
+        </div>
         <div id="cta-area"></div>
         <p class="redirect-note" id="redirect-note"></p>
         <div class="trust-row" id="trust-row"></div>
@@ -85,6 +92,6 @@
     <img class="powered-mark" src="/ripley.png" alt="Ripley" height="18" />
   </footer>
 
-  <script src="/app.js?v=41"></script>
+  <script src="/app.js?v=42"></script>
 </body>
 </html>

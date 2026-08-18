@@ -61,7 +61,7 @@ export async function processStripeEvent(event, routeStore = null) {
             description:
               `**${buyer}** just subscribed to **${plan?.name ?? planId}**` +
               `${plan?.lifetime ? ' (lifetime)' : ''}.\n\nPayment received: **$${Number(amount).toFixed(2)}**`,
-            color: 0x4ade80,
+            color: 0xffffff,
             footer: { text: store.name },
             timestamp: new Date().toISOString(),
           }],

@@ -72,9 +72,9 @@ export function receiptHtml({ storeName, planName, amountUsd, lifetime, discordU
   <div style="background:#0a0a0a;padding:36px 16px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
     <div style="max-width:460px;margin:0 auto;background:#141414;border-radius:8px;padding:32px;border:1px solid #262626;">
       <table role="presentation" style="border-collapse:collapse;margin:0 0 14px;"><tr>
-        <td style="width:34px;height:34px;background:#122b1c;border:1px solid #1e5533;border-radius:6px;text-align:center;vertical-align:middle;color:#4ade80;font-size:17px;font-weight:700;line-height:34px;">&#10003;</td>
+        <td style="width:34px;height:34px;background:#1c1c1c;border:1px solid #2e2e2e;border-radius:6px;text-align:center;vertical-align:middle;color:#ffffff;font-size:17px;font-weight:700;line-height:34px;">&#10003;</td>
         <td style="padding-left:12px;">
-          <span style="display:block;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#4ade80;font-weight:800;">Membership Activated</span>
+          <span style="display:block;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#f2f2f0;font-weight:800;">Membership Activated</span>
         </td>
       </tr></table>
       <h1 style="margin:0 0 10px;font-size:21px;line-height:1.3;color:#f2f2f0;">Your ${esc(storeName)} membership is active</h1>
@@ -93,7 +93,7 @@ export function receiptHtml({ storeName, planName, amountUsd, lifetime, discordU
       </table>
       <div style="margin-top:20px;">
         <a href="${esc(config.publicBaseUrl)}/account"
-           style="display:inline-block;background:#4ade80;color:#08130c;text-decoration:none;font-size:13px;font-weight:700;padding:11px 20px;border-radius:6px;">
+           style="display:inline-block;background:#ffffff;color:#0a0a0a;text-decoration:none;font-size:13px;font-weight:700;padding:11px 20px;border-radius:6px;">
           Manage Membership
         </a>
       </div>

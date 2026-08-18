@@ -139,13 +139,16 @@ function renderBrand() {
   $('#plan-name').textContent = plan.name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
   $('#price').textContent = fmtPrice(plan.priceUsd);
-  // Roles the buyer receives, as chips (reference: "Discord Roles Included").
+  // Roles the buyer receives, as an included-features checklist (the
+  // single-pricing-card blueprint) rather than chips.
   const rolesBox = $('#roles-box');
   const chips = $('#roles-chips');
   if (rolesBox && chips) {
     const names = plan.roleNames ?? [];
     if (names.length) {
-      chips.innerHTML = names.map((n) => `<span class="chip">${n.replace(/[&<>"']/g, '')}</span>`).join('');
+      chips.innerHTML = names
+        .map((n) => `<span class="role-check">${ICON_CHECK}${n.replace(/[&<>"']/g, '')}</span>`)
+        .join('');
       rolesBox.hidden = false;
     } else rolesBox.hidden = true;
   }
@@ -231,16 +234,40 @@ function renderPayPanel() {
     : '';
 }
 
+// Order-summary rows above the pay action (checkout blueprint): subtotal,
+// the applied discount as a negative line, a dashed rule, then the total.
+function renderTotals(plan, applied, payable) {
+  const box = $('#totals');
+  if (!box) return;
+  if (!plan || !payable) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  $('#tot-sub').textContent = fmtPrice(plan.priceUsd);
+  const saveRow = $('#tot-save-row');
+  if (applied) {
+    saveRow.hidden = false;
+    $('#tot-save-label').textContent = `Discount (${applied.code})`;
+    $('#tot-save').textContent = `−${fmtPrice(applied.saveUsd)}`;
+  } else saveRow.hidden = true;
+  $('#tot-final').textContent = fmtPrice(applied ? applied.discountedUsd : plan.priceUsd);
+}
+
 function renderCta() {
   const area = $('#cta-area');
   area.innerHTML = '';
   const plan = selectedPlan();
-  if (!plan) return;
+  if (!plan) {
+    renderTotals(null, null, false);
+    return;
+  }
 
   // Sign-in comes before purchase, enforced here in the UI as well as by the
   // API's 401: a logged-out visitor never sees a Pay button. The login link
   // carries the plan so the OAuth round trip lands them back here, ready.
   if (!state.me.loggedIn) {
+    renderTotals(plan, state.discount && state.discount.planId === plan.id ? state.discount : null, true);
     const btn = document.createElement('button');
     btn.className = 'pay-btn';
     btn.textContent = 'Sign in with Discord to continue';
@@ -251,6 +278,7 @@ function renderCta() {
 
   const sub = ownedSub(plan);
   if (sub?.entitled) {
+    renderTotals(plan, null, false);
     const settled = document.createElement('div');
     settled.className = 'settled';
     settled.innerHTML = sub.lifetime
@@ -261,6 +289,7 @@ function renderCta() {
   }
 
   const applied = state.discount && state.discount.planId === plan.id ? state.discount : null;
+  renderTotals(plan, applied, true);
   const btn = document.createElement('button');
   btn.className = 'pay-btn';
   btn.textContent = `Pay ${fmtPrice(applied ? applied.discountedUsd : plan.priceUsd)} with ${state.method === 'coinbase' ? 'Crypto' : 'Card'}`;
