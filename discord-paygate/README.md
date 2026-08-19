@@ -168,6 +168,48 @@ role delivery and receipts keep working, the bot just greys out.
 identifies with the presence payload, heartbeats, resumes the same session
 after the gateway drops it, and exits non-zero on a 4004 auth failure.
 
+### Running it free, on a VM that stays up
+
+Measured footprint: ~60 MB RSS, ~195 KB/day of traffic, effectively no CPU.
+That fits in the smallest free tier anywhere, but "free" and "always on" rule
+out most of them:
+
+- **Google Compute Engine free tier** — one non-preemptible `e2-micro` per
+  month in `us-west1`, `us-central1` or `us-east1`, 30 GB disk, 1 GB/month of
+  North America egress, no expiry. The worker uses ~6 MB of that GB. This is
+  the recommendation.
+- **Oracle Cloud Always Free** — bigger box, but Oracle reclaims Always Free
+  instances that stay under 20% CPU for seven days. This worker idles at
+  ~0%, so it is exactly the workload that policy targets. Avoid.
+- **Free tiers that sleep** (Render free web services and similar) — a slept
+  process drops the socket and the bot greys out. Setting `PORT` and pinging
+  it from outside keeps it awake, but it is a workaround, not a deployment.
+
+The unit file in `deploy/` runs it under systemd, so it starts on boot and
+restarts on crash. On a fresh Debian/Ubuntu VM (`presence.js` needs the global
+`WebSocket`, so Node 22.5+ — distro packages are usually older):
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs git
+sudo useradd --system --home /opt/ripley --shell /usr/sbin/nologin ripley
+sudo git clone <this-repo> /opt/ripley && sudo chown -R ripley:ripley /opt/ripley
+
+sudo mkdir -p /etc/ripley
+sudo cp /opt/ripley/deploy/presence.env.example /etc/ripley/presence.env
+sudo nano /etc/ripley/presence.env          # paste DISCORD_BOT_TOKEN
+sudo chmod 600 /etc/ripley/presence.env
+
+sudo cp /opt/ripley/deploy/ripley-presence.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now ripley-presence
+journalctl -u ripley-presence -f           # expect "identified" then heartbeats
+```
+
+The VM needs no inbound firewall rule — the gateway connection is outbound
+only. Nothing else from this repo has to run there; `/opt/ripley` is only a
+checkout so the unit has a path to `scripts/presence.js`.
+
 ## Discord setup
 
 1. **Create the application** at <https://discord.com/developers/applications>.
