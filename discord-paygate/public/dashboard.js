@@ -900,6 +900,28 @@ function paymentsRows(list) {
     .join('');
 }
 
+// Checkout attempts. "Started" means the buyer reached Stripe's card form —
+// an abandoned one leaves no payment behind, so this is the only place it
+// shows up.
+function checkoutRows(list) {
+  if (!list.length) return '<tr><td colspan="5" class="dim">No checkouts started yet.</td></tr>';
+  return list
+    .map(
+      (c) => `<tr>
+        <td>${c.username ? '@' + esc(c.username) : ''}<span class="dim"> ${esc(c.discordId)}</span></td>
+        <td>${esc(c.planName)}${c.discountCode ? ` <span class="chip chip-code">${esc(c.discountCode)}</span>` : ''}</td>
+        <td class="num">${usd(c.amountUsd)}</td>
+        <td>${
+          c.status === 'completed'
+            ? '<span class="chip chip-good">Paid</span>'
+            : '<span class="chip chip-warn">Not finished</span>'
+        }</td>
+        <td class="dim">${fmtDT(c.createdAt)}</td>
+      </tr>`,
+    )
+    .join('');
+}
+
 // ── store dashboard: sections ────────────────────────────────────────────────
 
 const SECTIONS = [
@@ -1367,6 +1389,8 @@ async function viewStore(slug) {
   else if (section === 'store') body = sectionStore(store, link);
   else if (section === 'settings') body = sectionSettings(store, isPlatformOwner);
   else if (section === 'payments') {
+    const checkouts = data.checkouts ?? [];
+    const ck = data.checkoutTotals ?? { started: 0, completed: 0, abandoned: 0, conversionPct: null };
     body = `
       <h2 class="sec-title">Transactions</h2>
       <section class="panel table-panel">
@@ -1380,6 +1404,24 @@ async function viewStore(slug) {
         </div>
         <div class="table-scroll"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="tx-body">${paymentsRows(data.payments)}</tbody></table></div>
         <p class="rows-note" id="tx-count">${data.payments.length} row(s)</p>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="card-head"><div><h3>Checkouts started</h3><p class="card-sub">Everyone who reached the card form — finished or not.</p></div></div>
+        <div class="ck-stats">
+          <div class="ck-stat"><span class="ck-num">${ck.started}</span><span class="ck-lab">Started</span></div>
+          <div class="ck-stat"><span class="ck-num ck-good">${ck.completed}</span><span class="ck-lab">Paid</span></div>
+          <div class="ck-stat"><span class="ck-num ck-warn">${ck.abandoned}</span><span class="ck-lab">Not finished</span></div>
+          <div class="ck-stat"><span class="ck-num">${ck.conversionPct === null ? '—' : ck.conversionPct + '%'}</span><span class="ck-lab">Completed</span></div>
+        </div>
+        <div class="table-tools">
+          <label class="search-box">${I.search}<input id="ck-search" type="search" placeholder="Search username, ID or product…" aria-label="Search checkouts" /></label>
+          <select id="ck-status" class="store-switch" aria-label="Filter checkouts by status">
+            <option value="">Status: all</option><option value="completed">Paid</option><option value="started">Not finished</option>
+          </select>
+        </div>
+        <div class="table-scroll"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Started</th></tr></thead><tbody id="ck-body">${checkoutRows(checkouts)}</tbody></table></div>
+        <p class="rows-note" id="ck-count">${checkouts.length} row(s)</p>
       </section>`;
   } else if (section === 'members') {
     const byMember = new Map();
@@ -1494,6 +1536,25 @@ async function viewStore(slug) {
   }
 
   if (section === 'payments') {
+    // Checkouts share the section but not the filter — a completed checkout
+    // and an active membership are different questions.
+    const ckList = data.checkouts ?? [];
+    const ckFiltered = () => {
+      const q = ($('#ck-search').value ?? '').trim().toLowerCase();
+      const st = $('#ck-status').value;
+      return ckList.filter((c) => {
+        const hitQ = !q || (c.username ?? '').toLowerCase().includes(q) || c.discordId.includes(q) || c.planName.toLowerCase().includes(q);
+        return hitQ && (!st || c.status === st);
+      });
+    };
+    const ckApply = () => {
+      const list = ckFiltered();
+      $('#ck-body').innerHTML = checkoutRows(list);
+      $('#ck-count').textContent = `${list.length} row(s)`;
+    };
+    $('#ck-search').addEventListener('input', ckApply);
+    $('#ck-status').addEventListener('change', ckApply);
+
     const filtered = () => {
       const q = ($('#tx-search').value ?? '').trim().toLowerCase();
       const st = $('#tx-status').value;

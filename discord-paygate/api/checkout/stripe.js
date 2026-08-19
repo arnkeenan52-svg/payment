@@ -107,5 +107,21 @@ export default guard(async function handler(req, res) {
     });
     return;
   }
+  // Log the attempt before answering. A buyer who never finishes leaves no
+  // subscription behind, so this row is the only trace that they got as far as
+  // Stripe's card form — and it is what turns "no sales" into a diagnosis.
+  // Never let a bookkeeping failure cost someone a checkout they can pay for.
+  try {
+    await db.recordCheckoutAttempt({
+      storeId: store.id ?? null,
+      planId: plan.id,
+      discordId: uid,
+      sessionId: session.id,
+      amountUsd: typeof session.amount_total === 'number' ? session.amount_total / 100 : (plan.priceUsd ?? 0),
+      discountCode,
+    });
+  } catch (err) {
+    console.error(`[checkout] could not log attempt ${session.id}: ${err.message}`);
+  }
   sendJson(res, 200, { url: session.url });
 });

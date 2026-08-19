@@ -1489,6 +1489,81 @@ test('platform: account re-sync heals a manually-removed role', async () => {
   assert.ok(memberRoles(U6).has(R_LIFETIME), 'the role must be back after resync');
 });
 
+test('checkout attempts are logged whether or not the buyer pays', async () => {
+  // A buyer who reaches Stripe and walks away leaves no subscription, so this
+  // row is the only evidence the owner ever gets that someone tried.
+  const U11 = '511100000000000011';
+  discord.members.set(U11, new Set());
+  discord.oauthUsers.code_u11 = { id: U11, username: 'window_shopper' };
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=code_u11&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  const u11Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+
+  const owned = async () => (await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u1Cookie } })).json());
+  const before = await owned();
+
+  // Start two checkouts. Neither is paid yet.
+  for (const n of [1, 2]) {
+    const r = await fetch(`${appUrl}/api/checkout/stripe`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u11Cookie },
+      body: JSON.stringify({ planId: 'pro', store: 'tradeleaks' }),
+    });
+    assert.equal(r.status, 200, `checkout ${n} starts`);
+  }
+  const mid = await owned();
+  const mine = mid.checkouts.filter((c) => c.discordId === U11);
+  assert.equal(mine.length, 2, 'both attempts are recorded, not just the last');
+  assert.equal(mine.every((c) => c.status === 'started'), true, 'unpaid attempts read as started');
+  assert.equal(mid.checkoutTotals.started - before.checkoutTotals.started, 2);
+  assert.equal(mid.checkoutTotals.completed, before.checkoutTotals.completed, 'nothing is counted as paid yet');
+  assert.equal(mine[0].username, 'window_shopper', 'the owner sees who it was');
+  assert.ok(mine[0].amountUsd > 0, 'and what they were about to pay');
+
+  // Now pay one of them; only that session flips.
+  const paidSession = stripe.checkoutSessions.at(-1)?.id ?? mine[0].sessionId;
+  const target = mine.find((c) => c.sessionId === paidSession) ?? mine[0];
+  assert.equal(
+    (await deliverStripe({
+      id: 'evt_u11_paid',
+      type: 'checkout.session.completed',
+      data: { object: { id: target.sessionId, mode: 'subscription', subscription: 'sub_u11', client_reference_id: U11, metadata: { plan_id: 'pro', discord_id: U11 } } },
+    })).status,
+    200,
+  );
+  const after = await owned();
+  const mineAfter = after.checkouts.filter((c) => c.discordId === U11);
+  assert.equal(mineAfter.filter((c) => c.status === 'completed').length, 1, 'exactly the paid session flips');
+  assert.equal(mineAfter.filter((c) => c.status === 'started').length, 1, 'the abandoned one stays visible');
+  assert.ok(mineAfter.find((c) => c.sessionId === target.sessionId).completedAt > 0, 'and carries when it completed');
+  assert.equal(after.checkoutTotals.abandoned, after.checkoutTotals.started - after.checkoutTotals.completed);
+  assert.ok(after.checkoutTotals.conversionPct !== null && after.checkoutTotals.conversionPct <= 100);
+
+  // Stripe replays completed events on retry; the row must not move.
+  const firstCompletedAt = mineAfter.find((c) => c.sessionId === target.sessionId).completedAt;
+  await deliverStripe({
+    id: 'evt_u11_paid_again',
+    type: 'checkout.session.completed',
+    data: { object: { id: target.sessionId, mode: 'subscription', subscription: 'sub_u11', client_reference_id: U11, metadata: { plan_id: 'pro', discord_id: U11 } } },
+  });
+  const replayed = (await owned()).checkouts.find((c) => c.sessionId === target.sessionId);
+  assert.equal(replayed.completedAt, firstCompletedAt, 'a replayed webhook does not move completed_at');
+
+  // Attempts carry other buyers' Discord IDs, so they ride the same gate as
+  // the rest of this endpoint: owners only.
+  assert.equal((await fetch(`${appUrl}/api/admin/payments`)).status, 401, 'anonymous cannot read checkout attempts');
+  assert.equal(
+    (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u11Cookie } })).status,
+    403,
+    'a buyer cannot read checkout attempts',
+  );
+});
+
 test('buyer self-serve cancel: at period end, own subscriptions only', async () => {
   assert.equal((await fetch(`${appUrl}/api/subscription`, { method: 'POST' })).status, 401, 'anonymous cannot cancel');
 

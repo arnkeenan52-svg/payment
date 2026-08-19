@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 import { getSubscription, subscriptionPeriodEnd, invoiceSubscriptionId } from '../lib/stripe.js';
-import { getSubscriptionByRef, setSubscriptionStatus } from '../db.js';
+import { getSubscriptionByRef, setSubscriptionStatus, markCheckoutCompleted } from '../db.js';
 import { grant, markPastDue, cancel, reconcile } from './entitlements.js';
 import { storeById, defaultStore, planOf } from './stores.js';
 import { sendReceiptEmail } from '../lib/email.js';
@@ -35,6 +35,9 @@ export async function processStripeEvent(event, routeStore = null) {
         });
         return;
       }
+      // Close the loop on the attempt row logged when this session was made.
+      // Stripe replays this event on retry, so the update is idempotent.
+      if (obj.id) await markCheckoutCompleted(obj.id).catch(() => {});
       const discordId = obj.client_reference_id ?? obj.metadata?.discord_id;
       const planId = obj.metadata?.plan_id;
       if (!discordId || !planId) {

@@ -70,6 +70,24 @@ const ddl = (dialect) => {
   CREATE INDEX IF NOT EXISTS idx_stores_owner ON stores (owner_discord_id);
 
   -- Products of a store (the default store's products live in plans.json).
+  -- Every checkout the buyer actually reached Stripe with, completed or not.
+  -- Subscriptions only exist once money moved, so without this an owner cannot
+  -- tell "nobody is interested" from "everybody bails at the card form".
+  CREATE TABLE IF NOT EXISTS checkout_attempts (
+    ${id},
+    store_id      ${int},               -- NULL = the built-in default store
+    plan_id       TEXT NOT NULL,
+    discord_id    TEXT NOT NULL,
+    session_id    TEXT NOT NULL,        -- Stripe cs_… ; the completion webhook matches on it
+    amount_usd    REAL NOT NULL DEFAULT 0,
+    discount_code TEXT,
+    status        TEXT NOT NULL,        -- 'started' | 'completed'
+    created_at    ${int} NOT NULL,
+    completed_at  ${int},
+    UNIQUE (session_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_checkout_attempts_store ON checkout_attempts (store_id, created_at);
+
   CREATE TABLE IF NOT EXISTS store_plans (
     ${id},
     store_id        ${int} NOT NULL,
@@ -385,6 +403,44 @@ export async function setSubscriptionStatus(id, { status, currentPeriodEnd, grac
 // record when it runs out. The role lifts on Stripe's deletion webhook.
 export async function markSubscriptionCancelling(id, cancelsAt) {
   await q('UPDATE subscriptions SET cancels_at = ?, updated_at = ? WHERE id = ?', [cancelsAt, now(), id]);
+}
+
+// A checkout was started. Recorded before the buyer ever sees Stripe's page,
+// so an abandoned one still shows up. Re-clicking Pay makes a new session and
+// therefore a new row — that repetition is itself the signal.
+export async function recordCheckoutAttempt({ storeId = null, planId, discordId, sessionId, amountUsd = 0, discountCode = null }) {
+  const t = now();
+  await q(
+    `INSERT INTO checkout_attempts (store_id, plan_id, discord_id, session_id, amount_usd, discount_code, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'started', ?)
+     ON CONFLICT (session_id) DO NOTHING`,
+    [storeId, planId, discordId, sessionId, amountUsd, discountCode, t],
+  );
+}
+
+// The completion webhook is the only thing that flips a row. It is replayed by
+// Stripe on retries, so completed_at is written once and never moved.
+export async function markCheckoutCompleted(sessionId, at = now()) {
+  await q("UPDATE checkout_attempts SET status = 'completed', completed_at = ? WHERE session_id = ? AND status <> 'completed'", [at, sessionId]);
+}
+
+export async function checkoutAttempts(storeIds = null, { limit = 300 } = {}) {
+  if (storeIds === null) {
+    return (await q('SELECT * FROM checkout_attempts ORDER BY created_at DESC LIMIT ?', [limit])).rows;
+  }
+  if (!storeIds.length) return [];
+  const hasNull = storeIds.includes(null);
+  const ids = storeIds.filter((v) => v !== null);
+  const clauses = [];
+  const args = [];
+  if (ids.length) {
+    clauses.push(`store_id IN (${ids.map(() => '?').join(',')})`);
+    args.push(...ids);
+  }
+  if (hasNull) clauses.push('store_id IS NULL');
+  if (!clauses.length) return [];
+  args.push(limit);
+  return (await q(`SELECT * FROM checkout_attempts WHERE ${clauses.join(' OR ')} ORDER BY created_at DESC LIMIT ?`, args)).rows;
 }
 
 export async function subscriptionsForMember(discordId) {

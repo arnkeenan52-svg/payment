@@ -2,7 +2,7 @@ import { sendJson, guard } from '../../src/lib/http.js';
 import { ownerAuthorized } from '../../src/lib/authz.js';
 import { cronAuthorized } from '../cron/reconcile.js';
 import { sessionUserId } from '../../src/lib/session.js';
-import { allSubscriptionsWithUsers, isEntitled } from '../../src/db.js';
+import { allSubscriptionsWithUsers, isEntitled, checkoutAttempts, getUser } from '../../src/db.js';
 import { storesOwnedBy, everyStore, plansOf, defaultStore } from '../../src/services/stores.js';
 
 // Payments timeline + totals, scoped to the stores the caller owns. The
@@ -74,6 +74,37 @@ export default guard(async function handler(req, res) {
     });
   }
 
+  // Checkout attempts: everyone who reached Stripe's card form, paid or not.
+  // Without these an owner cannot tell "nobody clicked" from "everybody bails".
+  const attemptRows = await checkoutAttempts(fetchIds);
+  const nameCache = new Map();
+  const nameOf = async (discordId) => {
+    if (!nameCache.has(discordId)) nameCache.set(discordId, (await getUser(discordId).catch(() => null))?.username ?? null);
+    return nameCache.get(discordId);
+  };
+  const checkouts = [];
+  for (const a of attemptRows) {
+    const sid = a.store_id === null || a.store_id === undefined ? null : Number(a.store_id);
+    const store = byId.get(sid);
+    if (!store) continue;
+    const catalog = sid === null && def ? await plansFor(def) : await plansFor(store);
+    checkouts.push({
+      createdAt: Number(a.created_at),
+      completedAt: a.completed_at === null || a.completed_at === undefined ? null : Number(a.completed_at),
+      discordId: a.discord_id,
+      username: await nameOf(a.discord_id),
+      storeSlug: store.slug,
+      storeName: store.name,
+      planId: a.plan_id,
+      planName: catalog.find((p) => p.id === a.plan_id)?.name ?? a.plan_id,
+      amountUsd: Number(a.amount_usd ?? 0),
+      discountCode: a.discount_code ?? null,
+      status: a.status,
+      sessionId: a.session_id,
+    });
+  }
+  const completed = checkouts.filter((c) => c.status === 'completed').length;
+
   const activeMembers = new Set(rows.filter((r) => r.entitled).map((r) => r.discordId));
   sendJson(res, 200, {
     // Every store the caller owns (for the dashboard's store switcher);
@@ -86,5 +117,14 @@ export default guard(async function handler(req, res) {
       lifetimeMembers: new Set(rows.filter((r) => r.lifetime).map((r) => r.discordId)).size,
     },
     payments: rows,
+    checkouts,
+    checkoutTotals: {
+      started: checkouts.length,
+      completed,
+      abandoned: checkouts.length - completed,
+      // null rather than 0 when nothing has started — "0% conversion" reads as
+      // a failure, "no data yet" is the truth.
+      conversionPct: checkouts.length ? Math.round((completed / checkouts.length) * 1000) / 10 : null,
+    },
   });
 });
