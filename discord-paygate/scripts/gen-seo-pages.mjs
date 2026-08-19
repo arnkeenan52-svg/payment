@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '56'; // keep in step with the ?v= asset version on index.html
+const V = '57'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -1130,5 +1130,21 @@ emit(
   'robots.txt',
   `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /dashboard\nDisallow: /account\nDisallow: /receipt\n\n${AI_BOTS.map((b) => `User-agent: ${b}\nAllow: /`).join('\n\n')}\n\nSitemap: ${BASE}/sitemap.xml\n`,
 );
+
+// The landing page is hand-written, but its footer is not — it is stamped from
+// the same footerHtml the generated pages use. Two hand-maintained copies
+// drifted once already: /vs/subscord shipped and was linked everywhere except
+// the homepage, which is the one page most visitors ever see.
+{
+  const landing = path.join(PUB, 'index.html');
+  const html = fs.readFileSync(landing, 'utf8');
+  const B = '<!-- footer:begin', E = '<!-- footer:end -->';
+  const i = html.indexOf(B);
+  const j = html.indexOf(E);
+  if (i === -1 || j === -1) throw new Error('index.html has lost its footer markers');
+  const openTagEnd = html.indexOf('-->', i) + 3;
+  fs.writeFileSync(landing, `${html.slice(0, openTagEnd)}\n${footerHtml.trim()}\n  ${html.slice(j)}`);
+  out.push('index.html (footer)');
+}
 
 console.log(`generated ${out.length} files:\n  ${out.join('\n  ')}`);

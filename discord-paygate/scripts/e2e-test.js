@@ -1910,6 +1910,20 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.equal((await fetch(`${appUrl}/api/plans?store=guides`)).status, 404);
   assert.equal((await fetch(`${appUrl}/api/plans?store=alternatives`)).status, 404);
 
+  // The homepage carries a copy of the generated footer. It drifted once —
+  // /vs/subscord existed and was linked from every generated page except the
+  // one visitors actually land on — so assert the two are byte-identical
+  // rather than assert a list of links somebody has to remember to update.
+  const footerOf = (html) => {
+    const i = html.indexOf('<footer class="site-footer cols seo-footer">');
+    return i === -1 ? null : html.slice(i, html.indexOf('</footer>', i));
+  };
+  const home = await get('/');
+  const homeFooter = footerOf(home.body);
+  assert.ok(homeFooter, 'the landing page has the shared footer');
+  assert.equal(homeFooter, footerOf(sub.body), 'the landing footer matches the generated one');
+  assert.match(homeFooter, /href="\/vs\/subscord"/, 'the homepage links the Subscord comparison');
+
 
   // The homepage's "Invite Ripley" button: a stable hop to Discord's
   // authorize screen, bot scope + Manage Roles — same as the wizard.
