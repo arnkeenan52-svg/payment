@@ -131,6 +131,43 @@ Run it three ways, all the same module:
 Results are cached for `DOCTOR_CACHE_SECONDS` (default 300) per warm
 instance.
 
+## Keeping the bot Online (gateway presence)
+
+Discord paints a bot **Online** only while it holds an open gateway
+WebSocket. Everything Ripley does — granting roles, reading channels, posting
+sale pings — runs over the REST API from Vercel functions, which cannot hold a
+socket open. So the bot works perfectly while showing as **Offline** in the
+member list.
+
+`scripts/presence.js` is the fix: a tiny always-on process whose only job is to
+hold that socket. It handles no events and asks for no privileged intents
+(`intents: 0`), heartbeats, resumes its session after a drop, backs off on
+failure, and exits loudly on an auth error instead of hammering the gateway.
+
+```bash
+DISCORD_BOT_TOKEN=your-bot-token npm run presence
+```
+
+Deploy it anywhere that stays up — Railway, Fly.io, a Render **background
+worker**, or any VPS. `Dockerfile.presence` builds it standalone. The only
+required variable is `DISCORD_BOT_TOKEN` (the same one Vercel uses).
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `DISCORD_BOT_TOKEN` | — | required |
+| `PRESENCE_TEXT` | `ripleybot.com` | activity text; empty for status only |
+| `PRESENCE_TYPE` | `3` (Watching) | 0 Playing · 2 Listening · 3 Watching · 5 Competing |
+| `PRESENCE_STATUS` | `online` | `online`, `idle` or `dnd` |
+| `PORT` | unset | if set, serves a JSON health snapshot on `GET /` |
+
+Two rules: run **exactly one** instance per bot token (two instances fight over
+the session), and remember this process is cosmetic — if it stops, payments,
+role delivery and receipts keep working, the bot just greys out.
+
+`npm run test:presence` verifies the client against a mock gateway: it
+identifies with the presence payload, heartbeats, resumes the same session
+after the gateway drops it, and exits non-zero on a 4004 auth failure.
+
 ## Discord setup
 
 1. **Create the application** at <https://discord.com/developers/applications>.

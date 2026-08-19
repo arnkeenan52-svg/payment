@@ -1,0 +1,10 @@
+# The always-on presence keeper — the only piece of Ripley that cannot run
+# serverless, because Discord shows a bot Online only while it holds a gateway
+# WebSocket. Deploy this image anywhere that stays up (Railway, Fly.io, Render
+# background worker, a VPS) with DISCORD_BOT_TOKEN set. Run exactly one.
+FROM node:22-alpine
+WORKDIR /app
+COPY scripts/presence.js ./scripts/presence.js
+ENV NODE_ENV=production
+USER node
+CMD ["node", "scripts/presence.js"]
