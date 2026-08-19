@@ -13,6 +13,8 @@ import {
   createWebhookEndpoint,
   webhookUrlCandidates,
   canonicalWebhookUrl,
+  isStripeKey,
+  stripeKeyMode,
 } from '../lib/stripe.js';
 import { getAppSecret, setAppSecret, acquireLock, releaseLock } from '../db.js';
 import { resendApiKey, receiptFrom } from '../lib/email.js';
@@ -93,9 +95,9 @@ export async function runDoctor() {
     config.discord.clientSecret ? null : 'Copy it from discord.com/developers/applications → your app → OAuth2 → Client Secret.');
 
   const stripeKey = config.stripe.secretKey;
-  const keyShaped = /^sk_(test|live)_/.test(stripeKey);
-  add('env:stripe-key', 'STRIPE_SECRET_KEY starts with sk_test_/sk_live_', keyShaped ? 'pass' : 'fail', mask(stripeKey),
-    keyShaped ? null : 'Copy the Secret key from Stripe dashboard → Developers → API keys (it starts with sk_).');
+  const keyShaped = isStripeKey(stripeKey);
+  add('env:stripe-key', 'STRIPE_SECRET_KEY is a Stripe API key (rk_ or sk_)', keyShaped ? 'pass' : 'fail', mask(stripeKey),
+    keyShaped ? null : 'Copy a key from Stripe dashboard → Developers → API keys. Stripe recommends a restricted key (rk_) over a secret key (sk_).');
   add('env:stripe-webhook-secret', 'STRIPE_WEBHOOK_SECRET starts with whsec_',
     stripeKey && config.stripe.webhookSecret.startsWith('whsec_') ? 'pass' : 'fail', mask(config.stripe.webhookSecret),
     config.stripe.webhookSecret.startsWith('whsec_') ? null
@@ -111,7 +113,7 @@ export async function runDoctor() {
   }
 
   // ── Stripe, live ────────────────────────────────────────────────────────────
-  const stripeMode = stripeKey.startsWith('sk_live_') ? 'live' : 'test';
+  const stripeMode = stripeKeyMode(stripeKey);
   let stripeAuthed = false;
   if (keyShaped) {
     try {

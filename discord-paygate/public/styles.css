@@ -2386,3 +2386,23 @@ html.menu-open, html.menu-open body { overflow: hidden; }
   color: var(--dim); border: 1px solid var(--edge); border-radius: 999px;
   padding: 1px 6px; margin-left: 6px; vertical-align: 1px;
 }
+
+/* Restricted-key scope list, shown beside the Stripe key field. Collapsed by
+   default: it is reference material, not something to read before every paste. */
+.key-scopes { margin-top: 8px; font-size: 12.5px; }
+.key-scopes summary {
+  cursor: pointer; color: rgba(255, 255, 255, 0.72); list-style: none;
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
+}
+.key-scopes summary::before { content: '+'; color: var(--dim); font-weight: 700; }
+.key-scopes[open] summary::before { content: '−'; }
+.key-scopes summary::-webkit-details-marker { display: none; }
+.key-scopes ul {
+  list-style: none; margin: 6px 0 0; padding: 10px 12px;
+  border: 1px solid var(--edge); border-radius: 8px; background: #0c0c0c;
+  display: grid; gap: 6px;
+}
+.key-scopes li { display: flex; justify-content: space-between; gap: 12px; color: rgba(255, 255, 255, 0.78); }
+.key-scopes li em { font-style: normal; color: var(--dim); }
+.key-scopes p { margin: 8px 0 0; color: var(--dim); line-height: 1.5; }
+.key-scopes p em { font-style: normal; color: rgba(255, 255, 255, 0.66); }

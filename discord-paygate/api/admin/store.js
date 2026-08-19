@@ -4,7 +4,7 @@ import { sessionUserId } from '../../src/lib/session.js';
 import * as db from '../../src/db.js';
 import { adminStoreBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
-import { stripeFetch } from '../../src/lib/stripe.js';
+import { stripeFetch, isStripeKey } from '../../src/lib/stripe.js';
 import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
 
 // Store identity settings: name, description, banner, custom link (slug).
@@ -47,13 +47,13 @@ export default guard(async function handler(req, res) {
   // Rotate the Stripe key: validated against Stripe before anything is saved.
   if (body.stripeKey !== undefined && String(body.stripeKey).trim() !== '') {
     const key = String(body.stripeKey).trim();
-    if (!/^(sk|rk)_(live|test)_/.test(key)) {
-      return sendJson(res, 400, { error: 'That does not look like a Stripe secret key (sk_live_… or sk_test_…).' });
+    if (!isStripeKey(key)) {
+      return sendJson(res, 400, { error: 'That does not look like a Stripe API key. Restricted keys (rk_live_…) and secret keys (sk_live_…) both work.' });
     }
     try {
       await stripeFetch('/v1/account', { key });
     } catch {
-      return sendJson(res, 400, { error: 'Stripe rejected that key. Copy the Secret key from Stripe → Developers → API keys.' });
+      return sendJson(res, 400, { error: 'Stripe rejected that key. Create one under Stripe → Developers → API keys — a restricted key needs Checkout Sessions, Products, Prices, Coupons and Webhook Endpoints write, plus Subscriptions read.' });
     }
     fields.stripeSecretEnc = sealSecret(key);
   }

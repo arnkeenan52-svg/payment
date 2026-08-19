@@ -10,6 +10,25 @@ const fmtDT = (unix) =>
   ', ' + new Date(unix * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 const fmtD = (unix) => new Date(unix * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
+// A restricted key with a missing permission does not fail at paste time — it
+// fails much later, on a buyer's checkout, with an opaque Stripe error. So the
+// exact scopes are on screen next to the field. Keep in step with
+// STRIPE_KEY_PERMISSIONS in src/lib/stripe.js.
+const KEY_SCOPES = [
+  ['Checkout Sessions', 'Write'],
+  ['Products', 'Write'],
+  ['Prices', 'Write'],
+  ['Coupons', 'Write'],
+  ['Webhook Endpoints', 'Write'],
+  ['Subscriptions', 'Read'],
+];
+const keyScopesHtml = () => `
+  <details class="key-scopes">
+    <summary>Permissions a restricted key needs</summary>
+    <ul>${KEY_SCOPES.map(([name, level]) => `<li><span>${name}</span><em>${level}</em></li>`).join('')}</ul>
+    <p>Everything else can stay <em>None</em>. Ripley never reads your balance, payouts or customer list.</p>
+  </details>`;
+
 const I = {
   plus: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   arrow: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
@@ -330,9 +349,10 @@ function renderSetupStep(g, step) {
         <span class="field-err" id="err-name" role="alert"></span>
       </label>
       <label class="field">
-        <span class="field-label">Stripe secret key <span aria-hidden="true">*</span></span>
-        <input id="f-key" type="password" placeholder="sk_live_…" autocomplete="off" spellcheck="false" />
-        <span class="field-help">Starts with sk_live_ (or sk_test_ while testing). Stored encrypted; validated with Stripe before anything is saved. Your webhook is registered automatically.</span>
+        <span class="field-label">Stripe API key <span aria-hidden="true">*</span></span>
+        <input id="f-key" type="password" placeholder="rk_live_…" autocomplete="off" spellcheck="false" />
+        <span class="field-help">A <strong>restricted key</strong> (rk_live_…) is the safer choice and what Stripe recommends — a secret key (sk_live_…) also works. Use the test-mode version of either while trying things out. Stored encrypted; validated with Stripe before anything is saved, and your webhook is registered automatically.</span>
+        ${keyScopesHtml()}
         <span class="field-err" id="err-key" role="alert"></span>
       </label>
       <div class="wiz-actions"><button class="btn-pill" id="next2">Continue ${I.arrow}</button></div>`);
@@ -341,7 +361,7 @@ function renderSetupStep(g, step) {
       const key = $('#f-key').value.trim();
       fieldErr('name', ''); fieldErr('key', '');
       if (!name) return fieldErr('name', 'Give your store a name.');
-      if (!/^(sk|rk)_(live|test)_/.test(key)) return fieldErr('key', 'That does not look like a Stripe secret key (sk_live_… or sk_test_…).');
+      if (!/^(sk|rk)_(live|test)_[A-Za-z0-9]/.test(key)) return fieldErr('key', 'That does not look like a Stripe API key — restricted (rk_live_…) or secret (sk_live_…) both work.');
       const btn = $('#next2');
       btn.disabled = true;
       btn.textContent = 'Validating with Stripe…';
@@ -1258,10 +1278,11 @@ function sectionSettings(store, isPlatformOwner) {
       !store.isDefault
         ? setCard({
             title: 'Payment method',
-            sub: 'Payments land in your own Stripe account. Paste a new secret key to rotate it. Stripe validates it before anything is saved.',
+            sub: 'Payments land in your own Stripe account. Paste a new key to rotate it — restricted (rk_) or secret (sk_). Stripe validates it before anything is saved.',
             body: `
-              <label class="field"><span class="field-label">Stripe secret key</span>
-                <input id="pm-key" type="password" placeholder="sk_live_…" autocomplete="off" spellcheck="false" /></label>
+              <label class="field"><span class="field-label">Stripe API key</span>
+                <input id="pm-key" type="password" placeholder="rk_live_…" autocomplete="off" spellcheck="false" /></label>
+              ${keyScopesHtml()}
               <p class="field-err" id="err-pm" role="alert"></p>`,
             foot: `<button class="btn-secondary" id="pm-save">Update key</button>`,
           })

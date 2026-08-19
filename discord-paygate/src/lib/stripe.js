@@ -61,6 +61,28 @@ export async function stripeFetch(path, { method = 'GET', form, key = config.str
   return res.json();
 }
 
+// ── API key shape ────────────────────────────────────────────────────────────
+// Stripe now recommends restricted keys (rk_) over secret keys (sk_) for every
+// new integration, so both are accepted everywhere a store owner supplies one.
+// Liveness comes from the _live_ segment, never from the sk_ prefix: reading it
+// off "sk_live_" alone silently files every rk_live_ store as a test store.
+
+export const STRIPE_KEY_RE = /^(sk|rk)_(live|test)_[A-Za-z0-9]/;
+export const isStripeKey = (key) => STRIPE_KEY_RE.test(String(key ?? '').trim());
+export const stripeKeyMode = (key) => (/^(sk|rk)_live_/.test(String(key ?? '').trim()) ? 'live' : 'test');
+
+// Exactly what Ripley calls with a store's key. A restricted key missing any
+// of these fails later with an opaque Stripe error, so the UI lists them and
+// the onboarding check names the missing one.
+export const STRIPE_KEY_PERMISSIONS = [
+  ['Checkout Sessions', 'write', 'creating the checkout a buyer pays on'],
+  ['Products', 'write', 'creating the product behind each plan'],
+  ['Prices', 'write', 'creating the price for each plan'],
+  ['Subscriptions', 'read', 'reading renewals so roles stay in sync'],
+  ['Coupons', 'write', 'applying your discount codes'],
+  ['Webhook Endpoints', 'write', 'registering the endpoint that confirms payments'],
+];
+
 export const getSubscription = (id, key = config.stripe.secretKey) => stripeFetch(`/v1/subscriptions/${id}`, { key });
 
 // ── price resolution ──────────────────────────────────────────────────────────

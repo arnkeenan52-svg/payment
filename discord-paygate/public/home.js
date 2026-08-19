@@ -124,7 +124,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=58'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=59'; // hold a still frame instead
     return;
   }
 
@@ -141,8 +141,8 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=58', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=58', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=59', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=59', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays
@@ -211,7 +211,12 @@ function calc() {
     ripley: tier.cost,
     whop: revenue * 0.03,
     lp: 29 + revenue * 0.035,
-    uc: 49,
+    // Upgrade.Chat's own docs describe a cut on top of processing ("what you
+    // keep after Payment Processor and Upgrade.Chat fees") and it applies on
+    // every plan, paid ones included. Their published plan price and rate are
+    // both floors, so the row is labelled "from" and modelled with the LOWEST
+    // rate in circulation — understating them rather than the reverse.
+    uc: 49 + revenue * 0.029,
   };
   const max = Math.max(...Object.values(costs), 1);
   const money = (n) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

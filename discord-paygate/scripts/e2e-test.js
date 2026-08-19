@@ -45,7 +45,7 @@ const G2 = '900000000000000002';           // second tenant guild (VIP Signals)
 const G3 = '900000000000000003';           // third guild — draft-store slug-guard scenario
 const R2_VIP = '2200000000000000101';      // grantable role in G2
 const R2_BOT = '2200000000000000999';      // the bot's role in G2
-const OWNER2_KEY = 'sk_test_owner2';       // second owner's own Stripe key
+const OWNER2_KEY = 'rk_test_owner2';       // second owner's own Stripe key — restricted, the kind Stripe recommends
 const RESEND_KEY = 're_e2e_1234567890';
 const R_BOT = '1200000000000000999';
 const R_ADMIN = '1200000000000000555';   // above the bot — must be flagged unusable
@@ -1552,6 +1552,15 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   assert.equal(made.status, 200, JSON.stringify(store));
   assert.equal(store.slug, 'vip-signals');
   assert.equal(store.stripeAccount, 'acct_owner2');
+  assert.equal(store.mode, 'test', 'an rk_test_ key is a test store');
+  // Liveness must come from the _live_ segment, not from an sk_ prefix: reading
+  // it off "sk_live_" filed every restricted live key as a test store.
+  const liveKeyed = await onboard({ step: 'store', guildId: G2, name: 'VIP Signals', stripeKey: 'rk_live_owner2' });
+  assert.equal(liveKeyed.status, 409, 'the guild already has a store');
+  const { stripeKeyMode } = await import('../src/lib/stripe.js');
+  assert.equal(stripeKeyMode('rk_live_owner2'), 'live', 'a restricted live key is a live store');
+  assert.equal(stripeKeyMode('sk_live_x'), 'live');
+  assert.equal(stripeKeyMode('rk_test_x'), 'test');
   const storeEndpoint = stripe.webhookEndpoints.find((e) => e.url.endsWith(`/webhooks/stripe/${store.id}`));
   assert.ok(storeEndpoint, 'a per-store webhook endpoint must be registered on the owner Stripe account');
 
@@ -2288,6 +2297,7 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   // ── store settings ────────────────────────────────────────────────────────
   const storeCall = (body) => call(u7Cookie, '/api/admin/store', { store: 'vip-signals', ...body });
   assert.equal((await storeCall({ stripeKey: 'sk_test_wrong' })).status, 400, 'key rotation validates with Stripe first');
+  assert.equal((await storeCall({ stripeKey: 'pk_live_publishable' })).status, 400, 'a publishable key is refused on shape alone');
   assert.equal((await storeCall({ stripeKey: OWNER2_KEY })).status, 200);
   assert.equal((await storeCall({ name: 'VIP Signals Pro', description: 'The alpha desk.', bannerUrl: 'https://cdn.e2e.test/banner.png' })).status, 200);
   const pub = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();

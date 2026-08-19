@@ -5,7 +5,7 @@ import * as db from '../src/db.js';
 import { sealSecret } from '../src/lib/secretbox.js';
 import { getUser } from '../src/db.js';
 import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember, getGuildChannels } from '../src/lib/discord.js';
-import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache } from '../src/lib/stripe.js';
+import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache, isStripeKey, stripeKeyMode } from '../src/lib/stripe.js';
 import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf } from '../src/services/stores.js';
 
 const ADMINISTRATOR = 1n << 3n;
@@ -74,8 +74,8 @@ export default guard(async function handler(req, res) {
       const name = String(body.name ?? '').trim().slice(0, 60);
       if (!/^\d{17,20}$/.test(guildId)) return sendJson(res, 400, { error: 'Pick a server first.' });
       if (!name) return sendJson(res, 400, { error: 'Give your store a name.' });
-      if (!/^(sk|rk)_(live|test)_/.test(stripeKey)) {
-        return sendJson(res, 400, { error: 'That does not look like a Stripe secret key (it starts with sk_live_ or sk_test_).' });
+      if (!isStripeKey(stripeKey)) {
+        return sendJson(res, 400, { error: 'That does not look like a Stripe API key. Restricted keys (rk_live_…) and secret keys (sk_live_…) both work.' });
       }
       if (!(await callerManagesGuild(uid, guildId))) {
         return sendJson(res, 403, { error: 'You need Manage Server or Administrator in that Discord server.' });
@@ -91,7 +91,7 @@ export default guard(async function handler(req, res) {
       try {
         account = await stripeFetch('/v1/account', { key: stripeKey });
       } catch {
-        return sendJson(res, 400, { error: 'Stripe rejected that key. Copy the Secret key from Stripe → Developers → API keys.' });
+        return sendJson(res, 400, { error: 'Stripe rejected that key. Create one under Stripe → Developers → API keys — a restricted key needs the permissions listed above.' });
       }
 
       let slug = slugify(name);
@@ -123,7 +123,7 @@ export default guard(async function handler(req, res) {
       }
       return sendJson(res, 200, {
         ok: true,
-        store: { id: row.id, slug, name, guildId, mode: stripeKey.startsWith('sk_live_') ? 'live' : 'test', stripeAccount: account.id ?? null },
+        store: { id: row.id, slug, name, guildId, mode: stripeKeyMode(stripeKey), stripeAccount: account.id ?? null },
       });
     }
 

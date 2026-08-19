@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '58'; // keep in step with the ?v= asset version on index.html
+const V = '59'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -54,11 +54,11 @@ const COMPETITORS = {
   },
   'upgrade-chat': {
     name: 'Upgrade.Chat',
-    feeLine: '$49/mo paid plan*',
-    cost: () => 49,
+    feeLine: 'from $49/mo + from 2.9% of sales*',
+    cost: (rev) => 49 + rev * 0.029,
     blurb:
-      'Upgrade.Chat is a Discord payment bot with free and paid plans — going featureful means a monthly platform subscription.',
-    rows: { fee: 'Plan-dependent*', monthly: 'Paid plan from $49/mo*', money: 'Your PayPal/Stripe account', store: 'upgrade.chat page' },
+      'Upgrade.Chat is a Discord payment bot with free and paid plans. Its own documentation describes a cut on top of card processing, and that cut applies on the paid plans too — the monthly fee buys a lower rate, not a zero one.',
+    rows: { fee: 'A cut of every sale, on every plan*', monthly: 'Paid plan from $49/mo*', money: 'Your PayPal/Stripe account', store: 'upgrade.chat page' },
   },
   memberful: {
     name: 'Memberful',
@@ -544,7 +544,7 @@ const COST_EXPR = {
   whop: 'rev * 0.03',
   launchpass: '29 + rev * 0.035',
   patreon: 'rev * 0.08',
-  'upgrade-chat': '49',
+  'upgrade-chat': '49 + rev * 0.029',
   memberful: '25 + rev * 0.049',
   'mighty-networks': '41 + rev * 0.02',
 };
