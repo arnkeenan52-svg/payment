@@ -1,0 +1,104 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:'Space Grotesk';src:url('file:///home/user/payment/discord-paygate/public/spacegrotesk-latin.woff2') format('woff2');font-weight:100 1000;}
+@font-face{font-family:'DM Sans';src:url('file:///home/user/payment/discord-paygate/public/dmsans-latin.woff2') format('woff2');font-weight:100 1000;}
+html,body{margin:0;background:#000}
+.b{position:relative;width:1360px;height:480px;overflow:hidden;background:#0a0a0a;
+   font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased}
+
+/* ── ground: the site's own texture, not a stock gradient ──────────────── */
+.tex{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,0.05) 1.4px,transparent 1.4px);
+     background-size:26px 26px;
+     -webkit-mask-image:linear-gradient(105deg,#000 0%,rgba(0,0,0,0.35) 62%,transparent 88%)}
+.glow-w{position:absolute;width:1000px;height:1000px;left:-320px;top:-560px;border-radius:50%;
+     background:radial-gradient(circle,rgba(255,255,255,0.075),transparent 60%)}
+.glow-b{position:absolute;width:760px;height:760px;right:-160px;top:-120px;border-radius:50%;
+     background:radial-gradient(circle,rgba(88,101,242,0.16),transparent 62%)}
+/* the mark, oversized and nearly invisible — depth without noise */
+.bloom{position:absolute;left:960px;top:150px;width:420px;height:340px;border-radius:50%;
+     background:radial-gradient(circle,rgba(88,101,242,0.17),transparent 68%);filter:blur(22px)}
+.vig{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 50%,transparent 46%,rgba(0,0,0,0.55) 100%)}
+
+/* ── left: lockup, headline, proof pills ───────────────────────────────── */
+.left{position:absolute;left:84px;top:96px;width:640px;z-index:5}
+.lock{display:flex;align-items:center;gap:17px}
+.lock .mk{width:50px;height:50px;display:block;flex:none}
+.wm{font-family:'Space Grotesk',sans-serif;font-size:43px;font-weight:600;letter-spacing:-0.028em;color:#fff;line-height:1}
+.rule{width:1px;height:26px;background:#2b2b2b;margin:0 3px}
+.dom{font-size:16px;font-weight:600;letter-spacing:0.01em;color:#6e6e6e;padding-top:2px}
+h1{font-family:'Space Grotesk',sans-serif;margin:30px 0 0;font-size:57px;line-height:1.04;
+   letter-spacing:-0.038em;font-weight:700;color:#fff}
+h1 .dim{color:#7d7d7d}
+.pills{margin-top:28px;display:flex;gap:11px}
+.p{display:inline-flex;align-items:center;gap:9px;border:1px solid #242424;border-radius:999px;
+   padding:9px 16px 9px 13px;background:rgba(19,19,19,0.85);font-size:16.5px;font-weight:600;color:#cfcfcf;white-space:nowrap}
+.d{width:8px;height:8px;border-radius:50%;flex:none}
+.d.g{background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,0.15)}
+.d.s{background:#635bff;box-shadow:0 0 0 4px rgba(99,91,255,0.15)}
+.d.b{background:#5865f2;box-shadow:0 0 0 4px rgba(88,101,242,0.15)}
+
+/* ── right: two product layers, the front one whole ────────────────────── */
+.card{position:absolute;box-sizing:border-box;border:1px solid #242424;border-radius:18px;
+      background:linear-gradient(180deg,#151515,#0e0e0e);
+      box-shadow:0 34px 80px -18px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.055)}
+/* behind: the sale that just landed, peeking out of the stack */
+.toast{left:700px;top:82px;width:372px;padding:16px 18px;display:flex;gap:13px;align-items:flex-start;z-index:3}
+.tdot{width:9px;height:9px;border-radius:50%;background:#22c55e;margin-top:5px;flex:none;
+      box-shadow:0 0 0 5px rgba(34,197,94,0.15)}
+.tt{font-size:15.5px;font-weight:700;color:#ededed;letter-spacing:-0.005em}
+.ts{font-size:13px;color:#7b7b7b;margin-top:3px}
+/* in front: checkout, fully inside the frame */
+.co{left:876px;top:142px;width:400px;padding:22px;z-index:4}
+.co::after{content:'';position:absolute;inset:-1px;border-radius:18px;pointer-events:none;
+      background:linear-gradient(160deg,rgba(255,255,255,0.09),transparent 42%);
+      -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+      -webkit-mask-composite:xor;padding:1px}
+.url{display:inline-flex;align-items:center;gap:7px;border:1px solid #262626;border-radius:999px;
+     padding:6px 13px;color:#8c8c8c;font-size:13px;background:#0c0c0c}
+.prow{display:flex;justify-content:space-between;align-items:baseline;margin:19px 0 5px}
+.pname{font-size:19px;font-weight:700;color:#f4f4f4;letter-spacing:-0.012em}
+.pprice{font-family:'Space Grotesk',sans-serif;font-size:23px;font-weight:700;color:#fff;letter-spacing:-0.02em}
+.psub{font-size:13px;color:#6d6d6d}
+.rrow{display:flex;align-items:center;gap:8px;margin-top:16px}
+.rl{font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#5f5f5f}
+.rc{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;font-size:13px;font-weight:650;
+    color:#c2c8ff;background:rgba(88,101,242,0.14);border:1px solid rgba(88,101,242,0.38)}
+.rc i{width:6px;height:6px;border-radius:50%;background:#5865f2;display:block}
+.pay{margin-top:18px;border-radius:11px;text-align:center;font-size:16.5px;font-weight:700;padding:14px;color:#fff;
+     background:linear-gradient(180deg,#5f6bf5,#4d59e0);box-shadow:0 12px 30px -8px rgba(88,101,242,0.55),
+     inset 0 1px 0 rgba(255,255,255,0.22)}
+.hair{position:absolute;left:0;right:0;bottom:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18) 26%,rgba(255,255,255,0.18) 74%,transparent)}
+</style></head><body><div class="b">
+  <div class="tex"></div><div class="glow-w"></div><div class="glow-b"></div><div class="bloom"></div>
+  <div class="vig"></div>
+
+  <div class="left">
+    <div class="lock">
+      <svg class="mk" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path fill="#fff" d="M6 57L33 57L40 43L13 43Z"/><path fill="#fff" d="M15 39L42 39L49 25L22 25Z"/><path fill="#fff" d="M24 21L51 21L58 7L31 7Z"/></svg>
+      <span class="wm">Ripley</span>
+      <span class="rule"></span>
+      <span class="dom">ripleybot.com</span>
+    </div>
+    <h1>Sell access to<br />your Discord.</h1>
+    <div class="pills">
+      <span class="p"><i class="d g"></i>0% platform fees</span>
+      <span class="p"><i class="d s"></i>Your Stripe account</span>
+      <span class="p"><i class="d b"></i>Roles in seconds</span>
+    </div>
+  </div>
+
+  <div class="card toast">
+    <span class="tdot"></span>
+    <span><span class="tt">Payment received</span><span class="ts" style="display:block">@luna · VIP Access · $49.99</span></span>
+  </div>
+
+  <div class="card co">
+    <span class="url"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>ripleybot.com/yourserver</span>
+    <div class="prow"><span class="pname">VIP Access</span><span class="pprice">$49.99</span></div>
+    <div class="psub">Lifetime access · one payment</div>
+    <div class="rrow"><span class="rl">Unlocks</span><span class="rc"><i></i>@VIP</span><span class="rc"><i></i>@Signals</span></div>
+    <div class="pay">Pay $49.99</div>
+  </div>
+
+  <div class="hair"></div>
+</div></body></html>
