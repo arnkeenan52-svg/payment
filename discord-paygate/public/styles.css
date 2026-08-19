@@ -2406,3 +2406,11 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .key-scopes li em { font-style: normal; color: var(--dim); }
 .key-scopes p { margin: 8px 0 0; color: var(--dim); line-height: 1.5; }
 .key-scopes p em { font-style: normal; color: rgba(255, 255, 255, 0.66); }
+
+/* Cancel lives on the buyer's own card. Quiet by default — a destructive
+   action should be findable without being the loudest thing on the page. */
+.sub-actions { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--edge); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.btn-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 32%, transparent); }
+.btn-danger:hover:not(:disabled) { background: rgba(248, 113, 113, 0.1); border-color: color-mix(in srgb, var(--bad) 55%, transparent); }
+.btn-danger:disabled { opacity: 0.6; }
+.sub-cancel-note { margin: 0; flex: 1 1 220px; min-width: 0; }

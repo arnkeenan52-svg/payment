@@ -209,6 +209,24 @@ The VM needs no inbound firewall rule — the gateway connection is outbound
 only, and nothing else from this repo has to run there. `presence.js` has no
 dependencies, so those two files are the entire payload.
 
+## Buyer self-service
+
+Buyers manage their own membership at `/account`: they see status, renewal
+date and role, can re-sync a role Discord dropped, and can **cancel a
+recurring membership themselves**. Cancelling sets `cancel_at_period_end` on
+the Stripe subscription — the buyer keeps the access they paid for, and the
+role lifts on Stripe's own `customer.subscription.deleted` event through the
+existing webhook path.
+
+Ownership is decided server-side from the session's own rows, never from the
+subscription id in the request, so knowing another buyer's `sub_` id is not
+enough to cancel it. One-off and lifetime purchases are not cancellable and
+say so.
+
+A store's Stripe key therefore needs **Subscriptions: write**, not just read.
+`/api/subscription` answers `502` with a readable message when the key lacks
+it, rather than leaving the buyer on a dead button.
+
 ## Discord setup
 
 1. **Create the application** at <https://discord.com/developers/applications>.

@@ -32,6 +32,7 @@ const ddl = (dialect) => {
     status        TEXT NOT NULL,
     current_period_end ${int},
     grace_until   ${int},
+    cancels_at    ${int},               -- set when the buyer cancels; access runs to here
     created_at    ${int} NOT NULL,
     updated_at    ${int} NOT NULL,
     UNIQUE (provider, provider_ref)
@@ -211,6 +212,9 @@ function db() {
       // Uploaded product photos live in the database as data URLs (kept out
       // of list queries; served by /api/img with cache headers).
       await driver.exec('ALTER TABLE store_plans ADD COLUMN image_data TEXT').catch(() => {});
+      // Buyer-initiated cancellation: the row stays active until this moment,
+      // so /account can say "ends on …" instead of "renews on …".
+      await driver.exec(`ALTER TABLE subscriptions ADD COLUMN cancels_at ${intType}`).catch(() => {});
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -375,6 +379,12 @@ export async function setSubscriptionStatus(id, { status, currentPeriodEnd, grac
     ],
   );
   return (await q('SELECT * FROM subscriptions WHERE id = ?', [id])).rows[0];
+}
+
+// Buyer cancelled: keep the row entitled (they paid for this period) and just
+// record when it runs out. The role lifts on Stripe's deletion webhook.
+export async function markSubscriptionCancelling(id, cancelsAt) {
+  await q('UPDATE subscriptions SET cancels_at = ?, updated_at = ? WHERE id = ?', [cancelsAt, now(), id]);
 }
 
 export async function subscriptionsForMember(discordId) {

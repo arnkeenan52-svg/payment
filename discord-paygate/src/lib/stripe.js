@@ -78,7 +78,7 @@ export const STRIPE_KEY_PERMISSIONS = [
   ['Checkout Sessions', 'write', 'creating the checkout a buyer pays on'],
   ['Products', 'write', 'creating the product behind each plan'],
   ['Prices', 'write', 'creating the price for each plan'],
-  ['Subscriptions', 'read', 'reading renewals so roles stay in sync'],
+  ['Subscriptions', 'write', 'reading renewals, and cancelling when a buyer asks'],
   ['Coupons', 'write', 'applying your discount codes'],
   ['Webhook Endpoints', 'write', 'registering the endpoint that confirms payments'],
 ];

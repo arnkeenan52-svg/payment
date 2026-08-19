@@ -7,6 +7,7 @@ let server = null;
 function statusChip(sub) {
   if (sub.lifetime) return '<span class="chip chip-good">Lifetime</span>';
   if (sub.status === 'past_due') return '<span class="chip chip-warn">Payment issue — in grace</span>';
+  if (sub.cancelsAt && sub.entitled) return '<span class="chip chip-warn">Ending</span>';
   if (sub.entitled) return '<span class="chip chip-good">Active</span>';
   if (sub.status === 'canceled') return '<span class="chip chip-off">Canceled</span>';
   return '<span class="chip chip-off">Expired</span>';
@@ -15,10 +16,20 @@ function statusChip(sub) {
 function subCard(sub) {
   const expiry = sub.lifetime
     ? 'Lifetime access — never expires. Nothing to manage, nothing renews.'
-    : sub.entitled
-      ? `Access until ${fmtDate(sub.graceUntil ?? sub.currentPeriodEnd)}`
-      : `Ended ${sub.currentPeriodEnd ? fmtDate(sub.currentPeriodEnd) : ''}`;
+    : sub.cancelsAt
+      ? `Cancelled. Your access runs until ${fmtDate(sub.cancelsAt)}, then the role is removed. Nothing further will be charged.`
+      : sub.entitled
+        ? `Renews ${fmtDate(sub.graceUntil ?? sub.currentPeriodEnd)}`
+        : `Ended ${sub.currentPeriodEnd ? fmtDate(sub.currentPeriodEnd) : ''}`;
   const roles = sub.roleNames?.length ? `<div class="kv"><span>Discord role</span><span>${esc(sub.roleNames.join(', '))}</span></div>` : '';
+  // Cancelling is the buyer's own to do. Hiding it behind "email the owner"
+  // is how you end up with chargebacks instead of cancellations.
+  const cancel = sub.cancellable
+    ? `<div class="sub-actions">
+         <button class="btn-ghost btn-danger" data-cancel="${esc(sub.ref)}">Cancel membership</button>
+         <span class="note-help sub-cancel-note" data-note="${esc(sub.ref)}" role="status"></span>
+       </div>`
+    : '';
   return `
     <section class="panel sub-card">
       <div class="sub-head">
@@ -29,7 +40,36 @@ function subCard(sub) {
       <div class="kv"><span>Purchased</span><span>${fmtDate(sub.createdAt)}</span></div>
       ${roles}
       <p class="note-help">${expiry}</p>
+      ${cancel}
     </section>`;
+}
+
+async function cancelSub(btn) {
+  const ref = btn.dataset.cancel;
+  const note = document.querySelector(`[data-note="${CSS.escape(ref)}"]`);
+  if (btn.dataset.confirm !== '1') {
+    btn.dataset.confirm = '1';
+    btn.textContent = 'Confirm cancel';
+    if (note) note.textContent = 'You keep access until the end of the period you already paid for.';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Cancelling…';
+  try {
+    const res = await fetch('/api/subscription', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel', subscriptionRef: ref }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Could not cancel just now.');
+    await load();
+  } catch (err) {
+    btn.disabled = false;
+    btn.dataset.confirm = '';
+    btn.textContent = 'Cancel membership';
+    if (note) note.textContent = err.message;
+  }
 }
 
 async function resync() {
@@ -96,6 +136,7 @@ async function load() {
       <p class="note-help" id="resync-note"></p>
     </section>`;
   $('#resync').onclick = resync;
+  el.querySelectorAll('[data-cancel]').forEach((b) => { b.onclick = () => cancelSub(b); });
 }
 
 load().catch(() => {

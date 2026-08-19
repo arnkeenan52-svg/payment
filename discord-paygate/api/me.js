@@ -31,11 +31,23 @@ export default guard(async function handler(req, res) {
       storeSlug: store?.slug ?? null,
       storeName: store?.name ?? null,
       provider: s.provider,
+      // The account page cancels by this ref; the server re-checks ownership
+      // against the session before touching Stripe.
+      ref: s.provider_ref,
       status: s.status,
       entitled: isEntitled(s),
       lifetime: s.status === 'active' && s.current_period_end === null,
       currentPeriodEnd: s.current_period_end === null ? null : Number(s.current_period_end),
       graceUntil: s.grace_until === null ? null : Number(s.grace_until),
+      cancelsAt: s.cancels_at === null || s.cancels_at === undefined ? null : Number(s.cancels_at),
+      // Recurring, live, and not already winding down — the only shape that
+      // can be cancelled.
+      cancellable:
+        s.provider === 'stripe' &&
+        s.status !== 'canceled' &&
+        !s.cancels_at &&
+        s.current_period_end !== null &&
+        s.current_period_end !== undefined,
       createdAt: Number(s.created_at),
     });
   }

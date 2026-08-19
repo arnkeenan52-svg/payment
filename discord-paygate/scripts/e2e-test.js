@@ -84,6 +84,7 @@ const stripe = {
   subFetches: {},               // subscription id -> fetch count
   failCheckoutSessionsWith: null, // when set, POST /v1/checkout/sessions answers 400 with this message
   subDeletes: [],               // DELETE /v1/subscriptions/:id calls (platform-plan switches/cancels)
+  subUpdates: [],               // POST /v1/subscriptions/:id calls (buyer cancel-at-period-end)
   // Registered webhook endpoints; a matching one exists by default so the
   // doctor's endpoint check passes without registering.
   webhookEndpoints: [{ id: 'we_e2e_default', url: 'https://tradeleaks.e2e/webhooks/stripe', status: 'enabled', metadata: {} }],
@@ -438,6 +439,18 @@ async function stripeHandler(req, res) {
   if ((m = url.pathname.match(/^\/v1\/subscriptions\/([^/]+)$/)) && req.method === 'DELETE') {
     stripe.subDeletes.push(m[1]);
     json(res, 200, { id: m[1], object: 'subscription', status: 'canceled' });
+    return;
+  }
+  if ((m = url.pathname.match(/^\/v1\/subscriptions\/([^/]+)$/)) && req.method === 'POST') {
+    const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
+    stripe.subUpdates.push({ id: m[1], form });
+    json(res, 200, {
+      id: m[1],
+      object: 'subscription',
+      status: 'active',
+      cancel_at_period_end: form.cancel_at_period_end === 'true',
+      items: { data: [{ id: `si_${m[1]}`, current_period_end: stripe.periodEnds[m[1]] ?? nowSec() + 31 * 86400 }] },
+    });
     return;
   }
   if ((m = url.pathname.match(/^\/v1\/subscriptions\/([^/]+)$/)) && req.method === 'GET') {
@@ -1474,6 +1487,94 @@ test('platform: account re-sync heals a manually-removed role', async () => {
   assert.equal(resync.status, 200, JSON.stringify(body));
   assert.ok(body.added.includes(R_LIFETIME), 'resync must report the healed role');
   assert.ok(memberRoles(U6).has(R_LIFETIME), 'the role must be back after resync');
+});
+
+test('buyer self-serve cancel: at period end, own subscriptions only', async () => {
+  assert.equal((await fetch(`${appUrl}/api/subscription`, { method: 'POST' })).status, 401, 'anonymous cannot cancel');
+
+  // A fresh buyer on a RECURRING plan, signed in.
+  const U10 = '510100000000000010';
+  discord.members.set(U10, new Set());
+  discord.oauthUsers.code_u10 = { id: U10, username: 'monthly_member' };
+  const subId = 'sub_cancel_me';
+  stripe.periodEnds[subId] = nowSec() + 20 * 86400;
+  assert.equal(
+    (await deliverStripe({
+      id: 'evt_u10_sub',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_u10', mode: 'subscription', subscription: subId, client_reference_id: U10, metadata: { plan_id: 'pro', discord_id: U10 } } },
+    })).status,
+    200,
+  );
+  assert.ok(memberRoles(U10).has(R_PRO), 'the recurring plan granted its role');
+
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=code_u10&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  const u10Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+
+  const cancelCall = (cookie, body) =>
+    fetch(`${appUrl}/api/subscription`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ action: 'cancel', ...body }),
+    });
+
+  // /api/me hands the page the ref and marks the row cancellable.
+  const before = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u10Cookie } })).json();
+  const mine = before.subscriptions.find((x) => x.ref === subId);
+  assert.ok(mine?.cancellable, 'a live recurring stripe sub is cancellable');
+  assert.equal(mine.cancelsAt, null);
+
+  // Ownership is decided from the session, never from the id in the request:
+  // another signed-in buyer cannot cancel this one by knowing its ref.
+  assert.equal((await cancelCall(u6Cookie, { subscriptionRef: subId })).status, 404, 'cannot cancel a stranger\'s membership');
+  assert.deepEqual(stripe.subUpdates, [], 'a refused cancel never reaches Stripe');
+
+  // U6 holds a LIFETIME row — nothing recurring to cancel.
+  const u6Subs = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u6Cookie } })).json();
+  assert.equal(u6Subs.subscriptions.every((x) => !x.cancellable), true, 'a lifetime purchase is not cancellable');
+  const lifetimeRef = u6Subs.subscriptions[0].ref;
+  assert.equal((await cancelCall(u6Cookie, { subscriptionRef: lifetimeRef })).status, 400, 'one-off purchases are refused with a reason');
+
+  // The real thing.
+  const res = await cancelCall(u10Cookie, { subscriptionRef: subId });
+  const out = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(out));
+  assert.equal(out.cancelAtPeriodEnd, true);
+  assert.equal(out.endsAt, stripe.periodEnds[subId], 'the buyer keeps the period they paid for');
+  assert.deepEqual(
+    stripe.subUpdates.map((u) => ({ id: u.id, cape: u.form.cancel_at_period_end })),
+    [{ id: subId, cape: 'true' }],
+    'Stripe is told to cancel at period end, not immediately',
+  );
+  assert.deepEqual(stripe.subDeletes, [], 'the subscription is never deleted outright');
+
+  // Access survives the cancellation — the role lifts on Stripe's own
+  // deletion webhook when the period actually runs out.
+  assert.ok(memberRoles(U10).has(R_PRO), 'the role stays until the paid period ends');
+  const after = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u10Cookie } })).json();
+  const now = after.subscriptions.find((x) => x.ref === subId);
+  assert.equal(now.entitled, true, 'still entitled after cancelling');
+  assert.equal(now.cancelsAt, stripe.periodEnds[subId], 'the page can say when access ends');
+  assert.equal(now.cancellable, false, 'the button does not come back');
+
+  // Cancelling twice is a no-op, not a second Stripe call.
+  const again = await cancelCall(u10Cookie, { subscriptionRef: subId });
+  assert.equal(again.status, 200);
+  assert.equal((await again.json()).alreadyCancelled, true);
+  assert.equal(stripe.subUpdates.length, 1, 'a second cancel does not hit Stripe again');
+
+  // Stripe ends it for real → the role goes.
+  assert.equal(
+    (await deliverStripe({ id: 'evt_u10_gone', type: 'customer.subscription.deleted', data: { object: { id: subId } } })).status,
+    200,
+  );
+  assert.ok(!memberRoles(U10).has(R_PRO), 'the role lifts when the subscription actually ends');
 });
 
 test('platform: payments dashboard endpoint is owner-gated and its totals add up', async () => {

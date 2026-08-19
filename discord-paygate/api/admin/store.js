@@ -53,7 +53,7 @@ export default guard(async function handler(req, res) {
     try {
       await stripeFetch('/v1/account', { key });
     } catch {
-      return sendJson(res, 400, { error: 'Stripe rejected that key. Create one under Stripe → Developers → API keys — a restricted key needs Checkout Sessions, Products, Prices, Coupons and Webhook Endpoints write, plus Subscriptions read.' });
+      return sendJson(res, 400, { error: 'Stripe rejected that key. Create one under Stripe → Developers → API keys — a restricted key needs write on Checkout Sessions, Products, Prices, Coupons, Webhook Endpoints and Subscriptions.' });
     }
     fields.stripeSecretEnc = sealSecret(key);
   }

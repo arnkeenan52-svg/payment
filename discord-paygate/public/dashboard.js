@@ -20,7 +20,7 @@ const KEY_SCOPES = [
   ['Prices', 'Write'],
   ['Coupons', 'Write'],
   ['Webhook Endpoints', 'Write'],
-  ['Subscriptions', 'Read'],
+  ['Subscriptions', 'Write'],
 ];
 const keyScopesHtml = () => `
   <details class="key-scopes">
