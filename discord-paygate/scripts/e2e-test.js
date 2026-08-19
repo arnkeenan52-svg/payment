@@ -365,12 +365,17 @@ async function stripeHandler(req, res) {
   if (url.pathname === '/v1/prices' && req.method === 'POST') {
     const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
     const id = `price_lk_${Object.keys(MOCK_PRICES).length + 1}`;
+    // Stripe allows one active price per lookup key: transfer_lookup_key takes
+    // it off whichever price holds it. Repricing a tier depends on that.
+    if (form.lookup_key && form.transfer_lookup_key === 'true')
+      for (const p of Object.values(MOCK_PRICES)) if (p.lookup_key === form.lookup_key) p.lookup_key = null;
     MOCK_PRICES[id] = {
       id,
       active: true,
       type: form['recurring[interval]'] ? 'recurring' : 'one_time',
       unit_amount: Number(form.unit_amount),
       currency: form.currency,
+      product: form.product ?? null,
       lookup_key: form.lookup_key ?? null,
       ...(form['recurring[interval]'] ? { recurring: { interval: form['recurring[interval]'] } } : {}),
     };
@@ -2015,8 +2020,22 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
   assert.ok(starterPrice, 'the Starter price is created with its lookup key');
   assert.deepEqual(
     { mode: upForm.mode, price: upForm['line_items[0][price]'], kind: upForm['metadata[kind]'], amount: starterPrice.unit_amount },
-    { mode: 'subscription', price: starterPrice.id, kind: 'platform_plan', amount: 599 },
+    { mode: 'subscription', price: starterPrice.id, kind: 'platform_plan', amount: 999 },
   );
+
+  // Repricing a tier has to reprice Stripe too. The price id is cached in
+  // app_secrets and was previously reused forever, so editing TIERS changed
+  // every number on the site while checkout quietly charged the old amount.
+  // Simulate that by ageing the cached price out from under the app.
+  starterPrice.unit_amount = 599;
+  const reprice = await billing(u7Cookie, { action: 'checkout', tier: 'starter' });
+  assert.equal(reprice.status, 200, await reprice.text());
+  const charged = MOCK_PRICES[stripe.checkoutSessions.at(-1)['line_items[0][price]']];
+  assert.equal(charged.unit_amount, 999, 'checkout charges the advertised price, not the stale cached one');
+  assert.notEqual(charged.id, starterPrice.id, 'a fresh price is minted rather than the stale one reused');
+  assert.equal(charged.lookup_key, 'ripley_platform_starter');
+  assert.equal(starterPrice.lookup_key, null, 'the lookup key moved to the new price');
+  assert.equal(charged.product, starterPrice.product ?? charged.product, 'the tier keeps one product across reprices');
 
   // Stripe confirms the plan on the DEFAULT endpoint → the gate opens.
   const platEvt = (n, tier, subId) => ({
@@ -2067,7 +2086,7 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
   assert.ok(yearPrice, 'yearly price created with its lookup key');
   assert.deepEqual(
     { price: yearForm['line_items[0][price]'], amount: yearPrice.unit_amount, interval: yearPrice.recurring.interval },
-    { price: yearPrice.id, amount: 5990, interval: 'year' },
+    { price: yearPrice.id, amount: 9990, interval: 'year' },
   );
 });
 

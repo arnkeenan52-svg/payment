@@ -15,9 +15,9 @@ import { storesOwnedBy } from './stores.js';
 // yearlyUsd = 10 months — two months free on yearly, like the reference.
 export const TIERS = [
   { id: 'free', name: 'Free', priceUsd: 0, yearlyUsd: 0, maxMembers: 10 },
-  { id: 'starter', name: 'Starter', priceUsd: 5.99, yearlyUsd: 59.9, maxMembers: 50 },
-  { id: 'growth', name: 'Growth', priceUsd: 19.99, yearlyUsd: 199.9, maxMembers: 500 },
-  { id: 'scale', name: 'Scale', priceUsd: 49.99, yearlyUsd: 499.9, maxMembers: null }, // unlimited
+  { id: 'starter', name: 'Starter', priceUsd: 9.99, yearlyUsd: 99.9, maxMembers: 50 },
+  { id: 'growth', name: 'Growth', priceUsd: 29.99, yearlyUsd: 299.9, maxMembers: 500 },
+  { id: 'scale', name: 'Scale', priceUsd: 99.99, yearlyUsd: 999.9, maxMembers: null }, // unlimited
 ];
 
 export const tierById = (id) => TIERS.find((t) => t.id === id) ?? null;
@@ -86,34 +86,54 @@ async function findPriceByLookup(tier, interval) {
 
 export async function ensureTierPrice(tier, interval = 'month') {
   const cacheName = interval === 'year' ? `platform_price_${tier.id}_year` : `platform_price_${tier.id}`;
+  const wantCents = Math.round((interval === 'year' ? tier.yearlyUsd : tier.priceUsd) * 100);
+  // A cached or looked-up price is only reusable if it still charges what the
+  // site advertises. Without this check, editing TIERS repriced every page on
+  // the site while Stripe quietly went on billing the old amount.
+  const usable = (p) => p && p.active && p.currency === 'usd' && p.unit_amount === wantCents;
+
   const cached = await db.getAppSecret(cacheName);
   if (cached) {
     const price = await stripeFetch(`/v1/prices/${cached}`).catch(() => null);
-    if (price && price.active) return price;
+    if (usable(price)) return price;
   }
-  let price = await findPriceByLookup(tier, interval);
-  if (!price) {
-    const product = await stripeFetch('/v1/products', {
-      method: 'POST',
-      form: {
-        name: `Ripley ${tier.name}`,
-        description: `Ripley platform plan — ${tier.maxMembers === null ? 'unlimited' : `up to ${tier.maxMembers}`} paying members`,
-        metadata: { managed_by: 'ripley-paygate', tier: tier.id },
-      },
-    });
-    price = await stripeFetch('/v1/prices', {
-      method: 'POST',
-      form: {
-        product: product.id,
-        currency: 'usd',
-        unit_amount: Math.round((interval === 'year' ? tier.yearlyUsd : tier.priceUsd) * 100),
-        recurring: { interval },
-        lookup_key: lookupKey(tier, interval),
-        transfer_lookup_key: 'true',
-        metadata: { managed_by: 'ripley-paygate', tier: tier.id },
-      },
-    });
+  const found = await findPriceByLookup(tier, interval);
+  if (usable(found)) {
+    await db.setAppSecret(cacheName, found.id);
+    return found;
   }
+
+  // Either the tier has no price yet, or its advertised price moved. Reuse the
+  // existing product so Stripe does not accumulate one per price change, and
+  // let transfer_lookup_key carry the lookup key onto the new price. Live
+  // subscriptions keep billing their original price until their owner switches
+  // plans — Stripe grandfathers them by design, and so do we.
+  const priorProduct = typeof found?.product === 'string' ? found.product : found?.product?.id;
+  const productId =
+    priorProduct ??
+    (
+      await stripeFetch('/v1/products', {
+        method: 'POST',
+        form: {
+          name: `Ripley ${tier.name}`,
+          description: `Ripley platform plan — ${tier.maxMembers === null ? 'unlimited' : `up to ${tier.maxMembers}`} paying members`,
+          metadata: { managed_by: 'ripley-paygate', tier: tier.id },
+        },
+      })
+    ).id;
+
+  const price = await stripeFetch('/v1/prices', {
+    method: 'POST',
+    form: {
+      product: productId,
+      currency: 'usd',
+      unit_amount: wantCents,
+      recurring: { interval },
+      lookup_key: lookupKey(tier, interval),
+      transfer_lookup_key: 'true',
+      metadata: { managed_by: 'ripley-paygate', tier: tier.id },
+    },
+  });
   await db.setAppSecret(cacheName, price.id);
   return price;
 }

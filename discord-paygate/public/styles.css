@@ -2378,3 +2378,11 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .top-bar span { background: linear-gradient(90deg, rgba(34, 197, 94, 0.42), rgba(34, 197, 94, 0.82)); }
 /* the plan-limit banner is a warning, not an error */
 .limit-banner a { color: var(--amber); }
+
+/* Upgrade.Chat publish a "from $49/mo" floor, not a flat rate — the bar models
+   the floor, so the label says so rather than implying it is the real cost. */
+.calc-bar-from {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--dim); border: 1px solid var(--edge); border-radius: 999px;
+  padding: 1px 6px; margin-left: 6px; vertical-align: 1px;
+}

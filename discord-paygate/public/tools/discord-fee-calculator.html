@@ -13,9 +13,9 @@
   <meta property="og:url" content="https://www.ripleybot.com/tools/discord-fee-calculator" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=57" />
+  <link rel="stylesheet" href="/styles.css?v=58" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Ripley","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://www.ripleybot.com/tools"},{"@type":"ListItem","position":3,"name":"Discord fee calculator","item":"https://www.ripleybot.com/tools/discord-fee-calculator"}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Which Discord monetization platform is cheapest?","acceptedAnswer":{"@type":"Answer","text":"It depends on your volume: percentage-fee platforms get more expensive as you grow, flat-fee platforms do not. Ripley is a flat plan (free up to 10 paying members, then from $5.99/mo) with 0% of sales."}},{"@type":"Question","name":"Are these the platforms’ real prices?","acceptedAnswer":{"@type":"Answer","text":"They are the publicly listed prices at the time this page was written, marked with an asterisk — always check the platform’s own site for current numbers."}},{"@type":"Question","name":"Does 0% platform fees mean completely free?","acceptedAnswer":{"@type":"Answer","text":"Ripley’s plans are flat monthly subscriptions and the platform takes 0% of your sales. Stripe’s standard card-processing fees apply everywhere."}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Which Discord monetization platform is cheapest?","acceptedAnswer":{"@type":"Answer","text":"It depends on your volume: percentage-fee platforms get more expensive as you grow, flat-fee platforms do not. Ripley is a flat plan (free up to 10 paying members, then from $9.99/mo) with 0% of sales."}},{"@type":"Question","name":"Are these the platforms’ real prices?","acceptedAnswer":{"@type":"Answer","text":"They are the publicly listed prices at the time this page was written, marked with an asterisk — always check the platform’s own site for current numbers."}},{"@type":"Question","name":"Does 0% platform fees mean completely free?","acceptedAnswer":{"@type":"Answer","text":"Ripley’s plans are flat monthly subscriptions and the platform takes 0% of your sales. Stripe’s standard card-processing fees apply everywhere."}}]}</script>
 </head>
 <body class="home seo-page">
 
@@ -96,7 +96,7 @@
       <div class="wrap narrow">
         <h2 class="section-title center">Frequently asked</h2>
         <div class="faq">
-          <details class="panel faq-item"><summary>Which Discord monetization platform is cheapest?</summary><p>It depends on your volume: percentage-fee platforms get more expensive as you grow, flat-fee platforms do not. Ripley is a flat plan (free up to 10 paying members, then from $5.99/mo) with 0% of sales.</p></details>
+          <details class="panel faq-item"><summary>Which Discord monetization platform is cheapest?</summary><p>It depends on your volume: percentage-fee platforms get more expensive as you grow, flat-fee platforms do not. Ripley is a flat plan (free up to 10 paying members, then from $9.99/mo) with 0% of sales.</p></details>
           <details class="panel faq-item"><summary>Are these the platforms’ real prices?</summary><p>They are the publicly listed prices at the time this page was written, marked with an asterisk — always check the platform’s own site for current numbers.</p></details>
           <details class="panel faq-item"><summary>Does 0% platform fees mean completely free?</summary><p>Ripley’s plans are flat monthly subscriptions and the platform takes 0% of your sales. Stripe’s standard card-processing fees apply everywhere.</p></details>
         </div>
@@ -116,9 +116,9 @@
     var fmt = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
     function ripleyCost(members) {
       if (members <= 10) return 0;
-      if (members <= 50) return 5.99;
-      if (members <= 500) return 19.99;
-      return 49.99;
+      if (members <= 50) return 9.99;
+      if (members <= 500) return 29.99;
+      return 99.99;
     }
     function upd() {
       var m = Number(subs.value), p = Number(price.value), rev = m * p;
