@@ -2016,7 +2016,10 @@ a.kicker:hover { color: var(--ink); }
 /* hero rebuilt on the modern-landing-hero blueprint (mokshithcodez 18625,
    the same author as the pricing reference): centered two-line two-tone
    headline, short sub, white primary + outlined secondary, frame below */
-.xhero { padding-top: 108px; }
+.xhero { padding-top: 68px; }
+/* the legacy .hero-inner carried its own 46px block padding, which stacked
+   on the section padding and left dead space above the headline */
+.xhero .hero-inner { padding: 0 22px; }
 .xhero h1 { font-size: clamp(40px, 6.4vw, 72px); font-weight: 700; line-height: 1.05; letter-spacing: -0.035em; }
 .xhero h1 .hl-dim { color: var(--dim); }
 .xhero .hero-sub { max-width: 480px; font-size: 16.5px; }
@@ -2025,7 +2028,9 @@ a.kicker:hover { color: var(--ink); }
   width: auto; justify-content: center;
 }
 @media (max-width: 760px) {
-  .xhero { padding-top: 84px; }
+  .xhero { padding-top: 48px; }
+  /* the frame needs a little air under the works-with row */
+  .xhero .hero-shot { margin-top: 26px; }
   .hero-ctas { width: 100%; flex-direction: column; }
   .hero-ctas .btn-hero { width: 100%; text-align: center; justify-content: center; }
 }
