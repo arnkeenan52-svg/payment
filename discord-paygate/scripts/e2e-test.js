@@ -1910,20 +1910,6 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.equal((await fetch(`${appUrl}/api/plans?store=guides`)).status, 404);
   assert.equal((await fetch(`${appUrl}/api/plans?store=alternatives`)).status, 404);
 
-  // /brand hands out the bot art. The page is worthless if the files behind
-  // its download links 404, so assert the bytes, not just the markup.
-  const brand = await get('/brand');
-  assert.equal(brand.status, 200);
-  assert.match(brand.body, /Bot avatar/);
-  assert.match(brand.body, /Bot banner/);
-  for (const asset of ['ripley-bot-avatar.png', 'ripley-bot-banner.png', 'ripley-bot-banner-680x240.png', 'ripley-mark.svg', 'ripley-wordmark.png', 'ripley-brand-kit.zip']) {
-    assert.match(brand.body, new RegExp(`/brand/${asset.replace(/\./g, '\\.')}`), `/brand links ${asset}`);
-    const file = await fetch(`${appUrl}/brand/${asset}`);
-    assert.equal(file.status, 200, `/brand/${asset} serves`);
-    assert.ok((await file.arrayBuffer()).byteLength > 200, `/brand/${asset} is not empty`);
-  }
-  assert.match(sm.body, /\/brand<\/loc>/, 'the brand page is in the sitemap');
-  assert.equal((await fetch(`${appUrl}/api/plans?store=brand`)).status, 404);
 
   // The homepage's "Invite Ripley" button: a stable hop to Discord's
   // authorize screen, bot scope + Manage Roles — same as the wizard.
@@ -2276,7 +2262,7 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal(pub.store.description, 'The alpha desk.');
   // Custom link: platform paths can never be claimed as store links.
   // ('vs' is unclaimable too, but the 2-char format check 400s it first.)
-  for (const bad of ['dashboard', 'api', 'store', 'diagnostics', 'tools', 'use-cases', 'brand']) {
+  for (const bad of ['dashboard', 'api', 'store', 'diagnostics', 'tools', 'use-cases']) {
     assert.equal((await storeCall({ slug: bad })).status, 409, `reserved slug "${bad}" must be refused`);
   }
   // New slug serves, the old one 404s, then restore.

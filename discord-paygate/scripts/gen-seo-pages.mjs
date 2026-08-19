@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '55'; // keep in step with the ?v= asset version on index.html
+const V = '56'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -265,7 +265,7 @@ export const footerHtml = `
       <a href="/use-cases/trading">Trading signals</a><a href="/use-cases/sports-betting">Sports picks</a>
       <a href="/use-cases/fitness">Fitness coaching</a><a href="/use-cases/reselling">Cook groups</a>
       <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a></nav>
-    <nav class="footer-col"><span class="footer-head">Legal</span><a href="/brand">Brand assets</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
+    <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
     <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
   </footer>`;
 
@@ -1115,8 +1115,7 @@ const urls = ['/', '/vs', ...Object.keys(COMPETITORS).map((s) => `/vs/${s}`), '/
   '/tools/discord-fee-calculator', '/tools/whop-fee-calculator', '/tools/launchpass-fee-calculator', '/tools/patreon-fee-calculator',
   '/use-cases', ...Object.keys(USE_CASES).map((s) => `/use-cases/${s}`),
   '/guides', ...Object.keys(GUIDES).map((s) => `/guides/${s}`),
-  '/alternatives', ...Object.keys(ALTERNATIVES).map((s) => `/alternatives/${s}`),
-  '/brand'];
+  '/alternatives', ...Object.keys(ALTERNATIVES).map((s) => `/alternatives/${s}`)];
 const today = new Date().toISOString().slice(0, 10);
 emit(
   'sitemap.xml',
