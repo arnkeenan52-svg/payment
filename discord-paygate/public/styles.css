@@ -1513,7 +1513,12 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .mobile-menu {
   display: none; flex-direction: column; padding: 6px 14px 14px;
   background: color-mix(in srgb, #0a0a0a 94%, transparent); border-bottom: 1px solid var(--edge);
-  position: sticky; top: 57px; z-index: 39;
+  /* Fixed, not sticky: opening the menu locks page scroll, which strands a
+     sticky sheet at its document position — far above the viewport once the
+     visitor has scrolled. --nav-h is measured by home.js on open. */
+  position: fixed; top: var(--nav-h, 60px); left: 0; right: 0; z-index: 39;
+  max-height: calc(100dvh - var(--nav-h, 60px)); overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .mobile-menu a {
   color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 600;
@@ -2359,3 +2364,17 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .feat-chip.is-live::before {
   content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--money); flex: none;
 }
+
+/* ── dashboard: the same semantic palette as the landing page ───────────────
+   State (live/active), direction (up vs down) and money get color; labels,
+   charts and chrome stay monochrome so the data still leads. */
+.chip-good { color: var(--money); border-color: color-mix(in srgb, var(--money) 45%, transparent); background: rgba(34, 197, 94, 0.08); }
+.chip-warn { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, transparent); background: rgba(242, 176, 60, 0.08); }
+.delta.up { color: var(--money); background: rgba(34, 197, 94, 0.12); }
+.tip-delta.up { color: var(--money); }
+/* completed setup steps read as done at a glance */
+.check-list li.ok .check-dot { color: var(--money); border-color: color-mix(in srgb, var(--money) 45%, transparent); background: rgba(34, 197, 94, 0.08); }
+/* revenue by product: money bars */
+.top-bar span { background: linear-gradient(90deg, rgba(34, 197, 94, 0.42), rgba(34, 197, 94, 0.82)); }
+/* the plan-limit banner is a warning, not an error */
+.limit-banner a { color: var(--amber); }

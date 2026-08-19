@@ -30,11 +30,19 @@ if (menuBtn) {
   const menu = $('#mobile-menu');
   const scrim = $('#menu-scrim');
   let isOpen = false;
+  // The sheet hangs off the real nav height, which differs by viewport and
+  // changes if the header wraps.
+  const syncNavHeight = () => {
+    const nav = document.querySelector('.top');
+    if (nav) document.documentElement.style.setProperty('--nav-h', `${Math.round(nav.getBoundingClientRect().height)}px`);
+  };
+  addEventListener('resize', () => { if (isOpen) syncNavHeight(); }, { passive: true });
   const setOpen = (open) => {
     isOpen = open;
     menuBtn.setAttribute('aria-expanded', String(open));
     document.documentElement.classList.toggle('menu-open', open);
     if (open) {
+      syncNavHeight();
       menu.hidden = false;
       if (scrim) scrim.hidden = false;
       // Two frames so the browser commits display before the transition runs.
@@ -116,7 +124,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=53'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=54'; // hold a still frame instead
     return;
   }
 
@@ -133,8 +141,8 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=53', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=53', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=54', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=54', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays
