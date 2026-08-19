@@ -185,30 +185,29 @@ out most of them:
   process drops the socket and the bot greys out. Setting `PORT` and pinging
   it from outside keeps it awake, but it is a workaround, not a deployment.
 
-The unit file in `deploy/` runs it under systemd, so it starts on boot and
-restarts on crash. On a fresh Debian/Ubuntu VM (`presence.js` needs the global
-`WebSocket`, so Node 22.5+ — distro packages are usually older):
+`deploy/install-presence.sh` does the whole VM side: installs Node 22 if the
+box has something older, creates a `ripley` system user, drops `presence.js`
+into `/opt/ripley`, writes the systemd unit, and starts it. Put it and
+`scripts/presence.js` in the same directory on the VM, then:
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt-get install -y nodejs git
-sudo useradd --system --home /opt/ripley --shell /usr/sbin/nologin ripley
-sudo git clone <this-repo> /opt/ripley && sudo chown -R ripley:ripley /opt/ripley
-
-sudo mkdir -p /etc/ripley
-sudo cp /opt/ripley/deploy/presence.env.example /etc/ripley/presence.env
-sudo nano /etc/ripley/presence.env          # paste DISCORD_BOT_TOKEN
-sudo chmod 600 /etc/ripley/presence.env
-
-sudo cp /opt/ripley/deploy/ripley-presence.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now ripley-presence
-journalctl -u ripley-presence -f           # expect "identified" then heartbeats
+sudo bash install-presence.sh
 ```
 
+It prompts for the bot token with echo off, so the token never reaches your
+shell history or a file you might commit — only `/etc/ripley/presence.env`,
+root-owned at mode 600. Re-running it updates `presence.js` and restarts the
+service, and it keeps an existing token rather than asking again.
+
+The unit restarts on crash and starts on boot, but gives up after five
+failures in ten minutes: `presence.js` exits 1 on a fatal auth error, and
+retrying a revoked token forever would just hammer Discord's gateway. Check on
+it with `systemctl status ripley-presence` and
+`journalctl -u ripley-presence -f` — a healthy start logs `online as <bot>`.
+
 The VM needs no inbound firewall rule — the gateway connection is outbound
-only. Nothing else from this repo has to run there; `/opt/ripley` is only a
-checkout so the unit has a path to `scripts/presence.js`.
+only, and nothing else from this repo has to run there. `presence.js` has no
+dependencies, so those two files are the entire payload.
 
 ## Discord setup
 
