@@ -502,6 +502,7 @@ async function initTestDb() {
     // fresh slate for repeat runs
     await tq('DROP TABLE IF EXISTS users');
     await tq('DROP TABLE IF EXISTS subscriptions');
+    await tq('DROP TABLE IF EXISTS checkout_attempts');
     await tq('DROP TABLE IF EXISTS webhook_events');
     await tq('DROP TABLE IF EXISTS plan_overrides');
     await tq('DROP TABLE IF EXISTS managed_role_history');
@@ -2051,6 +2052,66 @@ test('store delete: payment history refuses; a draft deletes, freeing its link a
   assert.equal(JSON.parse(againBody).store.slug, 'trade-hub-prime');
   // Leave the world as this scenario found it (minus the hijacking draft).
   assert.equal((await del(u14Cookie, 'trade-hub-prime')).status, 200);
+});
+
+test('platform admin endpoint: owner-only bird\'s-eye of users, stores and totals', async () => {
+  // Strictly the PLATFORM owner. A store owner sees their own stores on
+  // /api/admin/payments, but this endpoint spans every tenant — so a seller
+  // is refused exactly like a buyer.
+  assert.equal((await fetch(`${appUrl}/api/admin/platform`)).status, 401, 'anonymous gets 401');
+  assert.equal(
+    (await fetch(`${appUrl}/api/admin/platform`, { headers: { cookie: u6Cookie } })).status,
+    403,
+    'a buyer gets 403',
+  );
+  const login7 = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st7 = new URL(login7.headers.get('location')).searchParams.get('state');
+  const sc7 = login7.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb7x = await fetch(`${appUrl}/auth/callback?code=code_u7&state=${st7}`, {
+    redirect: 'manual',
+    headers: { cookie: sc7.split(';')[0] },
+  });
+  const sellerCookie = cb7x.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  assert.equal(
+    (await fetch(`${appUrl}/api/admin/platform`, { headers: { cookie: sellerCookie } })).status,
+    403,
+    'a STORE owner still gets 403 — this page is platform-owner only',
+  );
+
+  const res = await fetch(`${appUrl}/api/admin/platform`, { headers: { cookie: u1Cookie } });
+  assert.equal(res.status, 200);
+  const body = await res.text();
+  // The users table carries OAuth tokens; none of that may ever leave the DB
+  // layer on this path.
+  assert.ok(!body.includes('access_token') && !body.includes('refresh_token'), 'no token material in the payload');
+  assert.ok(!body.includes('sk_test_') && !body.includes('rk_test_'), 'no Stripe key material in the payload');
+  const d = JSON.parse(body);
+
+  // Internal consistency, not magic numbers — the suite creates users and
+  // stores above this point and the exact counts shift as tests evolve.
+  assert.equal(d.totals.stores, d.stores.length);
+  assert.equal(d.totals.storesLive + d.totals.storesDraft, d.totals.stores);
+  assert.ok(d.totals.users >= 5, 'every signed-in test account is listed');
+  assert.equal(d.totals.users, d.users.length);
+  assert.ok(d.totals.checkoutsStarted >= d.totals.checkoutsCompleted);
+  assert.ok(d.totals.allTimeUsd > 0, 'all-time volume reflects the payments made above');
+  assert.ok(d.totals.activeMembers > 0);
+
+  // Every tenant's store is visible, with its owner attributed.
+  const vip = d.stores.find((st) => st.slug === 'vip-signals');
+  assert.ok(vip, 'the second owner\'s store is listed');
+  assert.equal(vip.ownerDiscordId, '507700000000000007');
+  assert.ok(vip.revenueUsd > 0, 'tenant revenue is priced from its own catalog');
+  // By this point the built-in guild has been taken over by a managed store
+  // ('Tradeleaks Pro'), so assert by guild rather than by slug.
+  assert.ok(d.stores.some((st) => String(st.guildId) === '900000000000000001'), 'the built-in guild\'s store is listed too');
+
+  // Users carry role flags the owner can filter on.
+  const seller = d.users.find((u) => u.discordId === '507700000000000007');
+  assert.ok(seller?.seller, 'a store owner is flagged as a seller');
+  const buyer = d.users.find((u) => u.discordId === '506600000000000006');
+  assert.ok(buyer && buyer.memberships >= 1 && buyer.spentUsd > 0, 'a buyer shows purchases and spend');
+  assert.ok(d.users.every((u) => typeof u.joinedAt === 'number' && typeof u.lastSeenAt === 'number'));
 });
 
 test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async () => {

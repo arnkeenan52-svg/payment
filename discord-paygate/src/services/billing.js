@@ -26,7 +26,7 @@ const now = () => Math.floor(Date.now() / 1000);
 
 // A paid tier stays effective while its Stripe subscription is alive:
 // active, or past_due within the same grace window buyer plans get.
-function tierStillPaid(row) {
+export function tierStillPaid(row) {
   if (!row) return false;
   const end = row.current_period_end === null || row.current_period_end === undefined ? null : Number(row.current_period_end);
   if (row.status === 'active') return end === null || end + 86400 > now(); // 1 day of clock slack on renewals

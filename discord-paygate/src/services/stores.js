@@ -47,6 +47,7 @@ function hydrate(row) {
     webhookSecret: row.stripe_webhook_secret ?? null,
     notifyChannelId: row.notify_channel_id ?? null,
     status: row.status,
+    createdAt: row.created_at ? Number(row.created_at) : null,
     isDefault: false,
   };
 }

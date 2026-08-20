@@ -199,6 +199,109 @@ function guildRow(g) {
     </a>`;
 }
 
+// ── view: platform admin (OWNER_DISCORD_ID only) ─────────────────────────────
+// The bird's-eye page: every signed-in account, every store anyone set up,
+// and the platform's own numbers. The server enforces the gate; this view
+// just renders what it is allowed to fetch.
+
+const rel = (unix) => {
+  const d = Math.floor(Date.now() / 1000) - unix;
+  if (d < 90) return 'just now';
+  if (d < 5400) return `${Math.round(d / 60)}m ago`;
+  if (d < 129600) return `${Math.round(d / 3600)}h ago`;
+  return `${Math.round(d / 86400)}d ago`;
+};
+
+async function viewAdmin() {
+  if (!state.me?.loggedIn) { location.hash = '#/'; return; }
+  $('#content').innerHTML = '<div class="admin-wrap"><div class="sk-row panel" aria-hidden="true"></div><div class="sk-row panel" aria-hidden="true"></div></div>';
+  const res = await fetch('/api/admin/platform');
+  if (!res.ok) {
+    $('#content').innerHTML = `<div class="admin-wrap"><section class="panel sub-card"><p class="note-help">${
+      res.status === 403 ? 'This page is only for the platform owner.' : 'Could not load platform data — refresh to try again.'
+    }</p><a class="btn-secondary" href="#/">Back</a></section></div>`;
+    return;
+  }
+  const d = await res.json();
+  const t = d.totals;
+  const conv = t.checkoutsStarted ? `${Math.round((t.checkoutsCompleted / t.checkoutsStarted) * 100)}%` : '—';
+
+  const storeRow = (st) => `<tr>
+      <td><a class="admin-store-link" href="#/store/${esc(st.slug)}">${esc(st.name)}</a><span class="dim"> /${esc(st.slug)}</span></td>
+      <td>${st.ownerUsername ? '@' + esc(st.ownerUsername) : ''}<span class="dim"> ${esc(st.ownerDiscordId ?? '')}</span></td>
+      <td>${st.status === 'live' ? '<span class="chip chip-good">Live</span>' : '<span class="chip chip-off">Draft</span>'}</td>
+      <td>${esc(st.ownerTier)}</td>
+      <td class="num">${st.members}</td>
+      <td class="num">${usd(st.revenueUsd)}</td>
+      <td class="dim">${st.createdAt ? fmtDT(st.createdAt) : '—'}</td>
+    </tr>`;
+
+  const userRow = (u) => `<tr>
+      <td>${u.username ? '@' + esc(u.username) : ''}<span class="dim"> ${esc(u.discordId)}</span></td>
+      <td>${u.seller ? '<span class="chip chip-code">Seller</span>' : ''}${
+        u.entitled ? ' <span class="chip chip-good">Member</span>' : u.memberships ? ' <span class="chip chip-off">Lapsed</span>' : ''
+      }</td>
+      <td class="num">${u.memberships || ''}</td>
+      <td class="num">${u.spentUsd ? usd(u.spentUsd) : ''}</td>
+      <td class="dim">${fmtDT(u.joinedAt)}</td>
+      <td class="dim">${rel(u.lastSeenAt)}</td>
+    </tr>`;
+
+  $('#content').innerHTML = `
+    <div class="admin-wrap">
+      <div class="admin-head">
+        <div><h2 class="sec-title">Platform</h2>
+        <p class="card-sub">Everything across Ripley — only you can see this page.</p></div>
+        <a class="btn-secondary" href="#/">${I.back} My servers</a>
+      </div>
+
+      <div class="ck-stats admin-stats">
+        <div class="ck-stat"><span class="ck-num">${t.users}</span><span class="ck-lab">Signed-in accounts</span></div>
+        <div class="ck-stat"><span class="ck-num">${t.storesLive}<span class="ck-sub">${t.storesDraft ? ` +${t.storesDraft} draft` : ''}</span></span><span class="ck-lab">Stores set up</span></div>
+        <div class="ck-stat"><span class="ck-num ck-good">${t.activeMembers}</span><span class="ck-lab">Active members</span></div>
+        <div class="ck-stat"><span class="ck-num ck-good">${usd(t.allTimeUsd)}</span><span class="ck-lab">All-time volume</span></div>
+        <div class="ck-stat"><span class="ck-num">${t.checkoutsStarted}<span class="ck-sub"> ${conv} paid</span></span><span class="ck-lab">Checkouts started</span></div>
+        <div class="ck-stat"><span class="ck-num ck-good">${usd(t.mrrUsd)}<span class="ck-sub">${t.payingOwners ? ` ${t.payingOwners} paying` : ''}</span></span><span class="ck-lab">Ripley MRR</span></div>
+      </div>
+
+      <section class="panel table-panel">
+        <div class="card-head"><div><h3>Stores</h3><p class="card-sub">Everyone who set up the bot — live and still in setup.</p></div></div>
+        <div class="table-scroll"><table class="data-table t-pay"><thead><tr>
+          <th>Store</th><th>Owner</th><th>Status</th><th>Plan</th><th class="num">Members</th><th class="num">Revenue</th><th>Created</th>
+        </tr></thead><tbody>${d.stores.map(storeRow).join('') || '<tr><td colspan="7" class="dim">No stores yet.</td></tr>'}</tbody></table></div>
+        <p class="rows-note">${d.stores.length} store(s) · ${t.sellers} seller(s)</p>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="card-head"><div><h3>Users</h3><p class="card-sub">Every Discord account that has signed in, most recent first.</p></div></div>
+        <div class="table-tools">
+          <label class="search-box">${I.search}<input id="au-search" type="search" placeholder="Search username or ID…" aria-label="Search users" /></label>
+          <select id="au-filter" class="store-switch" aria-label="Filter users">
+            <option value="">Everyone</option><option value="seller">Sellers</option><option value="member">Active members</option>
+          </select>
+        </div>
+        <div class="table-scroll"><table class="data-table t-pay"><thead><tr>
+          <th>User</th><th>Roles</th><th class="num">Purchases</th><th class="num">Spent</th><th>First seen</th><th>Last seen</th>
+        </tr></thead><tbody id="au-body">${d.users.map(userRow).join('')}</tbody></table></div>
+        <p class="rows-note" id="au-count">${d.users.length} account(s)</p>
+      </section>
+    </div>`;
+
+  const apply = () => {
+    const q = ($('#au-search').value ?? '').trim().toLowerCase();
+    const f = $('#au-filter').value;
+    const list = d.users.filter((u) => {
+      const hitQ = !q || (u.username ?? '').toLowerCase().includes(q) || u.discordId.includes(q);
+      const hitF = !f || (f === 'seller' && u.seller) || (f === 'member' && u.entitled);
+      return hitQ && hitF;
+    });
+    $('#au-body').innerHTML = list.map(userRow).join('') || '<tr><td colspan="6" class="dim">No matches.</td></tr>';
+    $('#au-count').textContent = `${list.length} account(s)`;
+  };
+  $('#au-search').addEventListener('input', apply);
+  $('#au-filter').addEventListener('change', apply);
+}
+
 async function viewPicker() {
   const me = state.me;
   if (!me?.loggedIn) {
@@ -220,6 +323,7 @@ async function viewPicker() {
         <button class="btn-ghost" id="logout2">Logout</button>
       </div>
       <div class="picker-welcome"><h1>Welcome to Ripley</h1><p>Let’s get your Discord server monetized in a few steps.</p></div>
+      ${me.isOwner ? `<a class="admin-link panel" href="#/admin">${I.gear}<span><strong>Platform admin</strong><em>Users, stores and totals across all of Ripley</em></span>${I.arrow}</a>` : ''}
       <p class="picker-label">Your Servers</p>
       <div class="g-list" id="g-list"><div class="sk-row panel" aria-hidden="true"></div><div class="sk-row panel" aria-hidden="true"></div></div>
     </section></div>`;
@@ -1495,6 +1599,7 @@ async function viewStore(slug) {
         <nav class="side-nav" aria-label="Store sections">${navItems}</nav>
         <div class="side-foot">
           <a class="side-item" href="${esc(link)}" target="_blank" rel="noopener">${I.external}<span>View store</span></a>
+          ${state.me?.isOwner ? `<a class="side-item" href="#/admin">${I.gear}<span>Platform admin</span></a>` : ''}
           <a class="side-item" href="#/">${I.back}<span>All servers</span></a>
         </div>
       </aside>
@@ -2123,6 +2228,7 @@ async function route() {
   const parts = hash.slice(2).split('/');
   if (parts[0] === 'setup' && parts[1]) return viewSetup(parts[1]);
   if (parts[0] === 'store' && parts[1]) return viewStore(parts[1]);
+  if (parts[0] === 'admin') return viewAdmin();
   return viewPicker();
 }
 

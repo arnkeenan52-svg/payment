@@ -269,6 +269,24 @@ export async function getUser(discordId) {
   return rows[0] ?? null;
 }
 
+// Every Discord account that has ever signed in, WITHOUT the OAuth token
+// columns — this feeds the platform-owner admin view, and tokens must never
+// leave the DB layer on that path. updated_at moves on every login, so it
+// doubles as "last seen".
+export async function allUsersSafe({ limit = 1000 } = {}) {
+  const { rows } = await q(
+    'SELECT discord_id, username, created_at, updated_at FROM users ORDER BY updated_at DESC LIMIT ?',
+    [limit],
+  );
+  return rows;
+}
+
+// Every owner's Ripley plan row — the platform admin view sums MRR from this.
+export async function allPlatformBilling() {
+  const { rows } = await q('SELECT * FROM platform_billing', []);
+  return rows;
+}
+
 // ── plan role overrides ───────────────────────────────────────────────────────
 
 export async function getPlanOverride(planId) {

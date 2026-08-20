@@ -28,6 +28,7 @@ import adminSettings from '../api/admin/settings.js';
 import adminMember from '../api/admin/member.js';
 import resync from '../api/resync.js';
 import subscription from '../api/subscription.js';
+import adminPlatform from '../api/admin/platform.js';
 import myGuilds from '../api/my/guilds.js';
 import onboard from '../api/onboard.js';
 import billing from '../api/billing.js';
@@ -90,6 +91,7 @@ const routes = {
   '/api/admin/member': adminMember,
   '/api/resync': resync,
   '/api/subscription': subscription,
+  '/api/admin/platform': adminPlatform,
   '/api/my/guilds': myGuilds,
   '/api/onboard': onboard,
   '/api/billing': billing,
