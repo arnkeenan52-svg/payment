@@ -1007,8 +1007,17 @@ function paymentsRows(list) {
 // Checkout attempts. "Started" means the buyer reached Stripe's card form —
 // an abandoned one leaves no payment behind, so this is the only place it
 // shows up.
+// "3m" between clicking Pay and the money landing — worth a column of its
+// own: a wall of 40-minute completions usually means a payment-page problem.
+function fmtDur(sec) {
+  if (!Number.isFinite(sec) || sec < 0) return '';
+  if (sec < 90) return `${Math.max(1, Math.round(sec))}s`;
+  if (sec < 5400) return `${Math.round(sec / 60)}m`;
+  return `${Math.floor(sec / 3600)}h ${Math.round((sec % 3600) / 60)}m`;
+}
+
 function checkoutRows(list) {
-  if (!list.length) return '<tr><td colspan="5" class="dim">No checkouts started yet.</td></tr>';
+  if (!list.length) return '<tr><td colspan="6" class="dim">No checkouts started yet.</td></tr>';
   return list
     .map(
       (c) => `<tr>
@@ -1021,6 +1030,11 @@ function checkoutRows(list) {
             : '<span class="chip chip-warn">Not finished</span>'
         }</td>
         <td class="dim">${fmtDT(c.createdAt)}</td>
+        <td class="dim">${
+          c.completedAt
+            ? `${fmtDT(c.completedAt)}<span class="ck-dur"> · ${fmtDur(c.completedAt - c.createdAt)}</span>`
+            : '—'
+        }</td>
       </tr>`,
     )
     .join('');
@@ -1524,7 +1538,7 @@ async function viewStore(slug) {
             <option value="">Status: all</option><option value="completed">Paid</option><option value="started">Not finished</option>
           </select>
         </div>
-        <div class="table-scroll"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Started</th></tr></thead><tbody id="ck-body">${checkoutRows(checkouts)}</tbody></table></div>
+        <div class="table-scroll"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Started</th><th>Paid</th></tr></thead><tbody id="ck-body">${checkoutRows(checkouts)}</tbody></table></div>
         <p class="rows-note" id="ck-count">${checkouts.length} row(s)</p>
       </section>`;
   } else if (section === 'members') {
