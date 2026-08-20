@@ -999,6 +999,11 @@ body.home { background: #0a0a0a; }
 .frow.flip { grid-template-columns: 1.15fr 1fr; }
 .frow.flip .frow-copy { order: 2; }
 .frow.flip .frow-visual { order: 1; display: flex; justify-content: center; }
+/* On phones the date columns are dropped to keep rows narrow, which used to
+   drop the time entirely. It now folds under the product name instead
+   (revealed in the 640px block below). */
+.row-when { display: none; }
+
 @media (max-width: 860px) {
   .frow, .frow.flip { grid-template-columns: 1fr; gap: 26px; }
   .frow.flip .frow-copy { order: 1; }
@@ -1270,8 +1275,10 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
      sideways for the full record. Payments: drop Date + raw Discord id.
      Products: drop Billing/Members/Revenue. Discounts: drop Scope/Expires.
      Members: drop Products + raw id. */
-  .t-pay th:nth-child(5), .t-pay td:nth-child(5) { display: none; }
+  .t-pay th:nth-child(5), .t-pay td:nth-child(5),
+  .t-pay th:nth-child(6), .t-pay td:nth-child(6) { display: none; }
   .t-pay td:first-child .dim { display: none; }
+  .row-when { display: block; font-size: 11.5px; color: var(--dim); margin-top: 2px; }
   .t-products th:nth-child(3), .t-products td:nth-child(3),
   .t-products th:nth-child(4), .t-products td:nth-child(4),
   .t-products th:nth-child(5), .t-products td:nth-child(5) { display: none; }
@@ -2447,3 +2454,4 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 
 /* time-to-pay, tucked behind the completion timestamp */
 .ck-dur { color: var(--dim); font-size: 12px; }
+

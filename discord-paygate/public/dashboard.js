@@ -995,7 +995,7 @@ function paymentsRows(list) {
     .map(
       (p) => `<tr>
         <td>${p.username ? '@' + esc(p.username) : ''}<span class="dim"> ${esc(p.discordId)}</span></td>
-        <td>${esc(p.planName)}</td>
+        <td>${esc(p.planName)}<span class="row-when">${fmtDT(p.createdAt)}</span></td>
         <td class="num">${usd(p.amountUsd)}</td>
         <td>${chipFor(p)}</td>
         <td class="dim">${fmtDT(p.createdAt)}</td>
@@ -1022,7 +1022,9 @@ function checkoutRows(list) {
     .map(
       (c) => `<tr>
         <td>${c.username ? '@' + esc(c.username) : ''}<span class="dim"> ${esc(c.discordId)}</span></td>
-        <td>${esc(c.planName)}${c.discountCode ? ` <span class="chip chip-code">${esc(c.discountCode)}</span>` : ''}</td>
+        <td>${esc(c.planName)}${c.discountCode ? ` <span class="chip chip-code">${esc(c.discountCode)}</span>` : ''}<span class="row-when">${fmtDT(c.createdAt)}${
+          c.completedAt ? ` · paid in ${fmtDur(c.completedAt - c.createdAt)}` : ''
+        }</span></td>
         <td class="num">${usd(c.amountUsd)}</td>
         <td>${
           c.status === 'completed'
@@ -1163,7 +1165,7 @@ function sectionOverview(data, store, slug) {
             ? `<ul class="sales-list">${recent
                 .map(
                   (p) => `<li><span class="g-icon g-icon-fallback sale-ic">${esc((p.username ?? '?').slice(0, 1).toUpperCase())}</span>
-                    <span class="sale-meta"><strong>${p.username ? '@' + esc(p.username) : esc(p.discordId)}</strong><span class="dim">${esc(p.planName)}</span></span>
+                    <span class="sale-meta"><strong>${p.username ? '@' + esc(p.username) : esc(p.discordId)}</strong><span class="dim">${esc(p.planName)} · ${fmtDT(p.createdAt)}</span></span>
                     <span class="sale-amt">${usd(p.amountUsd)}</span></li>`,
                 )
                 .join('')}</ul>`
