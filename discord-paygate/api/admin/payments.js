@@ -109,7 +109,7 @@ export default guard(async function handler(req, res) {
   sendJson(res, 200, {
     // Every store the caller owns (for the dashboard's store switcher);
     // `payments` below honours the ?store filter.
-    stores: stores.map((s) => ({ id: s.id, slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault, notifyChannelId: s.notifyChannelId ?? null })),
+    stores: stores.map((s) => ({ id: s.id, slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault, notifyChannelId: s.notifyChannelId ?? null, theme: s.theme ?? null })),
     totals: {
       allTimeUsd: Math.round(rows.reduce((sum, r) => sum + r.amountUsd, 0) * 100) / 100,
       payments: rows.length,

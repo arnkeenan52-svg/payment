@@ -63,6 +63,7 @@ const ddl = (dialect) => {
     stripe_secret_enc     TEXT,
     stripe_webhook_secret TEXT,
     notify_channel_id TEXT,
+    theme            TEXT,               -- JSON of validated storefront design tokens
     status           TEXT NOT NULL DEFAULT 'draft',
     created_at       ${int} NOT NULL,
     updated_at       ${int} NOT NULL
@@ -233,6 +234,7 @@ function db() {
       // Buyer-initiated cancellation: the row stays active until this moment,
       // so /account can say "ends on …" instead of "renews on …".
       await driver.exec(`ALTER TABLE subscriptions ADD COLUMN cancels_at ${intType}`).catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -526,6 +528,7 @@ export async function updateStore(id, fields) {
     stripeSecretEnc: 'stripe_secret_enc',
     stripeWebhookSecret: 'stripe_webhook_secret',
     notifyChannelId: 'notify_channel_id',
+    theme: 'theme',
   };
   const sets = [];
   const params = [];

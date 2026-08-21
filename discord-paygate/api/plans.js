@@ -37,7 +37,7 @@ export default guard(async function handler(req, res) {
   sendJson(res, 200, {
     brand: store.isDefault ? config.brand : store.name,
     platform: { name: config.platform },
-    store: { slug: store.slug, status: store.status, description: store.description ?? null, bannerUrl: store.bannerUrl ?? null },
+    store: { slug: store.slug, status: store.status, description: store.description ?? null, bannerUrl: store.bannerUrl ?? null, theme: store.theme ?? null },
     // Guild id is public (it's in every invite link); the receipt page needs
     // it for the "Open on Discord" deep link.
     server: { name, guildId: store.guildId, iconUrl },

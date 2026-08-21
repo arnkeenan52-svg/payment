@@ -5,6 +5,7 @@ import * as db from '../../src/db.js';
 import { adminStoreBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
 import { stripeFetch, isStripeKey } from '../../src/lib/stripe.js';
+import { validateTheme } from '../../src/lib/theme.js';
 import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
 
 // Store identity settings: name, description, banner, custom link (slug).
@@ -63,6 +64,17 @@ export default guard(async function handler(req, res) {
     fields.name = name;
   }
   if (body.description !== undefined) fields.description = String(body.description).trim().slice(0, 500) || null;
+  // Storefront theme: tokens only, validated server-side — never raw CSS.
+  // null (or an emptied object) clears it back to the platform look.
+  if (body.theme !== undefined) {
+    let clean;
+    try {
+      clean = validateTheme(body.theme);
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+    fields.theme = clean ? JSON.stringify(clean) : null;
+  }
   if (body.bannerUrl !== undefined) {
     const u = String(body.bannerUrl).trim();
     if (u && !/^https:\/\/\S+$/.test(u)) return sendJson(res, 400, { error: 'The banner URL must start with https:// (1500×400 works best).' });

@@ -46,6 +46,7 @@ function hydrate(row) {
     stripeKey: row.stripe_secret_enc ? openSecret(row.stripe_secret_enc) : config.stripe.secretKey,
     webhookSecret: row.stripe_webhook_secret ?? null,
     notifyChannelId: row.notify_channel_id ?? null,
+    theme: row.theme ? JSON.parse(row.theme) : null,
     status: row.status,
     createdAt: row.created_at ? Number(row.created_at) : null,
     isDefault: false,

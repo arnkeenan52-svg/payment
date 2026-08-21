@@ -8,6 +8,7 @@ import path from 'node:path';
 import { guard, sendText } from '../src/lib/http.js';
 import { config } from '../src/config.js';
 import { storeBySlug, sellablePlansOf } from '../src/services/stores.js';
+import { validateTheme, themeCss } from '../src/lib/theme.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -18,9 +19,19 @@ export default guard(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const slug = (url.searchParams.get('store') ?? '').toLowerCase();
   let head = null;
+  let themeStyle = '';
   if (/^[a-z0-9-]{1,40}$/.test(slug)) {
     const store = await storeBySlug(slug).catch(() => null);
     if (store) {
+      // The owner's theme, server-rendered so the page never flashes the
+      // default look. Re-validated here: only tokens ever reach the CSS,
+      // whatever ended up in the database.
+      try {
+        const theme = validateTheme(store.theme);
+        if (theme) themeStyle = `\n  <style id="store-theme">${themeCss(theme)}</style>`;
+      } catch {
+        /* an unusable stored theme renders the default look */
+      }
       const plans = await sellablePlansOf(store).catch(() => []);
       // The preview image is the store's own product photo when there is one
       // (uploads serve from /api/img over https); the platform shot otherwise.
@@ -51,6 +62,7 @@ export default guard(async (req, res) => {
     return sendText(res, 500, 'internal error');
   }
   if (head) html = html.replace(/<!-- og:begin[\s\S]*?<!-- og:end -->/, head);
+  if (themeStyle) html = html.replace('</head>', `${themeStyle}\n</head>`);
   res.writeHead(200, {
     'content-type': 'text/html; charset=utf-8',
     // Short shared cache: link unfurlers and buyers get fresh store data

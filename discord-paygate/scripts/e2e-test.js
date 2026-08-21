@@ -2361,6 +2361,51 @@ test('onboarding: the Continue check uses only the bot token (never user-guild l
   assert.deepEqual(await (await botcheck(u7Cookie, G2)).json(), { botIn: true });
 });
 
+test('store themes: validated tokens in, server-rendered CSS out', async () => {
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=code_u7&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  const ownerCookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  const setTheme = (theme) =>
+    fetch(`${appUrl}/api/admin/store`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ store: 'vip-signals', theme }),
+    });
+
+  // Values are validated, not laundered: a typoed color must fail loudly.
+  assert.equal((await setTheme({ bg: 'red' })).status, 400, 'a non-hex color is refused');
+  assert.equal((await setTheme({ radius: 99 })).status, 400, 'an out-of-range radius is refused');
+  assert.equal((await setTheme({ font: 'comic-sans' })).status, 400, 'fonts come from the fixed list');
+  assert.equal((await setTheme('body{}')).status, 400, 'raw CSS is not a theme');
+
+  // A good theme saves; unknown keys are dropped rather than stored.
+  const good = { bg: '#071209', panel: '#0d2012', text: '#e9f6ec', accent: '#22c55e', pay: '#22c55e', radius: 20, font: 'mono', evil: 'url(https://x)' };
+  assert.equal((await setTheme(good)).status, 200);
+  const pub = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  assert.deepEqual(pub.store.theme, { bg: '#071209', panel: '#0d2012', text: '#e9f6ec', accent: '#22c55e', pay: '#22c55e', radius: 20, font: 'mono' });
+
+  // The storefront carries the theme server-rendered — buyers get the owner's
+  // look on first paint, and only token-built CSS ever reaches the page.
+  const page = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.match(page, /<style id="store-theme">/, 'the theme style is injected');
+  assert.match(page, /--bg: #071209/, 'background token rendered');
+  assert.match(page, /\.pay-btn \{ background: #22c55e/, 'pay button color rendered');
+  assert.match(page, /border-radius: 20px/, 'radius rendered');
+  assert.ok(!page.includes('evil'), 'junk keys never reach the page');
+
+  // Reset: null clears the row and the page goes back to the platform look.
+  assert.equal((await setTheme(null)).status, 200);
+  const cleared = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  assert.equal(cleared.store.theme, null);
+  const plain = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.ok(!plain.includes('store-theme'), 'no theme style once cleared');
+});
+
 test('products managed in-site: edit/toggle/limit/success-url/lazy price/discounts/delete/store settings', async () => {
   const loginAs = async (code) => {
     const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });

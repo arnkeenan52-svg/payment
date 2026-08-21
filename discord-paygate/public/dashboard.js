@@ -1364,6 +1364,94 @@ function setCard({ id = '', title, sub = '', body = '', foot = '' }) {
   </section>`;
 }
 
+// ── storefront appearance ─────────────────────────────────────────────────────
+// The platform's own tokens, doubling as the "Midnight" preset. Radius 16
+// matches .panel in styles.css.
+const THEME_DEFAULTS = { bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4', accent: '#ededed', pay: '#5865f2', radius: 16, font: 'default' };
+const THEME_PRESETS = [
+  ['Midnight', THEME_DEFAULTS],
+  ['Ivory', { bg: '#faf9f7', panel: '#ffffff', text: '#161616', accent: '#161616', pay: '#5865f2', radius: 16, font: 'default' }],
+  ['Blurple', { bg: '#0b0d1f', panel: '#131735', text: '#eceefc', accent: '#8b96f8', pay: '#5865f2', radius: 16, font: 'default' }],
+  ['Emerald', { bg: '#071209', panel: '#0d2012', text: '#e9f6ec', accent: '#22c55e', pay: '#22c55e', radius: 16, font: 'default' }],
+  ['Crimson', { bg: '#150a0d', panel: '#231016', text: '#f8ecee', accent: '#ef4466', pay: '#ef4466', radius: 12, font: 'default' }],
+  ['Gold', { bg: '#131008', panel: '#211b0e', text: '#f8f3e6', accent: '#f2b03c', pay: '#f2b03c', radius: 8, font: 'serif' }],
+];
+const THEME_FONT_STACKS = {
+  system: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  serif: "ui-serif, Georgia, 'Times New Roman', serif",
+  mono: "ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace",
+};
+
+// Mirror of themeCss in src/lib/theme.js — the saved theme is rendered by the
+// server; this copy only paints the live preview iframe. Keep the two in sync.
+function previewThemeCss(t) {
+  const inkFor = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return ((((n >> 16) & 255) * 299 + (((n >> 8) & 255)) * 587 + (n & 255) * 114) / 1000) >= 150 ? '#0a0a0a' : '#ffffff';
+  };
+  const small = Math.min(t.radius, 12);
+  const font = THEME_FONT_STACKS[t.font];
+  return [
+    `body { --bg: ${t.bg}; --panel: ${t.panel}; --panel-hover: color-mix(in srgb, ${t.panel} 92%, ${t.text}); --ink: ${t.text}; --dim: color-mix(in srgb, ${t.text} 58%, ${t.bg}); --edge: color-mix(in srgb, ${t.text} 14%, ${t.panel}); --accent: ${t.accent}; --accent-hot: color-mix(in srgb, ${t.accent} 85%, #ffffff); --edge-selected: ${t.accent}; }`,
+    `body { background: ${t.bg}; color: ${t.text}; }`,
+    `.pay-btn { background: ${t.pay}; color: ${inkFor(t.pay)}; }`,
+    `.pay-btn:hover:not(:disabled) { background: color-mix(in srgb, ${t.pay} 86%, #000000); }`,
+    `.checkout .panel, .checkout .order-product, .checkout .order-roles, .checkout .pay-panel, .checkout .order-extra { border-radius: ${t.radius}px; }`,
+    `.checkout .pay-btn, .checkout .apply-btn, .checkout .method, .checkout input, .checkout .op-thumb { border-radius: ${small}px; }`,
+    font ? `body, .checkout button, .checkout input, .order-title, .op-price, .pay-panel h2 { font-family: ${font}; }` : '',
+  ].join('\n');
+}
+
+// WCAG-ish relative contrast between two hexes — enough to warn, not certify.
+function contrastRatio(a, b) {
+  const lum = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+
+function appearanceBody(store) {
+  const t = { ...THEME_DEFAULTS, ...(store.theme ?? {}) };
+  const swatch = ([name, p]) =>
+    `<button type="button" class="th-preset" data-preset="${esc(name)}" title="${esc(name)}">
+       <span class="th-sw" style="background:${p.bg}"><span style="background:${p.pay}"></span><span style="background:${p.panel}"></span></span>${esc(name)}</button>`;
+  const color = (key, label) =>
+    `<label class="th-field"><span>${label}</span>
+       <span class="th-color"><input type="color" id="th-${key}" value="${esc(t[key])}" /><code id="th-${key}-hex">${esc(t[key])}</code></span></label>`;
+  return `
+    <div class="th-presets" role="group" aria-label="Theme presets">${THEME_PRESETS.map(swatch).join('')}</div>
+    <div class="th-grid">
+      ${color('bg', 'Background')}
+      ${color('panel', 'Cards')}
+      ${color('text', 'Text')}
+      ${color('accent', 'Accent')}
+      ${color('pay', 'Pay button')}
+      <label class="th-field"><span>Corners</span>
+        <span class="th-range"><input type="range" id="th-radius" min="0" max="24" step="1" value="${t.radius}" /><code id="th-radius-out">${t.radius}px</code></span></label>
+      <label class="th-field"><span>Type</span>
+        <select id="th-font" class="store-switch">
+          <option value="default" ${t.font === 'default' ? 'selected' : ''}>Ripley (Space Grotesk)</option>
+          <option value="system" ${t.font === 'system' ? 'selected' : ''}>System</option>
+          <option value="serif" ${t.font === 'serif' ? 'selected' : ''}>Serif</option>
+          <option value="mono" ${t.font === 'mono' ? 'selected' : ''}>Mono</option>
+        </select></label>
+    </div>
+    <p class="note-help th-contrast" id="th-contrast" hidden>Low contrast — this text will be hard to read on these cards.</p>
+    ${
+      store.status === 'live'
+        ? `<div class="th-preview-wrap"><span class="field-label">Live preview</span>
+             <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}" title="Store preview" loading="lazy"></iframe></div>`
+        : '<p class="note-help">Publish your store to see a live preview here.</p>'
+    }
+    <p class="field-err" id="err-theme" role="alert"></p>`;
+}
+
 function sectionStore(store, link) {
   const linkRow = `<div class="share-row"><code class="share-link">${esc(link)}</code><button class="btn-secondary" id="copy-link">${I.copy} Copy</button></div>`;
   if (store.isDefault) {
@@ -1392,6 +1480,14 @@ function sectionStore(store, link) {
           <input id="st-banner" type="url" value="${esc(store.bannerUrl ?? '')}" placeholder="https://…  (1500×400 works best)" spellcheck="false" /></label>
         <p class="field-err" id="err-store" role="alert"></p>`,
       foot: `<button class="btn-pill" id="st-save">Save changes</button>`,
+    })}
+    ${setCard({
+      title: 'Appearance',
+      sub: 'Make the store yours — colors, corners and type. Buyers see it instantly.',
+      body: appearanceBody(store),
+      foot: `<span class="appearance-foot"><button class="btn-pill" id="th-save">Save appearance</button>
+        <button class="btn-ghost" id="th-reset">Reset to default</button>
+        <span class="note-help" id="th-note" role="status"></span></span>`,
     })}
     ${setCard({
       title: 'Store link',
@@ -1714,7 +1810,7 @@ async function viewStore(slug) {
   if (section === 'members') wireMembers(slug);
   if (section === 'products' && !store.isDefault) wireProducts(store, slug, products);
   if (section === 'discounts' && !store.isDefault) wireDiscounts(store, slug);
-  if (section === 'store' && !store.isDefault) wireStoreSettings(store, slug);
+  if (section === 'store' && !store.isDefault) { wireStoreSettings(store, slug); wireAppearance(store, slug); }
   if (section === 'settings') {
     renderBillingPanel();
     const pmSave = $('#pm-save');
@@ -2051,6 +2147,83 @@ function wireDiscounts(store, slug) {
       }
     };
   });
+}
+
+function wireAppearance(store, slug) {
+  const read = () => ({
+    bg: $('#th-bg').value,
+    panel: $('#th-panel').value,
+    text: $('#th-text').value,
+    accent: $('#th-accent').value,
+    pay: $('#th-pay').value,
+    radius: Number($('#th-radius').value),
+    font: $('#th-font').value,
+  });
+  const paint = () => {
+    const t = read();
+    for (const k of ['bg', 'panel', 'text', 'accent', 'pay']) $(`#th-${k}-hex`).textContent = t[k];
+    $('#th-radius-out').textContent = `${t.radius}px`;
+    const warn = $('#th-contrast');
+    if (warn) warn.hidden = contrastRatio(t.text, t.panel) >= 4.5;
+    const frame = $('#th-preview');
+    // Same-origin, so the preview styles the real page directly. If the
+    // frame has not loaded yet, the load handler below repaints.
+    try {
+      const doc = frame?.contentDocument;
+      if (doc?.body) {
+        let el = doc.getElementById('theme-preview');
+        if (!el) {
+          el = doc.createElement('style');
+          el.id = 'theme-preview';
+          doc.head.appendChild(el);
+        }
+        el.textContent = previewThemeCss(t);
+        doc.getElementById('store-theme')?.remove(); // the saved theme must not fight the draft
+      }
+    } catch { /* frame not ready yet */ }
+  };
+  for (const id of ['th-bg', 'th-panel', 'th-text', 'th-accent', 'th-pay', 'th-radius', 'th-font']) {
+    $(`#${id}`)?.addEventListener('input', paint);
+    $(`#${id}`)?.addEventListener('change', paint);
+  }
+  $('#th-preview')?.addEventListener('load', paint);
+  document.querySelectorAll('.th-preset').forEach((b) => {
+    b.onclick = () => {
+      const p = THEME_PRESETS.find(([n]) => n === b.dataset.preset)?.[1];
+      if (!p) return;
+      for (const k of ['bg', 'panel', 'text', 'accent', 'pay']) $(`#th-${k}`).value = p[k];
+      $('#th-radius').value = p.radius;
+      $('#th-font').value = p.font;
+      paint();
+    };
+  });
+  paint();
+
+  $('#th-save').onclick = async () => {
+    const btn = $('#th-save');
+    fieldErr('theme', '');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      await api('/api/admin/store', { store: slug, theme: read() });
+      state.data = null;
+      viewStore(slug);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Save appearance';
+      fieldErr('theme', err.message);
+    }
+  };
+  $('#th-reset').onclick = async () => {
+    if (!confirm('Reset the store to the default Ripley look?')) return;
+    try {
+      await api('/api/admin/store', { store: slug, theme: null });
+      state.data = null;
+      viewStore(slug);
+    } catch (err) {
+      fieldErr('theme', err.message);
+    }
+  };
 }
 
 function wireStoreSettings(store, slug) {
