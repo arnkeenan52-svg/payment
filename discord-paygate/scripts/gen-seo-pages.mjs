@@ -15,14 +15,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '66'; // keep in step with the ?v= asset version on index.html
+const V = '67'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
   { name: 'Free', priceUsd: 0, maxMembers: 10 },
-  { name: 'Starter', priceUsd: 9.99, maxMembers: 50 },
-  { name: 'Growth', priceUsd: 29.99, maxMembers: 500 },
-  { name: 'Scale', priceUsd: 99.99, maxMembers: null },
+  { name: 'Starter', priceUsd: 14.99, maxMembers: 50 },
+  { name: 'Growth', priceUsd: 44.99, maxMembers: 500 },
+  { name: 'Scale', priceUsd: 134.99, maxMembers: null },
 ];
 
 // Competitors, with the same publicly-listed numbers the homepage calculator
@@ -211,7 +211,7 @@ const USE_CASES = {
     ],
     faq: [
       ['Do I need a website?', 'No. Your Ripley store page is hosted for you at your own link with your name and icon.'],
-      ['What does Ripley cost?', 'Free for your first 10 paying members, then flat plans from $9.99/mo. Ripley takes 0% of sales.'],
+      ['What does Ripley cost?', 'Free for your first 10 paying members, then flat plans from $14.99/mo. Ripley takes 0% of sales.'],
       ['Can fans pay with Apple Pay?', 'Checkout is Stripe-hosted — cards, Apple Pay, Google Pay and Link, per your Stripe settings.'],
     ],
   },
@@ -337,7 +337,7 @@ const cta = (label = 'Start selling with 0% platform fees') => `
 
 const ripleyRows = {
   fee: '0% — always',
-  monthly: 'Free up to 10 paying members, then from $9.99/mo',
+  monthly: 'Free up to 10 paying members, then from $14.99/mo',
   money: 'Your own Stripe account, directly',
   store: 'ripleybot.com/yourname',
 };
@@ -348,7 +348,7 @@ function vsPage(slug, c) {
   const title = `Ripley vs ${c.name} — Discord monetization compared`;
   const desc = `${c.name} charges ${c.feeLine.replace('*', '')} — Ripley takes 0% of your sales and payments land in your own Stripe account. A side-by-side comparison for Discord server owners.`;
   const faq = [
-    [`How much does ${c.name} cost compared to Ripley?`, `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Ripley charges a flat plan (free up to 10 paying members, then from $9.99/mo) and takes 0% of your sales.`],
+    [`How much does ${c.name} cost compared to Ripley?`, `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Ripley charges a flat plan (free up to 10 paying members, then from $14.99/mo) and takes 0% of your sales.`],
     ['Does Ripley really take 0% of sales?', 'Yes. Ripley charges a flat monthly plan only. Stripe’s standard card-processing fees still apply, as they do on every platform.'],
     ['Where does my money go with Ripley?', 'Straight into your own Stripe account. Ripley never holds, routes, or freezes your funds.'],
     ['Can I switch without losing my members?', 'Your members keep their Discord roles while you set Ripley up, and your Stripe customers stay in your own Stripe account either way.'],
@@ -444,9 +444,9 @@ function calcScript(rowsJs) {
     var fmt = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
     function ripleyCost(members) {
       if (members <= 10) return 0;
-      if (members <= 50) return 9.99;
-      if (members <= 500) return 29.99;
-      return 99.99;
+      if (members <= 50) return 14.99;
+      if (members <= 500) return 44.99;
+      return 134.99;
     }
     function upd() {
       var m = Number(subs.value), p = Number(price.value), rev = m * p;
@@ -556,7 +556,7 @@ function competitorCalculator(key) {
   const rowsJs = `[{ id: '${key}', cost: ${COST_EXPR[key]} }]`;
   const faq = [
     [`How much does ${c.name} take from my sales?`, `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Check their site for current numbers.`],
-    ['What does Ripley cost?', 'Free up to 10 paying members, then flat plans from $9.99/mo. Ripley takes 0% of your sales.'],
+    ['What does Ripley cost?', 'Free up to 10 paying members, then flat plans from $14.99/mo. Ripley takes 0% of your sales.'],
     ['Are Stripe fees included?', 'No — Stripe’s standard card-processing fees apply on every platform, so they cancel out of the comparison.'],
   ];
   return {
@@ -585,7 +585,7 @@ function allInOneCalculator() {
       { id: 'upgrade-chat', cost: 49 }
     ]`;
   const faq = [
-    ['Which Discord monetization platform is cheapest?', 'It depends on your volume: percentage-fee platforms get more expensive as you grow, flat-fee platforms do not. Ripley is a flat plan (free up to 10 paying members, then from $9.99/mo) with 0% of sales.'],
+    ['Which Discord monetization platform is cheapest?', 'It depends on your volume: percentage-fee platforms get more expensive as you grow, flat-fee platforms do not. Ripley is a flat plan (free up to 10 paying members, then from $14.99/mo) with 0% of sales.'],
     ['Are these the platforms’ real prices?', 'They are the publicly listed prices at the time this page was written, marked with an asterisk — always check the platform’s own site for current numbers.'],
     ['Does 0% platform fees mean completely free?', 'Ripley’s plans are flat monthly subscriptions and the platform takes 0% of your sales. Stripe’s standard card-processing fees apply everywhere.'],
   ];
@@ -813,7 +813,7 @@ const GUIDES = {
       ['The product is a role', `<p>Package access as a role that unlocks channels. One role for a simple membership, several for tiers. If you can describe what the role unlocks in one sentence, buyers will get it too.</p>`],
       ['The checkout is a link', `<p>Your store lives at a link — Ripley gives you <strong>ripleybot.com/yourname</strong>, with your server’s name, icon and products on it, sharable in bios, pinned messages and DMs. Buyers sign in with Discord, pay on Stripe, done. Link previews carry your product photo automatically.</p>`],
       ['Delivery is instant, and so is revocation', `<p>The role lands seconds after payment and comes off automatically when a subscription lapses. Buyers not yet in the server are pulled in with the role attached. That is the entire operational load: zero.</p>`],
-      ['What it costs', `<p>Ripley is free up to 10 paying members, then flat plans from $9.99/mo — always 0% of sales, with payments in your own Stripe account. For the full landscape, see <a href="/guides/how-to-monetize-a-discord-server">the monetization guide</a> and the <a href="/vs">comparisons</a>.</p>`],
+      ['What it costs', `<p>Ripley is free up to 10 paying members, then flat plans from $14.99/mo — always 0% of sales, with payments in your own Stripe account. For the full landscape, see <a href="/guides/how-to-monetize-a-discord-server">the monetization guide</a> and the <a href="/vs">comparisons</a>.</p>`],
     ],
     faq: [
       ['Can I sell one-time access instead of subscriptions?', 'Yes — lifetime products are one payment for a permanent role. Sell them alone or next to a monthly plan at a different price.'],
@@ -919,7 +919,7 @@ ${cta()}`;
 const ALT_LIST = {
   ripley: {
     name: 'Ripley',
-    line: 'Flat plans (free up to 10 paying members, then from $9.99/mo), 0% of sales, payments straight into your own Stripe account, roles delivered in seconds. That is us — the disclosure is the point.',
+    line: 'Flat plans (free up to 10 paying members, then from $14.99/mo), 0% of sales, payments straight into your own Stripe account, roles delivered in seconds. That is us — the disclosure is the point.',
     href: '/',
   },
   launchpass: { name: 'LaunchPass', line: 'Subscription checkout for Discord, Telegram and Slack. Publicly listed pricing pairs a monthly plan with a percentage of sales*.', href: '/vs/launchpass' },
@@ -1077,10 +1077,10 @@ emit(
   'llms.txt',
   `# Ripley
 
-> Ripley (https://www.ripleybot.com) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (ripleybot.com/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Ripley never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $9.99/month) and Ripley takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
+> Ripley (https://www.ripleybot.com) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (ripleybot.com/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Ripley never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $14.99/month) and Ripley takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
 
 Key product facts:
-- 0% platform fees on sales; flat plans: Free (10 paying members), Starter $9.99/mo (50), Growth $29.99/mo (500), Scale $99.99/mo (unlimited)
+- 0% platform fees on sales; flat plans: Free (10 paying members), Starter $14.99/mo (50), Growth $44.99/mo (500), Scale $134.99/mo (unlimited)
 - Payments settle in the owner's own Stripe account (owner supplies their Stripe key)
 - Instant role delivery (~2s) and automatic removal on cancellation/lapse; hourly access re-checks
 - Store page at ripleybot.com/<name> with the server's branding and product photos

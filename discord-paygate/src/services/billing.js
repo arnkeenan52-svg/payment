@@ -15,9 +15,9 @@ import { storesOwnedBy } from './stores.js';
 // yearlyUsd = 10 months — two months free on yearly, like the reference.
 export const TIERS = [
   { id: 'free', name: 'Free', priceUsd: 0, yearlyUsd: 0, maxMembers: 10 },
-  { id: 'starter', name: 'Starter', priceUsd: 9.99, yearlyUsd: 99.9, maxMembers: 50 },
-  { id: 'growth', name: 'Growth', priceUsd: 29.99, yearlyUsd: 299.9, maxMembers: 500 },
-  { id: 'scale', name: 'Scale', priceUsd: 99.99, yearlyUsd: 999.9, maxMembers: null }, // unlimited
+  { id: 'starter', name: 'Starter', priceUsd: 14.99, yearlyUsd: 149.9, maxMembers: 50 },
+  { id: 'growth', name: 'Growth', priceUsd: 44.99, yearlyUsd: 449.9, maxMembers: 500 },
+  { id: 'scale', name: 'Scale', priceUsd: 134.99, yearlyUsd: 1349.9, maxMembers: null }, // unlimited
 ];
 
 export const tierById = (id) => TIERS.find((t) => t.id === id) ?? null;

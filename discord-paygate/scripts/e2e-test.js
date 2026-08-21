@@ -2266,7 +2266,7 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
   assert.ok(starterPrice, 'the Starter price is created with its lookup key');
   assert.deepEqual(
     { mode: upForm.mode, price: upForm['line_items[0][price]'], kind: upForm['metadata[kind]'], amount: starterPrice.unit_amount },
-    { mode: 'subscription', price: starterPrice.id, kind: 'platform_plan', amount: 999 },
+    { mode: 'subscription', price: starterPrice.id, kind: 'platform_plan', amount: 1499 },
   );
 
   // Repricing a tier has to reprice Stripe too. The price id is cached in
@@ -2277,7 +2277,7 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
   const reprice = await billing(u7Cookie, { action: 'checkout', tier: 'starter' });
   assert.equal(reprice.status, 200, await reprice.text());
   const charged = MOCK_PRICES[stripe.checkoutSessions.at(-1)['line_items[0][price]']];
-  assert.equal(charged.unit_amount, 999, 'checkout charges the advertised price, not the stale cached one');
+  assert.equal(charged.unit_amount, 1499, 'checkout charges the advertised price, not the stale cached one');
   assert.notEqual(charged.id, starterPrice.id, 'a fresh price is minted rather than the stale one reused');
   assert.equal(charged.lookup_key, 'ripley_platform_starter');
   assert.equal(starterPrice.lookup_key, null, 'the lookup key moved to the new price');
@@ -2332,7 +2332,7 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
   assert.ok(yearPrice, 'yearly price created with its lookup key');
   assert.deepEqual(
     { price: yearForm['line_items[0][price]'], amount: yearPrice.unit_amount, interval: yearPrice.recurring.interval },
-    { price: yearPrice.id, amount: 9990, interval: 'year' },
+    { price: yearPrice.id, amount: 14990, interval: 'year' },
   );
 });
 

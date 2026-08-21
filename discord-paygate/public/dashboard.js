@@ -1418,38 +1418,69 @@ function contrastRatio(a, b) {
 
 function appearanceBody(store) {
   const t = { ...THEME_DEFAULTS, ...(store.theme ?? {}) };
-  const swatch = ([name, p]) =>
-    `<button type="button" class="th-preset" data-preset="${esc(name)}" title="${esc(name)}">
-       <span class="th-sw" style="background:${p.bg}"><span style="background:${p.pay}"></span><span style="background:${p.panel}"></span></span>${esc(name)}</button>`;
-  const color = (key, label) =>
-    `<label class="th-field"><span>${label}</span>
-       <span class="th-color"><input type="color" id="th-${key}" value="${esc(t[key])}" /><code id="th-${key}-hex">${esc(t[key])}</code></span></label>`;
+  const ink = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return ((((n >> 16) & 255) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000) >= 150 ? '#0a0a0a' : '#ffffff';
+  };
+  // Each preset is a thumbnail of the checkout itself — bg, card, two text
+  // lines and the pay button — so choosing a theme is seeing it, not
+  // decoding a color dot.
+  const tile = ([name, p]) =>
+    `<button type="button" class="th-tile" data-preset="${esc(name)}">
+       <span class="th-tile-thumb" style="background:${p.bg}">
+         <span class="th-tile-card" style="background:${p.panel};border-radius:${Math.max(3, Math.round(p.radius / 3))}px">
+           <span class="th-tile-line" style="background:${p.text}"></span>
+           <span class="th-tile-line th-tile-line2" style="background:${p.text}"></span>
+           <span class="th-tile-btn" style="background:${p.pay}"></span>
+         </span>
+       </span>
+       <span class="th-tile-name">${esc(name)}<svg class="th-tile-check" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></span>
+     </button>`;
+  const sw = (key, label) =>
+    `<label class="th-swatch">
+       <input type="color" id="th-${key}" value="${esc(t[key])}" aria-label="${label} color" />
+       <span class="th-sw-name">${label}</span>
+       <code id="th-${key}-hex">${esc(t[key])}</code>
+     </label>`;
+  const seg = (val, label, stack) =>
+    `<button type="button" class="th-seg-btn${t.font === val ? ' active' : ''}" data-font="${val}"${stack ? ` style="font-family:${stack}"` : ''}>${label}</button>`;
   return `
-    <div class="th-presets" role="group" aria-label="Theme presets">${THEME_PRESETS.map(swatch).join('')}</div>
-    <div class="th-grid">
-      ${color('bg', 'Background')}
-      ${color('panel', 'Cards')}
-      ${color('text', 'Text')}
-      ${color('accent', 'Accent')}
-      ${color('pay', 'Pay button')}
-      <label class="th-field"><span>Corners</span>
-        <span class="th-range"><input type="range" id="th-radius" min="0" max="24" step="1" value="${t.radius}" /><code id="th-radius-out">${t.radius}px</code></span></label>
-      <label class="th-field"><span>Type</span>
-        <select id="th-font" class="store-switch">
-          <option value="default" ${t.font === 'default' ? 'selected' : ''}>Ripley (Space Grotesk)</option>
-          <option value="system" ${t.font === 'system' ? 'selected' : ''}>System</option>
-          <option value="serif" ${t.font === 'serif' ? 'selected' : ''}>Serif</option>
-          <option value="mono" ${t.font === 'mono' ? 'selected' : ''}>Mono</option>
-        </select></label>
+  <div class="th-layout">
+    <div class="th-controls">
+      <div class="th-block">
+        <span class="th-block-lab">Theme</span>
+        <div class="th-tiles" role="group" aria-label="Theme presets">${THEME_PRESETS.map(tile).join('')}</div>
+      </div>
+      <div class="th-block">
+        <span class="th-block-lab">Colors <span class="th-badge-warn" id="th-contrast" hidden>Low contrast</span></span>
+        <div class="th-swatches">
+          ${sw('bg', 'Background')}${sw('panel', 'Cards')}${sw('text', 'Text')}${sw('accent', 'Accent')}${sw('pay', 'Pay')}
+        </div>
+      </div>
+      <div class="th-block">
+        <span class="th-block-lab">Corners</span>
+        <div class="th-range"><input type="range" id="th-radius" min="0" max="24" step="1" value="${t.radius}" aria-label="Corner radius" /><code id="th-radius-out">${t.radius}px</code></div>
+      </div>
+      <div class="th-block">
+        <span class="th-block-lab">Type</span>
+        <div class="th-seg" id="th-font-seg" role="group" aria-label="Storefront typeface" data-value="${esc(t.font)}">
+          ${seg('default', 'Grotesk', '')}${seg('system', 'System', THEME_FONT_STACKS.system)}${seg('serif', 'Serif', THEME_FONT_STACKS.serif)}${seg('mono', 'Mono', THEME_FONT_STACKS.mono)}
+        </div>
+      </div>
+      <p class="th-note">Everything previews live. Nothing changes for buyers until you save.</p>
+      <p class="field-err" id="err-theme" role="alert"></p>
     </div>
-    <p class="note-help th-contrast" id="th-contrast" hidden>Low contrast — this text will be hard to read on these cards.</p>
-    ${
-      store.status === 'live'
-        ? `<div class="th-preview-wrap"><span class="field-label">Live preview</span>
-             <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}" title="Store preview" loading="lazy"></iframe></div>`
-        : '<p class="note-help">Publish your store to see a live preview here.</p>'
-    }
-    <p class="field-err" id="err-theme" role="alert"></p>`;
+    <div class="th-stage">
+      ${
+        store.status === 'live'
+          ? `<div class="th-frame">
+               <div class="th-frame-bar"><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-url">${esc(location.host)}/${esc(store.slug)}</span></div>
+               <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}" title="Store preview" loading="lazy"></iframe>
+             </div>`
+          : '<div class="th-stage-empty"><p class="note-help">Publish your store to see the live preview here.</p></div>'
+      }
+    </div>
+  </div>`;
 }
 
 function sectionStore(store, link) {
@@ -2157,11 +2188,15 @@ function wireAppearance(store, slug) {
     accent: $('#th-accent').value,
     pay: $('#th-pay').value,
     radius: Number($('#th-radius').value),
-    font: $('#th-font').value,
+    font: $('#th-font-seg')?.dataset.value ?? 'default',
   });
   const paint = () => {
     const t = read();
     for (const k of ['bg', 'panel', 'text', 'accent', 'pay']) $(`#th-${k}-hex`).textContent = t[k];
+    document.querySelectorAll('.th-tile').forEach((b) => {
+      const p = THEME_PRESETS.find(([n]) => n === b.dataset.preset)?.[1];
+      b.classList.toggle('active', Boolean(p) && ['bg', 'panel', 'text', 'accent', 'pay'].every((k) => p[k] === t[k]) && p.radius === t.radius && p.font === t.font);
+    });
     $('#th-radius-out').textContent = `${t.radius}px`;
     const warn = $('#th-contrast');
     if (warn) warn.hidden = contrastRatio(t.text, t.panel) >= 4.5;
@@ -2182,18 +2217,26 @@ function wireAppearance(store, slug) {
       }
     } catch { /* frame not ready yet */ }
   };
-  for (const id of ['th-bg', 'th-panel', 'th-text', 'th-accent', 'th-pay', 'th-radius', 'th-font']) {
+  for (const id of ['th-bg', 'th-panel', 'th-text', 'th-accent', 'th-pay', 'th-radius']) {
     $(`#${id}`)?.addEventListener('input', paint);
     $(`#${id}`)?.addEventListener('change', paint);
   }
   $('#th-preview')?.addEventListener('load', paint);
-  document.querySelectorAll('.th-preset').forEach((b) => {
+  document.querySelectorAll('.th-seg-btn').forEach((b) => {
+    b.onclick = () => {
+      $('#th-font-seg').dataset.value = b.dataset.font;
+      document.querySelectorAll('.th-seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+      paint();
+    };
+  });
+  document.querySelectorAll('.th-tile').forEach((b) => {
     b.onclick = () => {
       const p = THEME_PRESETS.find(([n]) => n === b.dataset.preset)?.[1];
       if (!p) return;
       for (const k of ['bg', 'panel', 'text', 'accent', 'pay']) $(`#th-${k}`).value = p[k];
       $('#th-radius').value = p.radius;
-      $('#th-font').value = p.font;
+      $('#th-font-seg').dataset.value = p.font;
+      document.querySelectorAll('.th-seg-btn').forEach((x) => x.classList.toggle('active', x.dataset.font === p.font));
       paint();
     };
   });

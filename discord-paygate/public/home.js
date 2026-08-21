@@ -124,7 +124,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=66'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=67'; // hold a still frame instead
     return;
   }
 
@@ -141,8 +141,8 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=66', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=66', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=67', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=67', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays
@@ -195,9 +195,9 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
 
 const RIPLEY_TIERS = [
   { max: 10, cost: 0, label: 'Free plan · 0% of sales' },
-  { max: 50, cost: 9.99, label: 'Starter · $9.99/mo · 0% of sales' },
-  { max: 500, cost: 29.99, label: 'Growth · $29.99/mo · 0% of sales' },
-  { max: Infinity, cost: 99.99, label: 'Scale · $99.99/mo · 0% of sales' },
+  { max: 50, cost: 14.99, label: 'Starter · $14.99/mo · 0% of sales' },
+  { max: 500, cost: 44.99, label: 'Growth · $44.99/mo · 0% of sales' },
+  { max: Infinity, cost: 134.99, label: 'Scale · $134.99/mo · 0% of sales' },
 ];
 
 function calc() {
