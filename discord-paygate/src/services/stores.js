@@ -47,6 +47,8 @@ function hydrate(row) {
     webhookSecret: row.stripe_webhook_secret ?? null,
     notifyChannelId: row.notify_channel_id ?? null,
     theme: row.theme ? JSON.parse(row.theme) : null,
+    discoverable: Boolean(Number(row.discoverable ?? 0)),
+    category: row.category ?? null,
     status: row.status,
     createdAt: row.created_at ? Number(row.created_at) : null,
     isDefault: false,
@@ -183,8 +185,24 @@ const RESERVED_SLUGS = new Set([
   'api', 'auth', 'webhooks', 's', 'admin', 'checkout', 'login', 'logout',
   'pricing', 'docs', 'help', 'support', 'status', 'assets', 'static',
   'vs', 'tools', 'use-cases', 'compare', 'blog', 'sitemap', 'robots',
-  'guides', 'alternatives', 'llms',
+  'guides', 'alternatives', 'llms', 'discover',
 ]);
+
+// The fixed category list for /discover. An enum, not free text — the
+// directory filters on these, and free text would fragment it instantly.
+export const STORE_CATEGORIES = [
+  ['trading', 'Trading'],
+  ['sports', 'Sports picks'],
+  ['crypto', 'Crypto'],
+  ['gaming', 'Gaming'],
+  ['fitness', 'Fitness'],
+  ['reselling', 'Reselling'],
+  ['education', 'Education'],
+  ['content', 'Content'],
+  ['community', 'Community'],
+  ['other', 'Other'],
+];
+export const isStoreCategory = (v) => STORE_CATEGORIES.some(([k]) => k === v);
 
 export function isReservedSlug(slug) {
   return RESERVED_SLUGS.has(String(slug ?? '').toLowerCase());

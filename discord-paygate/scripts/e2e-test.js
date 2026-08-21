@@ -2406,6 +2406,53 @@ test('store themes: validated tokens in, server-rendered CSS out', async () => {
   assert.ok(!plain.includes('store-theme'), 'no theme style once cleared');
 });
 
+test('discover: opt-in directory of live stores, real numbers only', async () => {
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=code_u7&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  const ownerCookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  const setStore = (body) =>
+    fetch(`${appUrl}/api/admin/store`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ store: 'vip-signals', ...body }),
+    });
+  const directory = async () => (await (await fetch(`${appUrl}/api/discover?fresh=1`)).json()).stores;
+
+  // Nothing is listed until an owner says so.
+  assert.equal((await directory()).some((x) => x.slug === 'vip-signals'), false, 'stores are unlisted by default');
+
+  // Category is an enum, not free text.
+  assert.equal((await setStore({ discoverable: true, category: 'get-rich-quick' })).status, 400);
+  assert.equal((await setStore({ discoverable: true, category: 'trading' })).status, 200);
+
+  const body = await (await fetch(`${appUrl}/api/discover?fresh=1`)).text();
+  assert.ok(!body.includes('sk_') && !body.includes('rk_') && !body.includes('whsec'), 'no key material in the directory');
+  const listed = JSON.parse(body).stores.find((x) => x.slug === 'vip-signals');
+  assert.ok(listed, 'an opted-in live store is listed');
+  assert.equal(listed.category, 'trading');
+  assert.ok(listed.products >= 1, 'real product count');
+  assert.ok(listed.fromUsd > 0, 'real lowest price');
+  assert.equal(typeof listed.members, 'number');
+  assert.ok(!('guildId' in listed) && !('ownerDiscordId' in listed), 'only storefront-visible fields leave');
+
+  // The page itself serves, and the platform paths cannot be claimed as slugs.
+  const page = await fetch(`${appUrl}/discover`);
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /Find your next community/);
+  assert.equal((await fetch(`${appUrl}/api/plans?store=discover`)).status, 404);
+
+  // Opting out delists immediately.
+  assert.equal((await setStore({ discoverable: false })).status, 200);
+  assert.equal((await directory()).some((x) => x.slug === 'vip-signals'), false, 'opting out delists');
+  // restore for later scenarios' screenshots/data
+  assert.equal((await setStore({ discoverable: true })).status, 200);
+});
+
 test('products managed in-site: edit/toggle/limit/success-url/lazy price/discounts/delete/store settings', async () => {
   const loginAs = async (code) => {
     const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });

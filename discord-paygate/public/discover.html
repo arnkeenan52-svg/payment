@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Discover Discord communities — Ripley</title>
+  <meta name="description" content="Browse paid Discord communities on Ripley — trading, sports, gaming, fitness and more. Every store checks out with Stripe and delivers your role in seconds." />
+  <link rel="canonical" href="https://www.ripleybot.com/discover" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Discover Discord communities — Ripley" />
+  <meta property="og:description" content="Browse paid Discord communities. Stripe checkout, roles in seconds." />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
+  <link rel="stylesheet" href="/styles.css?v=68" />
+</head>
+<body class="home">
+  <header class="top xoe-nav">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="20" /></a>
+    </div>
+    <nav class="top-center" aria-label="Main">
+      <a class="nav-link" href="/discover" aria-current="page">Discover</a>
+      <a class="nav-link" href="/#features">Features</a>
+      <a class="nav-link" href="/#pricing">Pricing</a>
+      <a class="nav-link" href="/vs">Compare</a>
+    </nav>
+    <div id="account" class="account"></div>
+    <button class="menu-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
+      <span class="mb-bar" aria-hidden="true"></span>
+      <span class="mb-bar" aria-hidden="true"></span>
+    </button>
+  </header>
+  <div class="menu-scrim" id="menu-scrim" hidden aria-hidden="true"></div>
+  <nav class="mobile-menu" id="mobile-menu" hidden aria-label="Menu">
+    <a href="/discover">Discover</a>
+    <a href="/#features">Features</a>
+    <a href="/#pricing">Pricing</a>
+    <a href="/vs">Compare</a>
+    <div class="mobile-menu-account" id="menu-account"></div>
+  </nav>
+
+  <main class="landing disc-page">
+    <section class="disc-hero">
+      <span class="kicker">Discover</span>
+      <h1>Find your next community.</h1>
+      <p class="hero-sub">Paid Discord communities running on Ripley. Pay with Stripe, get your role in seconds — every dollar goes to the people who run them.</p>
+      <div class="disc-tools">
+        <label class="search-box disc-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="disc-q" type="search" placeholder="Search communities…" aria-label="Search communities" />
+        </label>
+        <div class="disc-cats" id="disc-cats" role="group" aria-label="Filter by category"></div>
+      </div>
+    </section>
+
+    <section class="xsection disc-section">
+      <div class="wrap">
+        <div class="disc-grid" id="disc-grid" aria-live="polite">
+          <div class="sk-row panel" aria-hidden="true"></div>
+          <div class="sk-row panel" aria-hidden="true"></div>
+          <div class="sk-row panel" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer cols seo-footer">
+    <div class="footer-brand">
+      <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
+      <span class="footer-copy">© Ripley</span>
+    </div>
+    <nav class="footer-col"><span class="footer-head">Product</span>
+      <a href="/discover">Discover</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/dashboard">Dashboard</a></nav>
+    <nav class="footer-col"><span class="footer-head">Compare</span>
+      <a href="/vs">All comparisons</a><a href="/guides">Guides</a><a href="/alternatives">Alternatives</a></nav>
+    <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
+    <p class="footer-disclaimer">Every community listed here chose to be listed. Payments are processed by Stripe on each store owner's own account — Ripley never holds funds.</p>
+  </footer>
+
+  <script src="/discover.js?v=68"></script>
+</body>
+</html>

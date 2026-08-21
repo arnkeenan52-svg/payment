@@ -64,6 +64,8 @@ const ddl = (dialect) => {
     stripe_webhook_secret TEXT,
     notify_channel_id TEXT,
     theme            TEXT,               -- JSON of validated storefront design tokens
+    discoverable     ${int} NOT NULL DEFAULT 0,  -- owner opted in to /discover
+    category         TEXT,               -- one of the fixed discover categories
     status           TEXT NOT NULL DEFAULT 'draft',
     created_at       ${int} NOT NULL,
     updated_at       ${int} NOT NULL
@@ -235,6 +237,8 @@ function db() {
       // so /account can say "ends on …" instead of "renews on …".
       await driver.exec(`ALTER TABLE subscriptions ADD COLUMN cancels_at ${intType}`).catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
+      await driver.exec(`ALTER TABLE stores ADD COLUMN discoverable ${intType} NOT NULL DEFAULT 0`).catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN category TEXT').catch(() => {});
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -529,6 +533,8 @@ export async function updateStore(id, fields) {
     stripeWebhookSecret: 'stripe_webhook_secret',
     notifyChannelId: 'notify_channel_id',
     theme: 'theme',
+    discoverable: 'discoverable',
+    category: 'category',
   };
   const sets = [];
   const params = [];

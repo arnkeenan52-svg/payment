@@ -1367,6 +1367,13 @@ function setCard({ id = '', title, sub = '', body = '', foot = '' }) {
 // ── storefront appearance ─────────────────────────────────────────────────────
 // The platform's own tokens, doubling as the "Midnight" preset. Radius 16
 // matches .panel in styles.css.
+// Mirror of STORE_CATEGORIES in src/services/stores.js — keep in sync.
+const STORE_CATS = [
+  ['trading', 'Trading'], ['sports', 'Sports picks'], ['crypto', 'Crypto'], ['gaming', 'Gaming'],
+  ['fitness', 'Fitness'], ['reselling', 'Reselling'], ['education', 'Education'],
+  ['content', 'Content'], ['community', 'Community'], ['other', 'Other'],
+];
+
 const THEME_DEFAULTS = { bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4', accent: '#ededed', pay: '#5865f2', radius: 16, font: 'default' };
 const THEME_PRESETS = [
   ['Midnight', THEME_DEFAULTS],
@@ -1519,6 +1526,22 @@ function sectionStore(store, link) {
       foot: `<span class="appearance-foot"><button class="btn-pill" id="th-save">Save appearance</button>
         <button class="btn-ghost" id="th-reset">Reset to default</button>
         <span class="note-help" id="th-note" role="status"></span></span>`,
+    })}
+    ${setCard({
+      title: 'Discover listing',
+      sub: 'Put your store on ripleybot.com/discover — the public directory of communities. Off by default; entirely your call.',
+      body: `
+        <label class="disc-toggle">
+          <input type="checkbox" id="dv-on" ${store.discoverable ? 'checked' : ''} />
+          <span>List my store on Discover</span>
+        </label>
+        <label class="field disc-cat-field"><span class="field-label">Category</span>
+          <select id="dv-cat" class="store-switch">
+            <option value="">Pick one…</option>
+            ${STORE_CATS.map(([k, l]) => `<option value="${k}" ${store.category === k ? 'selected' : ''}>${l}</option>`).join('')}
+          </select></label>
+        <p class="field-err" id="err-disc" role="alert"></p>`,
+      foot: `<button class="btn-secondary" id="dv-save">Save listing</button>`,
     })}
     ${setCard({
       title: 'Store link',
@@ -1841,7 +1864,7 @@ async function viewStore(slug) {
   if (section === 'members') wireMembers(slug);
   if (section === 'products' && !store.isDefault) wireProducts(store, slug, products);
   if (section === 'discounts' && !store.isDefault) wireDiscounts(store, slug);
-  if (section === 'store' && !store.isDefault) { wireStoreSettings(store, slug); wireAppearance(store, slug); }
+  if (section === 'store' && !store.isDefault) { wireStoreSettings(store, slug); wireAppearance(store, slug); wireDiscovery(store, slug); }
   if (section === 'settings') {
     renderBillingPanel();
     const pmSave = $('#pm-save');
@@ -2265,6 +2288,27 @@ function wireAppearance(store, slug) {
       viewStore(slug);
     } catch (err) {
       fieldErr('theme', err.message);
+    }
+  };
+}
+
+function wireDiscovery(store, slug) {
+  $('#dv-save').onclick = async () => {
+    const btn = $('#dv-save');
+    const on = $('#dv-on').checked;
+    const cat = $('#dv-cat').value;
+    fieldErr('disc', '');
+    if (on && !cat) return fieldErr('disc', 'Pick a category so people can find you.');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      await api('/api/admin/store', { store: slug, discoverable: on, category: cat || null });
+      state.data = null;
+      viewStore(slug);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Save listing';
+      fieldErr('disc', err.message);
     }
   };
 }

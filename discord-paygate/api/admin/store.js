@@ -6,6 +6,7 @@ import { adminStoreBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
 import { stripeFetch, isStripeKey } from '../../src/lib/stripe.js';
 import { validateTheme } from '../../src/lib/theme.js';
+import { isStoreCategory } from '../../src/services/stores.js';
 import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
 
 // Store identity settings: name, description, banner, custom link (slug).
@@ -57,6 +58,15 @@ export default guard(async function handler(req, res) {
       return sendJson(res, 400, { error: 'Stripe rejected that key. Create one under Stripe → Developers → API keys — a restricted key needs write on Checkout Sessions, Products, Prices, Coupons, Webhook Endpoints and Subscriptions.' });
     }
     fields.stripeSecretEnc = sealSecret(key);
+  }
+  // Discover listing is strictly opt-in — a paid community's store is not a
+  // public storefront unless its owner says so.
+  if (body.discoverable !== undefined) fields.discoverable = body.discoverable ? 1 : 0;
+  if (body.category !== undefined) {
+    if (body.category !== null && body.category !== '' && !isStoreCategory(body.category)) {
+      return sendJson(res, 400, { error: 'Pick a category from the list.' });
+    }
+    fields.category = body.category || null;
   }
   if (body.name !== undefined) {
     const name = String(body.name).trim().slice(0, 60);

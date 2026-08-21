@@ -10,6 +10,7 @@
     { "source": "/use-cases", "destination": "/use-cases/index.html" },
     { "source": "/guides", "destination": "/guides/index.html" },
     { "source": "/alternatives", "destination": "/alternatives/index.html" },
+    { "source": "/discover", "destination": "/discover.html" },
     { "source": "/webhooks/stripe/:storeid", "destination": "/api/webhooks/stripe?store=:storeid" },
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" },

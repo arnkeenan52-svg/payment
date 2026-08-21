@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '67'; // keep in step with the ?v= asset version on index.html
+const V = '68'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -242,7 +242,7 @@ export const footerHtml = `
       <span class="footer-copy">© Ripley</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
-      <a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
+      <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
       <a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
       <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
@@ -1115,7 +1115,8 @@ const urls = ['/', '/vs', ...Object.keys(COMPETITORS).map((s) => `/vs/${s}`), '/
   '/tools/discord-fee-calculator', '/tools/whop-fee-calculator', '/tools/launchpass-fee-calculator', '/tools/patreon-fee-calculator',
   '/use-cases', ...Object.keys(USE_CASES).map((s) => `/use-cases/${s}`),
   '/guides', ...Object.keys(GUIDES).map((s) => `/guides/${s}`),
-  '/alternatives', ...Object.keys(ALTERNATIVES).map((s) => `/alternatives/${s}`)];
+  '/alternatives', ...Object.keys(ALTERNATIVES).map((s) => `/alternatives/${s}`),
+  '/discover'];
 const today = new Date().toISOString().slice(0, 10);
 emit(
   'sitemap.xml',
