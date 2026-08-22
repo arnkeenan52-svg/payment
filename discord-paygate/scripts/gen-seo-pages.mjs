@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '74'; // keep in step with the ?v= asset version on index.html
+const V = '75'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -232,7 +232,10 @@ const nav = `
       <a class="nav-link" href="/vs">Compare</a>
       <a class="nav-link" href="/tools">Tools</a>
     </nav>
-    <div class="account"><a class="btn-fill" href="/dashboard">Start free</a></div>
+    <div class="top-right">
+      <div class="account"><a class="btn-fill" href="/dashboard">Start free</a></div>
+      <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
   </header>`;
 
 export const footerHtml = `
@@ -300,6 +303,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
+  <script src="/theme.js?v=75"></script>
 </head>
 <body class="home seo-page">
 ${nav}

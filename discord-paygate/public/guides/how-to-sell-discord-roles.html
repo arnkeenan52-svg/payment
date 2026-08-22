@@ -13,10 +13,11 @@
   <meta property="og:url" content="https://www.ripleybot.com/guides/how-to-sell-discord-roles" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=74" />
+  <link rel="stylesheet" href="/styles.css?v=75" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Ripley","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.ripleybot.com/guides"},{"@type":"ListItem","position":3,"name":"How to Sell Discord Roles","item":"https://www.ripleybot.com/guides/how-to-sell-discord-roles"}]}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can a bot really remove the role when someone stops paying?","acceptedAnswer":{"@type":"Answer","text":"Yes — that is the core of a subscription bot. On Ripley, lapsed and canceled subscriptions lose the role automatically, and access is re-verified hourly."}},{"@type":"Question","name":"What if the buyer is not in my server yet?","acceptedAnswer":{"@type":"Answer","text":"Ripley pulls buyers into the server with the role already attached when they complete checkout, using the authorization they grant at sign-in."}},{"@type":"Question","name":"Why is the bot not assigning my role?","acceptedAnswer":{"@type":"Answer","text":"Almost always role hierarchy: drag the bot’s role above the roles it delivers in Server Settings → Roles."}},{"@type":"Question","name":"Do buyers need Stripe accounts?","acceptedAnswer":{"@type":"Answer","text":"No. Buyers pay with a card or wallet on a standard Stripe checkout page. Only the store owner needs a Stripe account, and payments land there directly."}}]}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How to Sell Discord Roles","description":"Sell Discord roles with automatic delivery: create the role, gate your channels, connect Stripe, set a price, and share your store link.","author":{"@type":"Organization","name":"Ripley"},"publisher":{"@type":"Organization","name":"Ripley","url":"https://www.ripleybot.com"},"mainEntityOfPage":"https://www.ripleybot.com/guides/how-to-sell-discord-roles"}</script>
+  <script src="/theme.js?v=75"></script>
 </head>
 <body class="home seo-page">
 
@@ -30,7 +31,10 @@
       <a class="nav-link" href="/vs">Compare</a>
       <a class="nav-link" href="/tools">Tools</a>
     </nav>
-    <div class="account"><a class="btn-fill" href="/dashboard">Start free</a></div>
+    <div class="top-right">
+      <div class="account"><a class="btn-fill" href="/dashboard">Start free</a></div>
+      <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
   </header>
   <main class="landing">
 

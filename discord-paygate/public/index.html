@@ -18,8 +18,9 @@
   <meta name="twitter:image" content="https://www.ripleybot.com/shot-dashboard.png" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=74" />
+  <link rel="stylesheet" href="/styles.css?v=75" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Ripley","url":"https://www.ripleybot.com","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
+  <script src="/theme.js?v=75"></script>
 </head>
 <body class="home">
   <header class="top xoe-nav">
@@ -33,11 +34,14 @@
       <a class="nav-link" href="/vs">Compare</a>
       <a class="nav-link" href="#faq">FAQ</a>
     </nav>
-    <div id="account" class="account"></div>
-    <button class="menu-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
+    <div class="top-right">
+      <div id="account" class="account"></div>
+      <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+      <button class="menu-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
       <span class="mb-bar" aria-hidden="true"></span>
       <span class="mb-bar" aria-hidden="true"></span>
     </button>
+    </div>
   </header>
   <div class="menu-scrim" id="menu-scrim" hidden aria-hidden="true"></div>
   <nav class="mobile-menu" id="mobile-menu" hidden aria-label="Menu">
@@ -74,7 +78,7 @@
              browser with no codec negotiation, autoplay policy, range requests
              or JS in the way. home.js swaps in the real <video> only after the
              browser has proven it can actually play it. -->
-        <img class="hero-video" id="hero-media" src="/hero-demo.webp?v=74" width="1280" height="800"
+        <img class="hero-video" id="hero-media" src="/hero-demo.webp?v=75" width="1280" height="800"
           alt="Ripley product tour: live analytics with period comparison, products, members and the checkout" />
       </div>
     </section>
@@ -431,6 +435,6 @@
   </footer>
   <!-- footer:end -->
 
-  <script src="/home.js?v=74"></script>
+  <script src="/home.js?v=75"></script>
 </body>
 </html>
