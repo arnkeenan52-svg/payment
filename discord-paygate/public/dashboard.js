@@ -1481,8 +1481,15 @@ function appearanceBody(store) {
       ${
         store.status === 'live'
           ? `<div class="th-frame">
-               <div class="th-frame-bar"><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-url">${esc(location.host)}/${esc(store.slug)}</span></div>
-               <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}" title="Store preview" loading="lazy"></iframe>
+               <div class="th-frame-bar"><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-url">${esc(location.host)}/${esc(store.slug)}</span>
+                 <div class="th-device" role="group" aria-label="Preview device">
+                   <button type="button" class="th-dev-btn" data-device="desktop" aria-label="Desktop preview" title="Desktop"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+                   <button type="button" class="th-dev-btn" data-device="phone" aria-label="Phone preview" title="Phone"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18.5h2"/></svg></button>
+                 </div>
+               </div>
+               <div class="th-viewport" id="th-viewport">
+                 <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}" title="Store preview" loading="lazy"></iframe>
+               </div>
              </div>`
           : '<div class="th-stage-empty"><p class="note-help">Publish your store to see the live preview here.</p></div>'
       }
@@ -2245,6 +2252,41 @@ function wireAppearance(store, slug) {
     $(`#${id}`)?.addEventListener('change', paint);
   }
   $('#th-preview')?.addEventListener('load', paint);
+
+  // The preview renders the page at a real viewport width and scales it to
+  // fit the frame — an iframe left at the frame's own width is neither a
+  // phone nor a desktop, just a cramped in-between.
+  const DEVICE_W = { desktop: 1180, phone: 390 };
+  let device = 'desktop';
+  const fit = () => {
+    const vp = $('#th-viewport');
+    const frame = $('#th-preview');
+    if (!vp || !frame) return;
+    const w = DEVICE_W[device];
+    const avail = vp.clientWidth;
+    if (!avail) return;
+    const scale = Math.min(1, avail / w);
+    vp.classList.toggle('phone', device === 'phone');
+    // phone gets a portrait window; desktop keeps the frame's CSS height
+    vp.style.height = device === 'phone' ? `${Math.round(w * scale * 1.7)}px` : '';
+    const h = vp.clientHeight;
+    frame.style.width = `${w}px`;
+    frame.style.height = `${Math.round(h / scale)}px`;
+    frame.style.transform = `scale(${scale})`;
+    frame.style.left = `${Math.max(0, Math.round((avail - w * scale) / 2))}px`;
+  };
+  document.querySelectorAll('.th-dev-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.device === device);
+    b.onclick = () => {
+      device = b.dataset.device;
+      document.querySelectorAll('.th-dev-btn').forEach((x) => x.classList.toggle('active', x === b));
+      fit();
+    };
+  });
+  if ($('#th-viewport')) {
+    new ResizeObserver(() => fit()).observe($('#th-viewport'));
+    fit();
+  }
   document.querySelectorAll('.th-seg-btn').forEach((b) => {
     b.onclick = () => {
       $('#th-font-seg').dataset.value = b.dataset.font;
