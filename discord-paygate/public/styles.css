@@ -2090,25 +2090,6 @@ a.kicker:hover { color: var(--ink); }
   .hero-ctas .btn-hero { width: 100%; text-align: center; justify-content: center; }
 }
 
-/* features rebuilt on the dark-grid blueprint (8712): compact cards, icon
-   tile + title inline, one sentence each — no tags, no embedded shots */
-.fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
-@media (max-width: 900px) { .fgrid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 560px) { .fgrid { grid-template-columns: 1fr; } }
-.feat-cell { padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: background 140ms ease-out, border-color 140ms ease-out; }
-.feat-cell:hover { background: var(--panel-hover); border-color: color-mix(in srgb, var(--ink) 16%, transparent); }
-.feat-head { display: flex; align-items: center; gap: 11px; }
-.feat-ic {
-  width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
-  background: var(--panel-hover); border: 1px solid var(--hairline-2); color: var(--ink); flex: none;
-}
-.feat-head h3 { margin: 0; font-size: 15px; letter-spacing: -0.01em; font-weight: 650; }
-.feat-chip {
-  margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--dim);
-  border: 1px solid var(--edge); border-radius: 999px; padding: 3px 8px; white-space: nowrap;
-}
-.feat-cell p { margin: 0; font-size: 13px; line-height: 1.6; color: color-mix(in srgb, var(--ink) 55%, transparent); }
-
 /* ── motion layer: load-in, reveals, menu, press feedback ───────────────────
    Fast, transform/opacity only, every piece gated on reduced-motion. */
 
@@ -2204,128 +2185,11 @@ html.menu-open, html.menu-open body { overflow: hidden; }
   .faq-item::details-content, .order-extra::details-content { transition: none; }
 }
 
-/* ── feature vignettes: tiny product moments inside each card (Linear-style,
-   pure DOM/SVG — no media weight). Animations key off the card's reveal. ──── */
-.feat-cell { min-height: 238px; }
-.feat-viz {
-  margin-top: auto; height: 116px; border: 1px solid #1e1e1e; border-radius: 10px;
-  background: #0c0c0c; padding: 12px 14px; display: flex; align-items: center; justify-content: center;
-  overflow: hidden;
-}
-.vz-sub { color: #7a7a7a; font-size: 10.5px; }
-/* store */
-.vz-browser { width: 100%; display: flex; flex-direction: column; gap: 7px; }
-.vz-url {
-  display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
-  border: 1px solid #232323; border-radius: 999px; padding: 3px 9px;
-  color: #8a8a8a; font-size: 10px; background: #101010;
-}
-.vz-prow { display: flex; justify-content: space-between; font-size: 12px; font-weight: 650; }
-.vz-price { font-variant-numeric: tabular-nums; }
-.vz-buy {
-  /* mirrors the real checkout button, which wears Discord blurple */
-  background: var(--blurple); color: #fff; border-radius: 6px; text-align: center;
-  font-size: 11px; font-weight: 700; padding: 6px;
-}
-/* roles */
-.vz-center { display: flex; flex-direction: column; align-items: center; gap: 9px; width: 100%; }
-.vz-member {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  border: 1px solid #232323; border-radius: 8px; padding: 8px 10px; background: #101010;
-}
-.vz-av {
-  width: 22px; height: 22px; border-radius: 50%; background: #1f1f1f; color: #cfcfcf;
-  display: grid; place-items: center; font-size: 10px; font-weight: 700; flex: none;
-}
-.vz-name { font-size: 12px; font-weight: 650; }
-.vz-chip {
-  margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
-  background: #ededed; color: #0a0a0a; border-radius: 999px; padding: 3px 8px;
-  font-size: 10.5px; font-weight: 750;
-}
-.feat-cell.rv .vz-chip { opacity: 0; scale: 0.7; transition: opacity 0.3s var(--ease-out) 0.5s, scale 0.3s var(--ease-out) 0.5s; }
-.feat-cell.rv.in .vz-chip { opacity: 1; scale: 1; }
-/* verify */
-.vz-code { align-items: flex-start; gap: 5px; }
-.vz-code code { font: 500 10.5px/1.5 ui-monospace, 'SF Mono', Menlo, monospace; color: #6f6f6f; }
-.vz-ok { display: inline-flex; align-items: center; gap: 5px; color: #f0f0f0; font-size: 11px; font-weight: 700; margin-top: 2px; }
-.feat-cell.rv .vz-ok { opacity: 0; transition: opacity 0.4s var(--ease-out) 0.55s; }
-.feat-cell.rv.in .vz-ok { opacity: 1; }
-/* email */
-.vz-mail { display: flex; flex-direction: column; gap: 5px; width: 100%; border-left: 2px solid #ededed; padding-left: 12px; }
-.vz-mail-tag { color: #8a8a8a; font-size: 9.5px; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
-.vz-mail strong { font-size: 12.5px; font-weight: 700; }
-/* chart */
-.vz-chartbox { width: 100%; display: flex; flex-direction: column; gap: 6px; }
-.vz-chart-top { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.vz-delta { font-size: 9.5px; background: rgba(255, 255, 255, 0.09); border-radius: 4px; padding: 2px 5px; }
-.vz-chart { width: 100%; height: 54px; }
-.vz-area { fill: rgba(255, 255, 255, 0.07); }
-.vz-line { stroke: #e8e8e8; stroke-width: 1.6; }
-.feat-cell.rv .vz-line { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1s var(--ease-out) 0.35s; }
-.feat-cell.rv .vz-area { opacity: 0; transition: opacity 0.6s ease-out 0.9s; }
-.feat-cell.rv.in .vz-line { stroke-dashoffset: 0; }
-.feat-cell.rv.in .vz-area { opacity: 1; }
-/* sale alert */
-.vz-notif {
-  display: flex; align-items: flex-start; gap: 9px; width: 100%;
-  border: 1px solid #232323; border-radius: 8px; padding: 10px 12px; background: #101010;
-}
-.vz-dot { width: 7px; height: 7px; border-radius: 50%; background: #ffffff; flex: none; margin-top: 4px; }
-.feat-cell.rv.in .vz-dot { animation: vz-ping 1.8s ease-out 0.6s 2; }
-@keyframes vz-ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ink) 45%, transparent); } 70% { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
-.vz-notif-body { display: flex; flex-direction: column; gap: 2px; }
-.vz-notif-body strong { font-size: 12px; }
-
-/* ── how it works: compact 4-step strip (sublyna steps pattern) ────────────── */
-.hiw { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 40px; }
-@media (max-width: 900px) { .hiw { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 560px) { .hiw { grid-template-columns: 1fr; } }
-.hiw-step {
-  position: relative; display: flex; flex-direction: column; gap: 9px;
-  border: 1px solid var(--edge); border-radius: 12px; background: var(--panel); padding: 18px;
-}
-.hiw-n { position: absolute; top: 14px; right: 16px; color: var(--faint); font-family: var(--font-head); font-size: 13px; font-weight: 700; }
-.hiw-ic {
-  width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center;
-  background: var(--panel-hover); border: 1px solid var(--hairline-2); color: var(--ink);
-}
-.hiw-step strong { font-size: 14.5px; letter-spacing: -0.01em; }
-.hiw-step p { margin: 0; font-size: 12.5px; line-height: 1.55; color: color-mix(in srgb, var(--ink) 50%, transparent); }
-
 /* ── hero: quiet compatibility strip ───────────────────────────────────────── */
 .hero-compat { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 6px; color: var(--faint); }
 .hc-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 650; }
 .hc-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 650; color: var(--dim); }
 .hc-stripe { font-family: var(--font-head); font-weight: 750; font-size: 14.5px; letter-spacing: -0.01em; }
-@media (prefers-reduced-motion: reduce) {
-  .feat-cell.rv .vz-chip, .feat-cell.rv .vz-ok, .feat-cell.rv .vz-line, .feat-cell.rv .vz-area { transition: none; opacity: 1; scale: 1; stroke-dasharray: none; }
-  .feat-cell.rv.in .vz-dot { animation: none; }
-}
-
-/* ── how-it-works vignettes: the same living-moment language as the
-   feature cards, one small beat per step ───────────────────────────────────── */
-.hiw-viz {
-  margin-top: 4px; border: 1px solid #1e1e1e; border-radius: 9px; background: #0c0c0c;
-  padding: 10px 12px; display: flex; align-items: center; min-height: 54px;
-}
-.hiw-viz .vz-member { border: none; background: none; padding: 0; width: 100%; }
-.vz-av-sq { border-radius: 7px; }
-.vz-bot {
-  background: #2b2b2b; color: #bdbdbd; border-radius: 4px; padding: 1px 5px;
-  font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; vertical-align: 1px;
-}
-.vz-keyrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
-.vz-keyrow code { font: 500 11px/1 ui-monospace, 'SF Mono', Menlo, monospace; color: #8a8a8a; letter-spacing: 0.02em; }
-.vz-keyrow .vz-ok { margin: 0; font-size: 10.5px; }
-.vz-paid { color: #7a7a7a; font-size: 10.5px; font-weight: 600; margin-left: 4px; }
-.vz-payout { display: flex; flex-direction: column; gap: 3px; width: 100%; }
-.vz-amt { font-family: var(--font-head); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
-/* one shared pop-in for every step beat, keyed on the card's reveal */
-.hiw-step.rv .vz-pop { opacity: 0; scale: 0.75; transition: opacity 0.3s var(--ease-out) 0.5s, scale 0.3s var(--ease-out) 0.5s; }
-.hiw-step.rv.in .vz-pop { opacity: 1; scale: 1; }
-@media (prefers-reduced-motion: reduce) { .hiw-step.rv .vz-pop { opacity: 1; scale: 1; transition: none; } }
-
 /* ── pro analytics: the current line draws itself in, the area fades up,
    the live endpoint breathes once; product bars grow on load ──────────────── */
 .rev-chart .cur-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: rev-draw 0.9s var(--ease-out) 0.05s forwards; }
@@ -2387,33 +2251,6 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 /* savings calculator: the money you keep reads as money */
 .calc-result-num { color: var(--money); }
 .calc-bar.mine span { background: var(--money); }
-
-/* the four steps: each icon tinted by what that step actually touches */
-.hiw-step:nth-child(1) .hiw-ic { color: #7a85f6; background: rgba(88, 101, 242, 0.12); border-color: rgba(88, 101, 242, 0.34); }
-.hiw-step:nth-child(2) .hiw-ic { color: #8b85ff; background: rgba(99, 91, 255, 0.12); border-color: rgba(99, 91, 255, 0.34); }
-.hiw-step:nth-child(3) .hiw-ic { color: var(--amber); background: rgba(242, 176, 60, 0.11); border-color: rgba(242, 176, 60, 0.3); }
-.hiw-step:nth-child(4) .hiw-ic { color: var(--money); background: rgba(34, 197, 94, 0.11); border-color: rgba(34, 197, 94, 0.3); }
-.hiw-step .vz-amt { color: var(--money); }
-
-/* feature vignettes: a Discord role is blurple, verified and live are green */
-.vz-chip { background: var(--blurple); color: #fff; }
-.vz-chip svg { color: #fff; }
-.vz-chip-ok { background: var(--money); color: #07230f; }
-.vz-chip-ok svg { color: #07230f; }
-.vz-ok, .vz-ok svg { color: var(--money); }
-.vz-delta { color: var(--money); background: rgba(34, 197, 94, 0.13); }
-.vz-dot { background: var(--money); }
-@keyframes vz-ping {
-  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-  70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-}
-
-/* a "Live" label gets a live dot */
-.feat-chip.is-live { display: inline-flex; align-items: center; gap: 6px; }
-.feat-chip.is-live::before {
-  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--money); flex: none;
-}
 
 /* ── dashboard: the same semantic palette as the landing page ───────────────
    State (live/active), direction (up vs down) and money get color; labels,
@@ -2666,75 +2503,6 @@ html[data-theme='light'] .theme-btn .tb-moon { display: block; }
 html[data-theme='light'] .platform-mark,
 html[data-theme='light'] .powered-mark { filter: invert(1); }
 .top-right { display: flex; align-items: center; gap: 10px; }
-/* the mini product mocks are dark in both themes — pin their ink so light
-   mode's dark text never bleeds into them */
-.feat-viz, .hiw-viz { color: #f5f5f4; }
 
-/* ── showcase: auto-advancing product tour (pattern via 21st.dev) ────────── */
-.sc-layout { display: grid; grid-template-columns: 350px minmax(0, 1fr); gap: 34px; align-items: center; }
-.sc-steps { display: flex; flex-direction: column; gap: 6px; }
-.sc-step {
-  text-align: left; background: none; border: 1px solid transparent; border-radius: 12px;
-  padding: 14px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 5px;
-  transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
-}
-.sc-step:hover { background: var(--panel-hover); }
-.sc-step:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.sc-step.active { background: var(--panel); border-color: var(--edge); }
-.sc-step-title { font-weight: 700; font-size: 15.5px; letter-spacing: -0.01em; color: var(--ink); font-family: var(--font-head); }
-.sc-step-sub { font-size: 13px; color: var(--dim); line-height: 1.55; display: none; }
-.sc-step.active .sc-step-sub { display: block; }
-.sc-bar { display: none; height: 2px; border-radius: 2px; overflow: hidden; margin-top: 7px; background: color-mix(in srgb, var(--ink) 12%, transparent); }
-.sc-step.active .sc-bar { display: block; }
-.sc-bar i { display: block; height: 100%; width: 0; background: var(--ink); }
-.sc-stage { position: relative; border: 1px solid var(--edge); border-radius: 14px; overflow: hidden; background: #0a0a0a; aspect-ratio: 16 / 9; }
-.sc-pane { position: absolute; inset: 0; opacity: 0; transition: opacity 0.45s var(--ease-out); pointer-events: none; }
-.sc-pane.active { opacity: 1; }
-.sc-pane img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* the notification stack is a product depiction — dark in both themes */
-.sc-pane-notif { display: grid; place-items: center; background: #0c0c0c; }
-.nstack { position: relative; width: min(430px, 82%); height: 230px; }
-.ncard {
-  position: absolute; left: 0; right: 0; top: 20px; display: flex; gap: 11px; align-items: center;
-  background: #16171b; border: 1px solid #26272c; border-radius: 12px; padding: 13px 15px;
-  color: #f5f5f4; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-  transition: transform 0.5s var(--ease-out), opacity 0.5s var(--ease-out);
-}
-.nc-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; flex: none; }
-.nc-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.nc-body strong { font-size: 13.5px; }
-.nc-body span { font-size: 12.5px; color: #9a9a94; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nc-time { margin-left: auto; font-size: 11px; color: #6f6f6a; flex: none; }
-.ncard[data-pos='0'] { transform: translateY(0) scale(1); opacity: 1; z-index: 4; }
-.ncard[data-pos='1'] { transform: translateY(60px) scale(0.96); opacity: 0.72; z-index: 3; }
-.ncard[data-pos='2'] { transform: translateY(116px) scale(0.92); opacity: 0.45; z-index: 2; }
-.ncard[data-pos='3'] { transform: translateY(-48px) scale(0.9); opacity: 0; z-index: 1; }
-@media (max-width: 900px) {
-  .sc-layout { grid-template-columns: 1fr; gap: 18px; }
-  .sc-stage { order: -1; }
-}
 
-/* ── light theme: the landing's mock insets. The dashboard screenshots stay
-   dark (the product is dark) but every hand-built vignette repaints. ───────── */
-html[data-theme='light'] .feat-viz,
-html[data-theme='light'] .hiw-viz { background: #f4f4f1; border-color: #e5e5e0; color: #16161a; }
-html[data-theme='light'] .vz-url,
-html[data-theme='light'] .vz-member,
-html[data-theme='light'] .vz-notif { background: #ffffff; border-color: #e2e2dd; }
-html[data-theme='light'] .vz-url { color: #74746e; }
-html[data-theme='light'] .vz-av { background: #ebebe6; color: #4c4c46; }
-html[data-theme='light'] .vz-chip { background: #0f0f0e; color: #fafaf8; }
-html[data-theme='light'] .vz-ok { color: #0f0f0e; }
-html[data-theme='light'] .vz-mail { border-left-color: #16161a; }
-html[data-theme='light'] .vz-delta { background: rgba(10, 10, 10, 0.08); }
-html[data-theme='light'] .vz-area { fill: rgba(10, 10, 10, 0.07); }
-html[data-theme='light'] .vz-line { stroke: #161616; }
-html[data-theme='light'] .vz-dot { background: #0f0f0e; }
-html[data-theme='light'] .vz-bot { background: #e7e7e2; color: #55554f; }
-html[data-theme='light'] .sc-pane-notif { background: #f0f0ec; }
-html[data-theme='light'] .ncard {
-  background: #ffffff; border-color: #e2e2dd; color: #16161a;
-  box-shadow: 0 12px 30px rgba(20, 20, 15, 0.1);
-}
-html[data-theme='light'] .nc-body span { color: #6f6f6a; }
-html[data-theme='light'] .nc-time { color: #9a9a94; }
+

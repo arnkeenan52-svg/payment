@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '79'; // keep in step with the ?v= asset version on index.html
+const V = '80'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -227,7 +227,6 @@ const nav = `
       <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
-      <a class="nav-link" href="/#features">Features</a>
       <a class="nav-link" href="/#pricing">Pricing</a>
       <a class="nav-link" href="/vs">Compare</a>
       <a class="nav-link" href="/tools">Tools</a>
@@ -245,7 +244,7 @@ export const footerHtml = `
       <span class="footer-copy">© Ripley</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
-      <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
+      <a href="/discover">Discover stores</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
       <a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
       <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
@@ -303,7 +302,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
-  <script src="/theme.js?v=79"></script>
+  <script src="/theme.js?v=80"></script>
 </head>
 <body class="home seo-page">
 ${nav}
