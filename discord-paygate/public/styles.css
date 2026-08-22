@@ -1582,8 +1582,16 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 .proof-num { font-family: var(--font-head); font-size: clamp(32px, 3.6vw, 46px); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
 .proof-lab { font-size: 13.5px; color: var(--dim); }
 @media (max-width: 700px) {
-  .proof-row { grid-template-columns: 1fr; gap: 26px; padding: 34px 22px; }
-  .proof-item + .proof-item { border-left: 0; }
+  /* a ledger, not three floating headlines: number column, label beside it,
+     hairlines between the rows */
+  .proof-row { grid-template-columns: 1fr; padding: 6px 22px; }
+  .proof-item {
+    display: grid; grid-template-columns: 96px 1fr; align-items: center;
+    gap: 0 14px; text-align: left; padding: 18px 0;
+  }
+  .proof-item + .proof-item { border-left: 0; border-top: 1px solid #161616; }
+  .proof-num { font-size: 30px; }
+  .proof-lab { font-size: 14px; }
 }
 .pm-chips { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 /* real card-brand badges, drawn as the networks draw them */
