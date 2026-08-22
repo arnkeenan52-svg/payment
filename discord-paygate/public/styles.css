@@ -1673,7 +1673,7 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
    frame collapsed to a sliver. A hard CSS aspect-ratio makes the box stable
    before a single byte loads, for the animated image and the upgraded video
    alike (the JS swap keeps the same class, so the box never moves). */
-.browser-frame .hero-video { aspect-ratio: 1280 / 800; width: 100%; height: auto; object-fit: cover; display: block; }
+.browser-frame .hero-video { aspect-ratio: 1280 / 720; width: 100%; height: auto; object-fit: cover; display: block; }
 .bf-bar { position: relative; z-index: 2; }
 
 /* Subscord composition: one centered content column, text left-aligned
@@ -2713,3 +2713,28 @@ html[data-theme='light'] .powered-mark { filter: invert(1); }
   .sc-layout { grid-template-columns: 1fr; gap: 18px; }
   .sc-stage { order: -1; }
 }
+
+/* ── light theme: the landing's mock insets. The dashboard screenshots stay
+   dark (the product is dark) but every hand-built vignette repaints. ───────── */
+html[data-theme='light'] .feat-viz,
+html[data-theme='light'] .hiw-viz { background: #f4f4f1; border-color: #e5e5e0; color: #16161a; }
+html[data-theme='light'] .vz-url,
+html[data-theme='light'] .vz-member,
+html[data-theme='light'] .vz-notif { background: #ffffff; border-color: #e2e2dd; }
+html[data-theme='light'] .vz-url { color: #74746e; }
+html[data-theme='light'] .vz-av { background: #ebebe6; color: #4c4c46; }
+html[data-theme='light'] .vz-chip { background: #0f0f0e; color: #fafaf8; }
+html[data-theme='light'] .vz-ok { color: #0f0f0e; }
+html[data-theme='light'] .vz-mail { border-left-color: #16161a; }
+html[data-theme='light'] .vz-delta { background: rgba(10, 10, 10, 0.08); }
+html[data-theme='light'] .vz-area { fill: rgba(10, 10, 10, 0.07); }
+html[data-theme='light'] .vz-line { stroke: #161616; }
+html[data-theme='light'] .vz-dot { background: #0f0f0e; }
+html[data-theme='light'] .vz-bot { background: #e7e7e2; color: #55554f; }
+html[data-theme='light'] .sc-pane-notif { background: #f0f0ec; }
+html[data-theme='light'] .ncard {
+  background: #ffffff; border-color: #e2e2dd; color: #16161a;
+  box-shadow: 0 12px 30px rgba(20, 20, 15, 0.1);
+}
+html[data-theme='light'] .nc-body span { color: #6f6f6a; }
+html[data-theme='light'] .nc-time { color: #9a9a94; }
