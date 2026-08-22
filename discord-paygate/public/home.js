@@ -124,7 +124,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=75'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=76'; // hold a still frame instead
     return;
   }
 
@@ -141,8 +141,8 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=75', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=75', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=76', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=76', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays
@@ -282,3 +282,54 @@ calc();
 })();
 
 load().catch(() => {});
+
+// ── showcase: auto-advancing product tour + notification stack ────────────────
+// Interaction patterns adapted from 21st.dev's stepped feature section and
+// notification list; rebuilt for this no-framework stack.
+(() => {
+  const root = document.getElementById('showcase');
+  if (!root) return;
+  const steps = [...root.querySelectorAll('.sc-step')];
+  const panes = [...root.querySelectorAll('.sc-pane')];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const HOLD = 5200;
+  let at = 0, timer = 0, running = false;
+  const set = (i, animate = true) => {
+    at = i;
+    steps.forEach((s, n) => {
+      s.classList.toggle('active', n === i);
+      s.setAttribute('aria-selected', String(n === i));
+      const bar = s.querySelector('.sc-bar i');
+      bar.style.transition = 'none';
+      bar.style.width = '0';
+      if (n === i && animate && !reduce) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          bar.style.transition = `width ${HOLD}ms linear`;
+          bar.style.width = '100%';
+        }));
+      }
+    });
+    panes.forEach((p, n) => p.classList.toggle('active', n === i));
+  };
+  const tick = () => { timer = setTimeout(() => { set((at + 1) % steps.length); tick(); }, HOLD); };
+  const start = () => { if (running || reduce) return; running = true; set(at); tick(); };
+  const stop = () => { running = false; clearTimeout(timer); };
+  steps.forEach((s, n) => s.addEventListener('click', () => {
+    stop(); set(n, !reduce);
+    if (!reduce) { running = true; tick(); }
+  }));
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((en) => en.forEach((e) => (e.isIntersecting ? start() : stop())), { threshold: 0.3 }).observe(root);
+  } else start();
+
+  // sale-alert cards cycle to the front like live pings
+  const stack = root.querySelector('.nstack');
+  if (stack && !reduce) {
+    const cards = [...stack.children];
+    let front = 0;
+    setInterval(() => {
+      front = (front + 1) % cards.length;
+      cards.forEach((c, n) => { c.dataset.pos = String((n - front + cards.length) % cards.length); });
+    }, 2300);
+  }
+})();

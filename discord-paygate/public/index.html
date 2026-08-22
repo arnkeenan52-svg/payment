@@ -18,9 +18,9 @@
   <meta name="twitter:image" content="https://www.ripleybot.com/shot-dashboard.png" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=75" />
+  <link rel="stylesheet" href="/styles.css?v=76" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Ripley","url":"https://www.ripleybot.com","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
-  <script src="/theme.js?v=75"></script>
+  <script src="/theme.js?v=76"></script>
 </head>
 <body class="home">
   <header class="top xoe-nav">
@@ -78,7 +78,7 @@
              browser with no codec negotiation, autoplay policy, range requests
              or JS in the way. home.js swaps in the real <video> only after the
              browser has proven it can actually play it. -->
-        <img class="hero-video" id="hero-media" src="/hero-demo.webp?v=75" width="1280" height="800"
+        <img class="hero-video" id="hero-media" src="/hero-demo.webp?v=76" width="1280" height="800"
           alt="Ripley product tour: live analytics with period comparison, products, members and the checkout" />
       </div>
     </section>
@@ -137,27 +137,62 @@
       </div>
     </section>
 
+
+    <section class="xsection" id="showcase">
+      <div class="wrap narrow center">
+        <span class="kicker">Product</span>
+        <h2 class="section-title">See it work</h2>
+        <p class="section-sub">The dashboard, the theming system and the checkout — the real product, not mockups.</p>
+      </div>
+      <div class="wrap">
+        <div class="sc-layout">
+          <div class="sc-steps" role="tablist" aria-label="Product tour">
+            <button type="button" class="sc-step active" role="tab" aria-selected="true" data-step="0">
+              <span class="sc-step-title">Live revenue analytics</span>
+              <span class="sc-step-sub">Revenue, sales, MRR and every transaction — any period, compared to the last.</span>
+              <span class="sc-bar" aria-hidden="true"><i></i></span>
+            </button>
+            <button type="button" class="sc-step" role="tab" aria-selected="false" data-step="1">
+              <span class="sc-step-title">Make the store yours</span>
+              <span class="sc-step-sub">Presets, colors, corners and type — previewed live before buyers see a thing.</span>
+              <span class="sc-bar" aria-hidden="true"><i></i></span>
+            </button>
+            <button type="button" class="sc-step" role="tab" aria-selected="false" data-step="2">
+              <span class="sc-step-title">A checkout in your colors</span>
+              <span class="sc-step-sub">Your brand on the page where buyers pay — Stripe checkout on your own account.</span>
+              <span class="sc-bar" aria-hidden="true"><i></i></span>
+            </button>
+            <button type="button" class="sc-step" role="tab" aria-selected="false" data-step="3">
+              <span class="sc-step-title">Sale alerts in your Discord</span>
+              <span class="sc-step-sub">A New Subscriber ping in the channel you choose, on every order.</span>
+              <span class="sc-bar" aria-hidden="true"><i></i></span>
+            </button>
+          </div>
+          <div class="sc-stage">
+            <div class="sc-pane active" data-pane="0"><img src="/shot-analytics.webp?v=76" width="1600" height="900" alt="Ripley dashboard: revenue chart, sales, new members and MRR" loading="lazy" /></div>
+            <div class="sc-pane" data-pane="1"><img src="/shot-theming.webp?v=76" width="1600" height="900" alt="Appearance editor with theme presets and a live gold checkout preview" loading="lazy" /></div>
+            <div class="sc-pane" data-pane="2"><img src="/shot-checkout.webp?v=76" width="1600" height="900" alt="Emerald-themed checkout with order summary and pay button" loading="lazy" /></div>
+            <div class="sc-pane sc-pane-notif" data-pane="3">
+              <div class="nstack" aria-hidden="true">
+                <div class="ncard" data-pos="0"><span class="nc-dot"></span><div class="nc-body"><strong>New Subscriber!</strong><span>@luna149 just bought VIP Access &middot; $49.99</span></div><span class="nc-time">now</span></div>
+                <div class="ncard" data-pos="1"><span class="nc-dot"></span><div class="nc-body"><strong>New Subscriber!</strong><span>@halo151 just bought Signals Monthly &middot; $14.99</span></div><span class="nc-time">2m</span></div>
+                <div class="ncard" data-pos="2"><span class="nc-dot"></span><div class="nc-body"><strong>New Subscriber!</strong><span>@sirius147 just bought VIP Access &middot; $49.99</span></div><span class="nc-time">9m</span></div>
+                <div class="ncard" data-pos="3"><span class="nc-dot"></span><div class="nc-body"><strong>New Subscriber!</strong><span>@vega145 just bought Signals Monthly &middot; $14.99</span></div><span class="nc-time">14m</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="xsection" id="features">
       <div class="wrap narrow center">
         <span class="kicker">Features</span>
         <h2 class="section-title">A complete Discord payment processor</h2>
-        <p class="section-sub">Storefront, checkout, role delivery, receipts and member management. One platform, your Stripe account.</p>
+        <p class="section-sub">Role delivery, verified payments and receipts — handled for you on every sale.</p>
       </div>
       <div class="wrap">
         <div class="fgrid">
-          <article class="panel feat-cell">
-            <div class="feat-head">
-              <span class="feat-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v11H3z"/><path d="M9 20v-6h6v6"/></svg></span>
-              <h3>Your store page</h3>
-              <span class="feat-chip is-live">Live</span>
-            </div>
-            <p>Your server&rsquo;s name, icon and products on a hosted checkout at ripleybot.com/yourname.</p>
-            <div class="feat-viz" aria-hidden="true"><div class="vz-browser">
-              <div class="vz-url"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>ripleybot.com/yourname</div>
-              <div class="vz-prow"><span>VIP Access</span><span class="vz-price">$49.99</span></div>
-              <div class="vz-buy">Pay $49.99</div>
-            </div></div>
-          </article>
           <article class="panel feat-cell">
             <div class="feat-head">
               <span class="feat-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg></span>
@@ -193,31 +228,6 @@
               <span class="vz-mail-tag">Membership activated</span>
               <strong>Your VIP Access is active</strong>
               <span class="vz-sub">Receipt &middot; $49.99 &middot; lifetime</span>
-            </div></div>
-          </article>
-          <article class="panel feat-cell">
-            <div class="feat-head">
-              <span class="feat-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></span>
-              <h3>Members &amp; revenue</h3>
-            </div>
-            <p>Revenue chart with period comparison, searchable transactions, one-click revoke and re-sync.</p>
-            <div class="feat-viz" aria-hidden="true"><div class="vz-chartbox">
-              <div class="vz-chart-top"><span>$2,449</span><span class="vz-delta">&#9650;55%</span></div>
-              <svg class="vz-chart" viewBox="0 0 210 54" preserveAspectRatio="none">
-                <path class="vz-area" d="M0 44 L26 34 L52 39 L78 22 L104 30 L130 14 L156 24 L182 9 L210 16 L210 54 L0 54 Z" />
-                <path class="vz-line" pathLength="1" fill="none" d="M0 44 L26 34 L52 39 L78 22 L104 30 L130 14 L156 24 L182 9 L210 16" />
-              </svg>
-            </div></div>
-          </article>
-          <article class="panel feat-cell">
-            <div class="feat-head">
-              <span class="feat-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg></span>
-              <h3>Sale alerts</h3>
-            </div>
-            <p>A New Subscriber ping in the Discord channel you choose, on every order.</p>
-            <div class="feat-viz" aria-hidden="true"><div class="vz-notif">
-              <span class="vz-dot"></span>
-              <div class="vz-notif-body"><strong>New Subscriber!</strong><span class="vz-sub">@jordan just bought VIP Access &middot; $49.99</span></div>
             </div></div>
           </article>
         </div>
@@ -435,6 +445,6 @@
   </footer>
   <!-- footer:end -->
 
-  <script src="/home.js?v=75"></script>
+  <script src="/home.js?v=76"></script>
 </body>
 </html>
