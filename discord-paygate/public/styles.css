@@ -1144,6 +1144,7 @@ body.home .landing { overflow-x: clip; }
 }
 .price-name { font-weight: 700; font-size: 15px; color: rgba(255,255,255,0.85); }
 .price-amt { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.price-bill { display: block; margin: -6px 0 2px; font-size: 12.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
 .price-per { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0; }
 .price-list { list-style: none; margin: 12px 0 18px; padding: 0; display: flex; flex-direction: column; gap: 9px; flex: 1; }
 .price-list li { position: relative; padding-left: 22px; font-size: 13px; color: rgba(255,255,255,0.65); }

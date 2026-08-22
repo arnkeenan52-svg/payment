@@ -124,7 +124,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=71'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=72'; // hold a still frame instead
     return;
   }
 
@@ -141,8 +141,8 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=71', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=71', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=72', 'video/mp4; codecs="avc1.640020"'],
+    ['/hero-demo.webm?v=72', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays
@@ -178,10 +178,18 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
     y.classList.toggle('active', yearly);
     m.setAttribute('aria-pressed', String(!yearly));
     y.setAttribute('aria-pressed', String(yearly));
+    // Yearly shows the effective monthly rate — the discount is the point —
+    // with the real billed amount spelled out underneath.
     document.querySelectorAll('.price-amt').forEach((el) => {
-      const v = Number(yearly ? el.dataset.y : el.dataset.m);
+      const yr = Number(el.dataset.y);
+      const v = yearly ? yr / 12 : Number(el.dataset.m);
       el.querySelector('.pa-num').textContent = `$${v % 1 === 0 ? v : v.toFixed(2)}`;
-      el.querySelector('.price-per').textContent = yearly ? '/year' : '/month';
+      el.querySelector('.price-per').textContent = '/month';
+      const bill = el.parentElement.querySelector('.price-bill');
+      if (bill) {
+        bill.hidden = !yearly || yr === 0;
+        if (yearly && yr) bill.textContent = `Billed $${yr.toFixed(2)} a year — 2 months free`;
+      }
     });
   };
   m.onclick = () => set(false);
