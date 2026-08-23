@@ -50,6 +50,7 @@ const I = {
   tag: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L12 22 2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
   gear: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.01a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>',
   shop: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16l1 5a3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1-6 0 3 3 0 0 1-3 3 3 3 0 0 1-3-3l1-5z"/><path d="M5 12v9h14v-9M9 21v-6h6v6"/></svg>',
+  palette: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 2.5 2.5 0 0 0 1.8-4.2c-.6-.7-.1-1.8.9-1.8H17a5 5 0 0 0 5-5c0-5-4.5-9-10-9z"/><circle cx="7.5" cy="11.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
 };
 
 const state = {
@@ -1055,6 +1056,7 @@ const SECTIONS = [
   ['payments', 'Transactions', 'cart'],
   ['discounts', 'Discounts', 'tag'],
   ['store', 'Store', 'shop'],
+  ['customize', 'Customize', 'palette'],
   ['settings', 'Settings', 'gear'],
 ];
 
@@ -1128,43 +1130,11 @@ function sectionOverview(data, store, slug) {
     cards.members ? statCard('New members', newMembers, I.users, pct(newMembers, newMembersPrev), prevSub(newMembersPrev, (v) => v), sparks.members) : '',
     cards.mrr ? statCard('MRR', usd(mrr), I.infinity, null, mrrNew > 0 ? `+${usd(mrrNew)} added this period` : 'recurring, right now', sparks.mrr) : '',
   ].join('');
-  const ACCENTS = [
-    ['', 'Default'], ['#5865f2', 'Blurple'], ['#3fb950', 'Green'], ['#f59e0b', 'Amber'],
-    ['#ef4444', 'Red'], ['#ec4899', 'Pink'], ['#06b6d4', 'Cyan'],
-  ];
-  const curAccent = /^#[0-9a-f]{6}$/i.test(String(prefs.accent ?? '')) ? prefs.accent : '';
-  const customPanel = store.isDefault ? '' : `
-    <section class="panel dash-custom" id="dash-custom" hidden>
-      <div class="dc-row"><span class="dc-lab">Accent</span>
-        <div class="dc-swatches" role="group" aria-label="Dashboard accent color">
-          ${ACCENTS.map(([hex, name]) => `<button type="button" class="dc-swatch${curAccent === hex ? ' active' : ''}" data-accent="${hex}" title="${name}" aria-label="${name}" ${hex ? `style="background:${hex}"` : ''}>${hex ? '' : '<span class="dc-none"></span>'}</button>`).join('')}
-          <label class="dc-custom" title="Custom color"><input type="color" id="dc-color" value="${curAccent || '#ededed'}" aria-label="Custom accent color" /></label>
-        </div></div>
-      <div class="dc-row"><span class="dc-lab">Stat cards</span>
-        <div class="dc-checks">
-          ${[['revenue', 'Revenue'], ['sales', 'Sales'], ['members', 'New members'], ['mrr', 'MRR']]
-            .map(([k, lbl]) => `<label class="dc-check"><input type="checkbox" data-card="${k}" ${cards[k] ? 'checked' : ''} />${lbl}</label>`).join('')}
-        </div></div>
-      <div class="dc-row"><span class="dc-lab">Default period</span>
-        <select id="dc-range" class="store-switch">
-          ${RANGES.map(([k, lbl]) => `<option value="${k}" ${(prefs.defaultRange ?? '30') === k ? 'selected' : ''}>${lbl}</option>`).join('')}
-        </select></div>
-      <div class="dc-row dc-actions">
-        <button class="btn-secondary" id="dc-save">Save</button>
-        <button class="btn-ghost" id="dc-reset">Reset to default</button>
-        <span class="note-help" id="dc-note" role="status"></span>
-      </div>
-    </section>`;
-
   return `
     <div class="ov-toolbar">
       <h2 class="sec-title">Overview</h2>
-      <div class="ov-tools">
-        ${store.isDefault ? '' : `<button type="button" class="btn-ghost dc-btn" id="dash-custom-btn" aria-expanded="false" aria-controls="dash-custom">${I.gear}<span>Customize</span></button>`}
-        <div class="seg" role="group" aria-label="Time period" id="range-seg">${seg}</div>
-      </div>
+      <div class="seg" role="group" aria-label="Time period" id="range-seg">${seg}</div>
     </div>
-    ${customPanel}
     <div id="checklist-slot"></div>
     <div class="stat-grid five">
       ${statCards}
@@ -1636,6 +1606,88 @@ function sectionStore(store, link) {
     </div>`;
 }
 
+// ── customize: the dashboard's own look, a full section of its own ───────────
+function sectionCustomize(store) {
+  const prefs = store.dashboardPrefs ?? {};
+  const cards = { revenue: true, sales: true, members: true, mrr: true, ...(prefs.cards ?? {}) };
+  const ACCENTS = [
+    ['', 'Default'], ['#5865f2', 'Blurple'], ['#3fb950', 'Green'], ['#f59e0b', 'Amber'],
+    ['#ef4444', 'Red'], ['#ec4899', 'Pink'], ['#06b6d4', 'Cyan'],
+  ];
+  const curAccent = /^#[0-9a-f]{6}$/i.test(String(prefs.accent ?? '')) ? prefs.accent : '';
+  return `
+    <h2 class="sec-title">Customize</h2>
+    <div class="settings-stack">
+    ${setCard({
+      id: 'dash-custom',
+      title: 'Dashboard',
+      sub: 'Your dashboard, your way — saved for this store, on every device.',
+      body: `<div class="dc-body">
+        <div class="dc-row"><span class="dc-lab">Accent</span>
+          <div class="dc-swatches" role="group" aria-label="Dashboard accent color">
+            ${ACCENTS.map(([hex, name]) => `<button type="button" class="dc-swatch${curAccent === hex ? ' active' : ''}" data-accent="${hex}" title="${name}" aria-label="${name}" ${hex ? `style="background:${hex}"` : ''}>${hex ? '' : '<span class="dc-none"></span>'}</button>`).join('')}
+            <label class="dc-custom" title="Custom color"><input type="color" id="dc-color" value="${curAccent || '#ededed'}" aria-label="Custom accent color" /></label>
+          </div>
+          <p class="field-help dc-help">Paints every chart, sparkline and highlight in the dashboard.</p></div>
+        <div class="dc-row"><span class="dc-lab">Stat cards</span>
+          <div class="dc-checks">
+            ${[['revenue', 'Revenue'], ['sales', 'Sales'], ['members', 'New members'], ['mrr', 'MRR']]
+              .map(([k, lbl]) => `<label class="dc-check"><input type="checkbox" data-card="${k}" ${cards[k] ? 'checked' : ''} />${lbl}</label>`).join('')}
+          </div>
+          <p class="field-help dc-help">Pick which numbers open the Overview.</p></div>
+        <div class="dc-row"><span class="dc-lab">Default period</span>
+          <select id="dc-range" class="store-switch">
+            ${RANGES.map(([k, lbl]) => `<option value="${k}" ${(prefs.defaultRange ?? '30') === k ? 'selected' : ''}>${lbl}</option>`).join('')}
+          </select>
+          <p class="field-help dc-help">The range your analytics open on.</p></div>
+        <p class="field-err" id="dc-note" role="alert"></p>
+      </div>`,
+      foot: `<button class="btn-pill" id="dc-save">Save</button>
+        <button class="btn-ghost" id="dc-reset">Reset to default</button>`,
+    })}
+    ${setCard({
+      title: 'Storefront',
+      sub: 'What buyers see has its own controls — colors, corners and type live in the Store section.',
+      body: `<div class="dc-body"><a class="btn-secondary dc-open" href="#/store/${esc(store.slug)}/store">${I.shop} Open store appearance</a></div>`,
+    })}
+    </div>`;
+}
+
+function wireCustomize(store, slug) {
+  const prefs = store.dashboardPrefs ?? {};
+  let pickedAccent = /^#[0-9a-f]{6}$/i.test(String(prefs.accent ?? '')) ? prefs.accent : '';
+  const markSwatch = () => document.querySelectorAll('.dc-swatch').forEach((s) => s.classList.toggle('active', s.dataset.accent === pickedAccent));
+  document.querySelectorAll('.dc-swatch').forEach((s) => {
+    s.onclick = () => { pickedAccent = s.dataset.accent; markSwatch(); };
+  });
+  $('#dc-color').oninput = (e) => { pickedAccent = e.target.value.toLowerCase(); markSwatch(); };
+  const saveDc = async (prefsBody) => {
+    const btn = $('#dc-save');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    $('#dc-note').textContent = '';
+    try {
+      await api('/api/admin/store', { store: slug, dashboardPrefs: prefsBody });
+      state.data = null;
+      viewStore(slug);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Save';
+      $('#dc-note').textContent = err.message;
+    }
+  };
+  $('#dc-save').onclick = () => {
+    const cardPicks = {};
+    document.querySelectorAll('.dc-check input').forEach((c) => { cardPicks[c.dataset.card] = c.checked; });
+    saveDc({
+      accent: pickedAccent || null,
+      cards: cardPicks,
+      defaultRange: $('#dc-range').value,
+    });
+  };
+  $('#dc-reset').onclick = () => saveDc(null);
+}
+
 function sectionSettings(store, isPlatformOwner) {
   return `
     <h2 class="sec-title">Settings</h2>
@@ -1744,6 +1796,10 @@ async function viewStore(slug) {
       ? '<h2 class="sec-title">Discounts</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store. Set up your server’s own store to create discount codes here.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
       : sectionDiscounts(discounts, products, slug);
   else if (section === 'store') body = sectionStore(store, link);
+  else if (section === 'customize')
+    body = store.isDefault
+      ? '<h2 class="sec-title">Customize</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store — its dashboard uses the platform look. Set up your server’s own store to customize.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
+      : sectionCustomize(store);
   else if (section === 'settings') body = sectionSettings(store, isPlatformOwner);
   else if (section === 'payments') {
     const checkouts = data.checkouts ?? [];
@@ -1840,7 +1896,7 @@ async function viewStore(slug) {
           .join('')}</select>`
       : `<span class="side-store-name">${esc(store.name)}</span>`;
 
-  const navItems = SECTIONS.map(
+  const navItems = SECTIONS.filter(([k]) => !(store.isDefault && k === 'customize')).map(
     ([k, lbl, ic]) =>
       `<a class="side-item${k === section ? ' active' : ''}" href="#/store/${esc(slug)}/${k}" ${k === section ? 'aria-current="page"' : ''}>${I[ic]}<span>${lbl}</span></a>`,
   ).join('');
@@ -1890,43 +1946,6 @@ async function viewStore(slug) {
         viewStore(slug);
       };
     });
-    // Customize: accent, stat-card visibility, default period.
-    const dcBtn = $('#dash-custom-btn');
-    if (dcBtn) {
-      const panel = $('#dash-custom');
-      dcBtn.onclick = () => {
-        panel.hidden = !panel.hidden;
-        dcBtn.setAttribute('aria-expanded', String(!panel.hidden));
-      };
-      let pickedAccent = dashAccent ?? '';
-      const markSwatch = () => panel.querySelectorAll('.dc-swatch').forEach((s) => s.classList.toggle('active', s.dataset.accent === pickedAccent));
-      panel.querySelectorAll('.dc-swatch').forEach((s) => {
-        s.onclick = () => { pickedAccent = s.dataset.accent; markSwatch(); };
-      });
-      $('#dc-color').oninput = (e) => { pickedAccent = e.target.value.toLowerCase(); markSwatch(); };
-      const saveDc = async (prefsBody) => {
-        const btn = $('#dc-save');
-        btn.disabled = true;
-        try {
-          await api('/api/admin/store', { store: slug, dashboardPrefs: prefsBody });
-          state.data = null;
-          viewStore(slug);
-        } catch (err) {
-          btn.disabled = false;
-          $('#dc-note').textContent = err.message;
-        }
-      };
-      $('#dc-save').onclick = () => {
-        const cardPicks = {};
-        panel.querySelectorAll('.dc-check input').forEach((c) => { cardPicks[c.dataset.card] = c.checked; });
-        saveDc({
-          accent: pickedAccent || null,
-          cards: cardPicks,
-          defaultRange: $('#dc-range').value,
-        });
-      };
-      $('#dc-reset').onclick = () => saveDc(null);
-    }
     const revCard = $('#rev-card');
     if (revCard) wireChartHover(revCard, bucketSeries(data.payments, rangeWindows(state.range, data.payments)));
     renderChecklist(store, slug);
@@ -2000,6 +2019,7 @@ async function viewStore(slug) {
   if (section === 'products' && !store.isDefault) wireProducts(store, slug, products);
   if (section === 'discounts' && !store.isDefault) wireDiscounts(store, slug);
   if (section === 'store' && !store.isDefault) { wireStoreSettings(store, slug); wireAppearance(store, slug); wireDiscovery(store, slug); }
+  if (section === 'customize' && !store.isDefault) wireCustomize(store, slug);
   if (section === 'settings') {
     renderBillingPanel();
     const pmSave = $('#pm-save');
