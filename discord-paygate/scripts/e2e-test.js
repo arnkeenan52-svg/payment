@@ -2541,10 +2541,37 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   );
   assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: null })).status, 200, 'photo removable');
   assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals&plan=${vip.planKey}`)).status, 404, 'removed photo no longer served');
+  // Regression: the edit form echoes the stored imageUrl back on every save.
+  // An ordinary edit (price + the echoed /api/img URL) must never wipe the
+  // upload — the server once mistook its own URL for a replacement link.
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: `data:image/png;base64,${PNG1}` })).status, 200);
+  const echoUrl = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => p.id === vip.planKey).imageUrl;
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, priceUsd: 59.99, imageUrl: echoUrl })).status, 200);
+  assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals&plan=${vip.planKey}`)).status, 200, 'an edit echoing the stored URL keeps the upload');
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: null })).status, 200);
+  // The platform operator manages tenant products too — same bypass as the
+  // admin endpoints, so the Platform admin view is fully functional.
+  const opRes = await fetch(`${appUrl}/api/onboard`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u1Cookie },
+    body: JSON.stringify({ step: 'products', storeId }),
+  });
+  assert.equal(opRes.status, 200, 'platform owner bypass on onboard steps');
+  // Sellers get the dashboard nav link; buyers do not.
+  assert.equal((await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u7Cookie } })).json()).seller, true, 'store owner is flagged seller');
+  assert.equal((await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u9Cookie } })).json()).seller, false, 'buyer is not');
 
   // Second product, monthly — created in the site, extras applied, role picked.
   const made = await onboard({ step: 'product', storeId, name: 'Signals Monthly', description: 'Every signal, monthly.', priceUsd: 15, lifetime: false, durationDays: 31 });
   const plan2 = (await made.json()).plan;
+  // A product whose name slugifies to an existing key must get its own key,
+  // never overwrite the first product in place.
+  const dup = await onboard({ step: 'product', storeId, name: vip.name, priceUsd: 25, lifetime: true });
+  assert.equal(dup.status, 200);
+  const dupKey = (await dup.json()).plan.planKey;
+  assert.notEqual(dupKey, vip.planKey, 'name collision gets a fresh key');
+  assert.match(dupKey, new RegExp(`^${vip.planKey}-\\d+$`));
+  assert.equal((await onboard({ step: 'product-delete', storeId, planKey: dupKey })).status, 200);
   assert.equal(made.status, 200);
   assert.equal((await onboard({ step: 'role', storeId, planKey: plan2.planKey, roleId: R2_VIP })).status, 200);
   assert.equal((await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.length, 2);
@@ -2574,6 +2601,12 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal((await disc({ action: 'create', code: 'launch20', kind: 'percent', amount: 20 })).status, 200);
   assert.equal((await disc({ action: 'create', code: 'FIVER', kind: 'fixed', amount: 5, planKey: plan2.planKey, maxUses: 1 })).status, 200);
   assert.equal((await disc({ action: 'create', code: 'launch20', kind: 'percent', amount: 10 })).status, 409, 'duplicate codes refused');
+  // A date-only expiry means "valid through that day": pinned to end-of-day
+  // UTC, never UTC midnight (which killed codes a day early west of UTC).
+  assert.equal((await disc({ action: 'create', code: 'DATED', kind: 'percent', amount: 10, expiresAt: '2099-08-30' })).status, 200);
+  const datedRow = (await (await disc({ action: 'list' })).json()).discounts.find((d) => d.code === 'DATED');
+  assert.equal(datedRow.expiresAt, Math.floor(Date.parse('2099-08-30T23:59:59Z') / 1000), 'date-only expiry pins to end-of-day UTC');
+  assert.equal((await disc({ action: 'delete', code: 'DATED' })).status, 200);
   // The checkout page's Apply button previews codes here before paying.
   const vipNow = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => p.id === vip.planKey);
   const preview = await (await fetch(`${appUrl}/api/discount?store=vip-signals&code=launch20&plan=${vip.planKey}`)).json();

@@ -1,7 +1,7 @@
 import { config } from '../src/config.js';
 import { sendJson, guard } from '../src/lib/http.js';
 import { sessionUserId } from '../src/lib/session.js';
-import { getUser, subscriptionsForMember, isEntitled } from '../src/db.js';
+import { getUser, subscriptionsForMember, isEntitled, storesByOwner } from '../src/db.js';
 import { storeById, planOf } from '../src/services/stores.js';
 
 export default guard(async function handler(req, res) {
@@ -48,6 +48,8 @@ export default guard(async function handler(req, res) {
         !s.cancels_at &&
         s.current_period_end !== null &&
         s.current_period_end !== undefined,
+      // What Stripe actually charged (discounts applied); null on old rows.
+      paidUsd: s.paid_usd === null || s.paid_usd === undefined ? null : Number(s.paid_usd),
       createdAt: Number(s.created_at),
     });
   }
@@ -56,6 +58,8 @@ export default guard(async function handler(req, res) {
     discordId: uid,
     username: user?.username ?? null,
     isOwner: Boolean(config.ownerDiscordId) && uid === config.ownerDiscordId,
+    // Runs at least one store — gates the Dashboard nav link for sellers.
+    seller: (await storesByOwner(uid)).length > 0,
     subscriptions: subs,
   });
 });

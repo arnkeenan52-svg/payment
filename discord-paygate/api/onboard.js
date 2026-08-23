@@ -1,6 +1,7 @@
 import { config } from '../src/config.js';
 import { sendJson, sendText, readJsonBody, guard } from '../src/lib/http.js';
 import { sessionUserId } from '../src/lib/session.js';
+import { ownerAuthorized } from '../src/lib/authz.js';
 import * as db from '../src/db.js';
 import { sealSecret } from '../src/lib/secretbox.js';
 import { getUser } from '../src/db.js';
@@ -36,9 +37,12 @@ async function callerManagesGuild(uid, guildId) {
   }
 }
 
-async function ownedStore(uid, storeId) {
+async function ownedStore(uid, storeId, req) {
   const row = await db.getStoreById(Number(storeId));
-  if (!row || row.owner_discord_id !== uid) return null;
+  if (!row) return null;
+  // The platform operator can act on any store — same bypass the sibling
+  // admin endpoints grant, so the Platform admin view is fully functional.
+  if (row.owner_discord_id !== uid && !(req && ownerAuthorized(req))) return null;
   return row;
 }
 
@@ -80,7 +84,11 @@ export default guard(async function handler(req, res) {
       if (!(await callerManagesGuild(uid, guildId))) {
         return sendJson(res, 403, { error: 'You need Manage Server or Administrator in that Discord server.' });
       }
-      if (await managedStoreByGuild(guildId)) {
+      // A store whose webhook registration failed on a previous attempt must
+      // not dead-end the wizard: the same owner's unfinished draft is
+      // resumed — fresh key stored, webhook retried — instead of refused.
+      const existingStore = await managedStoreByGuild(guildId);
+      if (existingStore && !(existingStore.ownerDiscordId === uid && existingStore.status !== 'live' && !existingStore.webhookSecret)) {
         return sendJson(res, 409, { error: 'That server already has a store.' });
       }
       if (!(await getGuild(guildId))) {
@@ -92,6 +100,22 @@ export default guard(async function handler(req, res) {
         account = await stripeFetch('/v1/account', { key: stripeKey });
       } catch {
         return sendJson(res, 400, { error: 'Stripe rejected that key. Create one under Stripe → Developers → API keys — a restricted key needs the permissions listed above.' });
+      }
+      if (existingStore) {
+        await db.updateStore(existingStore.id, { stripeSecretEnc: sealSecret(stripeKey) });
+        try {
+          const base = await canonicalWebhookUrl();
+          const url = base.replace(/\/webhooks\/stripe$/, `/webhooks/stripe/${existingStore.id}`);
+          const endpoint = await createWebhookEndpoint(url, stripeKey);
+          await db.updateStore(existingStore.id, { stripeWebhookSecret: endpoint.secret });
+        } catch (err) {
+          console.error(`[onboard] webhook registration for store ${existingStore.id} failed: ${err.message}`);
+          return sendJson(res, 502, { error: 'Stripe accepted the key but webhook setup failed — try again in a minute.' });
+        }
+        return sendJson(res, 200, {
+          ok: true,
+          store: { id: existingStore.id, slug: existingStore.slug, name: existingStore.name, guildId, mode: stripeKeyMode(stripeKey), stripeAccount: account.id ?? null },
+        });
       }
 
       let slug = slugify(name);
@@ -129,7 +153,7 @@ export default guard(async function handler(req, res) {
 
     // ── 2. create the product on their Stripe account ───────────────────────
     case 'product': {
-      const row = await ownedStore(uid, body.storeId);
+      const row = await ownedStore(uid, body.storeId, req);
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const name = String(body.name ?? '').trim().slice(0, 80);
       const description = String(body.description ?? '').trim().slice(0, 300);
@@ -142,7 +166,17 @@ export default guard(async function handler(req, res) {
       }
       // Photo: an uploaded data URL (dashboard photo picker) wins over a
       // pasted link. It is stored on the row and served from /api/img.
-      const planKey = slugify(name) || 'premium';
+      // The key must be unique in the store: a second product whose name
+      // slugifies to an existing key must never overwrite the first.
+      let planKey = slugify(name) || 'premium';
+      {
+        const taken = new Set((await db.storePlansFor(row.id)).map((p) => p.planKey));
+        if (taken.has(planKey)) {
+          let n = 2;
+          while (taken.has(`${planKey}-${n}`)) n += 1;
+          planKey = `${planKey}-${n}`;
+        }
+      }
       if (body.imageData !== undefined && body.imageData !== null && !isImageDataUrl(body.imageData)) {
         return sendJson(res, 400, { error: 'That photo could not be read — use a JPG, PNG, WebP or GIF under 1.5MB.' });
       }
@@ -191,7 +225,7 @@ export default guard(async function handler(req, res) {
 
     // ── 3. the role buyers receive ──────────────────────────────────────────
     case 'roles': {
-      const row = await ownedStore(uid, body.storeId);
+      const row = await ownedStore(uid, body.storeId, req);
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const roles = await getGuildRoles(row.guild_id);
       const bot = await getBotUser();
@@ -227,7 +261,7 @@ export default guard(async function handler(req, res) {
 
     // Text channels of the store's server, for the sale-notification picker.
     case 'channels': {
-      const row = await ownedStore(uid, body.storeId);
+      const row = await ownedStore(uid, body.storeId, req);
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const channels = await getGuildChannels(row.guild_id);
       if (!channels) {
@@ -238,7 +272,7 @@ export default guard(async function handler(req, res) {
 
     // ── 4. pick the role, go live ───────────────────────────────────────────
     case 'role': {
-      const row = await ownedStore(uid, body.storeId);
+      const row = await ownedStore(uid, body.storeId, req);
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const planKey = String(body.planKey ?? '');
       const roleId = String(body.roleId ?? '');
@@ -269,7 +303,7 @@ export default guard(async function handler(req, res) {
     // The owner's full catalog — inactive products included (buyers never see
     // those; this is the management view).
     case 'products': {
-      const row = await ownedStore(uid, body.storeId);
+      const row = await ownedStore(uid, body.storeId, req);
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const plans = await db.storePlansFor(row.id);
       const out = [];
@@ -283,7 +317,7 @@ export default guard(async function handler(req, res) {
     // the next checkout lazily provisions a fresh one on their account, and
     // existing Stripe subscriptions keep the price they were sold at.
     case 'product-update': {
-      const row = await ownedStore(uid, body.storeId);
+      const row = await ownedStore(uid, body.storeId, req);
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const planKey = String(body.planKey ?? '');
       const existing = await db.getStorePlan(row.id, planKey);
@@ -308,7 +342,11 @@ export default guard(async function handler(req, res) {
         }
       }
       // A pasted link applies unless a fresh upload just claimed the slot.
-      if (body.imageUrl !== undefined && typeof fields.imageData !== 'string') {
+      // The form echoes the stored URL back on every save — a value equal to
+      // the product's current URL is "unchanged", never a replacement link.
+      // (Treating the product's own /api/img URL as a pasted link silently
+      // deleted the uploaded photo on any ordinary edit.)
+      if (body.imageUrl !== undefined && typeof fields.imageData !== 'string' && String(body.imageUrl).trim() !== (existing.imageUrl ?? '')) {
         const u = String(body.imageUrl).trim();
         const linked = /^https:\/\/\S+$/.test(u) ? u.slice(0, 500) : null;
         if (linked || fields.imageUrl === undefined) fields.imageUrl = linked;
@@ -366,7 +404,7 @@ export default guard(async function handler(req, res) {
     }
 
     case 'product-delete': {
-      const row = await ownedStore(uid, body.storeId);
+      const row = await ownedStore(uid, body.storeId, req);
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const planKey = String(body.planKey ?? '');
       const plan = await db.getStorePlan(row.id, planKey);

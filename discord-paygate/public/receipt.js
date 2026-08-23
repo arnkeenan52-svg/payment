@@ -57,7 +57,11 @@ async function main() {
   $('#r-server').textContent = server.name || '—';
   $('#r-product').textContent = plan.name;
   $('#r-option').textContent = plan.lifetime ? 'One-time — lifetime access' : `Recurring — per ${plan.interval}`;
-  $('#r-total').textContent = fmtPrice(plan.priceUsd);
+  // The charged amount (discounts applied) beats the list price the moment
+  // the buyer's subscription row lands; until then the list price stands in.
+  const paidFor = (m) => (m.subscriptions ?? []).find((s) => s.planId === plan.id && s.paidUsd !== null && s.paidUsd !== undefined);
+  const renderTotal = (m) => { $('#r-total').textContent = fmtPrice(paidFor(m)?.paidUsd ?? plan.priceUsd); };
+  renderTotal(me);
   $('#open-discord-label').textContent = server.name ? `Open ${server.name} on Discord` : 'Open Discord';
   if (server.guildId) $('#open-discord').href = `https://discord.com/channels/${server.guildId}`;
 
@@ -69,6 +73,7 @@ async function main() {
     me = await (await fetch('/api/me')).json();
   }
 
+  renderTotal(me);
   if (entitled()) showConfirmed(plan, server);
   else showStillPending(server);
 }

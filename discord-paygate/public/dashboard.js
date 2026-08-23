@@ -12,6 +12,9 @@ const fmtDT = (unix) =>
   new Date(unix * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
   ', ' + new Date(unix * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 const fmtD = (unix) => new Date(unix * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+// Date-only values pinned to end-of-day UTC (discount expiries) must list
+// back the calendar day the owner picked, whatever their timezone.
+const fmtDUtc = (unix) => new Date(unix * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 
 // A restricted key with a missing permission does not fail at paste time — it
 // fails much later, on a buyer's checkout, with an opaque Stripe error. So the
@@ -218,7 +221,7 @@ const rel = (unix) => {
 };
 
 async function viewAdmin() {
-  if (!state.me?.loggedIn) { location.hash = '#/'; return; }
+  if (!state.me?.loggedIn) { location.replace('#/'); return; }
   $('#content').innerHTML = '<div class="admin-wrap"><div class="sk-row panel" aria-hidden="true"></div><div class="sk-row panel" aria-hidden="true"></div></div>';
   const res = await fetch('/api/admin/platform');
   if (!res.ok) {
@@ -390,13 +393,23 @@ function wizShell(g, current, inner) {
 async function viewSetup(guildId) {
   if (!state.guilds) await loadGuilds();
   const g = (state.guilds ?? []).find((x) => x.id === guildId);
+  // Redirects REPLACE the history entry — a hash assignment would push,
+  // trapping the Back button in a redirect loop forever.
   if (!g) {
-    location.hash = '#/';
+    location.replace('#/');
     return;
   }
   if (g.store) {
-    location.hash = `#/store/${g.store.slug}`;
+    location.replace(`#/store/${g.store.slug}`);
     return;
+  }
+  // A wizard opened for a DIFFERENT server starts fresh — stale storeId
+  // from an earlier setup would write this server's product and role into
+  // the previous server's store.
+  if (wiz.guildId !== guildId) {
+    wiz.storeId = null;
+    wiz.storeSlug = null;
+    wiz.planKey = null;
   }
   wiz.guildId = guildId;
   renderSetupStep(g, wiz.storeId ? 3 : g.botIn ? 2 : 1);
@@ -622,6 +635,15 @@ function renderSetupStep(g, step) {
 }
 
 function renderLive(g, slug) {
+  // Setup is complete — clear the wizard so a later run for another server
+  // starts from step 1 instead of inheriting this store's id.
+  wiz.storeId = null;
+  wiz.storeSlug = null;
+  wiz.planKey = null;
+  wiz.guildId = null;
+  // The history entry stops being the finished wizard: Back from the
+  // dashboard lands on the server picker, not a #/setup/<id> redirect loop.
+  history.replaceState(null, '', '#/');
   const link = `${location.origin}/${slug}`;
   wizShell(g, 4, `
     <div class="wiz-done">
@@ -1330,7 +1352,7 @@ function sectionDiscounts(discounts, products, slug) {
         <td>${d.kind === 'percent' ? `${d.amount}% off` : `${usd(d.amount)} off`}</td>
         <td class="dim">${d.planKey ? esc(products.find((p) => p.planKey === d.planKey)?.name ?? d.planKey) : 'All products'}</td>
         <td class="num">${d.uses}${d.maxUses ? ` / ${d.maxUses}` : ''}</td>
-        <td class="dim">${d.expiresAt ? fmtD(d.expiresAt) : 'Never'}</td>
+        <td class="dim">${d.expiresAt ? fmtDUtc(d.expiresAt) : 'Never'}</td>
         <td class="row-actions"><button class="btn-ghost act-revoke disc-del" data-code="${esc(d.code)}">Delete</button></td>
       </tr>`,
     )
@@ -1745,8 +1767,13 @@ function sectionSettings(store, isPlatformOwner) {
 // ── store dashboard: main view ───────────────────────────────────────────────
 
 async function viewStore(slug) {
+  // Stale-render guard: only the LATEST navigation may commit its render.
+  // Without it a slow section fetch resolves after the user has switched
+  // sections and overwrites the view they are looking at.
+  const seq = (viewStore.seq = (viewStore.seq ?? 0) + 1);
   $('#content').innerHTML = '<div class="skeleton-list" style="margin-top:18px" aria-hidden="true"><div class="panel sk-row"></div><div class="panel sk-row"></div></div>';
   const data = await loadPayments(slug);
+  if (seq !== viewStore.seq) return; // a newer navigation owns the view now
   if (!data) {
     $('#content').innerHTML = `
       <div class="picker-wrap"><section class="picker-card panel">
@@ -1901,6 +1928,7 @@ async function viewStore(slug) {
       `<a class="side-item${k === section ? ' active' : ''}" href="#/store/${esc(slug)}/${k}" ${k === section ? 'aria-current="page"' : ''}>${I[ic]}<span>${lbl}</span></a>`,
   ).join('');
 
+  if (seq !== viewStore.seq) return; // section fetches raced a newer navigation
   $('#content').innerHTML = `
     <div class="appshell"${dashAccent ? ` style="--accent:${dashAccent}"` : ''}>
       <aside class="sidebar">
@@ -2246,7 +2274,11 @@ function wireProducts(store, slug, products) {
     // A product that grants nothing sells nothing — require the role
     // whenever the list actually loaded (if it didn't, the product can
     // still be saved and the role attached once the bot is in the server).
-    if (!roleId && rolesLoaded === true) return fieldErr('prod', 'Pick the role this product gives.');
+    // An EXISTING product keeps its current role when none is picked — the
+    // select can't preselect a role that became unusable (bot dragged below
+    // it), and that must not block editing every other field.
+    const keepsRole = editing && products.find((x) => x.planKey === editing)?.roleIds?.length;
+    if (!roleId && rolesLoaded === true && !keepsRole) return fieldErr('prod', 'Pick the role this product gives.');
     const btn = $('#pe-save');
     btn.disabled = true;
     btn.textContent = 'Saving…';
@@ -2259,11 +2291,23 @@ function wireProducts(store, slug, products) {
         planKey = out.plan.planKey;
         // From here on a retry must EDIT this product, never create a twin.
         editing = planKey;
-        // apply the optional extras the create step doesn't take
-        await api('/api/onboard', {
-          step: 'product-update', storeId: store.id, planKey,
-          purchaseLimit: fields.purchaseLimit, successUrl: fields.successUrl, linkSlug: fields.linkSlug,
-        }).catch(() => {});
+        // apply the optional extras the create step doesn't take — a
+        // rejection here must SURFACE (the product exists; the form stays
+        // open in edit mode so the owner fixes the field and saves again),
+        // never silently discard what was typed.
+        if (fields.purchaseLimit !== undefined || fields.successUrl || fields.linkSlug) {
+          try {
+            await api('/api/onboard', {
+              step: 'product-update', storeId: store.id, planKey,
+              purchaseLimit: fields.purchaseLimit, successUrl: fields.successUrl, linkSlug: fields.linkSlug,
+            });
+          } catch (err) {
+            state.products = null;
+            state.data = null;
+            fieldErr('prod', `Product created, but not everything saved: ${err.message} Fix the field and Save again.`);
+            throw { handled: true };
+          }
+        }
       }
       // The product EXISTS now — drop the caches immediately so the next
       // Products render shows it even if the role attach below fails.

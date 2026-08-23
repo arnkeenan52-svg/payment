@@ -91,8 +91,8 @@ function renderAccount() {
     return;
   }
   const entitled = (me.subscriptions ?? []).filter((s) => s.entitled);
-  const badge = entitled.length ? `<span class="badge">${entitled.map((s) => s.planName).join(' · ')}</span>` : '';
-  const links = `<a class="nav-link" href="/account">Account</a>${me.isOwner ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}`;
+  const badge = entitled.length ? `<span class="badge">${entitled.map((s) => esc(s.planName)).join(' · ')}</span>` : '';
+  const links = `<a class="nav-link" href="/account">Account</a>${me.isOwner || me.seller ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}`;
   el.innerHTML = `${badge}${links}<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }

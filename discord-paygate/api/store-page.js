@@ -90,7 +90,9 @@ export default guard(async (req, res) => {
     console.error(`[store-page] template unreadable: ${err.message}`);
     return sendText(res, 500, 'internal error');
   }
-  if (head) html = html.replace(/<!-- og:begin[\s\S]*?<!-- og:end -->/, head);
+  // Replacement is a function so $-patterns in seller text stay literal —
+  // a description like "Win $$$ daily" must not corrupt the served head.
+  if (head) html = html.replace(/<!-- og:begin[\s\S]*?<!-- og:end -->/, () => head);
   if (themeStyle) html = html.replace('</head>', `${themeStyle}\n</head>`);
   res.writeHead(200, {
     'content-type': 'text/html; charset=utf-8',

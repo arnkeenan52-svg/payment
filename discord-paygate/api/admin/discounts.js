@@ -67,7 +67,13 @@ export default guard(async function handler(req, res) {
         sendJson(res, 400, { error: 'Usage limit must be a whole number of at least 1.' });
         return;
       }
-      const expiresAt = body.expiresAt ? Math.floor(new Date(body.expiresAt).getTime() / 1000) : null;
+      // A date-only value from the form means "valid through that day" in
+      // the owner's intent — pin it to end-of-day UTC so the code neither
+      // dies the evening before (west of UTC) nor lists back a different day.
+      const rawExpiry = String(body.expiresAt ?? '');
+      const expiresAt = body.expiresAt
+        ? Math.floor(new Date(/^\d{4}-\d{2}-\d{2}$/.test(rawExpiry) ? `${rawExpiry}T23:59:59Z` : rawExpiry).getTime() / 1000)
+        : null;
       if (expiresAt !== null && !(expiresAt > Math.floor(Date.now() / 1000))) {
         sendJson(res, 400, { error: 'The expiry must be in the future.' });
         return;

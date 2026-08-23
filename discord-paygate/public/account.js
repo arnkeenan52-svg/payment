@@ -36,7 +36,7 @@ function subCard(sub) {
         <h2>${esc(sub.planName)}</h2>
         ${statusChip(sub)}
       </div>
-      <div class="kv"><span>Server</span><span>${esc(server?.name ?? 'Discord server')}</span></div>
+      <div class="kv"><span>Server</span><span>${esc(sub.storeName ?? server?.name ?? 'Discord server')}</span></div>
       <div class="kv"><span>Purchased</span><span>${fmtDate(sub.createdAt)}</span></div>
       ${roles}
       <p class="note-help">${expiry}</p>
@@ -102,7 +102,7 @@ async function load() {
 
   const account = $('#account');
   if (me.loggedIn) {
-    account.innerHTML = `${me.isOwner ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
+    account.innerHTML = `${me.isOwner || me.seller ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
     $('#logout').onclick = () => (window.location.href = '/auth/logout');
   } else {
     account.innerHTML = '';
