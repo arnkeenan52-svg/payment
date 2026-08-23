@@ -21,7 +21,7 @@ function subCard(sub) {
       : sub.entitled
         ? `Renews ${fmtDate(sub.graceUntil ?? sub.currentPeriodEnd)}`
         : `Ended ${sub.currentPeriodEnd ? fmtDate(sub.currentPeriodEnd) : ''}`;
-  const roles = sub.roleNames?.length ? `<div class="kv"><span>Discord role</span><span>${esc(sub.roleNames.join(', '))}</span></div>` : '';
+  const roles = sub.roleNames?.length ? `<div class="kv"><span>Discord role</span><span>${esc(sub.roleNames.map((r) => `@${String(r ?? '').replace(/^@+/, '')}`).join(', '))}</span></div>` : '';
   // Cancelling is the buyer's own to do. Hiding it behind "email the owner"
   // is how you end up with chargebacks instead of cancellations.
   const cancel = sub.cancellable

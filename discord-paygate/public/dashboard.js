@@ -4,6 +4,9 @@
 // hash-routed (#/ picker, #/setup/<guildId> wizard, #/store/<slug>/<section>).
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Discord roles display as @Name exactly once — a role literally named
+// "@PREMIUM" must not render as "@@PREMIUM". Stored names stay verbatim.
+const roleLabel = (r) => `@${String(r ?? '').replace(/^@+/, '')}`;
 const usd = (n) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtDT = (unix) =>
   new Date(unix * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
@@ -1274,7 +1277,7 @@ function sectionProducts(products, data, slug) {
     .map(
       (p) => `<tr data-plan="${esc(p.planKey)}">
         <td class="prod-cell">${p.imageUrl ? `<img class="prod-thumb" src="${esc(p.imageUrl)}" alt="" width="30" height="30" />` : '<span class="prod-thumb prod-thumb-empty"></span>'}
-          <span><strong>${esc(p.name)}</strong><span class="dim prod-roles"> ${esc((p.roleNames ?? []).join(', '))}</span></span></td>
+          <span><strong>${esc(p.name)}</strong><span class="dim prod-roles"> ${esc((p.roleNames ?? []).map(roleLabel).join(', '))}</span></span></td>
         <td class="num">${usd(p.priceUsd)}</td>
         <td class="dim">${billingLabel(p)}</td>
         <td class="num">${(membersBy.get(p.planKey) ?? new Set()).size}</td>
@@ -1500,7 +1503,7 @@ function appearanceBody(store) {
 }
 
 function sectionStore(store, link) {
-  const linkRow = `<div class="share-row"><code class="share-link">${esc(link)}</code><button class="btn-secondary" id="copy-link">${I.copy} Copy</button></div>`;
+  const linkRow = `<div class="share-row"><code class="share-link">${esc(link)}</code><button class="btn-secondary" id="copy-link">${I.copy} Copy</button><a class="btn-secondary st-open" href="${esc(link)}" target="_blank" rel="noopener">${I.external} Open</a></div>`;
   if (store.isDefault) {
     return `
       <h2 class="sec-title">Store</h2>
@@ -1512,10 +1515,35 @@ function sectionStore(store, link) {
       })}
       </div>`;
   }
+  const live = store.status === 'live';
+  // The section is long; a jump row up top keeps it navigable, and the
+  // store's link — the thing owners come here for — is the first card.
+  const subnav = `<nav class="st-subnav" aria-label="Store settings sections">${[
+    ['st-card-link', 'Store link'],
+    ['st-card-page', 'Store page'],
+    ['st-card-theme', 'Appearance'],
+    ['st-card-discover', 'Discover'],
+  ].map(([id, l]) => `<button type="button" class="st-subnav-btn" data-target="${id}">${l}</button>`).join('')}</nav>`;
   return `
     <h2 class="sec-title">Store</h2>
+    ${subnav}
     <div class="settings-stack">
     ${setCard({
+      id: 'st-card-link',
+      title: 'Store link',
+      sub: 'One page with everything you sell — share it anywhere.',
+      body: `
+        <span class="st-status ${live ? 'live' : 'draft'}"><span class="st-dot"></span>${live ? 'Live — taking payments' : 'Draft — not public yet'}</span>
+        ${linkRow}
+        <p class="field-help st-products-note">Every product also has its own link — copy it with the Link button on <a href="#/store/${esc(store.slug)}/products">Products</a>.</p>
+        <label class="field"><span class="field-label">Custom link</span>
+          <div class="slug-row"><span class="slug-prefix">${esc(location.origin)}/</span><input id="st-slug" type="text" maxlength="40" value="${esc(store.slug)}" spellcheck="false" /></div>
+          <span class="field-help">Changing the link breaks the old one immediately.</span></label>
+        <p class="field-err" id="err-slug" role="alert"></p>`,
+      foot: `<button class="btn-secondary" id="st-slug-save">Update link</button>`,
+    })}
+    ${setCard({
+      id: 'st-card-page',
       title: 'Store page',
       sub: 'What buyers see at the top of your store.',
       body: `
@@ -1540,6 +1568,7 @@ function sectionStore(store, link) {
       foot: `<button class="btn-pill" id="st-save">Save changes</button>`,
     })}
     ${setCard({
+      id: 'st-card-theme',
       title: 'Appearance',
       sub: 'Make the store yours — colors, corners and type. Buyers see it instantly.',
       body: appearanceBody(store),
@@ -1548,6 +1577,7 @@ function sectionStore(store, link) {
         <span class="note-help" id="th-note" role="status"></span></span>`,
     })}
     ${setCard({
+      id: 'st-card-discover',
       title: 'Discover listing',
       sub: 'Put your store on ripleybot.com/discover — the public directory of communities. Off by default; entirely your call.',
       body: `
@@ -1562,17 +1592,6 @@ function sectionStore(store, link) {
           </select></label>
         <p class="field-err" id="err-disc" role="alert"></p>`,
       foot: `<button class="btn-secondary" id="dv-save">Save listing</button>`,
-    })}
-    ${setCard({
-      title: 'Store link',
-      sub: `${store.status === 'live' ? 'Live and taking payments.' : 'Draft. Finish setup to go live.'}`,
-      body: `
-        ${linkRow}
-        <label class="field"><span class="field-label">Custom link</span>
-          <div class="slug-row"><span class="slug-prefix">${esc(location.origin)}/</span><input id="st-slug" type="text" maxlength="40" value="${esc(store.slug)}" spellcheck="false" /></div>
-          <span class="field-help">Changing the link breaks the old one immediately.</span></label>
-        <p class="field-err" id="err-slug" role="alert"></p>`,
-      foot: `<button class="btn-secondary" id="st-slug-save">Update link</button>`,
     })}
     </div>`;
 }
@@ -2028,8 +2047,8 @@ function wireProducts(store, slug, products) {
       data.roles
         .map((r) =>
           r.usable
-            ? `<option value="${esc(r.id)}">@${esc(r.name)}</option>`
-            : `<option value="" disabled>@${esc(r.name)} — ${esc(r.reason ?? 'unavailable')}</option>`,
+            ? `<option value="${esc(r.id)}">${esc(roleLabel(r.name))}</option>`
+            : `<option value="" disabled>${esc(roleLabel(r.name))} — ${esc(r.reason ?? 'unavailable')}</option>`,
         )
         .join('');
     if (selectedId && data.roles.some((r) => r.id === selectedId && r.usable)) sel.value = selectedId;
@@ -2374,6 +2393,11 @@ function wireDiscovery(store, slug) {
 }
 
 function wireStoreSettings(store, slug) {
+  // Jump row: buttons, not anchors — a #fragment href would fight the
+  // hash router.
+  document.querySelectorAll('.st-subnav-btn').forEach((b) => {
+    b.onclick = () => document.getElementById(b.dataset.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   $('#st-save').onclick = async () => {
     const btn = $('#st-save');
     fieldErr('store', '');
