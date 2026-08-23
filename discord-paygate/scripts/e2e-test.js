@@ -715,7 +715,7 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   const diagBody = await diagPage.text();
   assert.doesNotMatch(diagBody, /Setup diagnostics/, 'the diagnostics tool must be gone');
   assert.match(diagBody, /Confirm Order/, 'unclaimed slugs serve the storefront shell');
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'imageUrl', 'interval', 'lifetime', 'name', 'priceUsd', 'roleNames']);
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'name', 'priceUsd', 'roleNames']);
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
@@ -2491,7 +2491,7 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal(list0.products.length, 1);
   const vip = list0.products[0];
   assert.ok(vip.buyers >= 10, `buyers counted (got ${vip.buyers})`);
-  assert.match(vip.checkoutUrl, /\.e2e\/vip-signals\?plan=/, 'checkout links use the root store URL');
+  assert.match(vip.checkoutUrl, new RegExp(`\\.e2e/vip-signals/${vip.planKey}$`), 'checkout links use the per-product URL');
 
   // Deactivate → hidden from buyers and refused at checkout; reactivate heals.
   assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, active: false })).status, 200);
@@ -2627,6 +2627,19 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal((await disc({ action: 'delete', code: 'FIVER' })).status, 200);
   assert.equal((await (await disc({ action: 'list' })).json()).discounts.length, 1);
 
+  // ── product links: each product owns a URL under the store ────────────────
+  const upd = (body) => call(u7Cookie, '/api/onboard', { step: 'product-update', storeId, ...body });
+  assert.equal((await upd({ planKey: vip.planKey, linkSlug: 'VIP!' })).status, 400, 'link segments are validated');
+  assert.equal((await upd({ planKey: vip.planKey, linkSlug: 'vip' })).status, 200);
+  assert.equal((await upd({ planKey: plan2.planKey, linkSlug: 'vip' })).status, 409, 'taken segments are refused');
+  const withLinks = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  assert.equal(withLinks.plans.find((p) => p.id === vip.planKey).linkSlug, 'vip', 'the segment rides the public payload');
+  const prodPage = await (await fetch(`${appUrl}/vip-signals/vip`)).text();
+  assert.match(prodPage, /VIP Access — /, 'the product link serves its own page with product link-preview tags');
+  const prods = (await (await call(u7Cookie, '/api/onboard', { step: 'products', storeId })).json()).products;
+  assert.match(prods.find((p) => p.planKey === vip.planKey).checkoutUrl, /\/vip-signals\/vip$/, 'the dashboard copies the pretty link');
+  assert.equal((await upd({ planKey: vip.planKey, linkSlug: '' })).status, 200, 'blank returns the link to the plan key');
+
   // ── member extend (monthly manual grant) ──────────────────────────────────
   const U9 = '509900000000000009';
   assert.equal((await call(u7Cookie, '/api/admin/member', { store: 'vip-signals', action: 'grant', discordId: U9, planId: plan2.planKey })).status, 200);
@@ -2684,6 +2697,8 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   assert.match(page, /Ripley Membership — Demo Store/);
   assert.match(page, /store-theme/, 'the demo ships its theme in the head');
   assert.match(page, /id="shop"/, 'the storefront carries the shop view');
+  const demoProd = await (await fetch(`${appUrl}/demo/vip-access`)).text();
+  assert.match(demoProd, /VIP Access — Ripley Membership/, 'demo product links carry product previews');
   // /store/<slug> is the same overall URL, everywhere.
   const red = await fetch(`${appUrl}/store/demo`, { redirect: 'manual' });
   assert.equal(red.status, 308);

@@ -8,7 +8,7 @@ import path from 'node:path';
 import { guard, sendText } from '../src/lib/http.js';
 import { config } from '../src/config.js';
 import { storeBySlug, sellablePlansOf } from '../src/services/stores.js';
-import { DEMO_SLUG, DEMO_NAME, DEMO_THEME } from '../src/services/demo-store.js';
+import { DEMO_SLUG, DEMO_NAME, DEMO_THEME, demoPlans } from '../src/services/demo-store.js';
 import { validateTheme, themeCss } from '../src/lib/theme.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -16,9 +16,12 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 let template = null;
 const load = () => (template ??= fs.readFileSync(path.join(config.root, 'public', 'store.html'), 'utf8'));
 
+const matchPlan = (plans, seg) => plans.find((p) => (p.linkSlug ?? p.id ?? p.planKey) === seg || p.id === seg || p.planKey === seg);
+
 export default guard(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const slug = (url.searchParams.get('store') ?? '').toLowerCase();
+  const productSeg = (url.searchParams.get('product') ?? '').toLowerCase() || null;
   let head = null;
   let themeStyle = '';
   if (slug === DEMO_SLUG) {
@@ -26,8 +29,11 @@ export default guard(async (req, res) => {
     try {
       themeStyle = `\n  <style id="store-theme">${themeCss(validateTheme(DEMO_THEME))}</style>`;
     } catch { /* the default look, then */ }
-    const title = `${DEMO_NAME} — Demo Store`;
-    const desc = 'Walk a live Ripley checkout — themed store page, products and discounts. Nothing here is for sale.';
+    const demoPlan = productSeg ? matchPlan(demoPlans(), productSeg) : null;
+    const title = demoPlan ? `${demoPlan.name} — ${DEMO_NAME}` : `${DEMO_NAME} — Demo Store`;
+    const desc = demoPlan
+      ? `${demoPlan.description} $${demoPlan.priceUsd.toFixed(2)}${demoPlan.lifetime ? ' · lifetime' : '/month'} — a Ripley demo product.`
+      : 'Walk a live Ripley checkout — themed store page, products and discounts. Nothing here is for sale.';
     const image = `${config.publicBaseUrl}/shot-store.png`;
     head = `<title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />
@@ -53,21 +59,24 @@ export default guard(async (req, res) => {
         /* an unusable stored theme renders the default look */
       }
       const plans = await sellablePlansOf(store).catch(() => []);
-      // The preview image is the store's own product photo when there is one
+      const linkedPlan = productSeg ? matchPlan(plans, productSeg) : null;
+      // The preview image is the product's own photo when there is one
       // (uploads serve from /api/img over https); the platform shot otherwise.
-      const productImg = plans.map((p) => p.imageUrl).find((u) => typeof u === 'string' && u.startsWith('https://'));
+      const productImg = (linkedPlan ? [linkedPlan.imageUrl] : plans.map((p) => p.imageUrl))
+        .find((u) => typeof u === 'string' && u.startsWith('https://'));
       const image = productImg ?? `${config.publicBaseUrl}/shot-store.png`;
-      const title = `${store.name} — Membership`;
-      const desc =
-        (store.description ?? '').trim() ||
-        `Join ${store.name} — pay securely with Stripe, your Discord role arrives in seconds.`;
+      const title = linkedPlan ? `${linkedPlan.name} — ${store.name}` : `${store.name} — Membership`;
+      const desc = linkedPlan
+        ? `${(linkedPlan.description ?? '').trim() || `Join ${store.name}.`} $${linkedPlan.priceUsd.toFixed(2)}${linkedPlan.lifetime ? ' · lifetime' : '/month'} — roles delivered in seconds.`
+        : (store.description ?? '').trim() ||
+          `Join ${store.name} — pay securely with Stripe, your Discord role arrives in seconds.`;
       head = `<title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
   <meta property="og:image" content="${esc(image)}" />
-  <meta property="og:url" content="${esc(`${config.publicBaseUrl}/${store.slug}`)}" />
+  <meta property="og:url" content="${esc(`${config.publicBaseUrl}/${store.slug}${linkedPlan ? `/${productSeg}` : ''}`)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(desc)}" />

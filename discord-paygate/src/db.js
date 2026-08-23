@@ -243,6 +243,8 @@ function db() {
       // known keys), and the opt-in live member-count badge.
       await driver.exec('ALTER TABLE stores ADD COLUMN about TEXT').catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN links TEXT').catch(() => {});
+      // Per-product custom link segment: ripleybot.com/<store>/<link>.
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN link_slug TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE stores ADD COLUMN show_members ${intType}`).catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE stores ADD COLUMN discoverable ${intType} NOT NULL DEFAULT 0`).catch(() => {});
@@ -594,6 +596,7 @@ const planRow = (r) =>
         active: r.active === null || r.active === undefined ? true : Number(r.active) === 1,
         purchaseLimit: r.purchase_limit === null || r.purchase_limit === undefined ? null : Number(r.purchase_limit),
         successUrl: r.success_url ?? null,
+        linkSlug: r.link_slug ?? null,
         hasImageData: Boolean(r.image_data), // the data URL itself never rides list payloads
         createdAt: r.created_at === null || r.created_at === undefined ? null : Number(r.created_at),
       }
@@ -622,6 +625,7 @@ export async function updateStorePlan(storeId, planKey, fields) {
     purchaseLimit: 'purchase_limit',
     successUrl: 'success_url',
     imageData: 'image_data',
+    linkSlug: 'link_slug',
   };
   const sets = [];
   const params = [];

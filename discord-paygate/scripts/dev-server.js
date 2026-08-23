@@ -173,6 +173,14 @@ const server = http.createServer(async (req, res) => {
         await storePage(req, res);
         return;
       }
+      // Product links: ripleybot.com/<store>/<product> (vercel.json's
+      // two-segment rewrite).
+      let pm;
+      if ((pm = url.pathname.match(/^\/([a-z0-9-]+)\/([a-z0-9-]+)$/))) {
+        req.url = `/api/store-page?store=${pm[1]}&product=${pm[2]}`;
+        await storePage(req, res);
+        return;
+      }
     }
     sendText(res, 404, 'not found');
   } catch (err) {

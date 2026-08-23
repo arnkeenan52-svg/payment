@@ -2,9 +2,13 @@ const $ = (sel) => document.querySelector(sel);
 // Which store this page shows: /<slug> (or legacy /s/<slug>). Every store —
 // the platform's own included — lives at its unique slug; there is no
 // special path that belongs to any store.
-const STORE_SLUG =
-  (location.pathname.match(/^\/s\/([a-z0-9-]+)$/) ?? [])[1] ??
-  ((location.pathname.match(/^\/([a-z0-9-]+)$/) ?? [])[1] ?? '');
+const PATH_MATCH =
+  location.pathname.match(/^\/s\/([a-z0-9-]+)$/) ??
+  location.pathname.match(/^\/([a-z0-9-]+)\/([a-z0-9-]+)$/) ??
+  location.pathname.match(/^\/([a-z0-9-]+)$/);
+const STORE_SLUG = PATH_MATCH?.[1] ?? '';
+// Product links: /<store>/<product> — resolved against linkSlug or plan key.
+const PRODUCT_SLUG = location.pathname.startsWith('/s/') ? null : PATH_MATCH?.[2] ?? null;
 const storeQS = STORE_SLUG ? `?store=${encodeURIComponent(STORE_SLUG)}` : '';
 const loginStoreQ = STORE_SLUG ? `&store=${encodeURIComponent(STORE_SLUG)}` : '';
 
@@ -136,7 +140,9 @@ function renderBrand() {
   if (state.server?.name) {
     nameEl.textContent = state.server.name;
     nameEl.hidden = false;
-    document.title = `${state.server.name} — Checkout`;
+    // Match the server-rendered product page title, so the tab (and history
+    // entries) name the product being bought, not a generic "Checkout".
+    document.title = `${plan.name} — ${state.server.name}`;
   } else {
     nameEl.hidden = true;
   }
@@ -469,6 +475,9 @@ function render() {
 
 // ── shop view: the store's overall page, every product as a card ─────────────
 function renderShop() {
+  // Restore the store-level title (a product page may have set its own).
+  if (state.server?.name)
+    document.title = `${state.server.name} — ${state.capabilities?.demo ? 'Demo Store' : 'Membership'}`;
   const banner = $('#shop-banner');
   if (state.store?.bannerUrl) {
     banner.src = state.store.bannerUrl;
@@ -541,24 +550,31 @@ function renderShop() {
   }
 }
 
+// Every product owns a link: /<store>/<linkSlug or plan key>.
+const productPath = (plan) => `/${STORE_SLUG}/${encodeURIComponent(plan.linkSlug ?? plan.id)}`;
+
 function openCheckout(planId) {
+  const plan = state.plans.find((p) => p.id === planId);
   state.planId = planId;
   state.view = 'checkout';
-  history.pushState({ plan: planId }, '', `${window.location.pathname}?plan=${encodeURIComponent(planId)}`);
+  history.pushState({ plan: planId }, '', plan ? productPath(plan) : `/${STORE_SLUG}?plan=${encodeURIComponent(planId)}`);
   render();
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function openShop() {
   state.view = 'shop';
-  history.pushState({}, '', window.location.pathname);
+  history.pushState({}, '', `/${STORE_SLUG}`);
   render();
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
-// The browser's back button walks between shop and checkout naturally.
+// The browser's back button walks between shop, checkout and product links.
 addEventListener('popstate', () => {
-  const plan = new URLSearchParams(window.location.search).get('plan');
+  const seg = (location.pathname.match(/^\/[a-z0-9-]+\/([a-z0-9-]+)$/) ?? [])[1] ?? null;
+  const plan =
+    new URLSearchParams(window.location.search).get('plan') ??
+    (seg ? (state.plans.find((p) => (p.linkSlug ?? p.id) === seg || p.id === seg)?.id ?? null) : null);
   if (plan && state.plans.some((p) => p.id === plan)) {
     state.planId = plan;
     state.view = 'checkout';
@@ -594,7 +610,9 @@ async function main() {
   // scrolled to the pay button, instead of the top of the page.
   const search = new URLSearchParams(window.location.search);
   const requested = search.get('plan');
-  const requestedPlan = state.plans.find((p) => p.id === requested);
+  const requestedPlan =
+    state.plans.find((p) => p.id === requested) ??
+    (PRODUCT_SLUG ? state.plans.find((p) => (p.linkSlug ?? p.id) === PRODUCT_SLUG || p.id === PRODUCT_SLUG) : undefined);
   state.planId = requestedPlan?.id ?? state.plans[0]?.id ?? null;
   // The overall store page: multi-product stores open on the shop. A ?plan
   // deep link, a checkout return, or the dashboard preview (?view=checkout)

@@ -82,6 +82,10 @@
     {
       "source": "/:slug",
       "destination": "/api/store-page?store=:slug"
+    },
+    {
+      "source": "/:slug/:product",
+      "destination": "/api/store-page?store=:slug&product=:product"
     }
   ],
   "functions": {

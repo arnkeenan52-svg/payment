@@ -159,6 +159,7 @@ export async function plansOf(store) {
     active: p.active,
     purchaseLimit: p.purchaseLimit,
     successUrl: p.successUrl,
+    linkSlug: p.linkSlug ?? null,
     createdAt: p.createdAt,
   }));
 }

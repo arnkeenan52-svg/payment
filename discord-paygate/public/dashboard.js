@@ -1254,6 +1254,8 @@ function productEditorFields(p = {}) {
       </div>
       <span class="field-help">Or paste a link:</span>
       <input class="pe-img" type="url" value="${esc(p.imageUrl ?? '')}" placeholder="https://…  (optional)" spellcheck="false" /></div>
+    <label class="field"><span class="field-label">Product link</span>
+      <input class="pe-link" type="text" maxlength="40" value="${esc(p.linkSlug ?? '')}" placeholder="${esc(p.planKey ?? 'vip')}  (its own URL: /your-store/this)" spellcheck="false" autocapitalize="off" /></label>
     <label class="field"><span class="field-label">Success URL</span>
       <input class="pe-success" type="url" value="${esc(p.successUrl ?? '')}" placeholder="https://…  (optional — where buyers land after paying)" spellcheck="false" /></label>`;
 }
@@ -2046,6 +2048,10 @@ function wireProducts(store, slug, products) {
     form.querySelector('.pe-limit').value = p?.purchaseLimit ?? '';
     form.querySelector('.pe-img').value = p?.imageUrl ?? '';
     form.querySelector('.pe-success').value = p?.successUrl ?? '';
+    const linkField = form.querySelector('.pe-link');
+    linkField.value = p?.linkSlug ?? '';
+    // The placeholder doubles as the default: this product's own plan key.
+    linkField.placeholder = `${p?.planKey ?? 'vip'}  (its own URL: /your-store/this)`;
     fillRoles(p?.roleIds?.[0]);
     // photo picker state: undefined = untouched, string = new upload, null = removed
     photoPick = undefined;
@@ -2094,6 +2100,7 @@ function wireProducts(store, slug, products) {
       imageUrl: form.querySelector('.pe-img').value.trim(),
       ...(photoPick !== undefined ? { imageData: photoPick } : {}),
       successUrl: form.querySelector('.pe-success').value.trim(),
+      linkSlug: form.querySelector('.pe-link').value.trim().toLowerCase(),
       priceUsd: parsePrice(form.querySelector('.pe-price').value),
       lifetime: form.querySelector('.pe-billing').value === 'lifetime',
       purchaseLimit: form.querySelector('.pe-limit').value.trim() || null,
@@ -2120,7 +2127,7 @@ function wireProducts(store, slug, products) {
         // apply the optional extras the create step doesn't take
         await api('/api/onboard', {
           step: 'product-update', storeId: store.id, planKey,
-          purchaseLimit: fields.purchaseLimit, successUrl: fields.successUrl,
+          purchaseLimit: fields.purchaseLimit, successUrl: fields.successUrl, linkSlug: fields.linkSlug,
         }).catch(() => {});
       }
       // The product EXISTS now — drop the caches immediately so the next

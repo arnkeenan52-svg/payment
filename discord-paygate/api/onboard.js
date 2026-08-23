@@ -274,7 +274,7 @@ export default guard(async function handler(req, res) {
       const plans = await db.storePlansFor(row.id);
       const out = [];
       for (const p of plans) {
-        out.push({ ...p, buyers: await db.countBuyersOfPlan(row.id, p.planKey), checkoutUrl: `${config.publicBaseUrl}/${row.slug}?plan=${encodeURIComponent(p.planKey)}` });
+        out.push({ ...p, buyers: await db.countBuyersOfPlan(row.id, p.planKey), checkoutUrl: `${config.publicBaseUrl}/${row.slug}/${encodeURIComponent(p.linkSlug ?? p.planKey)}` });
       }
       return sendJson(res, 200, { products: out, storeSlug: row.slug });
     }
@@ -325,6 +325,22 @@ export default guard(async function handler(req, res) {
         fields.purchaseLimit = n;
       }
       if (body.active !== undefined) fields.active = Boolean(body.active);
+      // The product's own link segment: ripleybot.com/<store>/<this>. Blank
+      // falls back to the plan key; taken segments are refused.
+      if (body.linkSlug !== undefined) {
+        const raw = String(body.linkSlug ?? '').trim().toLowerCase();
+        if (!raw) {
+          fields.linkSlug = null;
+        } else {
+          if (!/^[a-z0-9-]{2,40}$/.test(raw)) {
+            return sendJson(res, 400, { error: 'Product links use 2–40 lowercase letters, numbers and dashes.' });
+          }
+          const siblings = await db.storePlansFor(row.id);
+          const clash = siblings.some((p) => p.planKey !== planKey && ((p.linkSlug ?? p.planKey) === raw || p.planKey === raw));
+          if (clash) return sendJson(res, 409, { error: 'Another product in this store already uses that link.' });
+          fields.linkSlug = raw;
+        }
+      }
       if (body.priceUsd !== undefined) {
         const priceUsd = Math.round(Number(body.priceUsd) * 100) / 100;
         if (!Number.isFinite(priceUsd) || priceUsd < 1 || priceUsd > 10000) {
