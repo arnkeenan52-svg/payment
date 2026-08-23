@@ -66,7 +66,7 @@ export default guard(async function handler(req, res) {
       storeName: store.name,
       planId: s.plan_id,
       planName: plan?.name ?? s.plan_id,
-      amountUsd: plan?.priceUsd ?? 0,
+      amountUsd: s.paid_usd !== null && s.paid_usd !== undefined ? Number(s.paid_usd) : plan?.priceUsd ?? 0,
       provider: s.provider,
       status: s.status,
       entitled: isEntitled(s),

@@ -50,6 +50,9 @@ export async function processStripeEvent(event, routeStore = null) {
         const { incrementDiscountUse } = await import('../db.js');
         await incrementDiscountUse(store.id, obj.metadata.discount_code).catch(() => {});
       }
+      // What Stripe actually charged (discounts included). The plan's list
+      // price is only a fallback for events without an amount.
+      const paidUsd = typeof obj.amount_total === 'number' ? obj.amount_total / 100 : null;
       // Sale ping to the owner's chosen channel (best-effort): every order
       // posts an embed the moment the grant lands.
       const notifySale = async () => {
@@ -57,7 +60,7 @@ export async function processStripeEvent(event, routeStore = null) {
         const plan = await planOf(store, planId);
         const user = await getUser(discordId).catch(() => null);
         const buyer = user?.username ? `@${user.username}` : `<@${discordId}>`;
-        const amount = plan?.priceUsd ?? (obj.amount_total ?? 0) / 100;
+        const amount = paidUsd ?? plan?.priceUsd ?? 0;
         await postChannelMessage(store.notifyChannelId, {
           embeds: [{
             title: '🎉 New Subscriber!',
@@ -81,7 +84,7 @@ export async function processStripeEvent(event, routeStore = null) {
           to,
           storeName: store?.name ?? config.brand,
           planName: plan?.name ?? planId,
-          amountUsd: plan?.priceUsd ?? (obj.amount_total ?? 0) / 100,
+          amountUsd: paidUsd ?? plan?.priceUsd ?? 0,
           lifetime: Boolean(plan?.lifetime),
           discordUsername: user?.username ?? null,
           reference: obj.id,
@@ -98,6 +101,7 @@ export async function processStripeEvent(event, routeStore = null) {
           providerRef: obj.subscription,
           periodEnd: subscriptionPeriodEnd(sub),
           store,
+          paidUsd,
         });
         await emailReceipt();
         await notifySale();
@@ -111,6 +115,7 @@ export async function processStripeEvent(event, routeStore = null) {
           providerRef: obj.payment_intent ?? obj.id,
           periodEnd: null,
           store,
+          paidUsd,
         });
         await emailReceipt();
         await notifySale();

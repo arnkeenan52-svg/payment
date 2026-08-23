@@ -2598,16 +2598,29 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   await deliverStripe({
     id: 'evt_disc_1',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_disc_1', mode: 'payment', client_reference_id: '509900000000000009', metadata: { plan_id: vip.planKey, discord_id: '509900000000000009', store_id: String(storeId), discount_code: 'LAUNCH20' } } },
+    // Stripe reports what was actually charged: $59.99 less LAUNCH20 (20%).
+    data: { object: { id: 'cs_disc_1', mode: 'payment', amount_total: 4799, client_reference_id: '509900000000000009', customer_details: { email: 'buyer9@e2e.test' }, metadata: { plan_id: vip.planKey, discord_id: '509900000000000009', store_id: String(storeId), discount_code: 'LAUNCH20' } } },
   });
   const discs = (await (await disc({ action: 'list' })).json()).discounts;
   assert.equal(discs.find((d) => d.code === 'LAUNCH20').uses, 1, 'the webhook counts discount uses');
-  // The completed order also pinged the configured sales channel.
+  // The completed order also pinged the configured sales channel — with the
+  // amount the buyer PAID, not the plan's list price.
   const salePost = discord.channelPosts.at(-1);
   assert.equal(salePost.channelId, '800000000000000002');
   assert.match(salePost.body.embeds[0].title, /New Subscriber/, 'every order posts to the sales channel');
   assert.match(salePost.body.embeds[0].description, /just subscribed to \*\*VIP Access\*\*/, 'the ping names the product');
-  assert.match(salePost.body.embeds[0].description, /Payment received: \*\*\$59\.99\*\*/, 'the ping carries the amount');
+  assert.match(salePost.body.embeds[0].description, /Payment received: \*\*\$47\.99\*\*/, 'the ping carries the discounted charge, not the list price');
+  // The emailed receipt shows the same real amount.
+  const discReceipt = resend.emails.at(-1);
+  assert.ok(discReceipt, 'a discounted order still sends a receipt');
+  assert.deepEqual(discReceipt.to, ['buyer9@e2e.test']);
+  assert.match(discReceipt.html, /\$47\.99/, 'the receipt bills the discounted charge');
+  assert.ok(!/\$59\.99/.test(discReceipt.html), 'the list price must not appear as the charge');
+  // And the owner dashboard's payments timeline records what was paid.
+  const payRows = (await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals`, { headers: { cookie: u7Cookie } })).json()).payments;
+  const discRow = payRows.find((p) => p.discordId === '509900000000000009' && p.planId === vip.planKey);
+  assert.ok(discRow, 'the discounted purchase appears in the payments timeline');
+  assert.equal(discRow.amountUsd, 47.99, 'the timeline shows the paid amount, not the list price');
   // FIVER is scoped to plan2 — wrong product refused, then its single use is spent.
   assert.equal((await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'FIVER' })).status, 400, 'scoped code refuses other products');
   // (owner deletes it instead of spending it — delete works)

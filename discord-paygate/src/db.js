@@ -236,6 +236,9 @@ function db() {
       // Buyer-initiated cancellation: the row stays active until this moment,
       // so /account can say "ends on …" instead of "renews on …".
       await driver.exec(`ALTER TABLE subscriptions ADD COLUMN cancels_at ${intType}`).catch(() => {});
+      // What the buyer actually paid (post-discount) — display surfaces
+      // prefer this over the plan's list price when present.
+      await driver.exec('ALTER TABLE subscriptions ADD COLUMN paid_usd REAL').catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE stores ADD COLUMN discoverable ${intType} NOT NULL DEFAULT 0`).catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN category TEXT').catch(() => {});
@@ -389,10 +392,10 @@ export async function getSubscriptionByRef(provider, providerRef) {
   return rows[0] ?? null;
 }
 
-export async function upsertSubscription({ discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil = null, storeId = null }) {
+export async function upsertSubscription({ discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil = null, storeId = null, paidUsd = null }) {
   await q(
-    `INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, current_period_end, grace_until, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, current_period_end, grace_until, paid_usd, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (provider, provider_ref) DO UPDATE SET
        store_id = excluded.store_id,
        discord_id = excluded.discord_id,
@@ -400,8 +403,9 @@ export async function upsertSubscription({ discordId, planId, provider, provider
        status = excluded.status,
        current_period_end = excluded.current_period_end,
        grace_until = excluded.grace_until,
+       paid_usd = COALESCE(excluded.paid_usd, subscriptions.paid_usd),
        updated_at = excluded.updated_at`,
-    [storeId, discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil, now(), now()],
+    [storeId, discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil, paidUsd, now(), now()],
   );
   return getSubscriptionByRef(provider, providerRef);
 }

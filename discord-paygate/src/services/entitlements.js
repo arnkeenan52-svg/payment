@@ -144,7 +144,7 @@ async function reconcileNow(discordId, store) {
 // periodEnd null/undefined on a non-lifetime plan means the provider gave us
 // nothing usable — fall back to the plan's own duration. A NULL expiry in the
 // database must mean lifetime and nothing else.
-export async function grant({ discordId, planId, provider, providerRef, periodEnd = null, store = null }) {
+export async function grant({ discordId, planId, provider, providerRef, periodEnd = null, store = null, paidUsd = null }) {
   const target = store ?? defaultStore();
   const plan = await planOf(target, planId);
   if (!plan) {
@@ -161,6 +161,7 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
     currentPeriodEnd: expiry,
     graceUntil: null,
     storeId: target?.id ?? null,
+    paidUsd,
   });
   await reconcile(discordId, target);
   return sub;
