@@ -2393,10 +2393,21 @@ function wireDiscovery(store, slug) {
 }
 
 function wireStoreSettings(store, slug) {
-  // Jump row: buttons, not anchors — a #fragment href would fight the
-  // hash router.
+  // Jump row: buttons, not anchors — a #fragment href would fight the hash
+  // router. Scroll is computed, not scrollIntoView: the global
+  // scroll-padding (sized for the home page's sticky nav) would park the
+  // card far below the top of this header-scrolls-away page. Focus moves
+  // with the jump so Tab continues from the card, and smooth motion honors
+  // reduced-motion.
+  const smoothOK = !matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('.st-subnav-btn').forEach((b) => {
-    b.onclick = () => document.getElementById(b.dataset.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    b.onclick = () => {
+      const el = document.getElementById(b.dataset.target);
+      if (!el) return;
+      el.setAttribute('tabindex', '-1');
+      el.focus({ preventScroll: true });
+      scrollTo({ top: el.getBoundingClientRect().top + scrollY - 16, behavior: smoothOK ? 'smooth' : 'instant' });
+    };
   });
   $('#st-save').onclick = async () => {
     const btn = $('#st-save');

@@ -160,7 +160,7 @@ function renderBrand() {
   if (rolesBox && chips) {
     const names = plan.roleNames ?? [];
     if (names.length) {
-      chips.innerHTML = names.map((n) => `<span class="chip">${roleLabel(n).replace(/[&<>"']/g, '')}</span>`).join('');
+      chips.innerHTML = names.map((n) => `<span class="chip">${esc(roleLabel(n))}</span>`).join('');
       rolesBox.hidden = false;
     } else rolesBox.hidden = true;
   }

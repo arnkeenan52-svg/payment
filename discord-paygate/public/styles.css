@@ -2804,13 +2804,16 @@ html.menu-open .top {
 }
 .st-subnav-btn:hover { color: var(--ink); border-color: var(--ink); }
 .st-subnav-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.set-card { scroll-margin-top: 76px; }
+.set-card:focus { outline: none; } /* jump target focus is programmatic */
 .st-status { display: inline-flex; align-items: center; gap: 8px; margin: 14px 20px 0; font-size: 12.5px; font-weight: 700; }
 .st-status .st-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 /* Live/draft is the one other place color carries meaning in the dashboard —
    the same green/amber convention as role dots. */
 .st-status.live .st-dot { background: #3fb950; box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.16); }
 .st-status.draft .st-dot { background: #d29922; box-shadow: 0 0 0 3px rgba(210, 153, 34, 0.16); }
+/* the bright dark-mode dots wash out on the light background */
+html[data-theme='light'] .st-status.live .st-dot { background: #1a7f37; box-shadow: 0 0 0 3px rgba(26, 127, 55, 0.18); }
+html[data-theme='light'] .st-status.draft .st-dot { background: #9a6700; box-shadow: 0 0 0 3px rgba(154, 103, 0, 0.18); }
 .set-card > .st-products-note { margin: 10px 20px 0; }
 .st-products-note a { color: var(--ink); }
 .share-row .st-open { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; text-decoration: none; }

@@ -23,7 +23,8 @@ function showConfirmed(plan, server) {
   $('#check-ring').classList.remove('pending');
   $('#r-heading').textContent = 'Thank you for your purchase';
   $('#r-sub').textContent = 'Payment confirmed — welcome in.';
-  const roles = plan.roleNames.length ? plan.roleNames.join(', ') : 'Your role';
+  // Same @Name-exactly-once convention as every other role render.
+  const roles = plan.roleNames.length ? plan.roleNames.map((r) => `@${String(r ?? '').replace(/^@+/, '')}`).join(', ') : 'Your role';
   const callout = $('#r-callout');
   callout.classList.remove('pending');
   callout.textContent = `${roles} was assigned automatically — your channels in ${serverLabel(server)} are unlocked.`;
