@@ -2177,13 +2177,19 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
 
 
   // The homepage's "Invite Ripley" button: a stable hop to Discord's
-  // authorize screen, bot scope + Manage Roles — same as the wizard.
+  // authorize screen, bot scope — same as the wizard.
   const inv = await fetch(`${appUrl}/api/invite`, { redirect: 'manual' });
   assert.equal(inv.status, 302);
   const invUrl = new URL(inv.headers.get('location'));
   assert.equal(invUrl.origin, 'https://discord.com');
   assert.equal(invUrl.searchParams.get('scope'), 'bot');
   assert.ok(invUrl.searchParams.get('client_id'), 'client id rides the invite link');
+  // Exact permission set, so it can't silently drift again: Manage Roles +
+  // Manage Server + Create Instant Invite (guilds.join needs it) +
+  // View/Send/Embed for sale notifications. Never Administrator (bit 3).
+  const perms = BigInt(invUrl.searchParams.get('permissions'));
+  assert.equal(perms, 268435456n + 32n + 1n + 1024n + 2048n + 16384n);
+  assert.equal(perms & 8n, 0n, 'the invite never asks for Administrator');
   const homeHtml = await (await fetch(`${appUrl}/`)).text();
   assert.match(homeHtml, /href="\/api\/invite"/, 'the hero links the invite');
   assert.match(homeHtml, /Invite Ripley/);

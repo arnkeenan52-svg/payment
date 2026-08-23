@@ -238,11 +238,12 @@ it, rather than leaving the buyer on a dead button.
    scopes — `guilds.join` is what lets the bot add a buyer to the server
    with their role already applied when they aren't a member yet.
 3. **Create the bot**: Bot tab → copy the token → `DISCORD_BOT_TOKEN`.
-4. **Invite the bot** with *Manage Roles* and *Create Instant Invite*
-   (needed by `guilds.join`):
+4. **Invite the bot** with *Manage Roles*, *Manage Server*,
+   *Create Instant Invite* (needed by `guilds.join`), and
+   *View Channels* / *Send Messages* / *Embed Links* (sale notifications):
 
    ```
-   https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&scope=bot&permissions=268435457
+   https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&scope=bot&permissions=268454945
    ```
 
 5. Copy your server id → `DISCORD_GUILD_ID` (enable Developer Mode,
