@@ -42,6 +42,7 @@ export default guard(async (req, res) => {
   <meta property="og:description" content="${esc(desc)}" />
   <meta property="og:image" content="${esc(image)}" />
   <meta property="og:url" content="${esc(`${config.publicBaseUrl}/${DEMO_SLUG}`)}" />
+  <link rel="canonical" href="${esc(`${config.publicBaseUrl}/${DEMO_SLUG}`)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(desc)}" />
@@ -77,6 +78,7 @@ export default guard(async (req, res) => {
   <meta property="og:description" content="${esc(desc)}" />
   <meta property="og:image" content="${esc(image)}" />
   <meta property="og:url" content="${esc(`${config.publicBaseUrl}/${store.slug}${linkedPlan ? `/${productSeg}` : ''}`)}" />
+  <link rel="canonical" href="${esc(`${config.publicBaseUrl}/${store.slug}${linkedPlan ? `/${productSeg}` : ''}`)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(desc)}" />

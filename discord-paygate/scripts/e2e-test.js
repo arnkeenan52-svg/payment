@@ -697,6 +697,10 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   // identity arrives via the API.
   assert.match(page, /property="og:title" content="Tradeleaks — Membership"/, 'link preview carries the store name');
   assert.doesNotMatch(page.slice(page.indexOf('<body')), /Tradeleaks/i, 'checkout BODY must be tenant-generic');
+  // Search hygiene: real store pages self-canonicalize and shed the raw
+  // template's noindex; the template alone keeps it so /store never indexes.
+  assert.match(page, /rel="canonical" href="[^"]*\/tradeleaks"/, 'store page carries its canonical URL');
+  assert.doesNotMatch(page, /name="robots" content="noindex"/, 'a real store page must be indexable');
   const bySlug = await (await fetch(`${appUrl}/api/plans?store=tradeleaks`)).json();
   assert.equal(bySlug.brand, 'Tradeleaks', 'the built-in store resolves at its brand slug');
   const { plans, capabilities, server } = await (await fetch(`${appUrl}/api/plans`)).json();

@@ -9,7 +9,13 @@ Key product facts:
 - Store page at ripleybot.com/<name> with the server's branding and product photos
 - Monthly subscriptions, lifetime (one-time) products, tiered roles, discount codes, purchase limits
 - Emailed receipts on every sale; optional "New Subscriber" ping in a Discord channel of the owner's choice
+- The bot never asks for Discord Administrator permission
 - Dashboard: revenue with previous-period comparison, members, transactions, refunds-safe revoke/re-sync
+
+## Alternatives
+- [Whop alternatives](https://www.ripleybot.com/alternatives/whop-alternatives)
+- [LaunchPass alternatives](https://www.ripleybot.com/alternatives/launchpass-alternatives)
+- [Subscord alternatives](https://www.ripleybot.com/alternatives/subscord-alternatives)
 
 ## Compare
 - [Ripley vs Whop](https://www.ripleybot.com/vs/whop)
@@ -23,6 +29,9 @@ Key product facts:
 - [How to sell Discord roles](https://www.ripleybot.com/guides/how-to-sell-discord-roles)
 - [How to make a paid Discord server](https://www.ripleybot.com/guides/paid-discord-server)
 - [What a Discord subscription bot does](https://www.ripleybot.com/guides/discord-subscription-bot)
+
+## Help
+- [Every feature explained](https://www.ripleybot.com/help)
 
 ## Tools
 - [Discord monetization fee calculator](https://www.ripleybot.com/tools/discord-fee-calculator)
