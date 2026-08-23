@@ -264,7 +264,9 @@ function renderCta() {
   // Sign-in comes before purchase, enforced here in the UI as well as by the
   // API's 401: a logged-out visitor never sees a Pay button. The login link
   // carries the plan so the OAuth round trip lands them back here, ready.
-  if (!state.me.loggedIn) {
+  // The demo store is the exception — nothing is for sale, so anonymous
+  // visitors see the real Pay button and pay() shows the demo notice.
+  if (!state.me.loggedIn && !state.capabilities.demo) {
     renderTotals(plan, state.discount && state.discount.planId === plan.id ? state.discount : null, true);
     const btn = document.createElement('button');
     btn.className = 'pay-btn';
@@ -394,6 +396,12 @@ function showPayError(message, retry) {
 }
 
 async function pay(btn, plan) {
+  // The hosted demo store demos the whole flow but sells nothing.
+  if (state.capabilities.demo) {
+    $('#notice').innerHTML =
+      '<div class="callout pending">This is Ripley\u2019s demo store \u2014 nothing is for sale. <a href="/api/invite">Invite Ripley</a> to open yours in minutes.</div>';
+    return;
+  }
   btn.disabled = true;
   const original = btn.textContent;
   btn.textContent = 'Redirecting…';

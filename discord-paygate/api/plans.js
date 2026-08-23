@@ -3,6 +3,7 @@ import { sendJson, guard } from '../src/lib/http.js';
 import { getGuild, guildIconUrl } from '../src/lib/discord.js';
 import { effectiveRoleMap } from '../src/services/plan-config.js';
 import { storeBySlug, sellablePlansOf } from '../src/services/stores.js';
+import { DEMO_SLUG, demoPlansPayload } from '../src/services/demo-store.js';
 
 // The server's own identity fronts every checkout: name and icon come from
 // the live guild lookup via the bot (animated icons surface as .gif).
@@ -26,7 +27,12 @@ async function serverInfo(guildId, nameOverride = null) {
 
 export default guard(async function handler(req, res) {
   const url = new URL(req.url, 'http://localhost');
-  const store = await storeBySlug(url.searchParams.get('store') ?? '');
+  const slugParam = url.searchParams.get('store') ?? '';
+  if (slugParam === DEMO_SLUG) {
+    sendJson(res, 200, demoPlansPayload({ platformName: config.platform, brandFallback: config.brand }));
+    return;
+  }
+  const store = await storeBySlug(slugParam);
   if (!store) {
     sendJson(res, 404, { error: 'unknown store' });
     return;

@@ -682,7 +682,7 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   // store — it is a reserved word nobody can claim, the built-in one included.
   const home = await (await fetch(`${appUrl}/`)).text();
   assert.match(home, /Sell Discord access/);
-  assert.match(home, /href="\/tradeleaks"/); // the "Visit a live store" showcase link
+  assert.match(home, /href="\/demo"/); // the demo-store showcase link
   assert.doesNotMatch(home, /href="\/store"/, 'no platform link may point at /store');
   for (const p of ['/terms', '/privacy']) {
     const res = await fetch(`${appUrl}${p}`);
@@ -2647,7 +2647,7 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal(pub.store.description, 'The alpha desk.');
   // Custom link: platform paths can never be claimed as store links.
   // ('vs' is unclaimable too, but the 2-char format check 400s it first.)
-  for (const bad of ['dashboard', 'api', 'store', 'diagnostics', 'tools', 'use-cases']) {
+  for (const bad of ['dashboard', 'api', 'store', 'diagnostics', 'tools', 'use-cases', 'demo']) {
     assert.equal((await storeCall({ slug: bad })).status, 409, `reserved slug "${bad}" must be refused`);
   }
   // New slug serves, the old one 404s, then restore.
@@ -2660,6 +2660,30 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal((await onboard({ step: 'product-delete', storeId, planKey: plan2.planKey })).status, 200);
   assert.equal((await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.length, 1);
   assert.equal((await checkout(u10Cookie, { planId: plan2.planKey })).status, 400, 'deleted products cannot be bought');
+});
+
+test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {
+  // The page serves with its own head and the Emerald theme server-rendered.
+  const page = await (await fetch(`${appUrl}/demo`)).text();
+  assert.match(page, /Ripley Membership — Demo Store/);
+  assert.match(page, /store-theme/, 'the demo ships its theme in the head');
+  // The plans payload is fixed, flagged, and never touches the database.
+  const plans = await (await fetch(`${appUrl}/api/plans?store=demo`)).json();
+  assert.equal(plans.brand, 'Ripley Membership');
+  assert.equal(plans.capabilities.demo, true, 'the client needs the demo flag to disarm pay');
+  assert.equal(plans.capabilities.stripe, true, 'the checkout still renders fully');
+  assert.deepEqual(plans.plans.map((p) => p.priceUsd), [49.99, 14.99, 79.99]);
+  // The demo's one discount code previews like a real one.
+  const d = await (await fetch(`${appUrl}/api/discount?store=demo&code=LAUNCH20&plan=vip-access`)).json();
+  assert.equal(d.discountedUsd, 39.99, 'LAUNCH20 takes 20% off the demo product');
+  assert.equal((await fetch(`${appUrl}/api/discount?store=demo&code=NOPE&plan=vip-access`)).status, 404);
+  // Nothing can be bought: checkout refuses the slug like any unknown store.
+  const co = await fetch(`${appUrl}/api/checkout/stripe`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ planId: 'vip-access', store: 'demo' }),
+  });
+  assert.ok(co.status >= 400, `demo checkout must refuse (got ${co.status})`);
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════

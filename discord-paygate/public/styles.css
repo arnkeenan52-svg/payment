@@ -2693,3 +2693,17 @@ html[data-theme='light'] .vz-bot { background: #e7e7e2; color: #55554f; }
 .pm-sect { padding: 52px 22px; }
 .pm-sect .pm-strip { margin-top: 0; }
 @media (max-width: 700px) { .pm-sect { padding: 40px 22px; } }
+
+/* ── mobile menu function hardening (menu.js pairs with these) ─────────────
+   The body freezes in place while the sheet is open (iOS momentum ignores
+   plain overflow:hidden), so the nav must pin itself to the viewport or it
+   would vanish upward with the frozen page. */
+html.menu-open { overscroll-behavior: none; }
+html.menu-open .top {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  backdrop-filter: blur(10px);
+}
+.menu-scrim { touch-action: none; }
+.mobile-menu { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+.mobile-menu a:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 4px; }

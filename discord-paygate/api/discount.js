@@ -4,6 +4,7 @@
 // and uses are only counted by the completed-payment webhook.
 import { guard, sendJson } from '../src/lib/http.js';
 import { storeBySlug, planOf } from '../src/services/stores.js';
+import { DEMO_SLUG, DEMO_DISCOUNT, demoPlans } from '../src/services/demo-store.js';
 import { getDiscount } from '../src/db.js';
 
 export default guard(async (req, res) => {
@@ -13,6 +14,19 @@ export default guard(async (req, res) => {
   const planId = url.searchParams.get('plan') ?? '';
   if (!/^[a-z0-9-]{1,40}$/.test(slug) || !/^[A-Z0-9_-]{2,32}$/.test(code) || !planId) {
     return sendJson(res, 400, { error: 'bad request' });
+  }
+  if (slug === DEMO_SLUG) {
+    const plan = demoPlans().find((p) => p.id === planId);
+    if (!plan || code !== DEMO_DISCOUNT.code) {
+      return sendJson(res, 404, { error: 'That discount code is not valid for this product.' });
+    }
+    const off = (plan.priceUsd * DEMO_DISCOUNT.amount) / 100;
+    const discountedUsd = Math.max(0, Math.round((plan.priceUsd - off) * 100) / 100);
+    return sendJson(res, 200, {
+      code, kind: DEMO_DISCOUNT.kind, amount: DEMO_DISCOUNT.amount,
+      priceUsd: plan.priceUsd, discountedUsd,
+      saveUsd: Math.round((plan.priceUsd - discountedUsd) * 100) / 100,
+    });
   }
   const store = await storeBySlug(slug);
   const plan = store ? await planOf(store, planId) : null;

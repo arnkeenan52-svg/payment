@@ -23,57 +23,6 @@ async function load() {
   }
 }
 
-// ── mobile menu ───────────────────────────────────────────────────────────────
-
-const menuBtn = $('#menu-btn');
-if (menuBtn) {
-  const menu = $('#mobile-menu');
-  const scrim = $('#menu-scrim');
-  let isOpen = false;
-  // The sheet hangs off the real nav height, which differs by viewport and
-  // changes if the header wraps.
-  const syncNavHeight = () => {
-    const nav = document.querySelector('.top');
-    if (nav) document.documentElement.style.setProperty('--nav-h', `${Math.round(nav.getBoundingClientRect().height)}px`);
-  };
-  addEventListener('resize', () => { if (isOpen) syncNavHeight(); }, { passive: true });
-  const setOpen = (open) => {
-    isOpen = open;
-    menuBtn.setAttribute('aria-expanded', String(open));
-    document.documentElement.classList.toggle('menu-open', open);
-    if (open) {
-      syncNavHeight();
-      menu.hidden = false;
-      if (scrim) scrim.hidden = false;
-      // Two frames so the browser commits display before the transition runs.
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        menu.classList.add('open');
-        scrim?.classList.add('open');
-      }));
-    } else {
-      menu.classList.remove('open');
-      scrim?.classList.remove('open');
-      // Hide after the sheet finishes sliding, not mid-animation.
-      setTimeout(() => {
-        if (isOpen) return;
-        menu.hidden = true;
-        if (scrim) scrim.hidden = true;
-      }, 260);
-    }
-  };
-  menuBtn.onclick = () => setOpen(!isOpen);
-  menu.addEventListener('click', (e) => {
-    if (e.target.closest('a')) setOpen(false);
-  });
-  scrim?.addEventListener('click', () => setOpen(false));
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isOpen) {
-      setOpen(false);
-      menuBtn.focus();
-    }
-  });
-}
-
 // ── nav: hairline + glass only once the page scrolls ──────────────────────────
 {
   const top = document.querySelector('body.home .top');
@@ -124,7 +73,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=83'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=84'; // hold a still frame instead
     return;
   }
 
@@ -141,8 +90,8 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=83', 'video/mp4; codecs="avc1.640028"'],
-    ['/hero-demo.webm?v=83', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=84', 'video/mp4; codecs="avc1.640028"'],
+    ['/hero-demo.webm?v=84', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays

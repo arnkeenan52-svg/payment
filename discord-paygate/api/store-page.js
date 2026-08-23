@@ -8,6 +8,7 @@ import path from 'node:path';
 import { guard, sendText } from '../src/lib/http.js';
 import { config } from '../src/config.js';
 import { storeBySlug, sellablePlansOf } from '../src/services/stores.js';
+import { DEMO_SLUG, DEMO_NAME, DEMO_THEME } from '../src/services/demo-store.js';
 import { validateTheme, themeCss } from '../src/lib/theme.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -20,7 +21,26 @@ export default guard(async (req, res) => {
   const slug = (url.searchParams.get('store') ?? '').toLowerCase();
   let head = null;
   let themeStyle = '';
-  if (/^[a-z0-9-]{1,40}$/.test(slug)) {
+  if (slug === DEMO_SLUG) {
+    // The hosted demo store: fixed head and the Emerald theme, no DB behind it.
+    try {
+      themeStyle = `\n  <style id="store-theme">${themeCss(validateTheme(DEMO_THEME))}</style>`;
+    } catch { /* the default look, then */ }
+    const title = `${DEMO_NAME} — Demo Store`;
+    const desc = 'Walk a live Ripley checkout — themed store page, products and discounts. Nothing here is for sale.';
+    const image = `${config.publicBaseUrl}/shot-store.png`;
+    head = `<title>${esc(title)}</title>
+  <meta name="description" content="${esc(desc)}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="${esc(title)}" />
+  <meta property="og:description" content="${esc(desc)}" />
+  <meta property="og:image" content="${esc(image)}" />
+  <meta property="og:url" content="${esc(`${config.publicBaseUrl}/${DEMO_SLUG}`)}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${esc(title)}" />
+  <meta name="twitter:description" content="${esc(desc)}" />
+  <meta name="twitter:image" content="${esc(image)}" />`;
+  } else if (/^[a-z0-9-]{1,40}$/.test(slug)) {
     const store = await storeBySlug(slug).catch(() => null);
     if (store) {
       // The owner's theme, server-rendered so the page never flashes the

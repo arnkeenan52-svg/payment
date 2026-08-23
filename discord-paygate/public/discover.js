@@ -82,35 +82,7 @@ async function loadAccount() {
 }
 
 // mobile menu: same behavior as the landing page
-const menuBtn = $('#menu-btn');
-if (menuBtn) {
-  const menu = $('#mobile-menu');
-  const scrim = $('#menu-scrim');
-  let isOpen = false;
-  const syncNavHeight = () => {
-    const nav = document.querySelector('.top');
-    if (nav) document.documentElement.style.setProperty('--nav-h', `${Math.round(nav.getBoundingClientRect().height)}px`);
-  };
-  const setOpen = (open) => {
-    isOpen = open;
-    menuBtn.setAttribute('aria-expanded', String(open));
-    document.documentElement.classList.toggle('menu-open', open);
-    if (open) {
-      syncNavHeight();
-      menu.hidden = false;
-      if (scrim) scrim.hidden = false;
-      requestAnimationFrame(() => requestAnimationFrame(() => { menu.classList.add('open'); scrim?.classList.add('open'); }));
-    } else {
-      menu.classList.remove('open');
-      scrim?.classList.remove('open');
-      setTimeout(() => { if (!isOpen) { menu.hidden = true; if (scrim) scrim.hidden = true; } }, 260);
-    }
-  };
-  menuBtn.onclick = () => setOpen(!isOpen);
-  menu.addEventListener('click', (e) => { if (e.target.closest('a')) setOpen(false); });
-  scrim?.addEventListener('click', () => setOpen(false));
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen) { setOpen(false); menuBtn.focus(); } });
-}
+
 
 (async () => {
   loadAccount().catch(() => {});
