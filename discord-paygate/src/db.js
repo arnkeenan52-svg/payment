@@ -245,6 +245,7 @@ function db() {
       await driver.exec('ALTER TABLE stores ADD COLUMN links TEXT').catch(() => {});
       // Per-product custom link segment: ripleybot.com/<store>/<link>.
       await driver.exec('ALTER TABLE store_plans ADD COLUMN link_slug TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN dashboard_prefs TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE stores ADD COLUMN show_members ${intType}`).catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE stores ADD COLUMN discoverable ${intType} NOT NULL DEFAULT 0`).catch(() => {});
@@ -549,6 +550,7 @@ export async function updateStore(id, fields) {
     about: 'about',
     links: 'links',
     showMembers: 'show_members',
+    dashboardPrefs: 'dashboard_prefs',
   };
   const sets = [];
   const params = [];

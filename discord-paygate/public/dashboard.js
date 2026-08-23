@@ -55,6 +55,7 @@ const I = {
 const state = {
   me: null, guilds: null, botInvite: '', data: null, dataSlug: undefined,
   range: '30',
+  rangePicked: null, // slug whose owner hand-picked a range this visit
   billInterval: 'month',
   products: null, productsSlug: undefined,
   discounts: null, discountsSlug: undefined,
@@ -1117,17 +1118,56 @@ function sectionOverview(data, store, slug) {
     ([k, lbl]) => `<button type="button" class="seg-btn${state.range === k ? ' active' : ''}" data-range="${k}" ${state.range === k ? 'aria-pressed="true"' : ''}>${lbl}</button>`,
   ).join('');
 
+  // Owner-tunable dashboard: which stat cards show, the accent that paints
+  // the charts, and the default period — saved per store.
+  const prefs = store.dashboardPrefs ?? {};
+  const cards = { revenue: true, sales: true, members: true, mrr: true, ...(prefs.cards ?? {}) };
+  const statCards = [
+    cards.revenue ? statCard('Revenue', usd(rev), I.dollar, pct(rev, revPrev), prevSub(revPrev), sparks.rev) : '',
+    cards.sales ? statCard('Sales', sales, I.cart, pct(sales, salesPrev), prevSub(salesPrev, (v) => v), sparks.sales) : '',
+    cards.members ? statCard('New members', newMembers, I.users, pct(newMembers, newMembersPrev), prevSub(newMembersPrev, (v) => v), sparks.members) : '',
+    cards.mrr ? statCard('MRR', usd(mrr), I.infinity, null, mrrNew > 0 ? `+${usd(mrrNew)} added this period` : 'recurring, right now', sparks.mrr) : '',
+  ].join('');
+  const ACCENTS = [
+    ['', 'Default'], ['#5865f2', 'Blurple'], ['#3fb950', 'Green'], ['#f59e0b', 'Amber'],
+    ['#ef4444', 'Red'], ['#ec4899', 'Pink'], ['#06b6d4', 'Cyan'],
+  ];
+  const curAccent = /^#[0-9a-f]{6}$/i.test(String(prefs.accent ?? '')) ? prefs.accent : '';
+  const customPanel = store.isDefault ? '' : `
+    <section class="panel dash-custom" id="dash-custom" hidden>
+      <div class="dc-row"><span class="dc-lab">Accent</span>
+        <div class="dc-swatches" role="group" aria-label="Dashboard accent color">
+          ${ACCENTS.map(([hex, name]) => `<button type="button" class="dc-swatch${curAccent === hex ? ' active' : ''}" data-accent="${hex}" title="${name}" aria-label="${name}" ${hex ? `style="background:${hex}"` : ''}>${hex ? '' : '<span class="dc-none"></span>'}</button>`).join('')}
+          <label class="dc-custom" title="Custom color"><input type="color" id="dc-color" value="${curAccent || '#ededed'}" aria-label="Custom accent color" /></label>
+        </div></div>
+      <div class="dc-row"><span class="dc-lab">Stat cards</span>
+        <div class="dc-checks">
+          ${[['revenue', 'Revenue'], ['sales', 'Sales'], ['members', 'New members'], ['mrr', 'MRR']]
+            .map(([k, lbl]) => `<label class="dc-check"><input type="checkbox" data-card="${k}" ${cards[k] ? 'checked' : ''} />${lbl}</label>`).join('')}
+        </div></div>
+      <div class="dc-row"><span class="dc-lab">Default period</span>
+        <select id="dc-range" class="store-switch">
+          ${RANGES.map(([k, lbl]) => `<option value="${k}" ${(prefs.defaultRange ?? '30') === k ? 'selected' : ''}>${lbl}</option>`).join('')}
+        </select></div>
+      <div class="dc-row dc-actions">
+        <button class="btn-secondary" id="dc-save">Save</button>
+        <button class="btn-ghost" id="dc-reset">Reset to default</button>
+        <span class="note-help" id="dc-note" role="status"></span>
+      </div>
+    </section>`;
+
   return `
     <div class="ov-toolbar">
       <h2 class="sec-title">Overview</h2>
-      <div class="seg" role="group" aria-label="Time period" id="range-seg">${seg}</div>
+      <div class="ov-tools">
+        ${store.isDefault ? '' : `<button type="button" class="btn-ghost dc-btn" id="dash-custom-btn" aria-expanded="false" aria-controls="dash-custom">${I.gear}<span>Customize</span></button>`}
+        <div class="seg" role="group" aria-label="Time period" id="range-seg">${seg}</div>
+      </div>
     </div>
+    ${customPanel}
     <div id="checklist-slot"></div>
     <div class="stat-grid five">
-      ${statCard('Revenue', usd(rev), I.dollar, pct(rev, revPrev), prevSub(revPrev), sparks.rev)}
-      ${statCard('Sales', sales, I.cart, pct(sales, salesPrev), prevSub(salesPrev, (v) => v), sparks.sales)}
-      ${statCard('New members', newMembers, I.users, pct(newMembers, newMembersPrev), prevSub(newMembersPrev, (v) => v), sparks.members)}
-      ${statCard('MRR', usd(mrr), I.infinity, null, mrrNew > 0 ? `+${usd(mrrNew)} added this period` : 'recurring, right now', sparks.mrr)}
+      ${statCards}
     </div>
     <div class="chart-grid">
       <section class="panel chart-card" id="rev-card">
@@ -1666,6 +1706,14 @@ async function viewStore(slug) {
   const store = data.stores.find((s) => s.slug === slug) ?? data.stores[0];
   const link = `${location.origin}/${store.slug}`;
   const section = location.hash.split('/')[3] ?? 'overview';
+  // Saved dashboard preferences: the accent recolors every chart and active
+  // element through the shell's --accent; the default period applies until
+  // the owner picks a range by hand this visit.
+  const dashPrefs = store.dashboardPrefs ?? {};
+  const dashAccent = /^#[0-9a-f]{6}$/i.test(String(dashPrefs.accent ?? '')) ? dashPrefs.accent : null;
+  if (dashPrefs.defaultRange && state.rangePicked !== store.slug && RANGES.some(([k]) => k === dashPrefs.defaultRange)) {
+    state.range = dashPrefs.defaultRange;
+  }
   const isPlatformOwner = Boolean(state.me?.isOwner);
 
   // Tenant-only management data, fetched only for the sections that need it.
@@ -1798,7 +1846,7 @@ async function viewStore(slug) {
   ).join('');
 
   $('#content').innerHTML = `
-    <div class="appshell">
+    <div class="appshell"${dashAccent ? ` style="--accent:${dashAccent}"` : ''}>
       <aside class="sidebar">
         <div class="side-store"><a class="side-logo" href="#/" aria-label="All servers"><img src="/favicon.png" alt="" width="22" height="22" /></a>${switcher}</div>
         <nav class="side-nav" aria-label="Store sections">${navItems}</nav>
@@ -1838,9 +1886,47 @@ async function viewStore(slug) {
     document.querySelectorAll('#range-seg .seg-btn').forEach((b) => {
       b.onclick = () => {
         state.range = b.dataset.range;
+        state.rangePicked = store.slug; // a hand-picked range outranks the saved default
         viewStore(slug);
       };
     });
+    // Customize: accent, stat-card visibility, default period.
+    const dcBtn = $('#dash-custom-btn');
+    if (dcBtn) {
+      const panel = $('#dash-custom');
+      dcBtn.onclick = () => {
+        panel.hidden = !panel.hidden;
+        dcBtn.setAttribute('aria-expanded', String(!panel.hidden));
+      };
+      let pickedAccent = dashAccent ?? '';
+      const markSwatch = () => panel.querySelectorAll('.dc-swatch').forEach((s) => s.classList.toggle('active', s.dataset.accent === pickedAccent));
+      panel.querySelectorAll('.dc-swatch').forEach((s) => {
+        s.onclick = () => { pickedAccent = s.dataset.accent; markSwatch(); };
+      });
+      $('#dc-color').oninput = (e) => { pickedAccent = e.target.value.toLowerCase(); markSwatch(); };
+      const saveDc = async (prefsBody) => {
+        const btn = $('#dc-save');
+        btn.disabled = true;
+        try {
+          await api('/api/admin/store', { store: slug, dashboardPrefs: prefsBody });
+          state.data = null;
+          viewStore(slug);
+        } catch (err) {
+          btn.disabled = false;
+          $('#dc-note').textContent = err.message;
+        }
+      };
+      $('#dc-save').onclick = () => {
+        const cardPicks = {};
+        panel.querySelectorAll('.dc-check input').forEach((c) => { cardPicks[c.dataset.card] = c.checked; });
+        saveDc({
+          accent: pickedAccent || null,
+          cards: cardPicks,
+          defaultRange: $('#dc-range').value,
+        });
+      };
+      $('#dc-reset').onclick = () => saveDc(null);
+    }
     const revCard = $('#rev-card');
     if (revCard) wireChartHover(revCard, bucketSeries(data.payments, rangeWindows(state.range, data.payments)));
     renderChecklist(store, slug);

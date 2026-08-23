@@ -32,6 +32,7 @@ export function defaultStore() {
     about: null,
     links: null,
     showMembers: false,
+    dashboardPrefs: null,
     isDefault: true,
   };
 }
@@ -53,6 +54,7 @@ function hydrate(row) {
     about: row.about ?? null,
     links: row.links ? JSON.parse(row.links) : null,
     showMembers: Boolean(Number(row.show_members ?? 0)),
+    dashboardPrefs: row.dashboard_prefs ? JSON.parse(row.dashboard_prefs) : null,
     discoverable: Boolean(Number(row.discoverable ?? 0)),
     category: row.category ?? null,
     status: row.status,

@@ -504,7 +504,7 @@ function renderShop() {
   const trust = $('#shop-trust');
   const count = state.store?.memberCount;
   trust.innerHTML =
-    (Number.isFinite(count) && count > 0 ? `<span class="shop-chip">${ICON_MEMBERS}<strong>${count}</strong>&nbsp;members</span>` : '') +
+    (Number.isFinite(count) && count > 0 ? `<span class="shop-chip">${ICON_MEMBERS}<strong>${count}</strong>&nbsp;member${count === 1 ? '' : 's'}</span>` : '') +
     `<span class="shop-chip">${ICON_LOCK}Secured by Stripe</span>` +
     `<span class="shop-chip">${ICON_BOLT}Automatic role delivery</span>`;
   // Social links: fixed keys, saved as https URLs in the dashboard.

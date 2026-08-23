@@ -91,6 +91,31 @@ export default guard(async function handler(req, res) {
     fields.links = Object.keys(clean).length ? JSON.stringify(clean) : null;
   }
   if (body.showMembers !== undefined) fields.showMembers = body.showMembers ? 1 : 0;
+  // Dashboard preferences: accent color, stat-card visibility and the
+  // default analytics period. Validated to a fixed shape — never raw JSON.
+  if (body.dashboardPrefs !== undefined) {
+    if (body.dashboardPrefs === null) {
+      fields.dashboardPrefs = null;
+    } else {
+      const p = body.dashboardPrefs;
+      const clean = {};
+      if (p?.accent) {
+        if (!/^#[0-9a-fA-F]{6}$/.test(String(p.accent))) {
+          return sendJson(res, 400, { error: 'The accent must be a #rrggbb color.' });
+        }
+        clean.accent = String(p.accent).toLowerCase();
+      }
+      if (p?.cards && typeof p.cards === 'object') {
+        const hidden = {};
+        for (const k of ['revenue', 'sales', 'members', 'mrr']) if (p.cards[k] === false) hidden[k] = false;
+        if (Object.keys(hidden).length) clean.cards = hidden;
+      }
+      if (p?.defaultRange && ['today', '7', '30', '90', '12m', 'all'].includes(String(p.defaultRange))) {
+        clean.defaultRange = String(p.defaultRange);
+      }
+      fields.dashboardPrefs = Object.keys(clean).length ? JSON.stringify(clean) : null;
+    }
+  }
   // Storefront theme: tokens only, validated server-side — never raw CSS.
   // null (or an emptied object) clears it back to the platform look.
   if (body.theme !== undefined) {

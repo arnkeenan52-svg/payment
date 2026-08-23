@@ -2671,6 +2671,25 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.match(pub.store.about, /Refunds within 7 days/);
   assert.equal(pub.store.links.discord, 'https://discord.gg/vipsignals');
   assert.equal(typeof pub.store.memberCount, 'number', 'opt-in badge exposes the live count');
+  // The dashboard re-renders its settings forms from /api/admin/payments —
+  // if that payload drops an editable field, a saved value comes back blank
+  // and the owner's next save wipes it (the "goes back to empty" bug).
+  const dash = await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals`, { headers: { cookie: u7Cookie } })).json();
+  const dstore = dash.stores.find((s) => s.slug === 'vip-signals');
+  assert.equal(dstore.description, 'The alpha desk.', 'dashboard payload carries description');
+  assert.equal(dstore.bannerUrl, 'https://cdn.e2e.test/banner.png', 'dashboard payload carries banner');
+  assert.match(dstore.links?.discord ?? '', /discord\.gg/, 'dashboard payload carries links');
+  assert.match(String(dstore.about), /Refunds within 7 days/, 'dashboard payload carries about');
+  assert.equal(dstore.showMembers, true, 'dashboard payload carries the member-badge switch');
+  // Dashboard preferences: fixed shape, validated, round-trips to the payload.
+  assert.equal((await storeCall({ dashboardPrefs: { accent: 'red' } })).status, 400, 'accent must be #rrggbb');
+  assert.equal((await storeCall({ dashboardPrefs: { accent: '#5865F2', cards: { mrr: false }, defaultRange: '90' } })).status, 200);
+  const dash2 = await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals`, { headers: { cookie: u7Cookie } })).json();
+  const dp = dash2.stores.find((s) => s.slug === 'vip-signals').dashboardPrefs;
+  assert.equal(dp.accent, '#5865f2', 'accent saved lowercased');
+  assert.equal(dp.cards.mrr, false, 'hidden stat cards persist');
+  assert.equal(dp.defaultRange, '90', 'default period persists');
+  assert.equal((await storeCall({ dashboardPrefs: null })).status, 200, 'prefs reset clears the row');
   assert.equal((await storeCall({ showMembers: false })).status, 200);
   const pubOff = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
   assert.equal(pubOff.store.memberCount, null, 'switched off, the count is private again');

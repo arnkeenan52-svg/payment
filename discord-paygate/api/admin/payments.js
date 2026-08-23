@@ -109,7 +109,17 @@ export default guard(async function handler(req, res) {
   sendJson(res, 200, {
     // Every store the caller owns (for the dashboard's store switcher);
     // `payments` below honours the ?store filter.
-    stores: stores.map((s) => ({ id: s.id, slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault, notifyChannelId: s.notifyChannelId ?? null, theme: s.theme ?? null, discoverable: Boolean(s.discoverable), category: s.category ?? null })),
+    // This payload is what the dashboard's settings forms re-render from
+    // after every save — it must carry EVERY editable store field, or a
+    // saved value comes back looking blank and the next save wipes it.
+    stores: stores.map((s) => ({
+      id: s.id, slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault,
+      notifyChannelId: s.notifyChannelId ?? null, theme: s.theme ?? null,
+      discoverable: Boolean(s.discoverable), category: s.category ?? null,
+      description: s.description ?? null, bannerUrl: s.bannerUrl ?? null,
+      about: s.about ?? null, links: s.links ?? null, showMembers: Boolean(s.showMembers),
+      dashboardPrefs: s.dashboardPrefs ?? null,
+    })),
     totals: {
       allTimeUsd: Math.round(rows.reduce((sum, r) => sum + r.amountUsd, 0) * 100) / 100,
       payments: rows.length,

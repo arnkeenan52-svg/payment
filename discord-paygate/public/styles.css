@@ -2801,6 +2801,31 @@ html.menu-open .top {
   border: 3px solid var(--bg); background: var(--bg);
 }
 
+/* overview: customize panel (accent, stat cards, default period) */
+.ov-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dc-btn { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; }
+.dash-custom { padding: 14px 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; }
+.dc-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.dc-lab { color: var(--dim); font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; min-width: 104px; }
+.dc-swatches { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dc-swatch {
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; background: var(--panel); padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.dc-swatch.active { border-color: var(--ink); }
+.dc-swatch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* the "Default" swatch: the theme's own ink, shown as a split dot */
+.dc-none { width: 16px; height: 16px; border-radius: 50%; background: linear-gradient(135deg, var(--ink) 50%, var(--edge) 50%); }
+.dc-custom { position: relative; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; border: 1px dashed var(--edge); cursor: pointer; }
+.dc-custom input { position: absolute; inset: -6px; width: 40px; height: 40px; border: none; padding: 0; cursor: pointer; background: none; }
+.dc-checks { display: flex; gap: 14px; flex-wrap: wrap; }
+.dc-check { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink); cursor: pointer; }
+.dc-actions { gap: 10px; }
+.dc-actions .btn-secondary, .dc-actions .btn-ghost { width: auto; flex: none; }
+#dc-range { max-width: 160px; }
+@media (max-width: 700px) { .dc-lab { min-width: 100%; } }
+
 /* store section: jump row, status badge, open button.
    The jump row speaks the same language as the phone tab strip — underline
    tabs on one scrollable line — never a wrapping pile of pills. */
