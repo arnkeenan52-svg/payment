@@ -124,7 +124,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=81'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=82'; // hold a still frame instead
     return;
   }
 
@@ -136,13 +136,13 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.preload = 'auto';
   v.playsInline = true;
   v.setAttribute('playsinline', ''); // older iOS reads the attribute, not the prop
-  v.width = 1280;
-  v.height = 720;
+  v.width = 1920;
+  v.height = 1080;
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=81', 'video/mp4; codecs="avc1.640020"'],
-    ['/hero-demo.webm?v=81', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=82', 'video/mp4; codecs="avc1.640028"'],
+    ['/hero-demo.webm?v=82', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays

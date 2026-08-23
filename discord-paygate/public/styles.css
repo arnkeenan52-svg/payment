@@ -1673,7 +1673,7 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
    frame collapsed to a sliver. A hard CSS aspect-ratio makes the box stable
    before a single byte loads, for the animated image and the upgraded video
    alike (the JS swap keeps the same class, so the box never moves). */
-.browser-frame .hero-video { aspect-ratio: 1280 / 720; width: 100%; height: auto; object-fit: cover; display: block; }
+.browser-frame .hero-video { aspect-ratio: 1920 / 1080; width: 100%; height: auto; object-fit: cover; display: block; }
 .bf-bar { position: relative; z-index: 2; }
 
 /* Subscord composition: one centered content column, text left-aligned
