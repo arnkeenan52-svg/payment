@@ -18,17 +18,17 @@ export const demoPlans = () => [
   {
     id: 'vip-access', name: 'VIP Access', description: 'Every alpha channel, for life.',
     priceUsd: 49.99, interval: null, lifetime: true, imageUrl: null,
-    roleNames: ['VIP'], descriptionHighlight: null,
+    roleNames: ['VIP'], descriptionHighlight: null, linkSlug: null,
   },
   {
     id: 'signals-monthly', name: 'Signals Monthly', description: 'Daily signals while your membership runs.',
     priceUsd: 14.99, interval: 'month', lifetime: false, imageUrl: null,
-    roleNames: ['Signals'], descriptionHighlight: null,
+    roleNames: ['Signals'], descriptionHighlight: null, linkSlug: null,
   },
   {
     id: 'inner-circle', name: 'Inner Circle', description: 'The private desk, lifetime.',
     priceUsd: 79.99, interval: null, lifetime: true, imageUrl: null,
-    roleNames: ['VIP'], descriptionHighlight: null,
+    roleNames: ['VIP'], descriptionHighlight: null, linkSlug: null,
   },
 ];
 
