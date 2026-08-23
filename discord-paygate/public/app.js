@@ -121,7 +121,8 @@ function renderBrand() {
   }
   // ONLY the server's own Discord icon (animated GIF when the guild has
   // one) is ever shown — no stand-in logo. Hidden until Discord answers.
-  const logo = $('.logo');
+  // Selected by its own class: the shop view's .logo sits earlier in the DOM.
+  const logo = $('.op-server-icon');
   if (state.server?.iconUrl) {
     logo.src = state.server.iconUrl;
     logo.alt = state.server.name ?? '';

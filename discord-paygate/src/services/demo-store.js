@@ -39,7 +39,7 @@ export function demoPlansPayload({ platformName, brandFallback }) {
     brand: DEMO_NAME,
     platform: { name: platformName ?? brandFallback },
     store: { slug: DEMO_SLUG, status: 'live', description: 'A demo of a Ripley store — nothing here is for sale.', bannerUrl: null, theme: DEMO_THEME },
-    server: { name: DEMO_NAME, guildId: '', iconUrl: null },
+    server: { name: DEMO_NAME, guildId: '', iconUrl: '/favicon.png' },
     capabilities: { stripe: true, crypto: false, demo: true },
     plans: demoPlans(),
   };
