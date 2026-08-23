@@ -682,7 +682,7 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   // store — it is a reserved word nobody can claim, the built-in one included.
   const home = await (await fetch(`${appUrl}/`)).text();
   assert.match(home, /Sell Discord access/);
-  assert.match(home, /href="\/demo"/); // the demo-store showcase link
+  assert.match(home, /href="\/demo\?plan=vip-access"/); // the demo link opens the checkout directly
   assert.doesNotMatch(home, /href="\/store"/, 'no platform link may point at /store');
   for (const p of ['/terms', '/privacy']) {
     const res = await fetch(`${appUrl}${p}`);
