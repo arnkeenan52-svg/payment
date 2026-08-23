@@ -1811,6 +1811,16 @@ async function viewStore(slug) {
       <div class="app-body">${body}</div>
     </div>`;
 
+  // Phone tab strip: show a right-edge fade only while tabs actually hide
+  // off-screen, and drop it at the end of the scroll.
+  const sb = document.querySelector('.sidebar');
+  if (sb) {
+    const updFade = () => sb.classList.toggle('scroll-more', sb.scrollWidth - sb.clientWidth - sb.scrollLeft > 8);
+    sb.addEventListener('scroll', updFade, { passive: true });
+    addEventListener('resize', updFade, { passive: true });
+    updFade();
+  }
+
   const sw = $('#store-switch');
   if (sw)
     sw.onchange = () => {
@@ -2400,15 +2410,45 @@ function wireStoreSettings(store, slug) {
   // with the jump so Tab continues from the card, and smooth motion honors
   // reduced-motion.
   const smoothOK = !matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document.querySelectorAll('.st-subnav-btn').forEach((b) => {
+  // Same right-edge fade the phone tab strip uses, while tabs hide off-screen.
+  const subnavEl = document.querySelector('.st-subnav');
+  if (subnavEl) {
+    const updFade = () => subnavEl.classList.toggle('scroll-more', subnavEl.scrollWidth - subnavEl.clientWidth - subnavEl.scrollLeft > 8);
+    subnavEl.addEventListener('scroll', updFade, { passive: true });
+    addEventListener('resize', updFade, { passive: true });
+    updFade();
+  }
+  const navBtns = [...document.querySelectorAll('.st-subnav-btn')];
+  const setActiveTab = (id) => navBtns.forEach((x) => x.classList.toggle('active', x.dataset.target === id));
+  navBtns.forEach((b) => {
     b.onclick = () => {
       const el = document.getElementById(b.dataset.target);
       if (!el) return;
+      setActiveTab(b.dataset.target);
       el.setAttribute('tabindex', '-1');
       el.focus({ preventScroll: true });
       scrollTo({ top: el.getBoundingClientRect().top + scrollY - 16, behavior: smoothOK ? 'smooth' : 'instant' });
     };
   });
+  if (navBtns.length) {
+    // Scroll-spy: the last card whose top crossed the upper third owns the
+    // highlight; at the very bottom the last card wins even when it is too
+    // short to reach that line. One listener at a time across re-renders.
+    const cards = navBtns.map((x) => document.getElementById(x.dataset.target)).filter(Boolean);
+    const spy = () => {
+      if (!cards[0]?.isConnected) return;
+      let cur = cards[0].id;
+      const line = innerHeight * 0.35;
+      for (const c of cards) if (c.getBoundingClientRect().top <= line) cur = c.id;
+      if (scrollY + innerHeight >= document.documentElement.scrollHeight - 4) cur = cards[cards.length - 1].id;
+      setActiveTab(cur);
+    };
+    if (window.__stSpyFn) removeEventListener('scroll', window.__stSpyFn);
+    let spyRaf = 0;
+    window.__stSpyFn = () => { if (!spyRaf) spyRaf = requestAnimationFrame(() => { spyRaf = 0; spy(); }); };
+    addEventListener('scroll', window.__stSpyFn, { passive: true });
+    spy();
+  }
   $('#st-save').onclick = async () => {
     const btn = $('#st-save');
     fieldErr('store', '');
