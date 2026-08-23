@@ -27,6 +27,9 @@ const ICON_LOCK =
 const state = {
   plans: [],
   capabilities: { stripe: false, crypto: false },
+  view: 'checkout',
+  store: null,
+  brand: null,
   server: null,
   platform: { name: 'Ripley' },
   me: { loggedIn: false },
@@ -447,10 +450,83 @@ function renderNotice() {
 function render() {
   renderAccount();
   renderBrand();
+  const shop = $('#shop');
+  const card = document.querySelector('.order-card');
+  const multi = state.plans.length > 1;
+  if (shop) shop.hidden = state.view !== 'shop';
+  if (card) card.hidden = state.view === 'shop';
+  const back = $('#back-to-shop');
+  if (back) back.hidden = !(multi && state.view === 'checkout');
+  if (state.view === 'shop') {
+    renderShop();
+    return;
+  }
   renderOptions();
   renderMethods();
   renderPayPanel();
 }
+
+// ── shop view: the store's overall page, every product as a card ─────────────
+function renderShop() {
+  const banner = $('#shop-banner');
+  if (state.store?.bannerUrl) {
+    banner.src = state.store.bannerUrl;
+    banner.hidden = false;
+  } else banner.hidden = true;
+  const icon = $('#shop-icon');
+  if (state.server?.iconUrl) {
+    icon.src = state.server.iconUrl;
+    icon.hidden = false;
+  } else icon.hidden = true;
+  $('#shop-name').textContent = state.brand ?? state.server?.name ?? '';
+  const desc = (state.store?.description ?? '').trim();
+  $('#shop-desc').textContent = desc;
+  $('#shop-desc').hidden = !desc;
+  const grid = $('#shop-grid');
+  grid.innerHTML = '';
+  for (const plan of state.plans) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'prod-card';
+    const per = plan.lifetime ? 'lifetime' : `/ ${esc(plan.interval ?? 'month')}`;
+    card.innerHTML =
+      (plan.imageUrl
+        ? `<img class="prod-shot" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" />`
+        : `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`) +
+      `<span class="prod-name">${esc(plan.name)}</span>` +
+      (plan.description ? `<p class="prod-desc">${esc(plan.description)}</p>` : '') +
+      `<span class="prod-foot"><span class="prod-price">${fmtPrice(plan.priceUsd)}</span><span class="prod-per">${per}</span></span>`;
+    card.onclick = () => openCheckout(plan.id);
+    grid.append(card);
+  }
+}
+
+function openCheckout(planId) {
+  state.planId = planId;
+  state.view = 'checkout';
+  history.pushState({ plan: planId }, '', `${window.location.pathname}?plan=${encodeURIComponent(planId)}`);
+  render();
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function openShop() {
+  state.view = 'shop';
+  history.pushState({}, '', window.location.pathname);
+  render();
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+// The browser's back button walks between shop and checkout naturally.
+addEventListener('popstate', () => {
+  const plan = new URLSearchParams(window.location.search).get('plan');
+  if (plan && state.plans.some((p) => p.id === plan)) {
+    state.planId = plan;
+    state.view = 'checkout';
+  } else {
+    state.view = state.plans.length > 1 ? 'shop' : 'checkout';
+  }
+  render();
+});
 
 async function main() {
   checkSetup();
@@ -469,14 +545,26 @@ async function main() {
   state.plans = plansBody.plans;
   state.capabilities = plansBody.capabilities;
   state.server = plansBody.server;
+  state.store = plansBody.store ?? null;
+  state.brand = plansBody.brand ?? null;
   state.platform = plansBody.platform ?? state.platform;
   state.me = await meRes.json();
 
   // Back from the OAuth round trip (or a shared link): land on that plan,
   // scrolled to the pay button, instead of the top of the page.
-  const requested = new URLSearchParams(window.location.search).get('plan');
+  const search = new URLSearchParams(window.location.search);
+  const requested = search.get('plan');
   const requestedPlan = state.plans.find((p) => p.id === requested);
   state.planId = requestedPlan?.id ?? state.plans[0]?.id ?? null;
+  // The overall store page: multi-product stores open on the shop. A ?plan
+  // deep link, a checkout return, or the dashboard preview (?view=checkout)
+  // goes straight to the order card. One-product stores skip the shop.
+  state.view =
+    requestedPlan || state.plans.length <= 1 || search.get('checkout') || search.get('view') === 'checkout'
+      ? 'checkout'
+      : 'shop';
+  const back = $('#back-to-shop');
+  if (back) back.onclick = openShop;
   wireDiscount();
   render();
   if (requestedPlan && state.me.loggedIn) {

@@ -119,6 +119,12 @@ const server = http.createServer(async (req, res) => {
       await storePage(req, res);
       return;
     }
+    // /store/<slug> is the same overall URL (vercel.json redirects it too).
+    if ((m = url.pathname.match(/^\/store\/([a-z0-9-]+)$/)) && req.method === 'GET') {
+      res.writeHead(308, { location: `/${m[1]}` });
+      res.end();
+      return;
+    }
     const handler = routes[url.pathname];
     if (handler) {
       await handler(req, res);

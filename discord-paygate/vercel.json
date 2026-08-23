@@ -1,33 +1,108 @@
 {
   "cleanUrls": true,
   "crons": [
-    { "path": "/api/cron/reconcile", "schedule": "0 * * * *" }
+    {
+      "path": "/api/cron/reconcile",
+      "schedule": "0 * * * *"
+    }
   ],
   "rewrites": [
-    { "source": "/s/:slug", "destination": "/api/store-page?store=:slug" },
-    { "source": "/vs", "destination": "/vs/index.html" },
-    { "source": "/tools", "destination": "/tools/index.html" },
-    { "source": "/use-cases", "destination": "/use-cases/index.html" },
-    { "source": "/guides", "destination": "/guides/index.html" },
-    { "source": "/alternatives", "destination": "/alternatives/index.html" },
-    { "source": "/discover", "destination": "/discover.html" },
-    { "source": "/webhooks/stripe/:storeid", "destination": "/api/webhooks/stripe?store=:storeid" },
-    { "source": "/terms", "destination": "/terms.html" },
-    { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/receipt", "destination": "/receipt.html" },
-    { "source": "/account", "destination": "/account.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" },
-    { "source": "/auth/login", "destination": "/api/auth/login" },
-    { "source": "/auth/callback", "destination": "/api/auth/callback" },
-    { "source": "/auth/logout", "destination": "/api/auth/logout" },
-    { "source": "/webhooks/stripe", "destination": "/api/webhooks/stripe" },
-    { "source": "/webhooks/coinbase", "destination": "/api/webhooks/coinbase" },
-    { "source": "/:slug", "destination": "/api/store-page?store=:slug" }
+    {
+      "source": "/s/:slug",
+      "destination": "/api/store-page?store=:slug"
+    },
+    {
+      "source": "/vs",
+      "destination": "/vs/index.html"
+    },
+    {
+      "source": "/tools",
+      "destination": "/tools/index.html"
+    },
+    {
+      "source": "/use-cases",
+      "destination": "/use-cases/index.html"
+    },
+    {
+      "source": "/guides",
+      "destination": "/guides/index.html"
+    },
+    {
+      "source": "/alternatives",
+      "destination": "/alternatives/index.html"
+    },
+    {
+      "source": "/discover",
+      "destination": "/discover.html"
+    },
+    {
+      "source": "/webhooks/stripe/:storeid",
+      "destination": "/api/webhooks/stripe?store=:storeid"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/receipt",
+      "destination": "/receipt.html"
+    },
+    {
+      "source": "/account",
+      "destination": "/account.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/auth/login",
+      "destination": "/api/auth/login"
+    },
+    {
+      "source": "/auth/callback",
+      "destination": "/api/auth/callback"
+    },
+    {
+      "source": "/auth/logout",
+      "destination": "/api/auth/logout"
+    },
+    {
+      "source": "/webhooks/stripe",
+      "destination": "/api/webhooks/stripe"
+    },
+    {
+      "source": "/webhooks/coinbase",
+      "destination": "/api/webhooks/coinbase"
+    },
+    {
+      "source": "/:slug",
+      "destination": "/api/store-page?store=:slug"
+    }
   ],
   "functions": {
-    "api/webhooks/stripe.js": { "maxDuration": 60 },
-    "api/webhooks/coinbase.js": { "maxDuration": 60 },
-    "api/cron/reconcile.js": { "maxDuration": 60 },
-    "api/store-page.js": { "includeFiles": "public/store.html" }
-  }
+    "api/webhooks/stripe.js": {
+      "maxDuration": 60
+    },
+    "api/webhooks/coinbase.js": {
+      "maxDuration": 60
+    },
+    "api/cron/reconcile.js": {
+      "maxDuration": 60
+    },
+    "api/store-page.js": {
+      "includeFiles": "public/store.html"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/store/:slug",
+      "destination": "/:slug",
+      "permanent": false
+    }
+  ]
 }

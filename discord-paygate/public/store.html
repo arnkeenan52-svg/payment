@@ -17,7 +17,7 @@
   <!-- og:end -->
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css?v=84" />
+  <link rel="stylesheet" href="/styles.css?v=85" />
 </head>
 <body>
   <header class="top">
@@ -28,7 +28,24 @@
   </header>
 
   <main class="checkout">
+    <!-- The store's overall page: banner, identity and every product as a
+         card. app.js shows this when the store has more than one product and
+         no ?plan deep link; picking a card slides into the checkout below. -->
+    <section class="shop" id="shop" hidden>
+      <img class="shop-banner" id="shop-banner" alt="" hidden onerror="this.hidden = true" />
+      <div class="shop-head">
+        <img class="logo shop-icon" id="shop-icon" src="" alt="" width="52" height="52" hidden />
+        <div>
+          <h1 class="shop-name" id="shop-name">&nbsp;</h1>
+          <p class="shop-desc" id="shop-desc" hidden></p>
+        </div>
+      </div>
+      <p class="label">Products</p>
+      <div class="shop-grid" id="shop-grid"></div>
+    </section>
+
     <section class="panel order-card">
+      <button type="button" class="shop-back" id="back-to-shop" hidden>&larr; All products</button>
       <span class="order-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Secure checkout</span>
       <h1 class="order-title">Confirm Order</h1>
       <p class="order-sub">You are about to purchase the following product:</p>
@@ -92,6 +109,6 @@
     <img class="powered-mark" src="/ripley.png" alt="Ripley" height="18" />
   </footer>
 
-  <script src="/app.js?v=84"></script>
+  <script src="/app.js?v=85"></script>
 </body>
 </html>

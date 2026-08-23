@@ -2667,6 +2667,11 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   const page = await (await fetch(`${appUrl}/demo`)).text();
   assert.match(page, /Ripley Membership — Demo Store/);
   assert.match(page, /store-theme/, 'the demo ships its theme in the head');
+  assert.match(page, /id="shop"/, 'the storefront carries the shop view');
+  // /store/<slug> is the same overall URL, everywhere.
+  const red = await fetch(`${appUrl}/store/demo`, { redirect: 'manual' });
+  assert.equal(red.status, 308);
+  assert.equal(red.headers.get('location'), '/demo', '/store/<slug> redirects to the overall URL');
   // The plans payload is fixed, flagged, and never touches the database.
   const plans = await (await fetch(`${appUrl}/api/plans?store=demo`)).json();
   assert.equal(plans.brand, 'Ripley Membership');

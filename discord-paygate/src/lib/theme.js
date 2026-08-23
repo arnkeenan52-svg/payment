@@ -87,12 +87,12 @@ export function themeCss(theme) {
   }
   if (t.radius !== undefined) {
     const small = Math.min(t.radius, 12);
-    lines.push(`.checkout .panel, .checkout .order-product, .checkout .order-roles, .checkout .pay-panel, .checkout .order-extra { border-radius: ${t.radius}px; }`);
-    lines.push(`.checkout .pay-btn, .checkout .apply-btn, .checkout .method, .checkout input, .checkout .op-thumb { border-radius: ${small}px; }`);
+    lines.push(`.checkout .panel, .checkout .order-product, .checkout .order-roles, .checkout .pay-panel, .checkout .order-extra, .prod-card, .shop-banner { border-radius: ${t.radius}px; }`);
+    lines.push(`.checkout .pay-btn, .checkout .apply-btn, .checkout .method, .checkout input, .checkout .op-thumb, .prod-shot, .prod-ph { border-radius: ${small}px; }`);
   }
   if (t.font && THEME_FONTS[t.font]) {
     lines.push(`body, .checkout button, .checkout input { font-family: ${THEME_FONTS[t.font]}; }`);
-    lines.push(`.order-title, .op-price, .pay-panel h2 { font-family: ${THEME_FONTS[t.font]}; }`);
+    lines.push(`.order-title, .op-price, .pay-panel h2, .shop-name, .prod-name, .prod-price { font-family: ${THEME_FONTS[t.font]}; }`);
   }
   return lines.join('\n');
 }

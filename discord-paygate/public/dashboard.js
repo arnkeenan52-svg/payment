@@ -1488,7 +1488,7 @@ function appearanceBody(store) {
                  </div>
                </div>
                <div class="th-viewport" id="th-viewport">
-                 <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}" title="Store preview" loading="lazy"></iframe>
+                 <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}?view=checkout" title="Store preview" loading="lazy"></iframe>
                </div>
              </div>`
           : '<div class="th-stage-empty"><p class="note-help">Publish your store to see the live preview here.</p></div>'

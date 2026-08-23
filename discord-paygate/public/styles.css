@@ -2707,3 +2707,48 @@ html.menu-open .top {
 .menu-scrim { touch-action: none; }
 .mobile-menu { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
 .mobile-menu a:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 4px; }
+
+/* ── storefront shop view: the store's overall page, every product a card ──
+   Painted entirely from the theme tokens, so a store's saved look carries
+   from its shop page into its checkout. */
+.shop { width: 100%; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.shop-banner { width: 100%; aspect-ratio: 3 / 1; object-fit: cover; border-radius: 14px; border: 1px solid var(--edge); }
+.shop-head { display: flex; align-items: center; gap: 14px; }
+.shop-icon { width: 52px; height: 52px; border-radius: 14px; }
+.shop-name { margin: 0; font-family: var(--font-head); font-size: 26px; letter-spacing: -0.02em; line-height: 1.15; }
+.shop-desc { margin: 3px 0 0; color: var(--dim); font-size: 14px; line-height: 1.5; max-width: 56ch; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.prod-card {
+  display: flex; flex-direction: column; gap: 10px; text-align: left; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 14px; padding: 14px;
+  color: var(--ink); font: inherit;
+  transition: border-color 140ms ease-out, translate 140ms ease-out;
+}
+.prod-card:hover { border-color: var(--edge-selected, var(--accent)); translate: 0 -2px; }
+.prod-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.prod-shot {
+  width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px;
+  border: 1px solid var(--edge); background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.prod-ph {
+  width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; border: 1px solid var(--edge);
+  display: grid; place-items: center; font-family: var(--font-head); font-weight: 700; font-size: 30px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel)); color: var(--accent);
+}
+.prod-name { font-weight: 700; font-size: 15.5px; font-family: var(--font-head); letter-spacing: -0.01em; }
+.prod-desc {
+  margin: 0; color: var(--dim); font-size: 13px; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.prod-foot { margin-top: auto; display: flex; align-items: baseline; gap: 6px; }
+.prod-price { font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; }
+.prod-per { color: var(--dim); font-size: 12.5px; }
+.shop-back {
+  background: none; border: none; align-self: flex-start; cursor: pointer;
+  color: var(--dim); font: 650 13.5px var(--font-body, inherit); padding: 0 0 12px;
+}
+.shop-back:hover { color: var(--ink); }
+@media (max-width: 560px) { .shop-grid { grid-template-columns: 1fr; } }
+
+/* the hidden attribute must win over the layout display rules above */
+.order-card[hidden], .shop[hidden] { display: none !important; }
