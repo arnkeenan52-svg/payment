@@ -16,19 +16,27 @@ Key product facts:
 - [Whop alternatives](https://www.ripleybot.com/alternatives/whop-alternatives)
 - [LaunchPass alternatives](https://www.ripleybot.com/alternatives/launchpass-alternatives)
 - [Subscord alternatives](https://www.ripleybot.com/alternatives/subscord-alternatives)
+- [DoorFee alternatives](https://www.ripleybot.com/alternatives/doorfee-alternatives)
+- [XOE alternatives](https://www.ripleybot.com/alternatives/xoe-alternatives)
+- [Best Discord monetization platforms](https://www.ripleybot.com/alternatives/best-discord-monetization-platforms)
 
 ## Compare
 - [Ripley vs Whop](https://www.ripleybot.com/vs/whop)
 - [Ripley vs LaunchPass](https://www.ripleybot.com/vs/launchpass)
 - [Ripley vs Subscord](https://www.ripleybot.com/vs/subscord)
+- [Ripley vs DoorFee](https://www.ripleybot.com/vs/doorfee)
+- [Ripley vs XOE](https://www.ripleybot.com/vs/xoe)
 - [Ripley vs Patreon](https://www.ripleybot.com/vs/patreon)
 - [All comparisons](https://www.ripleybot.com/vs)
 
 ## Guides
+- [Best Discord monetization platform](https://www.ripleybot.com/guides/best-discord-monetization-platform)
 - [How to monetize a Discord server](https://www.ripleybot.com/guides/how-to-monetize-a-discord-server)
 - [How to sell Discord roles](https://www.ripleybot.com/guides/how-to-sell-discord-roles)
 - [How to make a paid Discord server](https://www.ripleybot.com/guides/paid-discord-server)
-- [What a Discord subscription bot does](https://www.ripleybot.com/guides/discord-subscription-bot)
+- [How to paywall a Discord](https://www.ripleybot.com/guides/discord-paywall)
+- [Discord subscription bot](https://www.ripleybot.com/guides/discord-subscription-bot)
+- [Discord membership bot](https://www.ripleybot.com/guides/discord-membership-bot)
 
 ## Help
 - [Every feature explained](https://www.ripleybot.com/help)

@@ -110,6 +110,28 @@ const COMPETITORS = {
       'Buy Me a Coffee is built for one-off support and simple memberships, with a listed 5% platform fee and Discord access handled through an integration.',
     rows: { fee: '5% of earnings*', monthly: '$0 base', money: 'Paid out to you', store: 'buymeacoffee.com page' },
   },
+  // Discord-native competitor. Publicly listed pricing pairs a free plan
+  // carrying a percentage with a paid plan that lowers it — the headline
+  // number here is the free-plan rate, asterisked as always.
+  doorfee: {
+    name: 'DoorFee',
+    feeLine: '10% on the free plan, or a monthly plan + a lower cut*',
+    cost: (rev) => rev * 0.1,
+    blurb:
+      'DoorFee is a Discord monetization tool with a page builder and marketing add-ons. Its listed pricing charges a percentage of every sale — higher on the free plan, lower on a paid monthly plan.',
+    rows: { fee: '10% free plan / lower on paid*', monthly: '$0 free plan, paid plan available*', money: 'Your own payment account*', store: 'Hosted checkout page' },
+  },
+  // Discord-native, crypto-forward. Card sales are listed at 0% with a
+  // percentage on crypto and an optional paid tier — so this page compares
+  // on model (flat, card-native, your own Stripe), never on a fake fee.
+  xoe: {
+    name: 'XOE',
+    feeLine: 'card sales at 0%, a cut on crypto, optional paid tier*',
+    cost: null,
+    blurb:
+      'XOE is a Discord payment and security bot that leans on crypto: its listed pricing takes a percentage on crypto payments, keeps card sales at 0%, and offers an optional paid tier. Ripley is the card-native, flat-plan shape of the same job.',
+    rows: { fee: '0% on cards, a cut on crypto*', monthly: 'Free, optional paid tier*', money: 'Cards to Stripe / crypto to a wallet*', store: 'Hosted checkout page' },
+  },
 };
 
 const USE_CASES = {
@@ -249,16 +271,16 @@ export const footerHtml = `
       <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
       <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
-      <a href="/vs/subscord">Ripley vs Subscord</a><a href="/vs/patreon">Ripley vs Patreon</a>
-      <a href="/vs/upgrade-chat">Ripley vs Upgrade.Chat</a><a href="/vs/gumroad">Ripley vs Gumroad</a>
-      <a href="/alternatives/whop-alternatives">Whop alternatives</a>
-      <a href="/alternatives/subscord-alternatives">Subscord alternatives</a></nav>
+      <a href="/vs/subscord">Ripley vs Subscord</a><a href="/vs/doorfee">Ripley vs DoorFee</a>
+      <a href="/vs/xoe">Ripley vs XOE</a><a href="/vs/patreon">Ripley vs Patreon</a>
+      <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
+      <a href="/alternatives/whop-alternatives">Whop alternatives</a></nav>
     <nav class="footer-col"><span class="footer-head">Guides</span>
+      <a href="/guides/best-discord-monetization-platform">Best platform to use</a>
       <a href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
       <a href="/guides/how-to-sell-discord-roles">Sell Discord roles</a>
-      <a href="/guides/paid-discord-server">Make a paid server</a>
-      <a href="/guides/discord-subscription-bot">Discord subscription bots</a>
-      <a href="/guides/discord-monetization-ideas">Monetization ideas</a></nav>
+      <a href="/guides/discord-paywall">Paywall a Discord</a>
+      <a href="/guides/discord-membership-bot">Discord membership bots</a></nav>
     <nav class="footer-col"><span class="footer-head">Tools</span>
       <a href="/tools/discord-fee-calculator">Discord fee calculator</a>
       <a href="/tools/whop-fee-calculator">Whop fee calculator</a>
@@ -551,6 +573,7 @@ const COST_EXPR = {
   'upgrade-chat': '49 + rev * 0.029',
   memberful: '25 + rev * 0.049',
   'mighty-networks': '41 + rev * 0.02',
+  doorfee: 'rev * 0.10',
 };
 
 function competitorCalculator(key) {
@@ -615,6 +638,7 @@ function toolsIndex() {
     ['whop-fee-calculator', 'Whop fee calculator', "What 3% of sales adds up to at your community's size."],
     ['launchpass-fee-calculator', 'LaunchPass fee calculator', 'What $29/mo + 3.5% of sales costs as you grow.'],
     ['patreon-fee-calculator', 'Patreon fee calculator', 'What 8–12% of earnings means in real dollars.'],
+    ['doorfee-fee-calculator', 'DoorFee fee calculator', "What DoorFee's percentage costs your Discord as you grow."],
   ];
   const cards = tools
     .map(
@@ -846,6 +870,62 @@ const GUIDES = {
       ['How do I take payments for all this?', 'Any subscription layer works mechanically; they differ in fees and who holds your money. Ripley charges a flat plan, takes 0% of sales, and pays straight into your own Stripe account.'],
     ],
   },
+  'best-discord-monetization-platform': {
+    title: 'Best Discord Monetization Platform (2026): How to Choose',
+    desc: 'How to choose a Discord monetization platform in 2026: the fee models compared, who holds your money, role automation, and the shortlist of tools that sell Discord access.',
+    h1: 'The Best Discord Monetization Platform Is the One That Fits Your Volume',
+    intro: 'There is no single best platform — there is the pricing shape that fits how you plan to grow, and the automation you never want to think about again. This is the honest way to choose, with the whole field laid out.',
+    sections: [
+      ['The three pricing models', `<p>Every Discord monetization tool falls into one of three camps, and the camp matters more than the brand:</p><ul><li><strong>Marketplace</strong> — your store lives on the platform's domain and it takes a percentage of every sale (Whop). Discovery in exchange for a cut and a storefront you do not own.</li><li><strong>Percentage / hybrid</strong> — a cut of revenue, sometimes on top of a monthly fee (LaunchPass, Patreon, DoorFee, Ko-fi). Painless small, expensive at scale.</li><li><strong>Flat-fee</strong> — a fixed monthly plan and 0% of sales, money into your own account (Ripley). Costs the same at $200/mo and $20,000/mo.</li></ul><p>See exactly what each costs at your size in the <a href="/tools/discord-fee-calculator">fee calculator</a>.</p>`],
+      ['The six questions that actually decide it', `<ul><li><strong>What does it take per sale?</strong> A percentage compounds as you grow; a flat plan does not. <a href="/tools/discord-fee-calculator">Run your numbers</a>.</li><li><strong>Who holds the money?</strong> Straight into your own Stripe beats platform-held funds paid out on someone else's schedule.</li><li><strong>Does access heal itself?</strong> Lapse → role removed, automatically, with periodic re-checks — or you prune by hand forever.</li><li><strong>Do buyers get receipts?</strong> Emailed confirmations cut support pings sharply.</li><li><strong>Is there a real dashboard?</strong> Revenue, members, transactions, refund-safe controls.</li><li><strong>Can you leave?</strong> Your Stripe account and customer list being yours is the difference between a tool and a trap.</li></ul>`],
+      ['The field, honestly', `<p>Card-native flat-fee: <a href="/vs/whop">Ripley vs Whop</a>, <a href="/vs/launchpass">vs LaunchPass</a>. Crypto-forward: <a href="/vs/xoe">XOE</a>. Percentage Discord-native: <a href="/vs/doorfee">DoorFee</a>, <a href="/vs/subscord">Subscord</a>. Creator platforms with Discord bolted on: <a href="/vs/patreon">Patreon</a>, <a href="/vs/gumroad">Gumroad</a>. The full grid is on the <a href="/vs">comparisons page</a>, and the shortlists live under <a href="/alternatives">alternatives</a>.</p>`],
+      ['Where Ripley fits', `<p>Ripley is the flat-fee, card-native shape: free up to 10 paying members, flat plans after that, 0% of sales, checkout by Stripe into your own account, roles delivered in about two seconds and removed automatically on lapse. If your plan is to grow, a flat fee is the model that does not punish you for it.</p>`],
+    ],
+    faq: [
+      ['What is the best platform to monetize a Discord server?', 'The one whose pricing model fits your volume and whose role automation is invisible. Percentage platforms are cheapest at low volume; flat-fee platforms like Ripley win as you scale because the cost does not move with your revenue.'],
+      ['Which Discord monetization platform has the lowest fees?', 'Flat-fee platforms take 0% of sales and charge a fixed plan instead, so their effective rate falls as you grow. Percentage platforms stay proportional. Compare at your own numbers with the fee calculator rather than trusting a headline rate.'],
+      ['Do any of them let me keep my own Stripe account?', 'Yes — Ripley, LaunchPass and others run checkout on your own Stripe account so payouts are direct. Marketplaces typically hold funds and pay you out on their schedule; that is the trade for their discovery.'],
+      ['Can I switch platforms without losing members?', 'Your Discord members keep their roles while you set up a new checkout, and if your payments already run on your own Stripe account your customers move with you. Marketplace-held customer relationships are the hard ones to migrate.'],
+    ],
+  },
+  'discord-paywall': {
+    title: 'How to Put a Paywall on Your Discord (2026)',
+    desc: 'Add a paywall to a Discord server: structure a free lobby and locked channels, gate them behind a paid role, and connect a checkout that grants and removes access automatically.',
+    h1: 'How to Paywall a Discord Server',
+    intro: 'A Discord paywall is not a wall in front of the server — it is a locked floor inside it. Free members see that the paid area exists; paying members get the role that opens it. Here is how to build one that runs itself.',
+    sections: [
+      ['Structure: what is free, what is paid', `<p>Keep a public lobby with rules, announcements and enough real activity to prove the server is alive. Put the value in clearly named locked categories that non-members can see but not read. A paywall nobody can see through does not convert — visible-but-locked is the whole trick.</p>`],
+      ['The paywall is a role', `<p>Create one role per paid tier and set your premium channels to require it. That role is your paywall: grant it and the channels open, remove it and they close. Everything below automates granting and removing it.</p>`],
+      ['Connect the checkout', `<p>Invite a payment bot, connect your Stripe account, map the product to the role. On <a href="/">Ripley</a> the whole setup is invite → paste Stripe key → create product → pick role, and your paywall goes live at ripleybot.com/yourname. Buyers pay on Stripe and the role lands in seconds; those not yet in the server are pulled in with it attached.</p>`],
+      ['Make the paywall self-healing', `<p>The point of automating it is that lapses handle themselves: when a subscription ends, the role comes off and the channels re-lock without you touching anything, with access re-checked hourly. A manual paywall leaks the moment your server grows. One Discord gotcha: the bot's role must sit above the roles it manages in Server Settings → Roles.</p>`],
+      ['What a paywall costs to run', `<p>The tool's fee is the recurring cost, so pick the model deliberately: percentage platforms take a cut of everything the paywall earns, flat-fee platforms charge a fixed plan and 0% of sales. Compare both on the <a href="/vs">comparisons page</a> or estimate with the <a href="/tools/discord-fee-calculator">fee calculator</a>.</p>`],
+    ],
+    faq: [
+      ['Can you put a paywall on a Discord server?', 'Yes. You gate channels behind a role and use a checkout that grants the role on payment and removes it when payment stops. Discord itself supports this through roles; the checkout and automation come from a payment bot.'],
+      ['Is it allowed to paywall a Discord?', 'Selling access to your own community is a normal, widespread use of Discord. Follow Discord’s Terms for what you sell and your local rules, and you are on solid ground.'],
+      ['What is the cheapest way to paywall a Discord?', 'At low volume, a percentage tool with no monthly fee can be cheapest; as you grow, a flat-fee plan that takes 0% of sales wins because the cost stops scaling with your revenue. Compare at your numbers before committing.'],
+      ['How do members get past the paywall after paying?', 'The role is delivered automatically the moment payment clears — usually within a couple of seconds — and the locked channels open for them. No manual approval step.'],
+    ],
+  },
+  'discord-membership-bot': {
+    title: 'Discord Membership Bot: What It Does and How to Pick One',
+    desc: 'What a Discord membership bot does, how paid memberships and role delivery work, and the checklist for choosing one without percentage fees or held funds.',
+    h1: 'What a Discord Membership Bot Actually Does',
+    intro: 'A membership bot turns your server into a paid community: it sells the membership, grants the role that unlocks it, renews it, and pulls access when a member stops paying. Here is the whole job and how to judge one.',
+    sections: [
+      ['Membership bot vs subscription bot', `<p>They are the same category from two angles. A <a href="/guides/discord-subscription-bot">subscription bot</a> emphasizes the recurring billing; a membership bot emphasizes the member relationship — tiers, renewals, and the roster of who is in good standing. Any good tool does both: recurring checkout and automatic role lifecycle.</p>`],
+      ['The four jobs', `<p>End to end: a store page where members join, verified payment processing (checkout by Stripe or similar), instant role delivery when payment clears, and automatic role removal on cancellation, failed renewal, or refund. If any of the four is manual, the bot is not really doing the job.</p>`],
+      ['Tiers and lifetime memberships', `<p>A membership is a role with a price. Two or three roles at different prices give you tiers; a one-time lifetime seat is the same mechanism without a renewal. On Ripley each product maps to its own role, so tiers and lifetime seats are just more products — no extra setup.</p>`],
+      ['The checklist for choosing one', `<ul><li><strong>Fees:</strong> 0% flat-plan pricing vs a percentage of every membership — <a href="/tools/discord-fee-calculator">run your numbers</a>.</li><li><strong>Payouts:</strong> straight to your own Stripe, or held and paid out on the platform's schedule.</li><li><strong>Lifecycle:</strong> automatic grant, renew, and revoke, with periodic re-checks.</li><li><strong>Receipts and dashboard:</strong> emailed confirmations, revenue, members, transactions.</li><li><strong>Lock-in:</strong> your Stripe account and member list should be yours to leave with.</li></ul><p>See how the tools stack up on the <a href="/alternatives/best-discord-monetization-platforms">platform shortlist</a>.</p>`],
+      ['Where Ripley sits', `<p>Ripley is a membership bot with a flat plan: free up to 10 paying members, then from $14.99/mo, 0% of sales, checkout by Stripe into your own account, roles delivered in seconds and removed automatically on lapse. Compare it directly with <a href="/vs/subscord">Subscord</a>, <a href="/vs/launchpass">LaunchPass</a> or <a href="/vs">the whole field</a>.</p>`],
+    ],
+    faq: [
+      ['What is a Discord membership bot?', 'A bot that sells access to your server as a paid membership: it runs checkout, grants the member role automatically on payment, handles renewals, and removes the role when a membership lapses or is cancelled.'],
+      ['Can a membership bot handle tiers?', 'Yes. Each tier is a product mapped to its own role, so you can sell, say, a base membership and an inner-circle tier at different prices, each unlocking different channels.'],
+      ['Does a membership bot take a cut of my revenue?', 'It depends on the tool. Percentage bots take a share of every membership; flat-fee bots like Ripley charge a fixed monthly plan and take 0% of sales, with Stripe’s standard processing applying either way.'],
+      ['What happens when a member cancels?', 'A good membership bot removes the role automatically at the end of the paid period and re-checks access on a schedule, so your member list and your paying list never drift apart.'],
+    ],
+  },
 };
 
 function guidePage(slug, g) {
@@ -934,6 +1014,10 @@ const ALT_LIST = {
   subscord: { name: 'Subscord', line: 'Discord subscription bot with Stripe checkout; pricing is plan-dependent — check their site*.', href: '/vs/subscord' },
   whop: { name: 'Whop', line: 'Marketplace model: your store lives on whop.com and the platform takes a listed percentage of every sale before paying out*.', href: '/vs/whop' },
   buymeacoffee: { name: 'Buy Me a Coffee', line: 'Simple memberships with a listed 5% platform fee; Discord via integration*.', href: '/vs/buymeacoffee' },
+  doorfee: { name: 'DoorFee', line: 'Discord-native, with a page builder and marketing add-ons. Listed pricing takes a percentage of every sale — higher on the free plan, lower on a paid plan*.', href: '/vs/doorfee' },
+  xoe: { name: 'XOE', line: 'Discord payment and security bot. Listed pricing keeps card sales at 0%, takes a cut on crypto, and offers an optional paid tier — crypto-forward where Ripley is card-native and flat*.', href: '/vs/xoe' },
+  sublyna: { name: 'Sublyna', line: 'Discord subscription tool positioned as a Subscord alternative; pricing is plan-dependent — check their site*.', href: null },
+  paybot: { name: 'PayBot', line: 'Card-only Discord payment bot with a simple setup and a listed 0% platform fee; a narrower toolset than a full store platform*.', href: null },
 };
 
 const ALTERNATIVES = {
@@ -957,6 +1041,21 @@ const ALTERNATIVES = {
     picks: ['ripley', 'launchpass', 'ko-fi', 'buymeacoffee', 'whop'],
     why: 'Patreon takes a listed 8–12% of earnings and owns the member relationship, with Discord bolted on through an integration. For a community that lives on Discord, purpose-built tools deliver roles faster and cost a different shape of money.',
   },
+  'xoe-alternatives': {
+    target: 'XOE',
+    picks: ['ripley', 'subscord', 'doorfee', 'launchpass', 'paybot'],
+    why: 'XOE leans crypto-forward: its listed pricing takes a cut on crypto payments and keeps cards at 0%, with an optional paid tier. If you would rather sell in cards on a flat, predictable plan with money landing in your own Stripe account, the tools below are the shortlist.',
+  },
+  'doorfee-alternatives': {
+    target: 'DoorFee',
+    picks: ['ripley', 'subscord', 'launchpass', 'whop', 'paybot'],
+    why: 'DoorFee charges a percentage of every sale — higher on its free plan, lower on a paid plan. If the percentage is what you want to escape, the flat-fee options below cost the same whatever you earn.',
+  },
+  'best-discord-monetization-platforms': {
+    target: 'Discord monetization platform',
+    picks: ['ripley', 'whop', 'launchpass', 'subscord', 'doorfee', 'xoe', 'patreon'],
+    why: 'Every tool here sells Discord access; they differ in what they take from each sale and who holds your money. The list splits into flat-fee (a fixed plan, 0% of sales) and percentage or marketplace models — pick the shape that matches how you plan to grow.',
+  },
 };
 
 function altPage(slug, a) {
@@ -974,7 +1073,7 @@ function altPage(slug, a) {
           <div class="panel seo-card alt-card">
             <strong>${i + 1}. ${esc(p.name)}${i === 0 ? ' <span class="alt-ours">our product</span>' : ''}</strong>
             <p>${esc(p.line)}</p>
-            <span class="seo-card-cta"><a href="${p.href}">${p.href === '/' ? 'See how it works' : 'Full comparison'} →</a></span>
+            ${p.href ? `<span class="seo-card-cta"><a href="${p.href}">${p.href === '/' ? 'See how it works' : 'Full comparison'} →</a></span>` : ''}
           </div>`,
     )
     .join('');
@@ -1006,7 +1105,7 @@ ${cta(`Try the 0%-fee alternative`)}`;
         '@context': 'https://schema.org',
         '@type': 'ItemList',
         name: title,
-        itemListElement: picks.map((p, i) => ({ '@type': 'ListItem', position: i + 1, name: p.name, url: `${BASE}${p.href}` })),
+        itemListElement: picks.map((p, i) => ({ '@type': 'ListItem', position: i + 1, name: p.name, ...(p.href ? { url: `${BASE}${p.href}` } : {}) })),
       },
     ],
   });
@@ -1130,7 +1229,7 @@ for (const [slug, c] of Object.entries(COMPETITORS)) emit(`vs/${slug}.html`, vsP
 
 emit('tools/index.html', toolsIndex());
 emit('tools/discord-fee-calculator.html', allInOneCalculator().html);
-for (const key of ['whop', 'launchpass', 'patreon']) {
+for (const key of ['whop', 'launchpass', 'patreon', 'doorfee']) {
   const { slug, html } = competitorCalculator(key);
   emit(`tools/${slug}.html`, html);
 }
@@ -1160,20 +1259,37 @@ Key product facts:
 - Store page at ripleybot.com/<name> with the server's branding and product photos
 - Monthly subscriptions, lifetime (one-time) products, tiered roles, discount codes, purchase limits
 - Emailed receipts on every sale; optional "New Subscriber" ping in a Discord channel of the owner's choice
+- The bot never asks for Discord Administrator permission
 - Dashboard: revenue with previous-period comparison, members, transactions, refunds-safe revoke/re-sync
+
+## Alternatives
+- [Whop alternatives](${BASE}/alternatives/whop-alternatives)
+- [LaunchPass alternatives](${BASE}/alternatives/launchpass-alternatives)
+- [Subscord alternatives](${BASE}/alternatives/subscord-alternatives)
+- [DoorFee alternatives](${BASE}/alternatives/doorfee-alternatives)
+- [XOE alternatives](${BASE}/alternatives/xoe-alternatives)
+- [Best Discord monetization platforms](${BASE}/alternatives/best-discord-monetization-platforms)
 
 ## Compare
 - [Ripley vs Whop](${BASE}/vs/whop)
 - [Ripley vs LaunchPass](${BASE}/vs/launchpass)
 - [Ripley vs Subscord](${BASE}/vs/subscord)
+- [Ripley vs DoorFee](${BASE}/vs/doorfee)
+- [Ripley vs XOE](${BASE}/vs/xoe)
 - [Ripley vs Patreon](${BASE}/vs/patreon)
 - [All comparisons](${BASE}/vs)
 
 ## Guides
+- [Best Discord monetization platform](${BASE}/guides/best-discord-monetization-platform)
 - [How to monetize a Discord server](${BASE}/guides/how-to-monetize-a-discord-server)
 - [How to sell Discord roles](${BASE}/guides/how-to-sell-discord-roles)
 - [How to make a paid Discord server](${BASE}/guides/paid-discord-server)
-- [What a Discord subscription bot does](${BASE}/guides/discord-subscription-bot)
+- [How to paywall a Discord](${BASE}/guides/discord-paywall)
+- [Discord subscription bot](${BASE}/guides/discord-subscription-bot)
+- [Discord membership bot](${BASE}/guides/discord-membership-bot)
+
+## Help
+- [Every feature explained](${BASE}/help)
 
 ## Tools
 - [Discord monetization fee calculator](${BASE}/tools/discord-fee-calculator)
@@ -1186,7 +1302,7 @@ Competitor pricing referenced anywhere on this site is the publicly listed prici
 // are user content and terms/privacy/dashboard/account are noindex — none of
 // those belong in the sitemap.
 const urls = ['/', '/vs', ...Object.keys(COMPETITORS).map((s) => `/vs/${s}`), '/tools',
-  '/tools/discord-fee-calculator', '/tools/whop-fee-calculator', '/tools/launchpass-fee-calculator', '/tools/patreon-fee-calculator',
+  '/tools/discord-fee-calculator', '/tools/whop-fee-calculator', '/tools/launchpass-fee-calculator', '/tools/patreon-fee-calculator', '/tools/doorfee-fee-calculator',
   '/use-cases', ...Object.keys(USE_CASES).map((s) => `/use-cases/${s}`),
   '/guides', ...Object.keys(GUIDES).map((s) => `/guides/${s}`),
   '/alternatives', ...Object.keys(ALTERNATIVES).map((s) => `/alternatives/${s}`),

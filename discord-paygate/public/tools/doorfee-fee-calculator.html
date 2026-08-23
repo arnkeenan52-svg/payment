@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Patreon fee calculator — what Patreon costs your Discord</title>
-  <meta name="description" content="Estimate what Patreon's fees (8–12% of earnings) cost your Discord community each month, compared with Ripley's flat 0%-fee plans." />
-  <link rel="canonical" href="https://www.ripleybot.com/tools/patreon-fee-calculator" />
+  <title>DoorFee fee calculator — what DoorFee costs your Discord</title>
+  <meta name="description" content="Estimate what DoorFee's fees (10% on the free plan, or a monthly plan + a lower cut) cost your Discord community each month, compared with Ripley's flat 0%-fee plans." />
+  <link rel="canonical" href="https://www.ripleybot.com/tools/doorfee-fee-calculator" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Patreon fee calculator — what Patreon costs your Discord" />
-  <meta property="og:description" content="Estimate what Patreon's fees (8–12% of earnings) cost your Discord community each month, compared with Ripley's flat 0%-fee plans." />
+  <meta property="og:title" content="DoorFee fee calculator — what DoorFee costs your Discord" />
+  <meta property="og:description" content="Estimate what DoorFee's fees (10% on the free plan, or a monthly plan + a lower cut) cost your Discord community each month, compared with Ripley's flat 0%-fee plans." />
   <meta property="og:image" content="https://www.ripleybot.com/og-card.png" />
-  <meta property="og:url" content="https://www.ripleybot.com/tools/patreon-fee-calculator" />
+  <meta property="og:url" content="https://www.ripleybot.com/tools/doorfee-fee-calculator" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" type="image/png" href="/favicon.png?v=96" />
   <link rel="stylesheet" href="/styles.css?v=96" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Ripley","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://www.ripleybot.com/tools"},{"@type":"ListItem","position":3,"name":"Patreon fee calculator","item":"https://www.ripleybot.com/tools/patreon-fee-calculator"}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much does Patreon take from my sales?","acceptedAnswer":{"@type":"Answer","text":"Patreon's publicly listed pricing is 8–12% of earnings. Check their site for current numbers."}},{"@type":"Question","name":"What does Ripley cost?","acceptedAnswer":{"@type":"Answer","text":"Free up to 10 paying members, then flat plans from $14.99/mo. Ripley takes 0% of your sales."}},{"@type":"Question","name":"Are Stripe fees included?","acceptedAnswer":{"@type":"Answer","text":"No — Stripe’s standard card-processing fees apply on every platform, so they cancel out of the comparison."}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Ripley","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://www.ripleybot.com/tools"},{"@type":"ListItem","position":3,"name":"DoorFee fee calculator","item":"https://www.ripleybot.com/tools/doorfee-fee-calculator"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much does DoorFee take from my sales?","acceptedAnswer":{"@type":"Answer","text":"DoorFee's publicly listed pricing is 10% on the free plan, or a monthly plan + a lower cut. Check their site for current numbers."}},{"@type":"Question","name":"What does Ripley cost?","acceptedAnswer":{"@type":"Answer","text":"Free up to 10 paying members, then flat plans from $14.99/mo. Ripley takes 0% of your sales."}},{"@type":"Question","name":"Are Stripe fees included?","acceptedAnswer":{"@type":"Answer","text":"No — Stripe’s standard card-processing fees apply on every platform, so they cancel out of the comparison."}}]}</script>
   <script src="/theme.js?v=96"></script>
 </head>
 <body class="home seo-page">
@@ -39,8 +39,8 @@
 
     <section class="xhero seo-hero">
       <div class="hero-inner">
-        <h1>Patreon Fee Calculator</h1>
-        <p class="hero-sub">Patreon's publicly listed pricing is 8–12% of earnings. Move the sliders to see what that costs at your size — and what the same store costs on Ripley's flat plans.</p>
+        <h1>DoorFee Fee Calculator</h1>
+        <p class="hero-sub">DoorFee's publicly listed pricing is 10% on the free plan, or a monthly plan + a lower cut. Move the sliders to see what that costs at your size — and what the same store costs on Ripley's flat plans.</p>
       </div>
     </section>
     <section class="xsection">
@@ -71,9 +71,9 @@
               <span class="calc-bar-sub">Flat plan · 0% of sales</span>
             </div>
             <div class="calc-bar-row">
-              <div class="calc-bar-meta"><span class="calc-bar-name">Patreon</span><span class="calc-bar-amt" id="t-patreon">$0</span></div>
-              <div class="calc-bar"><span id="t-bar-patreon"></span></div>
-              <span class="calc-bar-sub">8–12% of earnings*</span>
+              <div class="calc-bar-meta"><span class="calc-bar-name">DoorFee</span><span class="calc-bar-amt" id="t-doorfee">$0</span></div>
+              <div class="calc-bar"><span id="t-bar-doorfee"></span></div>
+              <span class="calc-bar-sub">10% on the free plan, or a monthly plan + a lower cut*</span>
             </div>
               <p class="calc-note">* Competitor pricing as publicly listed — check their sites for current numbers. Stripe’s standard card-processing fees apply on every platform and are excluded here.</p>
             </div>
@@ -85,7 +85,7 @@
       <div class="wrap narrow">
         <h2 class="section-title center">Frequently asked</h2>
         <div class="faq">
-          <details class="panel faq-item"><summary>How much does Patreon take from my sales?</summary><p>Patreon's publicly listed pricing is 8–12% of earnings. Check their site for current numbers.</p></details>
+          <details class="panel faq-item"><summary>How much does DoorFee take from my sales?</summary><p>DoorFee's publicly listed pricing is 10% on the free plan, or a monthly plan + a lower cut. Check their site for current numbers.</p></details>
           <details class="panel faq-item"><summary>What does Ripley cost?</summary><p>Free up to 10 paying members, then flat plans from $14.99/mo. Ripley takes 0% of your sales.</p></details>
           <details class="panel faq-item"><summary>Are Stripe fees included?</summary><p>No — Stripe’s standard card-processing fees apply on every platform, so they cancel out of the comparison.</p></details>
         </div>
@@ -115,7 +115,7 @@
       document.getElementById('t-price-out').textContent = '$' + p;
       document.getElementById('t-rev').textContent = fmt(rev) + '/mo';
       var ripley = ripleyCost(m);
-      var rows = [{ id: 'patreon', cost: rev * 0.08 }];
+      var rows = [{ id: 'doorfee', cost: rev * 0.10 }];
       var max = ripley; rows.forEach(function (r) { if (r.cost > max) max = r.cost; });
       var worst = 0;
       document.getElementById('t-ripley').textContent = fmt(ripley) + '/mo';
