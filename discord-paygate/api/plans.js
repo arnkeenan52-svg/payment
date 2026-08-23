@@ -4,6 +4,7 @@ import { getGuild, guildIconUrl } from '../src/lib/discord.js';
 import { effectiveRoleMap } from '../src/services/plan-config.js';
 import { storeBySlug, sellablePlansOf } from '../src/services/stores.js';
 import { DEMO_SLUG, demoPlansPayload } from '../src/services/demo-store.js';
+import { countLiveMembers } from '../src/db.js';
 
 // The server's own identity fronts every checkout: name and icon come from
 // the live guild lookup via the bot (animated icons surface as .gif).
@@ -43,7 +44,14 @@ export default guard(async function handler(req, res) {
   sendJson(res, 200, {
     brand: store.isDefault ? config.brand : store.name,
     platform: { name: config.platform },
-    store: { slug: store.slug, status: store.status, description: store.description ?? null, bannerUrl: store.bannerUrl ?? null, theme: store.theme ?? null },
+    store: {
+      slug: store.slug, status: store.status, description: store.description ?? null,
+      bannerUrl: store.bannerUrl ?? null, theme: store.theme ?? null,
+      about: store.about ?? null, links: store.links ?? null,
+      // Live members, only when the owner switched the badge on — the count
+      // is the same real number the dashboard bills on.
+      memberCount: store.showMembers ? await countLiveMembers([store.id ?? null]) : null,
+    },
     // Guild id is public (it's in every invite link); the receipt page needs
     // it for the "Open on Discord" deep link.
     server: { name, guildId: store.guildId, iconUrl },

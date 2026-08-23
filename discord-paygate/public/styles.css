@@ -2752,3 +2752,47 @@ html.menu-open .top {
 
 /* the hidden attribute must win over the layout display rules above */
 .order-card[hidden], .shop[hidden] { display: none !important; }
+
+/* ── shop page: trust chips, social links, about, empty state ─────────────── */
+.shop-trust { display: flex; flex-wrap: wrap; gap: 8px; }
+.shop-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--edge); border-radius: 999px; padding: 6px 12px;
+  font-size: 12.5px; font-weight: 650; color: var(--dim);
+}
+.shop-chip svg { flex: none; opacity: 0.8; }
+.shop-chip strong { color: var(--ink); font-weight: 750; }
+.shop-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.shop-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border: 1px solid var(--edge); border-radius: 10px;
+  color: var(--dim); background: var(--panel); transition: color 140ms ease-out, border-color 140ms ease-out;
+}
+.shop-link:hover { color: var(--ink); border-color: var(--edge-selected, var(--accent)); }
+.shop-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.prod-roles { display: flex; flex-wrap: wrap; gap: 5px; }
+.prod-role {
+  font-size: 10.5px; font-weight: 750; color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 999px; padding: 2px 8px;
+}
+.shop-about { border-top: 1px solid var(--edge); padding-top: 16px; }
+.shop-about p { margin: 0 0 10px; color: var(--dim); font-size: 14px; line-height: 1.65; max-width: 62ch; }
+.shop-about p:last-child { margin-bottom: 0; }
+.shop-empty { margin: 8px 0 0; color: var(--dim); font-size: 14px; }
+/* banner + avatar overlap, the classic profile composition */
+.shop-banner:not([hidden]) + .shop-head { margin-top: -30px; }
+.shop-banner:not([hidden]) + .shop-head .shop-icon {
+  border: 3px solid var(--bg); background: var(--bg);
+}
+
+/* store settings: the link grid */
+.st-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 700px) { .st-links { grid-template-columns: 1fr; } }
+.field textarea {
+  width: 100%; resize: vertical; min-height: 90px;
+  background: var(--well, #0c0c0c); border: 1px solid var(--edge); border-radius: 8px;
+  color: var(--ink); font: inherit; font-size: 14px; padding: 10px 12px;
+}
+.field textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.field-help { margin: 6px 0 0; font-size: 12px; color: var(--dim); }

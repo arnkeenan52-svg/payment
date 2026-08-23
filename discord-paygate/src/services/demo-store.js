@@ -7,10 +7,11 @@ export const DEMO_SLUG = 'demo';
 
 export const DEMO_NAME = 'Ripley Membership';
 
-// The Emerald preset, same tokens the dashboard offers.
+// The Midnight preset, same tokens the dashboard offers — the platform's
+// own black look.
 export const DEMO_THEME = {
-  bg: '#071209', panel: '#0d2012', text: '#e9f6ec',
-  accent: '#22c55e', pay: '#22c55e', radius: 16, font: 'default',
+  bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4',
+  accent: '#ededed', pay: '#5865f2', radius: 16, font: 'default',
 };
 
 export const demoPlans = () => [
@@ -38,7 +39,14 @@ export function demoPlansPayload({ platformName, brandFallback }) {
   return {
     brand: DEMO_NAME,
     platform: { name: platformName ?? brandFallback },
-    store: { slug: DEMO_SLUG, status: 'live', description: 'A demo of a Ripley store — nothing here is for sale.', bannerUrl: null, theme: DEMO_THEME },
+    store: {
+      slug: DEMO_SLUG, status: 'live',
+      description: 'A demo of a Ripley store — nothing here is for sale.',
+      bannerUrl: null, theme: DEMO_THEME,
+      about: 'This is what buyers see when a seller shares their Ripley store link: every product, the store\u2019s own colors and type, and a checkout that pays straight into the seller\u2019s Stripe account.\nBuild yours in minutes \u2014 invite Ripley, paste a Stripe key, pick the roles to sell.',
+      links: { website: 'https://www.ripleybot.com' },
+      memberCount: 134,
+    },
     server: { name: DEMO_NAME, guildId: '', iconUrl: '/favicon.png' },
     capabilities: { stripe: true, crypto: false, demo: true },
     plans: demoPlans(),

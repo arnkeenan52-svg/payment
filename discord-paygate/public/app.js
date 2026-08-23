@@ -483,7 +483,43 @@ function renderShop() {
   const desc = (state.store?.description ?? '').trim();
   $('#shop-desc').textContent = desc;
   $('#shop-desc').hidden = !desc;
+  // Trust chips: the live member count (only when the owner shows it) plus
+  // two platform facts that hold for every Ripley store.
+  const ICON_MEMBERS = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 20c.7-3.4 3.2-5.2 6.2-5.2s5.5 1.8 6.2 5.2"/><path d="M15.5 5.2a3.4 3.4 0 0 1 0 5.9M18.2 14.9c1.7.8 2.7 2.4 3 5.1"/></svg>';
+  const ICON_LOCK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+  const ICON_BOLT = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg>';
+  const trust = $('#shop-trust');
+  const count = state.store?.memberCount;
+  trust.innerHTML =
+    (Number.isFinite(count) && count > 0 ? `<span class="shop-chip">${ICON_MEMBERS}<strong>${count}</strong>&nbsp;members</span>` : '') +
+    `<span class="shop-chip">${ICON_LOCK}Secured by Stripe</span>` +
+    `<span class="shop-chip">${ICON_BOLT}Roles delivered automatically</span>`;
+  // Social links: fixed keys, saved as https URLs in the dashboard.
+  const LINK_ICONS = {
+    discord: '<svg width="17" height="13" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>',
+    x: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.2l7.3-8.3L1.2 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L7.1 3.9H5.3L17.8 20z"/></svg>',
+    youtube: '<svg width="16" height="12" viewBox="0 0 24 17" fill="currentColor" aria-hidden="true"><path d="M23.5 2.7A3 3 0 0 0 21.4.5C19.6 0 12 0 12 0S4.4 0 2.6.5A3 3 0 0 0 .5 2.7 31.2 31.2 0 0 0 0 8.5a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.2c1.8.5 9.4.5 9.4.5s7.6 0 9.4-.5a3 3 0 0 0 2.1-2.2 31.2 31.2 0 0 0 .5-5.8 31.2 31.2 0 0 0-.5-5.8zM9.6 12.1V4.9l6.3 3.6-6.3 3.6z"/></svg>',
+    instagram: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none"/></svg>',
+    tiktok: '<svg width="13" height="15" viewBox="0 0 20 23" fill="currentColor" aria-hidden="true"><path d="M15.5 0h-3.8v15.1a3.3 3.3 0 1 1-3.3-3.3c.3 0 .7 0 1 .1V8a7.2 7.2 0 0 0-1-.1 7.1 7.1 0 1 0 7.1 7.1V7.6a9 9 0 0 0 4.8 1.4V5.2A5.2 5.2 0 0 1 15.5 0z"/></svg>',
+    website: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.6 2.6 3.9 5.8 3.9 9.2s-1.3 6.6-3.9 9.2c-2.6-2.6-3.9-5.8-3.9-9.2s1.3-6.6 3.9-9.2z"/></svg>',
+  };
+  const linksBox = $('#shop-links');
+  const links = state.store?.links ?? {};
+  const linkHtml = Object.keys(LINK_ICONS)
+    .filter((k) => typeof links[k] === 'string' && /^https:\/\//.test(links[k]))
+    .map((k) => `<a class="shop-link" href="${esc(links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
+    .join('');
+  linksBox.innerHTML = linkHtml;
+  linksBox.hidden = !linkHtml;
+  // About: plain text, escaped, split into paragraphs.
+  const about = (state.store?.about ?? '').trim();
+  const aboutBox = $('#shop-about-box');
+  if (about) {
+    $('#shop-about').innerHTML = about.split(/\n+/).map((line) => `<p>${esc(line.trim())}</p>`).join('');
+    aboutBox.hidden = false;
+  } else aboutBox.hidden = true;
   const grid = $('#shop-grid');
+  $('#shop-empty').hidden = state.plans.length > 0;
   grid.innerHTML = '';
   for (const plan of state.plans) {
     const card = document.createElement('button');
@@ -495,6 +531,9 @@ function renderShop() {
         ? `<img class="prod-shot" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" />`
         : `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`) +
       `<span class="prod-name">${esc(plan.name)}</span>` +
+      ((plan.roleNames ?? []).length
+        ? `<span class="prod-roles">${plan.roleNames.slice(0, 3).map((r) => `<span class="prod-role">@${esc(r)}</span>`).join('')}</span>`
+        : '') +
       (plan.description ? `<p class="prod-desc">${esc(plan.description)}</p>` : '') +
       `<span class="prod-foot"><span class="prod-price">${fmtPrice(plan.priceUsd)}</span><span class="prod-per">${per}</span></span>`;
     card.onclick = () => openCheckout(plan.id);

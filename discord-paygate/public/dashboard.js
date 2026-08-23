@@ -1523,6 +1523,17 @@ function sectionStore(store, link) {
           <input id="st-desc" type="text" maxlength="500" value="${esc(store.description ?? '')}" placeholder="One or two lines shown under your store name." /></label>
         <label class="field"><span class="field-label">Banner URL</span>
           <input id="st-banner" type="url" value="${esc(store.bannerUrl ?? '')}" placeholder="https://…  (1500×400 works best)" spellcheck="false" /></label>
+        <label class="field"><span class="field-label">About</span>
+          <textarea id="st-about" rows="4" maxlength="2000" placeholder="Tell buyers what your community offers. Blank lines make paragraphs.">${esc(store.about ?? '')}</textarea></label>
+        <div class="field"><span class="field-label">Links</span>
+          <div class="st-links">
+            ${['discord', 'x', 'youtube', 'instagram', 'tiktok', 'website'].map((k) => `
+              <input id="st-link-${k}" type="url" value="${esc(store.links?.[k] ?? '')}" placeholder="${k === 'x' ? 'X (Twitter)' : k[0].toUpperCase() + k.slice(1)} — https://…" spellcheck="false" />`).join('')}
+          </div>
+          <p class="field-help">Shown as icons on your store page. https:// links only.</p>
+        </div>
+        <label class="disc-toggle"><input id="st-members" type="checkbox" ${store.showMembers ? 'checked' : ''} />
+          Show your live member count on the store page</label>
         <p class="field-err" id="err-store" role="alert"></p>`,
       foot: `<button class="btn-pill" id="st-save">Save changes</button>`,
     })}
@@ -2367,6 +2378,9 @@ function wireStoreSettings(store, slug) {
         name: $('#st-name').value,
         description: $('#st-desc').value,
         bannerUrl: $('#st-banner').value,
+        about: $('#st-about').value,
+        links: Object.fromEntries(['discord', 'x', 'youtube', 'instagram', 'tiktok', 'website'].map((k) => [k, $(`#st-link-${k}`).value])),
+        showMembers: $('#st-members').checked,
       });
       state.data = null;
       viewStore(slug);

@@ -239,6 +239,11 @@ function db() {
       // What the buyer actually paid (post-discount) — display surfaces
       // prefer this over the plan's list price when present.
       await driver.exec('ALTER TABLE subscriptions ADD COLUMN paid_usd REAL').catch(() => {});
+      // Store-page customization: long about text, social links (JSON of
+      // known keys), and the opt-in live member-count badge.
+      await driver.exec('ALTER TABLE stores ADD COLUMN about TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN links TEXT').catch(() => {});
+      await driver.exec(`ALTER TABLE stores ADD COLUMN show_members ${intType}`).catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE stores ADD COLUMN discoverable ${intType} NOT NULL DEFAULT 0`).catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN category TEXT').catch(() => {});
@@ -539,6 +544,9 @@ export async function updateStore(id, fields) {
     theme: 'theme',
     discoverable: 'discoverable',
     category: 'category',
+    about: 'about',
+    links: 'links',
+    showMembers: 'show_members',
   };
   const sets = [];
   const params = [];

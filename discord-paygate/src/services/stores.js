@@ -29,6 +29,9 @@ export function defaultStore() {
     stripeKey: config.stripe.secretKey,
     webhookSecret: null, // env + doctor-stored secrets apply (webhook handler)
     status: 'live',
+    about: null,
+    links: null,
+    showMembers: false,
     isDefault: true,
   };
 }
@@ -47,6 +50,9 @@ function hydrate(row) {
     webhookSecret: row.stripe_webhook_secret ?? null,
     notifyChannelId: row.notify_channel_id ?? null,
     theme: row.theme ? JSON.parse(row.theme) : null,
+    about: row.about ?? null,
+    links: row.links ? JSON.parse(row.links) : null,
+    showMembers: Boolean(Number(row.show_members ?? 0)),
     discoverable: Boolean(Number(row.discoverable ?? 0)),
     category: row.category ?? null,
     status: row.status,

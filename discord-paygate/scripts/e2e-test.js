@@ -2642,9 +2642,25 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal((await storeCall({ stripeKey: 'pk_live_publishable' })).status, 400, 'a publishable key is refused on shape alone');
   assert.equal((await storeCall({ stripeKey: OWNER2_KEY })).status, 200);
   assert.equal((await storeCall({ name: 'VIP Signals Pro', description: 'The alpha desk.', bannerUrl: 'https://cdn.e2e.test/banner.png' })).status, 200);
+  // Store-page extras: about, social links and the member-count badge.
+  assert.equal((await storeCall({ links: { x: 'http://insecure.example' } })).status, 400, 'links must be https');
+  assert.equal(
+    (await storeCall({
+      about: 'Daily signals.\n\nRefunds within 7 days.',
+      links: { discord: 'https://discord.gg/vipsignals', website: 'https://vipsignals.example' },
+      showMembers: true,
+    })).status,
+    200,
+  );
   const pub = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
   assert.equal(pub.brand, 'VIP Signals Pro');
   assert.equal(pub.store.description, 'The alpha desk.');
+  assert.match(pub.store.about, /Refunds within 7 days/);
+  assert.equal(pub.store.links.discord, 'https://discord.gg/vipsignals');
+  assert.equal(typeof pub.store.memberCount, 'number', 'opt-in badge exposes the live count');
+  assert.equal((await storeCall({ showMembers: false })).status, 200);
+  const pubOff = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  assert.equal(pubOff.store.memberCount, null, 'switched off, the count is private again');
   // Custom link: platform paths can never be claimed as store links.
   // ('vs' is unclaimable too, but the 2-char format check 400s it first.)
   for (const bad of ['dashboard', 'api', 'store', 'diagnostics', 'tools', 'use-cases', 'demo']) {
@@ -2678,6 +2694,10 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   assert.equal(plans.capabilities.demo, true, 'the client needs the demo flag to disarm pay');
   assert.equal(plans.capabilities.stripe, true, 'the checkout still renders fully');
   assert.deepEqual(plans.plans.map((p) => p.priceUsd), [49.99, 14.99, 79.99]);
+  assert.equal(plans.store.theme.bg, '#0a0a0a', 'the demo store is the black Midnight look');
+  assert.equal(plans.store.links.website, 'https://www.ripleybot.com');
+  assert.equal(plans.store.memberCount, 134);
+  assert.match(plans.store.about, /invite Ripley/i);
   // The demo's one discount code previews like a real one.
   const d = await (await fetch(`${appUrl}/api/discount?store=demo&code=LAUNCH20&plan=vip-access`)).json();
   assert.equal(d.discountedUsd, 39.99, 'LAUNCH20 takes 20% off the demo product');

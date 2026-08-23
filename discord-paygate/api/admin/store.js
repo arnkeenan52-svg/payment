@@ -74,6 +74,23 @@ export default guard(async function handler(req, res) {
     fields.name = name;
   }
   if (body.description !== undefined) fields.description = String(body.description).trim().slice(0, 500) || null;
+  // Store-page extras: a longer about block, social links from a fixed key
+  // set (https only), and the opt-in live member-count badge.
+  if (body.about !== undefined) fields.about = String(body.about).trim().slice(0, 2000) || null;
+  if (body.links !== undefined) {
+    const ALLOWED = ['discord', 'x', 'youtube', 'instagram', 'tiktok', 'website'];
+    const clean = {};
+    for (const key of ALLOWED) {
+      const raw = String(body.links?.[key] ?? '').trim();
+      if (!raw) continue;
+      if (!/^https:\/\/\S+$/.test(raw) || raw.length > 300) {
+        return sendJson(res, 400, { error: `The ${key} link must be a full https:// URL.` });
+      }
+      clean[key] = raw;
+    }
+    fields.links = Object.keys(clean).length ? JSON.stringify(clean) : null;
+  }
+  if (body.showMembers !== undefined) fields.showMembers = body.showMembers ? 1 : 0;
   // Storefront theme: tokens only, validated server-side — never raw CSS.
   // null (or an emptied object) clears it back to the platform look.
   if (body.theme !== undefined) {
