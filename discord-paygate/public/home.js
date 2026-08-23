@@ -73,7 +73,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const img = $('#hero-media');
   if (!img) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=91'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=92'; // hold a still frame instead
     return;
   }
 
@@ -90,8 +90,8 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=91', 'video/mp4; codecs="avc1.640028"'],
-    ['/hero-demo.webm?v=91', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=92', 'video/mp4; codecs="avc1.640028"'],
+    ['/hero-demo.webm?v=92', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays

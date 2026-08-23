@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '91'; // keep in step with the ?v= asset version on index.html
+const V = '92'; // keep in step with the ?v= asset version on index.html
 
 // Ripley plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -246,7 +246,7 @@ export const footerHtml = `
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
       <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
-      <a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
+      <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
       <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
       <a href="/vs/subscord">Ripley vs Subscord</a><a href="/vs/patreon">Ripley vs Patreon</a>
@@ -300,10 +300,10 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta property="og:image" content="${BASE}/shot-dashboard.png" />
   <meta property="og:url" content="${canonical}" />
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="icon" type="image/png" href="/favicon.png?v=91" />
+  <link rel="icon" type="image/png" href="/favicon.png?v=92" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
-  <script src="/theme.js?v=91"></script>
+  <script src="/theme.js?v=92"></script>
 </head>
 <body class="home seo-page">
 ${nav}
@@ -1049,6 +1049,75 @@ ${cta()}`;
 // ── emit everything ───────────────────────────────────────────────────────────
 
 const out = [];
+// ── /help — every feature in two minutes, each card linking to the real thing ─
+
+function helpPage() {
+  const FEATURES = [
+    ['Your store page', 'One link with everything you sell — your name, banner, about section and colors. Buyers browse products and check out without leaving the page.', '/demo', 'See the demo store'],
+    ['Product links', 'Every product also has its own URL, like ripleybot.com/your-store/vip — rename the last part in the product editor and share it anywhere.', '/dashboard', 'Dashboard → Products'],
+    ['Checkout & payments', 'Buyers pay by card through Stripe, straight into your own Stripe account. Ripley never holds your money and takes 0% of sales.', '/demo/vip-access', 'Try a demo checkout'],
+    ['Automatic role delivery', 'The Discord role is granted seconds after payment and removed when a membership ends. Failed renewals get a short grace period before access is pulled.', '/guides/how-to-sell-discord-roles', 'How role selling works'],
+    ['Discounts', 'Create percentage codes in the dashboard; buyers apply them at checkout and pay the discounted amount.', '/dashboard', 'Dashboard → Discounts'],
+    ['Sale alerts in Discord', 'Pick a channel and every sale is posted there the moment it lands — product, amount and buyer.', '/dashboard', 'Dashboard → Settings'],
+    ['Members & transactions', 'Every member and payment in one place: search, CSV export, and manual extend or revoke when you need to step in.', '/dashboard', 'Dashboard → Members'],
+    ['Make it yours', 'Theme presets, custom colors, corner radius and typeface — with a live preview of your storefront before anything is saved.', '/dashboard', 'Dashboard → Store → Appearance'],
+    ['Discover', 'An optional public directory of Ripley stores. Off by default; list yours from the Store section if you want the traffic.', '/discover', 'Browse Discover'],
+    ['Your plan', 'Free for your first 10 paying members. After that, flat monthly plans from $14.99 — always 0% of sales, on every plan.', '/#pricing', 'See pricing'],
+    ['For buyers: your account', 'Cancel a renewing membership yourself, see what you own, and re-sync your Discord role if it ever goes missing.', '/account', 'Open your account'],
+    ['Receipts', 'Buyers get a confirmation email after every purchase, and each payment has a receipt page they can get back to.', '/terms', 'Delivery & refunds'],
+  ];
+  const cards = FEATURES.map(
+    ([t, d, href, label]) => `
+          <a class="panel seo-card" href="${href}">
+            <strong>${esc(t)}</strong>
+            <p>${esc(d)}</p>
+            <span class="seo-card-cta">${esc(label)} →</span>
+          </a>`,
+  ).join('');
+  const faq = [
+    ['My Discord role went missing — what do I do?', 'Open your account page and hit "Re-sync my access". It re-checks your purchases and puts the role back. If it still fails, message the server owner on Discord.'],
+    ['How do I cancel a membership?', 'From your account page, any time — no asking anyone. You keep access until the end of the period you already paid for.'],
+    ['Where does the money go?', 'Directly to the seller’s own Stripe account on every sale. Ripley never sits between you and your payout — Stripe pays out on its normal schedule.'],
+    ['Do I need the Stripe dashboard to run my store?', 'No. Connect Stripe once with an API key; after that products, prices, discounts and refund-worthy situations are all handled from the Ripley dashboard.'],
+  ];
+  const body = `
+    <section class="xhero seo-hero">
+      <div class="hero-inner">
+        <h1>Help</h1>
+        <p class="hero-sub">Everything Ripley does, in about two minutes. Every card links to the real thing.</p>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow">
+        <section class="panel sub-card legal">
+          <h2>Set up in four steps</h2>
+          <p>1. Open the <a href="/dashboard">dashboard</a> and sign in with Discord.</p>
+          <p>2. Pick your server and invite the Ripley bot.</p>
+          <p>3. Connect Stripe with an API key — payments go straight to your Stripe account.</p>
+          <p>4. Create a product, attach the role it unlocks, publish. Your store is live at ripleybot.com/your-store.</p>
+        </section>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap">
+        <h2 class="section-title center">Every feature</h2>
+        <div class="seo-grid">${cards}
+        </div>
+      </div>
+    </section>
+    <section class="xsection">${faqHtml(faq)}
+    </section>
+${cta('Set up your store today')}`;
+  return page({
+    urlPath: '/help',
+    title: 'Help — how Ripley works',
+    desc: 'A short guide to every Ripley feature: store pages, product links, Stripe checkout, automatic role delivery, discounts, sale alerts, themes and plans.',
+    body,
+    jsonld: [faqJsonld(faq)],
+    crumbs: [['Help', '/help']],
+  });
+}
+
 function emit(rel, html) {
   const file = path.join(PUB, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -1073,6 +1142,7 @@ emit('guides/index.html', guidesIndex());
 for (const [slug, g] of Object.entries(GUIDES)) emit(`guides/${slug}.html`, guidePage(slug, g));
 
 emit('alternatives/index.html', altIndex());
+emit('help.html', helpPage());
 for (const [slug, a] of Object.entries(ALTERNATIVES)) emit(`alternatives/${slug}.html`, altPage(slug, a));
 
 // llms.txt: the emerging convention answer engines read for a site summary.
@@ -1120,7 +1190,7 @@ const urls = ['/', '/vs', ...Object.keys(COMPETITORS).map((s) => `/vs/${s}`), '/
   '/use-cases', ...Object.keys(USE_CASES).map((s) => `/use-cases/${s}`),
   '/guides', ...Object.keys(GUIDES).map((s) => `/guides/${s}`),
   '/alternatives', ...Object.keys(ALTERNATIVES).map((s) => `/alternatives/${s}`),
-  '/discover'];
+  '/discover', '/help'];
 const today = new Date().toISOString().slice(0, 10);
 emit(
   'sitemap.xml',

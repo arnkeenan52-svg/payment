@@ -44,6 +44,10 @@
       "destination": "/terms.html"
     },
     {
+      "source": "/help",
+      "destination": "/help.html"
+    },
+    {
       "source": "/privacy",
       "destination": "/privacy.html"
     },

@@ -142,6 +142,10 @@ const server = http.createServer(async (req, res) => {
       serveStatic(res, 'terms.html');
       return;
     }
+    if (req.method === 'GET' && url.pathname === '/help') {
+      serveStatic(res, 'help.html');
+      return;
+    }
     if (req.method === 'GET' && url.pathname === '/privacy') {
       serveStatic(res, 'privacy.html');
       return;

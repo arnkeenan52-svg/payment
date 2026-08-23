@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Help — how Ripley works</title>
+  <meta name="description" content="A short guide to every Ripley feature: store pages, product links, Stripe checkout, automatic role delivery, discounts, sale alerts, themes and plans." />
+  <link rel="canonical" href="https://www.ripleybot.com/help" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Help — how Ripley works" />
+  <meta property="og:description" content="A short guide to every Ripley feature: store pages, product links, Stripe checkout, automatic role delivery, discounts, sale alerts, themes and plans." />
+  <meta property="og:image" content="https://www.ripleybot.com/shot-dashboard.png" />
+  <meta property="og:url" content="https://www.ripleybot.com/help" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/png" href="/favicon.png?v=92" />
+  <link rel="stylesheet" href="/styles.css?v=92" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Ripley","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Help","item":"https://www.ripleybot.com/help"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"My Discord role went missing — what do I do?","acceptedAnswer":{"@type":"Answer","text":"Open your account page and hit \"Re-sync my access\". It re-checks your purchases and puts the role back. If it still fails, message the server owner on Discord."}},{"@type":"Question","name":"How do I cancel a membership?","acceptedAnswer":{"@type":"Answer","text":"From your account page, any time — no asking anyone. You keep access until the end of the period you already paid for."}},{"@type":"Question","name":"Where does the money go?","acceptedAnswer":{"@type":"Answer","text":"Directly to the seller’s own Stripe account on every sale. Ripley never sits between you and your payout — Stripe pays out on its normal schedule."}},{"@type":"Question","name":"Do I need the Stripe dashboard to run my store?","acceptedAnswer":{"@type":"Answer","text":"No. Connect Stripe once with an API key; after that products, prices, discounts and refund-worthy situations are all handled from the Ripley dashboard."}}]}</script>
+  <script src="/theme.js?v=92"></script>
+</head>
+<body class="home seo-page">
+
+  <header class="top xoe-nav">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="20" /></a>
+    </div>
+    <nav class="top-center" aria-label="Main">
+      <a class="nav-link" href="/#features">Features</a>
+      <a class="nav-link" href="/#pricing">Pricing</a>
+      <a class="nav-link" href="/vs">Compare</a>
+      <a class="nav-link" href="/tools">Tools</a>
+    </nav>
+    <div class="top-right">
+      <div class="account"><a class="btn-fill" href="/dashboard">Start free</a></div>
+      <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
+  </header>
+  <main class="landing">
+
+    <section class="xhero seo-hero">
+      <div class="hero-inner">
+        <h1>Help</h1>
+        <p class="hero-sub">Everything Ripley does, in about two minutes. Every card links to the real thing.</p>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow">
+        <section class="panel sub-card legal">
+          <h2>Set up in four steps</h2>
+          <p>1. Open the <a href="/dashboard">dashboard</a> and sign in with Discord.</p>
+          <p>2. Pick your server and invite the Ripley bot.</p>
+          <p>3. Connect Stripe with an API key — payments go straight to your Stripe account.</p>
+          <p>4. Create a product, attach the role it unlocks, publish. Your store is live at ripleybot.com/your-store.</p>
+        </section>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap">
+        <h2 class="section-title center">Every feature</h2>
+        <div class="seo-grid">
+          <a class="panel seo-card" href="/demo">
+            <strong>Your store page</strong>
+            <p>One link with everything you sell — your name, banner, about section and colors. Buyers browse products and check out without leaving the page.</p>
+            <span class="seo-card-cta">See the demo store →</span>
+          </a>
+          <a class="panel seo-card" href="/dashboard">
+            <strong>Product links</strong>
+            <p>Every product also has its own URL, like ripleybot.com/your-store/vip — rename the last part in the product editor and share it anywhere.</p>
+            <span class="seo-card-cta">Dashboard → Products →</span>
+          </a>
+          <a class="panel seo-card" href="/demo/vip-access">
+            <strong>Checkout &amp; payments</strong>
+            <p>Buyers pay by card through Stripe, straight into your own Stripe account. Ripley never holds your money and takes 0% of sales.</p>
+            <span class="seo-card-cta">Try a demo checkout →</span>
+          </a>
+          <a class="panel seo-card" href="/guides/how-to-sell-discord-roles">
+            <strong>Automatic role delivery</strong>
+            <p>The Discord role is granted seconds after payment and removed when a membership ends. Failed renewals get a short grace period before access is pulled.</p>
+            <span class="seo-card-cta">How role selling works →</span>
+          </a>
+          <a class="panel seo-card" href="/dashboard">
+            <strong>Discounts</strong>
+            <p>Create percentage codes in the dashboard; buyers apply them at checkout and pay the discounted amount.</p>
+            <span class="seo-card-cta">Dashboard → Discounts →</span>
+          </a>
+          <a class="panel seo-card" href="/dashboard">
+            <strong>Sale alerts in Discord</strong>
+            <p>Pick a channel and every sale is posted there the moment it lands — product, amount and buyer.</p>
+            <span class="seo-card-cta">Dashboard → Settings →</span>
+          </a>
+          <a class="panel seo-card" href="/dashboard">
+            <strong>Members &amp; transactions</strong>
+            <p>Every member and payment in one place: search, CSV export, and manual extend or revoke when you need to step in.</p>
+            <span class="seo-card-cta">Dashboard → Members →</span>
+          </a>
+          <a class="panel seo-card" href="/dashboard">
+            <strong>Make it yours</strong>
+            <p>Theme presets, custom colors, corner radius and typeface — with a live preview of your storefront before anything is saved.</p>
+            <span class="seo-card-cta">Dashboard → Store → Appearance →</span>
+          </a>
+          <a class="panel seo-card" href="/discover">
+            <strong>Discover</strong>
+            <p>An optional public directory of Ripley stores. Off by default; list yours from the Store section if you want the traffic.</p>
+            <span class="seo-card-cta">Browse Discover →</span>
+          </a>
+          <a class="panel seo-card" href="/#pricing">
+            <strong>Your plan</strong>
+            <p>Free for your first 10 paying members. After that, flat monthly plans from $14.99 — always 0% of sales, on every plan.</p>
+            <span class="seo-card-cta">See pricing →</span>
+          </a>
+          <a class="panel seo-card" href="/account">
+            <strong>For buyers: your account</strong>
+            <p>Cancel a renewing membership yourself, see what you own, and re-sync your Discord role if it ever goes missing.</p>
+            <span class="seo-card-cta">Open your account →</span>
+          </a>
+          <a class="panel seo-card" href="/terms">
+            <strong>Receipts</strong>
+            <p>Buyers get a confirmation email after every purchase, and each payment has a receipt page they can get back to.</p>
+            <span class="seo-card-cta">Delivery &amp; refunds →</span>
+          </a>
+        </div>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow">
+        <h2 class="section-title center">Frequently asked</h2>
+        <div class="faq">
+          <details class="panel faq-item"><summary>My Discord role went missing — what do I do?</summary><p>Open your account page and hit &quot;Re-sync my access&quot;. It re-checks your purchases and puts the role back. If it still fails, message the server owner on Discord.</p></details>
+          <details class="panel faq-item"><summary>How do I cancel a membership?</summary><p>From your account page, any time — no asking anyone. You keep access until the end of the period you already paid for.</p></details>
+          <details class="panel faq-item"><summary>Where does the money go?</summary><p>Directly to the seller’s own Stripe account on every sale. Ripley never sits between you and your payout — Stripe pays out on its normal schedule.</p></details>
+          <details class="panel faq-item"><summary>Do I need the Stripe dashboard to run my store?</summary><p>No. Connect Stripe once with an API key; after that products, prices, discounts and refund-worthy situations are all handled from the Ripley dashboard.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="xsection">
+      <div class="wrap narrow center">
+        <h2 class="section-title">Set up your store today</h2>
+        <p class="section-sub">Free for your first 10 paying members — no card required.</p>
+        <p><a class="btn-fill btn-hero" href="/dashboard">Start free <span aria-hidden="true">→</span></a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer cols seo-footer">
+    <div class="footer-brand">
+      <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
+      <span class="footer-copy">© Ripley</span>
+    </div>
+    <nav class="footer-col"><span class="footer-head">Product</span>
+      <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
+      <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
+    <nav class="footer-col"><span class="footer-head">Compare</span>
+      <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
+      <a href="/vs/subscord">Ripley vs Subscord</a><a href="/vs/patreon">Ripley vs Patreon</a>
+      <a href="/vs/upgrade-chat">Ripley vs Upgrade.Chat</a><a href="/vs/gumroad">Ripley vs Gumroad</a>
+      <a href="/alternatives/whop-alternatives">Whop alternatives</a>
+      <a href="/alternatives/subscord-alternatives">Subscord alternatives</a></nav>
+    <nav class="footer-col"><span class="footer-head">Guides</span>
+      <a href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
+      <a href="/guides/how-to-sell-discord-roles">Sell Discord roles</a>
+      <a href="/guides/paid-discord-server">Make a paid server</a>
+      <a href="/guides/discord-subscription-bot">Discord subscription bots</a>
+      <a href="/guides/discord-monetization-ideas">Monetization ideas</a></nav>
+    <nav class="footer-col"><span class="footer-head">Tools</span>
+      <a href="/tools/discord-fee-calculator">Discord fee calculator</a>
+      <a href="/tools/whop-fee-calculator">Whop fee calculator</a>
+      <a href="/tools/launchpass-fee-calculator">LaunchPass fee calculator</a>
+      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a></nav>
+    <nav class="footer-col"><span class="footer-head">Use cases</span>
+      <a href="/use-cases/trading">Trading signals</a><a href="/use-cases/sports-betting">Sports picks</a>
+      <a href="/use-cases/fitness">Fitness coaching</a><a href="/use-cases/reselling">Cook groups</a>
+      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a></nav>
+    <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
+    <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
+  </footer>
+</body>
+</html>
