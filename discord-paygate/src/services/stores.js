@@ -67,18 +67,14 @@ export async function storeBySlug(slug) {
   // No slug = internal callers (legacy webhooks, reconcile) meaning the
   // built-in store. By URL it is reachable ONLY at its own unique slug.
   if (!slug) return defaultStore();
-  const managed = hydrate(await db.getStoreBySlug(slug));
-  if (managed) {
-    // A managed store owns its slug — with one guard: while it is still a
-    // DRAFT and its slug is the built-in store's, buyers keep the WORKING
-    // env-configured store. A half-set-up store must never turn the live
-    // checkout link into an empty page; it takes the link over when it goes
-    // live (role attached), not before.
-    const def = defaultStore();
-    if (managed.status !== 'live' && def && slug === defaultSlug()) return def;
-    return managed;
-  }
-  return slug === defaultSlug() ? defaultStore() : null;
+  const def = defaultStore();
+  // SECURITY: the built-in store's slug always resolves to the built-in
+  // store, never to a managed row that claimed it (belt-and-braces with the
+  // reserved-slug write guard — this also neutralizes any impostor row that
+  // predates that guard). Buyers of the platform's brand link always reach
+  // the real, env-configured store and its Stripe account.
+  if (def && slug === defaultSlug()) return def;
+  return hydrate(await db.getStoreBySlug(slug));
 }
 
 // Owner-side resolution: the managed row wins outright, draft or live. The
@@ -214,5 +210,9 @@ export const STORE_CATEGORIES = [
 export const isStoreCategory = (v) => STORE_CATEGORIES.some(([k]) => k === v);
 
 export function isReservedSlug(slug) {
-  return RESERVED_SLUGS.has(String(slug ?? '').toLowerCase());
+  const s = String(slug ?? '').toLowerCase();
+  // The built-in store's own slug is reserved too: no managed store may claim
+  // the platform's brand link and hijack its storefront/checkout.
+  if (config.discord.guildId && s === defaultSlug()) return true;
+  return RESERVED_SLUGS.has(s);
 }

@@ -524,6 +524,14 @@ export async function getStoreByGuild(guildId) {
   return storeRow(rows[0]);
 }
 
+// Every managed store bound to a guild. Used by the reconciler so a role a
+// member legitimately holds via ANOTHER store in the same Discord guild is
+// never stripped while reconciling this one.
+export async function storesByGuild(guildId) {
+  const { rows } = await q('SELECT * FROM stores WHERE guild_id = ?', [guildId]);
+  return rows.map(storeRow);
+}
+
 export async function storesByOwner(ownerDiscordId) {
   const { rows } = await q('SELECT * FROM stores WHERE owner_discord_id = ? ORDER BY id', [ownerDiscordId]);
   return rows.map(storeRow);

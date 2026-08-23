@@ -38,7 +38,9 @@ export function sessionUserId(req) {
   if (mac.length !== expected.length || !crypto.timingSafeEqual(mac, expected)) return null;
   try {
     const { uid, exp } = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    if (!uid || exp < Math.floor(Date.now() / 1000)) return null;
+    // exp must be a real number: a payload missing it must fail closed, never
+    // be treated as a non-expiring session (undefined < now is false).
+    if (!uid || typeof exp !== 'number' || exp < Math.floor(Date.now() / 1000)) return null;
     return String(uid);
   } catch {
     return null;

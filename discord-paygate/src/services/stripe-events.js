@@ -8,14 +8,17 @@ import { postChannelMessage } from '../lib/discord.js';
 import { getUser } from '../db.js';
 import { activatePlatformPlan, applyPlatformSubscriptionEvent, isPlatformSubscription } from './billing.js';
 
-// Which store an event belongs to: the per-store endpoint that received it
-// (routeStore), the store_id our checkout stamped into metadata, or the row
-// we already hold for the Stripe subscription — falling back to the default
-// store for pre-multi-tenant deliveries.
+// Which store an event belongs to. SECURITY: a per-store endpoint verified
+// this delivery with that store's OWN signing secret, so the event provably
+// belongs to routeStore — event metadata (which the paying Stripe account
+// fully controls) must never reassign it to another tenant. Metadata and the
+// stored subscription row are trusted only on the platform endpoint (Ripley's
+// own account), where routeStore is null.
 async function resolveStore(routeStore, metadataStoreId, row = null) {
-  if (metadataStoreId) return (await storeById(metadataStoreId)) ?? routeStore ?? defaultStore();
+  if (routeStore) return routeStore;
+  if (metadataStoreId) return (await storeById(metadataStoreId)) ?? defaultStore();
   if (row && row.store_id !== null && row.store_id !== undefined) return storeById(row.store_id);
-  return routeStore ?? defaultStore();
+  return defaultStore();
 }
 
 // Handled events: checkout.session.completed, invoice.paid,
@@ -26,8 +29,12 @@ export async function processStripeEvent(event, routeStore = null) {
   switch (event.type) {
     case 'checkout.session.completed': {
       // A store owner buying a Ripley plan — platform billing, not a buyer
-      // membership. Lands on the default endpoint (Ripley's own account).
+      // membership. This only ever happens on Ripley's own account (the
+      // platform endpoint, routeStore null). SECURITY: ignore a platform_plan
+      // marker on a per-store endpoint — a tenant must not activate a platform
+      // tier by stamping metadata on an event from their own Stripe account.
       if (obj.metadata?.kind === 'platform_plan') {
+        if (routeStore) return;
         await activatePlatformPlan({
           ownerDiscordId: obj.metadata?.owner_discord_id ?? obj.client_reference_id,
           tierId: obj.metadata?.tier,

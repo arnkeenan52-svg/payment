@@ -28,6 +28,9 @@ export default guard(async (req, res) => {
     'content-type': m[1],
     'content-length': body.length,
     'cache-control': 'public, max-age=3600',
+    // The MIME is already whitelisted to four image types by DATA_URL; nosniff
+    // stops a browser from ever reinterpreting the bytes as anything else.
+    'x-content-type-options': 'nosniff',
   });
   res.end(body);
 });

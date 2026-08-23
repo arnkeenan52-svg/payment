@@ -48,6 +48,29 @@ async function desiredFrom(roleMap, store, discordId, at = now()) {
   return desired;
 }
 
+// Every role the member is entitled to ANYWHERE in `target`'s Discord guild —
+// this store plus any other managed store (and the built-in store) bound to
+// the same guild. Removals are decided against this wider set so that when two
+// stores share one guild, reconciling store A never strips a role the member
+// legitimately holds through store B. Additions stay per-store (see caller).
+async function desiredRoleIdsInGuild(discordId, target, targetRoleMap, at = now()) {
+  const all = new Set(await desiredFrom(targetRoleMap, target, discordId, at));
+  if (!target.guildId) return all;
+  const siblings = [];
+  const def = defaultStore();
+  if (def && def.guildId === target.guildId && storeKey(def) !== storeKey(target)) siblings.push(def);
+  for (const row of await db.storesByGuild(target.guildId)) {
+    if (storeKey(row) === storeKey(target)) continue;
+    const s = await storeById(row.id);
+    if (s) siblings.push(s);
+  }
+  for (const s of siblings) {
+    const { map } = await rolePlanFor(s);
+    for (const roleId of await desiredFrom(map, s, discordId, at)) all.add(roleId);
+  }
+  return all;
+}
+
 export async function desiredRoleIds(discordId, at = now(), store = null) {
   const target = store ?? defaultStore();
   return desiredFrom((await rolePlanFor(target)).map, target, discordId, at);
@@ -131,7 +154,10 @@ async function reconcileNow(discordId, store) {
   // A degraded mapping (guild role list unfetchable) fell back to configured
   // ids: additions can retry later, but a removal computed against it could
   // strip a role the member holds legitimately under the full mapping.
-  const toRemove = degraded ? [] : [...current].filter((r) => managed.has(r) && !desired.has(r));
+  // Removals are decided against the guild-wide desired set so a role the
+  // member holds via another store in this same guild is never torn off.
+  const desiredInGuild = degraded ? desired : await desiredRoleIdsInGuild(discordId, store, roleMap);
+  const toRemove = degraded ? [] : [...current].filter((r) => managed.has(r) && !desiredInGuild.has(r));
 
   for (const roleId of toAdd) await addRole(discordId, roleId, store.guildId);
   for (const roleId of toRemove) await removeRole(discordId, roleId, store.guildId);
@@ -151,7 +177,21 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
     console.warn(`[entitlements] grant for unknown plan "${planId}" (store ${target?.slug ?? '?'}) ignored`);
     return null;
   }
-  const expiry = plan.lifetime ? null : periodEnd ?? now() + plan.durationDays * 86400;
+  // A NULL expiry means lifetime and nothing else. For a term plan, use the
+  // provider's period end, else the plan's own duration — but never compute
+  // NaN from a missing/zero durationDays (which would poison isEntitled and
+  // could grant access forever). Fall back to 30 days and log loudly instead.
+  let expiry;
+  if (plan.lifetime) {
+    expiry = null;
+  } else if (periodEnd) {
+    expiry = periodEnd;
+  } else if (Number(plan.durationDays) > 0) {
+    expiry = now() + Number(plan.durationDays) * 86400;
+  } else {
+    console.error(`[entitlements] plan "${planId}" (store ${target?.slug ?? '?'}) is non-lifetime with no usable durationDays; defaulting to 30 days`);
+    expiry = now() + 30 * 86400;
+  }
   const sub = await db.upsertSubscription({
     discordId,
     planId,

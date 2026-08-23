@@ -37,6 +37,22 @@ const env = (key, fallback = '') => process.env[key] ?? fallback;
 const num = (key, fallback) => Number(process.env[key] ?? fallback);
 
 const publicBaseUrl = env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`).replace(/\/$/, '');
+const isProd = publicBaseUrl.startsWith('https://');
+
+// SESSION_SECRET signs session cookies AND derives the at-rest key for every
+// tenant's Stripe secret (secretbox). A missing/weak/default value makes every
+// session forgeable and every stored key decryptable, so a production
+// deployment must fail closed rather than silently run on 'change-me'.
+function resolveSessionSecret() {
+  const s = env('SESSION_SECRET', '');
+  if (isProd && (s.length < 32 || s.startsWith('change-me'))) {
+    throw new Error(
+      'SESSION_SECRET must be set to a strong value (>= 32 chars, not the default) in production — ' +
+        'it signs sessions and derives the at-rest key for tenant Stripe keys.',
+    );
+  }
+  return s || 'change-me';
+}
 // Cookies are scoped to the registrable domain (www stripped) so a deployment
 // reachable on both apex and www keeps its login cookies across the OAuth
 // host hop. localhost/IPs get host-only cookies.
@@ -61,8 +77,8 @@ export const config = {
   port: num('PORT', 4000),
   publicBaseUrl,
   cookieDomain,
-  secureCookies: publicBaseUrl.startsWith('https://'),
-  sessionSecret: env('SESSION_SECRET', 'change-me'),
+  secureCookies: isProd,
+  sessionSecret: resolveSessionSecret(),
   cronSecret: env('CRON_SECRET'),
   // Postgres when a connection string is set (Vercel/production); SQLite file
   // otherwise (local dev, e2e). DATABASE_URL wins, but Vercel's marketplace

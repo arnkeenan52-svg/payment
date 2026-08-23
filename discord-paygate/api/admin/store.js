@@ -176,8 +176,26 @@ export default guard(async function handler(req, res) {
     }
   }
   const row = await db.updateStore(store.id, fields);
+  // Return EVERY editable field, not just the few that changed: the dashboard
+  // repopulates the settings form from this response, and any field omitted
+  // here renders blank and gets wiped on the next save (the "saved, then went
+  // back to empty" class of bug). Keep this in step with the form's inputs.
   sendJson(res, 200, {
     ok: true,
-    store: { slug: row.slug, name: row.name, description: row.description ?? null, bannerUrl: row.banner_url ?? null, notifyChannelId: row.notify_channel_id ?? null, status: row.status },
+    store: {
+      slug: row.slug,
+      name: row.name,
+      description: row.description ?? null,
+      bannerUrl: row.banner_url ?? null,
+      notifyChannelId: row.notify_channel_id ?? null,
+      status: row.status,
+      about: row.about ?? null,
+      links: row.links ? JSON.parse(row.links) : null,
+      showMembers: Boolean(Number(row.show_members ?? 0)),
+      dashboardPrefs: row.dashboard_prefs ? JSON.parse(row.dashboard_prefs) : null,
+      theme: row.theme ? JSON.parse(row.theme) : null,
+      discoverable: Boolean(Number(row.discoverable ?? 0)),
+      category: row.category ?? null,
+    },
   });
 });

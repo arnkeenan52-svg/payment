@@ -627,7 +627,7 @@ const baseEnv = (mocks) => ({
   // the developer's shell can't silently flip the suite onto Postgres.
   ...(PG_URL ? { DATABASE_URL: PG_URL } : { DB_PATH: dbPath, DATABASE_URL: '', POSTGRES_URL: '' }),
   PUBLIC_BASE_URL: 'https://tradeleaks.e2e', // https + snowflake-shaped ids so the doctor's structural checks pass
-  SESSION_SECRET: 'e2e-session-secret',
+  SESSION_SECRET: 'e2e-session-secret-0123456789-abcdef', // >= 32 chars: prod guard rejects weak secrets
   CRON_SECRET,
   DISCORD_CLIENT_ID: '1010101010101010101',
   OWNER_DISCORD_ID: U1, // U1 doubles as the store owner in these tests
@@ -1832,6 +1832,25 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   assert.ok(memberRoles(U8).has(R2_VIP), 'the buyer must receive the tenant role (joined with it)');
   assert.ok(discord.joins.some((j) => j.uid === U8 && j.roles.includes(R2_VIP)), 'buyer was pulled into G2 with the role');
 
+  // ── SECURITY: a per-store webhook endpoint is bound to its own store ───────
+  // The owner controls the signing secret for THEIR endpoint. They must not be
+  // able to (a) self-activate a platform plan for free, nor (b) redirect a
+  // grant to a different store, by stamping metadata on an event they deliver.
+  // (a) A platform_plan marker on a tenant endpoint is acked and dropped.
+  const tierBefore = (await (await fetch(`${appUrl}/api/billing`, { headers: { cookie: u7Cookie } })).json()).current.tier;
+  const forgePlatEvt = {
+    id: 'evt_forge_platform_1',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_forge_plat', mode: 'subscription', subscription: 'sub_forge_plat', client_reference_id: '507700000000000007', metadata: { kind: 'platform_plan', tier: 'scale', owner_discord_id: '507700000000000007' } } },
+  };
+  const forgePlat = await deliverStripe(forgePlatEvt, {
+    path: `/webhooks/stripe/${store.id}`,
+    header: signStripe(JSON.stringify(forgePlatEvt), nowSec(), AUTO_ENDPOINT_SECRET),
+  });
+  assert.equal(forgePlat.status, 200, forgePlat.body);
+  const tierAfter = (await (await fetch(`${appUrl}/api/billing`, { headers: { cookie: u7Cookie } })).json()).current.tier;
+  assert.equal(tierAfter, tierBefore, 'a platform_plan event on a tenant endpoint must NOT activate a plan');
+
   // The emailed receipt went out via Resend with the right details, sent
   // from the account's VERIFIED domain — never the resend.dev test sender,
   // which delivers only to the Resend account owner.
@@ -1957,11 +1976,11 @@ test('the built-in server can be onboarded as a managed store: products, discoun
   );
 });
 
-test("a DRAFT store cannot hijack the built-in store's live link", async () => {
-  // An admin of a THIRD server names their store exactly like the brand, so
-  // its slug collides with the built-in store's. Until that store is LIVE,
-  // buyers at the link must keep getting the WORKING env catalog — never an
-  // empty half-set-up draft.
+test("no store can claim the built-in store's link (reserved slug)", async () => {
+  // An admin of a THIRD server tries to name their store exactly like the
+  // brand so its slug collides with the built-in store's — a hijack of the
+  // live checkout link and its Stripe account. Creation must be REJECTED, and
+  // buyers at the link must always reach the working built-in catalog.
   const U14 = '514400000000000014';
   discord.oauthUsers.code_u14 = { id: U14, username: 'hub_admin' };
   discord.userGuilds[U14] = [{ id: G3, name: 'Trade Hub', icon: null, owner: true, permissions: '8' }];
@@ -1973,21 +1992,43 @@ test("a DRAFT store cannot hijack the built-in store's live link", async () => {
     headers: { cookie: sc14.split(';')[0] },
   });
   const u14Cookie = cb14.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
-  const made = await fetch(`${appUrl}/api/onboard`, {
+
+  // Onboarding with the exact brand name must NOT yield the brand slug — the
+  // built-in slug is reserved, so the store gets a de-duplicated slug instead.
+  const brandNamed = await fetch(`${appUrl}/api/onboard`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', cookie: u14Cookie },
     body: JSON.stringify({ step: 'store', guildId: G3, name: 'Tradeleaks', stripeKey: OWNER2_KEY }),
   });
-  const madeBody = await made.text();
-  assert.equal(made.status, 200, madeBody);
-  const { store } = JSON.parse(madeBody);
-  assert.equal(store.slug, 'tradeleaks', 'the colliding slug is granted (it will win once live)');
+  const brandBody = await brandNamed.text();
+  assert.equal(brandNamed.status, 200, brandBody);
+  const store = JSON.parse(brandBody).store;
+  assert.notEqual(store.slug, 'tradeleaks', 'a store named after the brand must not get the brand slug');
 
-  // Buyers at the link still get the working env store, not the empty draft…
+  // Buyers at the built-in link still get the working env catalog on the
+  // platform's own account — never a hijacker's store.
   const atLink = await (await fetch(`${appUrl}/api/plans?store=tradeleaks`)).json();
-  assert.equal(atLink.plans.length, PLANS.length, 'the live link keeps selling while the draft is unfinished');
+  assert.equal(atLink.plans.length, PLANS.length, 'the built-in link keeps selling');
   assert.equal(atLink.store.status, 'live');
-  // …while the draft stays fully manageable by its owner.
+
+  // Renaming a store TO the built-in slug is refused outright (reserved).
+  const rename = await fetch(`${appUrl}/api/admin/store`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u14Cookie },
+    body: JSON.stringify({ store: store.slug, slug: 'tradeleaks' }),
+  });
+  assert.equal(rename.status, 409, `renaming to the built-in slug must be rejected: ${await rename.text()}`);
+
+  // A rename to a normal, free slug succeeds — fixes a predictable slug for
+  // the draft-management checks and the delete test below.
+  const rehome = await fetch(`${appUrl}/api/admin/store`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u14Cookie },
+    body: JSON.stringify({ store: store.slug, slug: 'trade-hub' }),
+  });
+  assert.equal(rehome.status, 200, `renaming to a free slug must work: ${await rehome.text()}`);
+
+  // The draft stays fully manageable by its owner…
   const list = await fetch(`${appUrl}/api/onboard`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', cookie: u14Cookie },
@@ -1995,9 +2036,7 @@ test("a DRAFT store cannot hijack the built-in store's live link", async () => {
   });
   assert.equal(list.status, 200);
 
-  // Photos uploaded while the draft hides behind the built-in slug must
-  // still serve — /api/img resolves the MANAGED row, not the buyer-facing
-  // guard (which would 404 every image with 'unknown store').
+  // …and its uploaded photos serve at its own slug.
   const DRAFT_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
   const withPhoto = await fetch(`${appUrl}/api/onboard`, {
     method: 'POST',
@@ -2007,7 +2046,7 @@ test("a DRAFT store cannot hijack the built-in store's live link", async () => {
   const withPhotoBody = await withPhoto.text();
   assert.equal(withPhoto.status, 200, withPhotoBody);
   const draftPlan = JSON.parse(withPhotoBody).plan;
-  const draftImg = await fetch(`${appUrl}/api/img?store=tradeleaks&plan=${encodeURIComponent(draftPlan.planKey)}`);
+  const draftImg = await fetch(`${appUrl}/api/img?store=trade-hub&plan=${encodeURIComponent(draftPlan.planKey)}`);
   assert.equal(draftImg.status, 200, "the draft's uploaded photo must serve at its slug");
   assert.equal(Buffer.from(await draftImg.arrayBuffer()).toString('base64'), DRAFT_PNG, 'draft photo bytes intact');
 });
@@ -2032,19 +2071,18 @@ test('store delete: payment history refuses; a draft deletes, freeing its link a
       body: JSON.stringify({ store: slug, action: 'delete' }),
     });
 
-  // Only the store's owner may delete it — even while it hides behind the
-  // built-in store's slug as a draft.
-  assert.equal((await del(u7Cookie, 'tradeleaks')).status, 403, "another owner must not delete the draft");
+  // Only the store's owner may delete it.
+  assert.equal((await del(u7Cookie, 'trade-hub')).status, 403, "another owner must not delete the draft");
   // A store with real payments is not deletable — the history stays.
   const refused = await del(u7Cookie, 'vip-signals');
   assert.equal(refused.status, 409, await refused.text());
 
   // The empty draft deletes cleanly…
-  const ok = await del(u14Cookie, 'tradeleaks');
+  const ok = await del(u14Cookie, 'trade-hub');
   assert.equal(ok.status, 200, await ok.text());
-  // …its slug snaps back to the built-in store…
+  // …the built-in store's own link is unaffected throughout…
   const back = await (await fetch(`${appUrl}/api/plans?store=tradeleaks`)).json();
-  assert.equal(back.plans.length, PLANS.length, 'the built-in store reclaims its link');
+  assert.equal(back.plans.length, PLANS.length, 'the built-in store keeps its link');
   // …and the guild is free to onboard from scratch (the reset path).
   const again = await fetch(`${appUrl}/api/onboard`, {
     method: 'POST',

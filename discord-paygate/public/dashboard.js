@@ -2031,7 +2031,15 @@ async function viewStore(slug) {
     $('#tx-export').onclick = () => {
       const rows = filtered();
       const head = 'date,username,discord_id,store,product,amount_usd,status,provider';
-      const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      // Quote every cell AND neutralize spreadsheet formula injection: a value
+      // that starts with = + - @ or a control char (e.g. a buyer username the
+      // buyer chose) would otherwise run as a formula when the CSV is opened in
+      // Excel/Sheets. Prefixing a single quote makes the cell inert text.
+      const cell = (v) => {
+        let s = String(v ?? '');
+        if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+        return `"${s.replace(/"/g, '""')}"`;
+      };
       const csv = [head, ...rows.map((p) =>
         [new Date(p.createdAt * 1000).toISOString(), p.username ?? '', p.discordId, p.storeSlug, p.planName, p.amountUsd.toFixed(2), p.status, p.provider].map(cell).join(','),
       )].join('\n');
