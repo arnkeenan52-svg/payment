@@ -13,6 +13,12 @@ import { validateTheme, themeCss } from '../src/lib/theme.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// Canonical URLs must not point through a redirect. Production serves on
+// www (apex 307s there) while PUBLIC_BASE_URL stays apex for OAuth and
+// webhook registrations — so canonicals (and og:url) pin the www host.
+const canonicalBase = () =>
+  config.publicBaseUrl.replace(/^https:\/\/ripleybot\.com/, 'https://www.ripleybot.com');
+
 let template = null;
 const load = () => (template ??= fs.readFileSync(path.join(config.root, 'public', 'store.html'), 'utf8'));
 
@@ -41,8 +47,8 @@ export default guard(async (req, res) => {
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
   <meta property="og:image" content="${esc(image)}" />
-  <meta property="og:url" content="${esc(`${config.publicBaseUrl}/${DEMO_SLUG}`)}" />
-  <link rel="canonical" href="${esc(`${config.publicBaseUrl}/${DEMO_SLUG}`)}" />
+  <meta property="og:url" content="${esc(`${canonicalBase()}/${DEMO_SLUG}`)}" />
+  <link rel="canonical" href="${esc(`${canonicalBase()}/${DEMO_SLUG}`)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(desc)}" />
@@ -77,8 +83,8 @@ export default guard(async (req, res) => {
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
   <meta property="og:image" content="${esc(image)}" />
-  <meta property="og:url" content="${esc(`${config.publicBaseUrl}/${store.slug}${linkedPlan ? `/${productSeg}` : ''}`)}" />
-  <link rel="canonical" href="${esc(`${config.publicBaseUrl}/${store.slug}${linkedPlan ? `/${productSeg}` : ''}`)}" />
+  <meta property="og:url" content="${esc(`${canonicalBase()}/${store.slug}${linkedPlan ? `/${productSeg}` : ''}`)}" />
+  <link rel="canonical" href="${esc(`${canonicalBase()}/${store.slug}${linkedPlan ? `/${productSeg}` : ''}`)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(desc)}" />
