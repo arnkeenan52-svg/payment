@@ -245,6 +245,11 @@ function db() {
       await driver.exec('ALTER TABLE stores ADD COLUMN links TEXT').catch(() => {});
       // Per-product custom link segment: ripleybot.com/<store>/<link>.
       await driver.exec('ALTER TABLE store_plans ADD COLUMN link_slug TEXT').catch(() => {});
+      // Pricing options: a plan row whose variant_of names another plan_key in
+      // the same store is one PRICE OPTION of that product (e.g. Monthly $50
+      // under a Lifetime $500 product) — its own Stripe price and payments,
+      // the parent's identity (name, photo, roles, page).
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN variant_of TEXT').catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN dashboard_prefs TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE stores ADD COLUMN show_members ${intType}`).catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
@@ -607,6 +612,7 @@ const planRow = (r) =>
         purchaseLimit: r.purchase_limit === null || r.purchase_limit === undefined ? null : Number(r.purchase_limit),
         successUrl: r.success_url ?? null,
         linkSlug: r.link_slug ?? null,
+        variantOf: r.variant_of ?? null,
         hasImageData: Boolean(r.image_data), // the data URL itself never rides list payloads
         createdAt: r.created_at === null || r.created_at === undefined ? null : Number(r.created_at),
       }
@@ -636,6 +642,7 @@ export async function updateStorePlan(storeId, planKey, fields) {
     successUrl: 'success_url',
     imageData: 'image_data',
     linkSlug: 'link_slug',
+    variantOf: 'variant_of',
   };
   const sets = [];
   const params = [];
@@ -707,15 +714,15 @@ export async function incrementDiscountUse(storeId, code) {
   await q('UPDATE discounts SET uses = uses + 1 WHERE store_id = ? AND code = ?', [storeId, code]);
 }
 
-export async function createStorePlan({ storeId, planKey, name, description, imageUrl, priceUsd, lifetime, durationDays, stripePriceId }) {
+export async function createStorePlan({ storeId, planKey, name, description, imageUrl, priceUsd, lifetime, durationDays, stripePriceId, variantOf }) {
   await q(
-    `INSERT INTO store_plans (store_id, plan_key, name, description, image_url, price_usd, lifetime, duration_days, stripe_price_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO store_plans (store_id, plan_key, name, description, image_url, price_usd, lifetime, duration_days, stripe_price_id, variant_of, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (store_id, plan_key) DO UPDATE SET
        name = excluded.name, description = excluded.description, image_url = excluded.image_url,
        price_usd = excluded.price_usd, lifetime = excluded.lifetime, duration_days = excluded.duration_days,
-       stripe_price_id = excluded.stripe_price_id`,
-    [storeId, planKey, name, description ?? null, imageUrl ?? null, priceUsd, lifetime ? 1 : 0, durationDays ?? null, stripePriceId ?? null, now()],
+       stripe_price_id = excluded.stripe_price_id, variant_of = excluded.variant_of`,
+    [storeId, planKey, name, description ?? null, imageUrl ?? null, priceUsd, lifetime ? 1 : 0, durationDays ?? null, stripePriceId ?? null, variantOf ?? null, now()],
   );
   return getStorePlan(storeId, planKey);
 }

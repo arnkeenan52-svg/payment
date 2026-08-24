@@ -67,6 +67,7 @@ export default guard(async function handler(req, res) {
       roleNames: (roleMap ? roleMap.get(p.id)?.roleNames : null) ?? p.roleNames ?? [],
       descriptionHighlight: p.descriptionHighlight ?? null,
       linkSlug: p.linkSlug ?? null,
+      variantOf: p.variantOf ?? null,
     })),
   });
 });

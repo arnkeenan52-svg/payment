@@ -119,6 +119,16 @@ function renderTagline(el, text, highlight) {
   el.append(hl, document.createTextNode(text.slice(at + highlight.length)));
 }
 
+// Price options: a plan whose variantOf names another plan is one PRICE
+// OPTION of that product (e.g. Monthly $50 under a Lifetime $500 product).
+// The parent carries the product's identity — name, photo, description,
+// link — and each option carries its own price and billing.
+const parentOf = (plan) => (plan?.variantOf && state.plans.find((p) => p.id === plan.variantOf)) || plan;
+const groupFor = (plan) => {
+  const par = parentOf(plan);
+  return [par, ...state.plans.filter((p) => p.variantOf === par.id)];
+};
+
 function renderBrand() {
   const plan = selectedPlan();
   if (!plan) return;
@@ -153,11 +163,12 @@ function renderBrand() {
     nameEl.hidden = false;
     // Match the server-rendered product page title, so the tab (and history
     // entries) name the product being bought, not a generic "Checkout".
-    document.title = `${plan.name} — ${state.server.name}`;
+    // A price option's page is titled by its PRODUCT, not the option label.
+    document.title = `${parentOf(plan).name} — ${state.server.name}`;
   } else {
     nameEl.hidden = true;
   }
-  $('#plan-name').textContent = plan.name;
+  $('#plan-name').textContent = parentOf(plan).name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
   $('#price').textContent = fmtPrice(plan.priceUsd);
   // Roles the buyer receives, as blurple chips — Discord's own concept in
@@ -179,19 +190,46 @@ function renderBrand() {
 // The order card is a PRODUCT page: it shows exactly the product its link
 // names — one product, one link. The store's other products live in the shop
 // (the "All products" button above), never as a cross-sell picker inside
-// someone else's checkout.
+// someone else's checkout. The one picker that DOES belong here is the
+// product's own pricing options (e.g. Lifetime vs Monthly), when the owner
+// added any.
 function renderOptions() {
   const box = $('#options');
   box.innerHTML = '';
   const plan = selectedPlan();
   if (!plan) return;
-  const row = document.createElement('div');
-  row.className = 'option selected';
-  row.style.cursor = 'default';
-  row.innerHTML = `
-    <span class="opt-name">${esc(plan.name)}<small>${plan.lifetime ? '(lifetime)' : `/ ${esc(plan.interval)}`}</small></span>
-    <span class="opt-price">${fmtPrice(plan.priceUsd)}</span>`;
-  box.append(row);
+  const group = groupFor(plan);
+  const label = $('#options-label');
+  if (label) label.textContent = group.length > 1 ? 'Select option' : 'Your order';
+  if (group.length === 1) {
+    const row = document.createElement('div');
+    row.className = 'option selected';
+    row.style.cursor = 'default';
+    row.innerHTML = `
+      <span class="opt-name">${esc(plan.name)}<small>${plan.lifetime ? '(lifetime)' : `/ ${esc(plan.interval)}`}</small></span>
+      <span class="opt-price">${fmtPrice(plan.priceUsd)}</span>`;
+    box.append(row);
+    return;
+  }
+  const par = group[0];
+  for (const opt of group) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = `option${opt.id === state.planId ? ' selected' : ''}`;
+    // The parent row predates its options and is named after the product —
+    // its option label is its cadence. Added options are named by the owner.
+    const optName = opt.id === par.id ? (opt.lifetime ? 'Lifetime' : 'Monthly') : opt.name;
+    row.innerHTML = `
+      <span class="opt-name">${esc(optName)}<small>${opt.lifetime ? '(lifetime)' : `/ ${esc(opt.interval)}`}</small></span>
+      <span class="opt-price">${fmtPrice(opt.priceUsd)}</span>`;
+    row.onclick = () => {
+      state.planId = opt.id;
+      render();
+      // A code applied to the old option is re-checked against the new one.
+      if (state.discount && state.discount.planId !== opt.id) applyDiscount();
+    };
+    box.append(row);
+  }
 }
 
 function renderMethods() {
@@ -537,13 +575,23 @@ function renderShop() {
     aboutBox.hidden = false;
   } else aboutBox.hidden = true;
   const grid = $('#shop-grid');
-  $('#shop-empty').hidden = state.plans.length > 0;
+  // One card per PRODUCT: price options ride inside their product's page,
+  // never as sibling cards.
+  const products = state.plans.filter((p) => !p.variantOf);
+  $('#shop-empty').hidden = products.length > 0;
   grid.innerHTML = '';
-  for (const plan of state.plans) {
+  for (const plan of products) {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'prod-card';
-    const per = plan.lifetime ? 'lifetime' : `/ ${esc(plan.interval ?? 'month')}`;
+    const group = groupFor(plan);
+    const minUsd = Math.min(...group.map((g) => g.priceUsd));
+    const priceHtml =
+      group.length > 1 ? `<span class="prod-from">from</span> ${fmtPrice(minUsd)}` : fmtPrice(plan.priceUsd);
+    const per =
+      group.length > 1
+        ? `${group.length} options`
+        : plan.lifetime ? 'lifetime' : `/ ${esc(plan.interval ?? 'month')}`;
     card.innerHTML =
       (plan.imageUrl
         ? `<img class="prod-shot" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" />`
@@ -553,7 +601,7 @@ function renderShop() {
         ? `<span class="prod-roles">${plan.roleNames.slice(0, 3).map((r) => `<span class="prod-role">${esc(roleLabel(r))}</span>`).join('')}</span>`
         : '') +
       (plan.description ? `<p class="prod-desc">${esc(plan.description)}</p>` : '') +
-      `<span class="prod-foot"><span class="prod-price">${fmtPrice(plan.priceUsd)}</span><span class="prod-per">${per}</span></span>`;
+      `<span class="prod-foot"><span class="prod-price">${priceHtml}</span><span class="prod-per">${per}</span></span>`;
     card.onclick = () => openCheckout(plan.id);
     grid.append(card);
   }
@@ -590,7 +638,7 @@ addEventListener('popstate', () => {
     state.planId = plan;
     state.view = 'checkout';
   } else {
-    state.view = state.plans.length > 1 ? 'shop' : 'checkout';
+    state.view = state.plans.filter((p) => !p.variantOf).length > 1 ? 'shop' : 'checkout';
   }
   render();
 });
@@ -632,9 +680,11 @@ async function main() {
   const deadProductLink = Boolean(PRODUCT_SLUG) && !requestedPlan;
   // The overall store page: multi-product stores open on the shop. A ?plan
   // deep link, a checkout return, or the dashboard preview (?view=checkout)
-  // goes straight to the order card. One-product stores skip the shop.
+  // goes straight to the order card. One-PRODUCT stores skip the shop —
+  // a product's price options don't count as separate products.
+  const productCount = state.plans.filter((p) => !p.variantOf).length;
   state.view =
-    !deadProductLink && (requestedPlan || state.plans.length <= 1 || search.get('checkout') || search.get('view') === 'checkout')
+    !deadProductLink && (requestedPlan || productCount <= 1 || search.get('checkout') || search.get('view') === 'checkout')
       ? 'checkout'
       : 'shop';
   const back = $('#back-to-shop');

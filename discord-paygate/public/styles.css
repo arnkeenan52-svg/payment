@@ -2753,6 +2753,7 @@ html.menu-open .top {
 }
 .prod-foot { margin-top: auto; display: flex; align-items: baseline; gap: 6px; }
 .prod-price { font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; }
+.prod-from { font-weight: 500; font-size: 13px; color: var(--muted, #8a8a84); margin-right: 2px; }
 .prod-per { color: var(--dim); font-size: 12.5px; }
 .shop-back {
   background: none; border: none; align-self: flex-start; cursor: pointer;

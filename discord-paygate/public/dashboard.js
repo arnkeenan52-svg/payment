@@ -1294,7 +1294,29 @@ function productEditorFields(p = {}) {
     <label class="field"><span class="field-label">Product link</span>
       <input class="pe-link" type="text" maxlength="40" value="${esc(p.linkSlug ?? '')}" placeholder="${esc(p.planKey ?? 'vip')}  (its own URL: /your-store/this)" spellcheck="false" autocapitalize="off" /></label>
     <label class="field"><span class="field-label">Success URL</span>
-      <input class="pe-success" type="url" value="${esc(p.successUrl ?? '')}" placeholder="https://…  (optional — where buyers land after paying)" spellcheck="false" /></label>`;
+      <input class="pe-success" type="url" value="${esc(p.successUrl ?? '')}" placeholder="https://…  (optional — where buyers land after paying)" spellcheck="false" /></label>
+    <div class="field pe-opts-block">
+      <span class="field-label">More pricing options</span>
+      <span class="field-help">Optional — sell this product at other billing choices too (say, Lifetime $500 and Monthly $50). Buyers pick one on the product page; every option delivers the same role.</span>
+      <div class="pe-opts"></div>
+      <button type="button" class="btn-secondary pe-opt-add">${I.plus} Add option</button>
+    </div>`;
+}
+
+// One row of the create form's options repeater.
+function optionRowHtml() {
+  return `<div class="field-row pe-opt-row">
+    <label class="field"><span class="field-label">Option label</span>
+      <input class="po-label" type="text" maxlength="40" placeholder="Monthly" /></label>
+    <label class="field"><span class="field-label">Price (USD)</span>
+      <input class="po-price" type="text" inputmode="decimal" placeholder="50" autocomplete="off" /></label>
+    <label class="field"><span class="field-label">Billing</span>
+      <select class="po-billing">
+        <option value="month">Monthly subscription</option>
+        <option value="lifetime">One-time · lifetime</option>
+      </select></label>
+    <button type="button" class="btn-ghost po-remove" aria-label="Remove option">Remove</button>
+  </div>`;
 }
 
 function sectionProducts(products, data, slug) {
@@ -1307,23 +1329,31 @@ function sectionProducts(products, data, slug) {
       membersBy.get(p.planId).add(p.discordId);
     }
   }
-  const rows = products
-    .map(
-      (p) => `<tr data-plan="${esc(p.planKey)}">
-        <td class="prod-cell">${p.imageUrl ? `<img class="prod-thumb" src="${esc(p.imageUrl)}" alt="" width="30" height="30" />` : '<span class="prod-thumb prod-thumb-empty"></span>'}
-          <span><strong>${esc(p.name)}</strong><span class="dim prod-roles"> ${esc((p.roleNames ?? []).map(roleLabel).join(', '))}</span></span></td>
+  // Parents first, each followed by its pricing options ("↳" rows). An
+  // option is the same product at another price/cadence: it has no link, no
+  // photo and no role of its own — those live on the product.
+  const rowFor = (p, isOpt) => `<tr data-plan="${esc(p.planKey)}">
+        <td class="prod-cell">${
+          isOpt
+            ? `<span class="prod-thumb prod-thumb-empty" aria-hidden="true"></span><span><span class="dim">↳</span> <strong>${esc(p.name)}</strong><span class="dim prod-roles"> option</span></span>`
+            : `${p.imageUrl ? `<img class="prod-thumb" src="${esc(p.imageUrl)}" alt="" width="30" height="30" />` : '<span class="prod-thumb prod-thumb-empty"></span>'}
+          <span><strong>${esc(p.name)}</strong><span class="dim prod-roles"> ${esc((p.roleNames ?? []).map(roleLabel).join(', '))}</span></span>`
+        }</td>
         <td class="num">${usd(p.priceUsd)}</td>
         <td class="dim">${billingLabel(p)}</td>
         <td class="num">${(membersBy.get(p.planKey) ?? new Set()).size}</td>
         <td class="num">${usd(revenueBy.get(p.planKey) ?? 0)}</td>
         <td><label class="switch"><input type="checkbox" class="prod-active" data-plan="${esc(p.planKey)}" ${p.active ? 'checked' : ''} /><span></span></label></td>
         <td class="row-actions">
-          <button class="btn-ghost prod-copy" data-url="${esc(p.checkoutUrl)}">${I.copy} Link</button>
+          ${isOpt ? '' : `<button class="btn-ghost prod-opt" data-plan="${esc(p.planKey)}">${I.plus} Option</button>
+          <button class="btn-ghost prod-copy" data-url="${esc(p.checkoutUrl)}">${I.copy} Link</button>`}
           <button class="btn-ghost prod-edit" data-plan="${esc(p.planKey)}">Edit</button>
           <button class="btn-ghost act-revoke prod-del" data-plan="${esc(p.planKey)}">Delete</button>
         </td>
-      </tr>`,
-    )
+      </tr>`;
+  const rows = products
+    .filter((p) => !p.variantOf)
+    .map((p) => rowFor(p, false) + products.filter((v) => v.variantOf === p.planKey).map((v) => rowFor(v, true)).join(''))
     .join('');
   return `
     <h2 class="sec-title">Products</h2>
@@ -1375,7 +1405,7 @@ function sectionDiscounts(discounts, products, slug) {
         </div>
         <div class="field-row">
           <label class="field"><span class="field-label">Product</span>
-            <select id="dc-plan"><option value="">All products</option>${products.map((p) => `<option value="${esc(p.planKey)}">${esc(p.name)}</option>`).join('')}</select></label>
+            <select id="dc-plan"><option value="">All products</option>${products.filter((p) => !p.variantOf).map((p) => `<option value="${esc(p.planKey)}">${esc(p.name)}</option>`).join('')}</select></label>
           <label class="field"><span class="field-label">Usage limit</span>
             <input id="dc-max" type="number" min="1" step="1" placeholder="Unlimited" /></label>
           <label class="field"><span class="field-label">Expires</span>
@@ -2220,11 +2250,33 @@ function wireProducts(store, slug, products) {
     help.textContent = `Buyers get this Discord role the moment payment clears. Greyed roles sit at or above the bot’s top role “${data.botTop.name}”.`;
   };
 
-  const openForm = (p = null) => {
+  let optionParent = null; // set = the form is adding a pricing option to that product
+  const openForm = (p = null, forOptionOf = null) => {
     editing = p?.planKey ?? null;
+    optionParent = forOptionOf;
     form.hidden = false;
-    $('#pe-title').textContent = p ? `Edit — ${p.name}` : 'New product';
-    $('#pe-save').textContent = p ? 'Save changes' : 'Create product';
+    // Option modes strip the form down to what an option IS — a label, a
+    // price and a cadence. Photo, description, link, role and limit belong
+    // to the product and are inherited.
+    const optMode = Boolean(forOptionOf || p?.variantOf);
+    for (const sel of ['.pe-desc', '.pe-limit', '.pe-role', '.pe-link', '.pe-success']) {
+      const box = form.querySelector(sel)?.closest('label.field, .field');
+      if (box) box.hidden = optMode;
+    }
+    const photoBox = form.querySelector('.pe-photo-btn')?.closest('.field');
+    if (photoBox) photoBox.hidden = optMode;
+    // The options repeater exists for CREATE-a-product only.
+    const optsBlock = form.querySelector('.pe-opts-block');
+    if (optsBlock) {
+      optsBlock.hidden = Boolean(p) || optMode;
+      if (!p && !optMode) form.querySelector('.pe-opts').innerHTML = '';
+    }
+    $('#pe-title').textContent = forOptionOf
+      ? `New option — ${forOptionOf.name}`
+      : p
+        ? (p.variantOf ? `Edit option — ${p.name}` : `Edit — ${p.name}`)
+        : 'New product';
+    $('#pe-save').textContent = forOptionOf ? 'Add option' : p ? 'Save changes' : 'Create product';
     form.querySelector('.pe-name').value = p?.name ?? '';
     form.querySelector('.pe-price').value = p?.priceUsd ?? '';
     form.querySelector('.pe-desc').value = p?.description ?? '';
@@ -2289,8 +2341,50 @@ function wireProducts(store, slug, products) {
       lifetime: form.querySelector('.pe-billing').value === 'lifetime',
       purchaseLimit: form.querySelector('.pe-limit').value.trim() || null,
     };
-    if (!fields.name) return fieldErr('prod', 'Name your product.');
+    if (!fields.name) return fieldErr('prod', optionParent || products.find((x) => x.planKey === editing)?.variantOf ? 'Label the option — e.g. Monthly.' : 'Name your product.');
     if (!Number.isFinite(fields.priceUsd) || fields.priceUsd < 1) return fieldErr('prod', 'Set a price of at least $1 — e.g. 59.99');
+    const btnEl = $('#pe-save');
+    // Adding a pricing option to an existing product: one call, done.
+    if (optionParent) {
+      btnEl.disabled = true;
+      btnEl.textContent = 'Saving…';
+      try {
+        await api('/api/onboard', {
+          step: 'variant', storeId: store.id, planKey: optionParent.planKey,
+          label: fields.name, priceUsd: fields.priceUsd, lifetime: fields.lifetime,
+        });
+        state.products = null;
+        state.data = null;
+        form.hidden = true;
+        viewStore(slug);
+      } catch (err) {
+        btnEl.disabled = false;
+        btnEl.textContent = 'Add option';
+        fieldErr('prod', err.message);
+      }
+      return;
+    }
+    // Editing a pricing option: only its label, price and cadence are its own.
+    const editingRow = editing ? products.find((x) => x.planKey === editing) : null;
+    if (editingRow?.variantOf) {
+      btnEl.disabled = true;
+      btnEl.textContent = 'Saving…';
+      try {
+        await api('/api/onboard', {
+          step: 'product-update', storeId: store.id, planKey: editing,
+          name: fields.name, priceUsd: fields.priceUsd, lifetime: fields.lifetime,
+        });
+        state.products = null;
+        state.data = null;
+        form.hidden = true;
+        viewStore(slug);
+      } catch (err) {
+        btnEl.disabled = false;
+        btnEl.textContent = 'Save changes';
+        fieldErr('prod', err.message);
+      }
+      return;
+    }
     const roleId = form.querySelector('.pe-role').value;
     // A product that grants nothing sells nothing — require the role
     // whenever the list actually loaded (if it didn't, the product can
@@ -2341,6 +2435,25 @@ function wireProducts(store, slug, products) {
           throw { handled: true };
         });
       }
+      // Extra pricing options typed into the create form — one call each. A
+      // failure surfaces with the product already created (the form is in
+      // edit mode by now, so a retry never duplicates the product).
+      for (const row of form.querySelectorAll('.pe-opt-row')) {
+        const label = row.querySelector('.po-label').value.trim();
+        const priceUsd = parsePrice(row.querySelector('.po-price').value);
+        if (!label && !row.querySelector('.po-price').value.trim()) continue; // untouched row
+        if (!Number.isFinite(priceUsd) || priceUsd < 1) {
+          fieldErr('prod', `Product created, but the "${label || 'option'}" price needs to be at least $1 — fix it and use + Option on the product row.`);
+          throw { handled: true };
+        }
+        await api('/api/onboard', {
+          step: 'variant', storeId: store.id, planKey,
+          label, priceUsd, lifetime: row.querySelector('.po-billing').value === 'lifetime',
+        }).catch((err) => {
+          fieldErr('prod', `Product created, but the "${label || 'option'}" option failed: ${err.message} Add it with + Option on the product row.`);
+          throw { handled: true };
+        });
+      }
       form.hidden = true;
       viewStore(slug);
     } catch (err) {
@@ -2350,8 +2463,19 @@ function wireProducts(store, slug, products) {
     }
   };
 
+  // Options repeater on the create form.
+  form.querySelector('.pe-opt-add')?.addEventListener('click', () => {
+    form.querySelector('.pe-opts').insertAdjacentHTML('beforeend', optionRowHtml());
+  });
+  form.querySelector('.pe-opts')?.addEventListener('click', (e) => {
+    if (e.target.closest('.po-remove')) e.target.closest('.pe-opt-row').remove();
+  });
+
   document.querySelectorAll('.prod-edit').forEach((b) => {
     b.onclick = () => openForm(products.find((p) => p.planKey === b.dataset.plan));
+  });
+  document.querySelectorAll('.prod-opt').forEach((b) => {
+    b.onclick = () => openForm(null, products.find((p) => p.planKey === b.dataset.plan));
   });
   document.querySelectorAll('.prod-copy').forEach((b) => {
     b.onclick = copyBtn(b, b.dataset.url);
@@ -2370,7 +2494,9 @@ function wireProducts(store, slug, products) {
   document.querySelectorAll('.prod-del').forEach((b) => {
     b.onclick = async () => {
       const p = products.find((x) => x.planKey === b.dataset.plan);
-      if (!confirm(`Delete "${p?.name ?? b.dataset.plan}"?\n\nBuyers keep what they already bought; the product just stops being sold.`)) return;
+      const kids = products.filter((x) => x.variantOf === b.dataset.plan);
+      const extra = kids.length ? ` Its ${kids.length} pricing option${kids.length === 1 ? '' : 's'} go with it.` : '';
+      if (!confirm(`Delete "${p?.name ?? b.dataset.plan}"?\n\nBuyers keep what they already bought; the product just stops being sold.${extra}`)) return;
       b.disabled = true;
       try {
         await api('/api/onboard', { step: 'product-delete', storeId: store.id, planKey: b.dataset.plan });

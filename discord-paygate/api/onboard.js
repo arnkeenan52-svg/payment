@@ -223,6 +223,77 @@ export default guard(async function handler(req, res) {
       return sendJson(res, 200, { ok: true, plan });
     }
 
+    // ── price options: extra billing choices INSIDE one product ─────────────
+    // "Lifetime $500 or Monthly $50" as ONE product with two options: each
+    // option is its own plan row (own Stripe price, own payments and members)
+    // marked variant_of the parent, inheriting the parent's name, photo,
+    // description, roles and link. Its `name` is the option label.
+    case 'variant': {
+      const row = await ownedStore(uid, body.storeId, req);
+      if (!row) return sendJson(res, 403, { error: 'not your store' });
+      const parentKey = String(body.planKey ?? '');
+      const parent = await db.getStorePlan(row.id, parentKey);
+      if (!parent) return sendJson(res, 404, { error: 'unknown product' });
+      if (parent.variantOf) {
+        return sendJson(res, 400, { error: 'Options cannot have options of their own — add it to the product instead.' });
+      }
+      const siblings = await db.storePlansFor(row.id);
+      if (siblings.filter((p) => p.variantOf === parentKey).length >= 5) {
+        return sendJson(res, 400, { error: 'A product can carry at most 6 pricing options.' });
+      }
+      const lifetime = body.lifetime !== false;
+      const durationDays = lifetime ? null : Math.max(1, Math.min(366, Math.round(Number(body.durationDays ?? 31))));
+      const priceUsd = Math.round(Number(body.priceUsd) * 100) / 100;
+      if (!Number.isFinite(priceUsd) || priceUsd < 1 || priceUsd > 10000) {
+        return sendJson(res, 400, { error: 'Price must be between $1 and $10,000.' });
+      }
+      const label = String(body.label ?? '').trim().slice(0, 40) || (lifetime ? 'Lifetime' : 'Monthly');
+      let planKey = `${parentKey}-${slugify(label)}`.slice(0, 60);
+      {
+        const taken = new Set(siblings.map((p) => p.planKey));
+        if (taken.has(planKey)) {
+          let n = 2;
+          while (taken.has(`${planKey}-${n}`)) n += 1;
+          planKey = `${planKey}-${n}`;
+        }
+      }
+      const { openSecret } = await import('../src/lib/secretbox.js');
+      const key = openSecret(row.stripe_secret_enc);
+      if (!key) return sendJson(res, 409, { error: 'Stripe key unreadable — re-enter it in Settings.' });
+      let product;
+      try {
+        product = await stripeFetch('/v1/products', {
+          method: 'POST',
+          key,
+          form: {
+            name: `${parent.name} — ${label}`,
+            ...(parent.description ? { description: parent.description } : {}),
+            default_price_data: {
+              currency: 'usd',
+              unit_amount: Math.round(priceUsd * 100),
+              ...(lifetime ? {} : { recurring: { interval: 'month' } }),
+            },
+          },
+        });
+      } catch (err) {
+        console.error(`[onboard] option creation for store ${row.id}/${parentKey} failed: ${err.message}`);
+        return sendJson(res, 502, { error: 'Stripe would not create the option — check the key and try again.' });
+      }
+      const plan = await db.createStorePlan({
+        storeId: row.id,
+        planKey,
+        name: label,
+        description: null,
+        imageUrl: null,
+        priceUsd,
+        lifetime,
+        durationDays,
+        stripePriceId: typeof product.default_price === 'string' ? product.default_price : product.default_price?.id ?? null,
+        variantOf: parentKey,
+      });
+      return sendJson(res, 200, { ok: true, plan });
+    }
+
     // ── 3. the role buyers receive ──────────────────────────────────────────
     case 'roles': {
       const row = await ownedStore(uid, body.storeId, req);
@@ -293,7 +364,9 @@ export default guard(async function handler(req, res) {
           error: `"${role.name}" sits at or above the bot's top role — drag Dues's role above it in Server Settings → Roles, then retry.`,
         });
       }
-      await db.setStorePlanRoles(row.id, planKey, [role.id], [`@${role.name}`]);
+      // Roles belong to the PRODUCT, not to one of its price options — a role
+      // aimed at an option lands on the parent, and every option inherits it.
+      await db.setStorePlanRoles(row.id, plan.variantOf ?? planKey, [role.id], [`@${role.name}`]);
       await db.updateStore(row.id, { status: 'live' });
       const store = await storeBySlug(row.slug);
       return sendJson(res, 200, { ok: true, store: { slug: store.slug, status: store.status }, plans: await plansOf(store) });
@@ -306,9 +379,17 @@ export default guard(async function handler(req, res) {
       const row = await ownedStore(uid, body.storeId, req);
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const plans = await db.storePlansFor(row.id);
+      const byKey = new Map(plans.map((p) => [p.planKey, p]));
       const out = [];
       for (const p of plans) {
-        out.push({ ...p, buyers: await db.countBuyersOfPlan(row.id, p.planKey), checkoutUrl: `${config.publicBaseUrl}/${row.slug}/${encodeURIComponent(p.linkSlug ?? p.planKey)}` });
+        // A price option shares its product's page — its copy-link is the
+        // parent's link (opening it preselects the option client-side).
+        const linkOwner = (p.variantOf && byKey.get(p.variantOf)) || p;
+        out.push({
+          ...p,
+          buyers: await db.countBuyersOfPlan(row.id, p.planKey),
+          checkoutUrl: `${config.publicBaseUrl}/${row.slug}/${encodeURIComponent(linkOwner.linkSlug ?? linkOwner.planKey)}`,
+        });
       }
       return sendJson(res, 200, { products: out, storeSlug: row.slug });
     }
@@ -366,6 +447,9 @@ export default guard(async function handler(req, res) {
       // The product's own link segment: ripleybot.com/<store>/<this>. Blank
       // falls back to the plan key; taken segments are refused.
       if (body.linkSlug !== undefined) {
+        if (existing.variantOf) {
+          return sendJson(res, 400, { error: "Options share their product's link — set the link on the product itself." });
+        }
         const raw = String(body.linkSlug ?? '').trim().toLowerCase();
         if (!raw) {
           fields.linkSlug = null;
@@ -409,19 +493,24 @@ export default guard(async function handler(req, res) {
       const planKey = String(body.planKey ?? '');
       const plan = await db.getStorePlan(row.id, planKey);
       if (!plan) return sendJson(res, 404, { error: 'unknown product' });
-      // Best-effort archive on their Stripe so the product stops being
-      // sellable there too — the local delete is what gates checkout.
-      if (plan.stripePriceId) {
-        try {
-          const { openSecret } = await import('../src/lib/secretbox.js');
-          const key = openSecret(row.stripe_secret_enc);
-          const price = await stripeFetch(`/v1/prices/${plan.stripePriceId}`, { key });
-          if (price?.product) await stripeFetch(`/v1/products/${price.product}`, { method: 'POST', key, form: { active: 'false' } });
-        } catch (err) {
-          console.warn(`[onboard] archiving Stripe product for ${row.slug}/${planKey} failed: ${err.message}`);
+      // Deleting a product takes its price options with it — an option
+      // without its product is unreachable and must not linger half-alive.
+      const variants = plan.variantOf ? [] : (await db.storePlansFor(row.id)).filter((p) => p.variantOf === planKey);
+      for (const target of [plan, ...variants]) {
+        // Best-effort archive on their Stripe so the product stops being
+        // sellable there too — the local delete is what gates checkout.
+        if (target.stripePriceId) {
+          try {
+            const { openSecret } = await import('../src/lib/secretbox.js');
+            const key = openSecret(row.stripe_secret_enc);
+            const price = await stripeFetch(`/v1/prices/${target.stripePriceId}`, { key });
+            if (price?.product) await stripeFetch(`/v1/products/${price.product}`, { method: 'POST', key, form: { active: 'false' } });
+          } catch (err) {
+            console.warn(`[onboard] archiving Stripe product for ${row.slug}/${target.planKey} failed: ${err.message}`);
+          }
         }
+        await db.deleteStorePlan(row.id, target.planKey);
       }
-      await db.deleteStorePlan(row.id, planKey);
       return sendJson(res, 200, { ok: true, deleted: planKey });
     }
 

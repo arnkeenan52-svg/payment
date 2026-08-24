@@ -719,7 +719,7 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   const diagBody = await diagPage.text();
   assert.doesNotMatch(diagBody, /Setup diagnostics/, 'the diagnostics tool must be gone');
   assert.match(diagBody, /Confirm Order/, 'unclaimed slugs serve the storefront shell');
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'name', 'priceUsd', 'roleNames']);
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'name', 'priceUsd', 'roleNames', 'variantOf']);
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
@@ -2855,6 +2855,96 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal((await onboard({ step: 'product-delete', storeId, planKey: plan2.planKey })).status, 200);
   assert.equal((await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.length, 1);
   assert.equal((await checkout(u10Cookie, { planId: plan2.planKey })).status, 400, 'deleted products cannot be bought');
+});
+
+test('pricing options: one product sold at several prices, same role, same page', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, {
+      redirect: 'manual',
+      headers: { cookie: sc.split(';')[0] },
+    });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const call = (cookie, path, body) =>
+    fetch(`${appUrl}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify(body),
+    });
+  const onboard = (body) => call(u7Cookie, '/api/onboard', body);
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const plansAt = async () => (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans;
+
+  // The product: Mentorship, lifetime $500 — plus a Monthly $50 option.
+  const made = await onboard({ step: 'product', storeId, name: 'Mentorship', priceUsd: 500, lifetime: true });
+  const parent = JSON.parse(await made.text()).plan;
+  assert.equal(made.status, 200);
+  assert.equal((await onboard({ step: 'role', storeId, planKey: parent.planKey, roleId: R2_VIP })).status, 200);
+  const optRes = await onboard({ step: 'variant', storeId, planKey: parent.planKey, label: 'Monthly', priceUsd: 50, lifetime: false });
+  const optBody = await optRes.text();
+  assert.equal(optRes.status, 200, optBody);
+  const opt = JSON.parse(optBody).plan;
+  assert.equal(opt.variantOf, parent.planKey, 'the option points at its product');
+
+  // Storefront payload: the option carries its own price and cadence but the
+  // PRODUCT's role — attached to the parent only.
+  const plans = await plansAt();
+  const optPlan = plans.find((p) => p.id === opt.planKey);
+  assert.ok(optPlan, 'the option is sellable');
+  assert.equal(optPlan.priceUsd, 50);
+  assert.equal(optPlan.interval, 'month');
+  assert.deepEqual(optPlan.roleNames, plans.find((p) => p.id === parent.planKey).roleNames, 'options inherit the product role');
+  assert.ok(optPlan.roleNames.length > 0, 'the inherited role is real');
+
+  // Options have no options and no links of their own.
+  assert.equal((await onboard({ step: 'variant', storeId, planKey: opt.planKey, label: 'Weekly', priceUsd: 15, lifetime: false })).status, 400);
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: opt.planKey, linkSlug: 'mentor-monthly' })).status, 400);
+
+  // A role attach AIMED at the option lands on the product — the group can
+  // never drift apart.
+  assert.equal((await onboard({ step: 'role', storeId, planKey: opt.planKey, roleId: R2_VIP })).status, 200);
+  {
+    const now = await plansAt();
+    assert.deepEqual(
+      now.find((p) => p.id === opt.planKey).roleNames,
+      now.find((p) => p.id === parent.planKey).roleNames,
+      'the option-aimed attach landed on the product and flowed back down',
+    );
+  }
+
+  // The dashboard's copy-link for the option is the PRODUCT's link.
+  const listed = await (await onboard({ step: 'products', storeId })).json();
+  assert.match(listed.products.find((p) => p.planKey === opt.planKey).checkoutUrl, new RegExp(`/vip-signals/${parent.planKey}$`));
+
+  // A code scoped to the product covers its options.
+  assert.equal(
+    (await call(u7Cookie, '/api/admin/discounts', { store: 'vip-signals', action: 'create', code: 'MENT10', kind: 'percent', amount: 10, planKey: parent.planKey })).status,
+    200,
+  );
+  const disc = await (await fetch(`${appUrl}/api/discount?store=vip-signals&code=MENT10&plan=${opt.planKey}`)).json();
+  assert.equal(disc.discountedUsd, 45, 'a product-scoped code prices the option too');
+
+  // A buyer can check the option out — the lazy Stripe price provisions for
+  // the option's own amount, through the store's own key.
+  const u9Cookie = await loginAs('code_u9b');
+  assert.equal((await call(u9Cookie, '/api/checkout/stripe', { store: 'vip-signals', planId: opt.planKey })).status, 200);
+
+  // Switching the PRODUCT off takes its options off sale with it…
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: parent.planKey, active: false })).status, 200);
+  const dark = await plansAt();
+  assert.ok(!dark.some((p) => p.id === parent.planKey) && !dark.some((p) => p.id === opt.planKey), 'inactive product hides its options');
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: parent.planKey, active: true })).status, 200);
+
+  // …and deleting the product deletes them.
+  assert.equal((await onboard({ step: 'product-delete', storeId, planKey: parent.planKey })).status, 200);
+  const after = await (await onboard({ step: 'products', storeId })).json();
+  assert.ok(!after.products.some((p) => p.planKey === parent.planKey || p.planKey === opt.planKey), 'options never outlive their product');
+  await call(u7Cookie, '/api/admin/discounts', { store: 'vip-signals', action: 'delete', code: 'MENT10' });
 });
 
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {

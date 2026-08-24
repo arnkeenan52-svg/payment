@@ -35,7 +35,9 @@ export default guard(async (req, res) => {
   const valid =
     plan &&
     d &&
-    (d.planKey === null || d.planKey === plan.id) &&
+    // A code scoped to one product covers that product's price options too —
+    // an option is the same product at a different cadence, not a sibling.
+    (d.planKey === null || d.planKey === plan.id || d.planKey === plan.variantOf) &&
     (d.expiresAt === null || d.expiresAt > now) &&
     (d.maxUses === null || d.uses < d.maxUses);
   if (!valid) {

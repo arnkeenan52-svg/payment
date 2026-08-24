@@ -158,7 +158,7 @@ export async function everyStore() {
 export async function plansOf(store) {
   if (!store) return [];
   if (store.isDefault) return config.plans;
-  return (await db.storePlansFor(store.id)).map((p) => ({
+  const plans = (await db.storePlansFor(store.id)).map((p) => ({
     id: p.planKey,
     name: p.name,
     description: p.description ?? '',
@@ -175,15 +175,37 @@ export async function plansOf(store) {
     purchaseLimit: p.purchaseLimit,
     successUrl: p.successUrl,
     linkSlug: p.linkSlug ?? null,
+    variantOf: p.variantOf ?? null,
     createdAt: p.createdAt,
   }));
+  // A variant is one PRICE OPTION of its parent product: price, billing and
+  // option label are its own; everything that identifies the product — name
+  // on the page, photo, description, the roles a buyer receives — is read
+  // from the parent so the group can never drift apart.
+  const byKey = new Map(plans.map((p) => [p.id, p]));
+  for (const v of plans) {
+    if (!v.variantOf) continue;
+    const parent = byKey.get(v.variantOf);
+    if (!parent) continue;
+    v.description = parent.description;
+    v.descriptionHighlight = parent.descriptionHighlight;
+    v.imageUrl = parent.imageUrl;
+    v.roleIds = parent.roleIds;
+    v.roleNames = parent.roleNames;
+    v.successUrl = v.successUrl ?? parent.successUrl;
+  }
+  return plans;
 }
 
 // What buyers see: only products the owner has switched on. Entitlements and
 // role reconciliation keep using plansOf — a deactivated product must never
-// strip roles from people who already bought it.
+// strip roles from people who already bought it. A price option sells only
+// while its own toggle AND its parent product's toggle are on (an orphaned
+// option — parent gone — never sells).
 export async function sellablePlansOf(store) {
-  return (await plansOf(store)).filter((p) => p.active !== false);
+  const plans = await plansOf(store);
+  const activeByKey = new Map(plans.map((p) => [p.id, p.active !== false]));
+  return plans.filter((p) => p.active !== false && (!p.variantOf || activeByKey.get(p.variantOf) === true));
 }
 
 export async function planOf(store, planId) {

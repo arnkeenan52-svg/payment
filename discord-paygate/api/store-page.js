@@ -66,7 +66,11 @@ export default guard(async (req, res) => {
         /* an unusable stored theme renders the default look */
       }
       const plans = await sellablePlansOf(store).catch(() => []);
-      const linkedPlan = productSeg ? matchPlan(plans, productSeg) : null;
+      const matched = productSeg ? matchPlan(plans, productSeg) : null;
+      // A link may name a price OPTION of a product — the page (and its
+      // unfurl) belongs to the product itself: parent name and photo, the
+      // option's own price.
+      const linkedPlan = matched?.variantOf ? plans.find((p) => p.id === matched.variantOf) ?? matched : matched;
       // The preview image is the product's own photo when there is one
       // (uploads serve from /api/img over https); the platform shot otherwise.
       const productImg = (linkedPlan ? [linkedPlan.imageUrl] : plans.map((p) => p.imageUrl))
@@ -83,8 +87,8 @@ export default guard(async (req, res) => {
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
   <meta property="og:image" content="${esc(image)}" />
-  <meta property="og:url" content="${esc(`${canonicalBase()}/${store.slug}${linkedPlan ? `/${productSeg}` : ''}`)}" />
-  <link rel="canonical" href="${esc(`${canonicalBase()}/${store.slug}${linkedPlan ? `/${productSeg}` : ''}`)}" />
+  <meta property="og:url" content="${esc(`${canonicalBase()}/${store.slug}${linkedPlan ? `/${encodeURIComponent(linkedPlan.linkSlug ?? linkedPlan.id)}` : ''}`)}" />
+  <link rel="canonical" href="${esc(`${canonicalBase()}/${store.slug}${linkedPlan ? `/${encodeURIComponent(linkedPlan.linkSlug ?? linkedPlan.id)}` : ''}`)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(desc)}" />
