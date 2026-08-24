@@ -719,7 +719,7 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   const diagBody = await diagPage.text();
   assert.doesNotMatch(diagBody, /Setup diagnostics/, 'the diagnostics tool must be gone');
   assert.match(diagBody, /Confirm Order/, 'unclaimed slugs serve the storefront shell');
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'name', 'priceUsd', 'roleNames', 'variantOf']);
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
@@ -2945,6 +2945,74 @@ test('pricing options: one product sold at several prices, same role, same page'
   const after = await (await onboard({ step: 'products', storeId })).json();
   assert.ok(!after.products.some((p) => p.planKey === parent.planKey || p.planKey === opt.planKey), 'options never outlive their product');
   await call(u7Cookie, '/api/admin/discounts', { store: 'vip-signals', action: 'delete', code: 'MENT10' });
+});
+
+test('gated + limited-time products: only role holders buy, expiry ends the sale', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, {
+      redirect: 'manual',
+      headers: { cookie: sc.split(';')[0] },
+    });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const call = (cookie, path, body) =>
+    fetch(`${appUrl}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify(body),
+    });
+  const onboard = (body) => call(u7Cookie, '/api/onboard', body);
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const plansAt = async () => (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans;
+
+  // An upsell for existing @VIP holders only.
+  const made = await onboard({ step: 'product', storeId, name: 'Inner Sanctum', priceUsd: 200, lifetime: true });
+  const plan = JSON.parse(await made.text()).plan;
+  assert.equal(made.status, 200);
+  assert.equal((await onboard({ step: 'role', storeId, planKey: plan.planKey, roleId: R2_VIP })).status, 200);
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: plan.planKey, requiredRoleId: R2_VIP })).status, 200);
+  assert.equal((await plansAt()).find((p) => p.id === plan.planKey).requiredRoleName, '@VIP', 'the storefront names the gate');
+
+  // A buyer WITHOUT the role is refused; the SAME buyer with it gets through.
+  const GATE_UID = '515500000000000015';
+  discord.oauthUsers.code_gate = { id: GATE_UID, username: 'gate_buyer' };
+  const u10Cookie = await loginAs('code_gate');
+  discord.members.set(GATE_UID, new Set(['ROLE_OTHER']));
+  const refused = await call(u10Cookie, '/api/checkout/stripe', { store: 'vip-signals', planId: plan.planKey });
+  assert.equal(refused.status, 403, await refused.text());
+  discord.members.get(GATE_UID).add(R2_VIP);
+  assert.equal((await call(u10Cookie, '/api/checkout/stripe', { store: 'vip-signals', planId: plan.planKey })).status, 200);
+
+  // A pricing option inherits the product's gate.
+  const opt = JSON.parse(await (await onboard({ step: 'variant', storeId, planKey: plan.planKey, label: 'Monthly', priceUsd: 20, lifetime: false })).text()).plan;
+  discord.members.get(GATE_UID).delete(R2_VIP);
+  assert.equal((await call(u10Cookie, '/api/checkout/stripe', { store: 'vip-signals', planId: opt.planKey })).status, 403, 'options are gated by their product');
+
+  // Expiry: the past is refused, options may not carry their own date…
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: plan.planKey, expiresAt: '2020-01-01' })).status, 400);
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: opt.planKey, expiresAt: '2099-01-01' })).status, 400);
+  // …a future date sells normally, and once it passes, the product AND its
+  // options leave the store and refuse checkout — with the gate satisfied,
+  // so it is the expiry doing the refusing.
+  discord.members.get(GATE_UID).add(R2_VIP);
+  const soon = new Date(Date.now() + 2000).toISOString();
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: plan.planKey, expiresAt: soon })).status, 200);
+  assert.ok((await plansAt()).some((p) => p.id === plan.planKey), 'still on sale before the deadline');
+  await sleep(2600);
+  const dark = await plansAt();
+  assert.ok(!dark.some((p) => p.id === plan.planKey) && !dark.some((p) => p.id === opt.planKey), 'the deadline hides the product and its options');
+  assert.equal((await call(u10Cookie, '/api/checkout/stripe', { store: 'vip-signals', planId: plan.planKey })).status, 409, 'expired products refuse checkout');
+  assert.equal((await call(u10Cookie, '/api/checkout/stripe', { store: 'vip-signals', planId: opt.planKey })).status, 409, 'expired products refuse their options too');
+
+  // Clearing the date puts it back on sale; cleanup.
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: plan.planKey, expiresAt: '' })).status, 200);
+  assert.ok((await plansAt()).some((p) => p.id === plan.planKey), 'clearing the expiry restores the sale');
+  assert.equal((await onboard({ step: 'product-delete', storeId, planKey: plan.planKey })).status, 200);
 });
 
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {

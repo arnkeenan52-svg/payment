@@ -1279,6 +1279,14 @@ function productEditorFields(p = {}) {
         <input class="pe-limit" type="number" min="1" step="1" value="${p.purchaseLimit ?? ''}" placeholder="No cap" />
         <span class="field-help">Optional cap on total buyers.</span></label>
     </div>
+    <div class="field-row">
+      <label class="field"><span class="field-label">Available until</span>
+        <input class="pe-expires" type="date" />
+        <span class="field-help">Optional — after this day it stops being sold. Buyers keep what they bought.</span></label>
+      <label class="field"><span class="field-label">Who can buy</span>
+        <select class="pe-gate"><option value="">Everyone</option></select>
+        <span class="field-help">Optional — only members already holding this role can purchase.</span></label>
+    </div>
     <label class="field"><span class="field-label">Role this product gives <span aria-hidden="true">*</span></span>
       <select class="pe-role"><option value="">Loading your server’s roles…</option></select>
       <span class="field-help pe-role-help">Buyers get this Discord role the moment payment clears.</span></label>
@@ -1337,10 +1345,12 @@ function sectionProducts(products, data, slug) {
           isOpt
             ? `<span class="prod-thumb prod-thumb-empty" aria-hidden="true"></span><span><span class="dim">↳</span> <strong>${esc(p.name)}</strong><span class="dim prod-roles"> option</span></span>`
             : `${p.imageUrl ? `<img class="prod-thumb" src="${esc(p.imageUrl)}" alt="" width="30" height="30" />` : '<span class="prod-thumb prod-thumb-empty"></span>'}
-          <span><strong>${esc(p.name)}</strong><span class="dim prod-roles"> ${esc((p.roleNames ?? []).map(roleLabel).join(', '))}</span></span>`
+          <span><strong>${esc(p.name)}</strong><span class="dim prod-roles"> ${esc((p.roleNames ?? []).map(roleLabel).join(', '))}${p.requiredRoleId ? ` · ${esc(roleLabel(p.requiredRoleName ?? 'role'))} only` : ''}</span></span>`
         }</td>
         <td class="num">${usd(p.priceUsd)}</td>
-        <td class="dim">${billingLabel(p)}</td>
+        <td class="dim">${billingLabel(p)}${
+          p.expiresAt ? (p.expiresAt * 1000 <= Date.now() ? ' · <strong>ended</strong>' : ` · ends ${new Date(p.expiresAt * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`) : ''
+        }</td>
         <td class="num">${(membersBy.get(p.planKey) ?? new Set()).size}</td>
         <td class="num">${usd(revenueBy.get(p.planKey) ?? 0)}</td>
         <td><label class="switch"><input type="checkbox" class="prod-active" data-plan="${esc(p.planKey)}" ${p.active ? 'checked' : ''} /><span></span></label></td>
@@ -2221,7 +2231,7 @@ function wireProducts(store, slug, products) {
 
   // The role select lives inside the form: the guild's roles load once per
   // section render, unusable ones stay visible but disabled with the reason.
-  const fillRoles = async (selectedId) => {
+  const fillRoles = async (selectedId, gateRoleId) => {
     const sel = form.querySelector('.pe-role');
     const help = form.querySelector('.pe-role-help');
     if (rolesLoaded === false) {
@@ -2248,6 +2258,15 @@ function wireProducts(store, slug, products) {
         .join('');
     if (selectedId && data.roles.some((r) => r.id === selectedId && r.usable)) sel.value = selectedId;
     help.textContent = `Buyers get this Discord role the moment payment clears. Greyed roles sit at or above the bot’s top role “${data.botTop.name}”.`;
+    // The purchase gate accepts ANY role — the bot only reads it, so even
+    // roles above the bot work here.
+    const gate = form.querySelector('.pe-gate');
+    if (gate) {
+      gate.innerHTML =
+        '<option value="">Everyone</option>' +
+        data.roles.map((r) => `<option value="${esc(r.id)}">${esc(roleLabel(r.name))} only</option>`).join('');
+      if (gateRoleId && data.roles.some((r) => r.id === gateRoleId)) gate.value = gateRoleId;
+    }
   };
 
   let optionParent = null; // set = the form is adding a pricing option to that product
@@ -2259,7 +2278,7 @@ function wireProducts(store, slug, products) {
     // price and a cadence. Photo, description, link, role and limit belong
     // to the product and are inherited.
     const optMode = Boolean(forOptionOf || p?.variantOf);
-    for (const sel of ['.pe-desc', '.pe-limit', '.pe-role', '.pe-link', '.pe-success']) {
+    for (const sel of ['.pe-desc', '.pe-limit', '.pe-role', '.pe-link', '.pe-success', '.pe-expires', '.pe-gate']) {
       const box = form.querySelector(sel)?.closest('label.field, .field');
       if (box) box.hidden = optMode;
     }
@@ -2288,7 +2307,8 @@ function wireProducts(store, slug, products) {
     linkField.value = p?.linkSlug ?? '';
     // The placeholder doubles as the default: this product's own plan key.
     linkField.placeholder = `${p?.planKey ?? 'vip'}  (its own URL: /your-store/this)`;
-    fillRoles(p?.roleIds?.[0]);
+    form.querySelector('.pe-expires').value = p?.expiresAt ? new Date(p.expiresAt * 1000).toISOString().slice(0, 10) : '';
+    fillRoles(p?.roleIds?.[0], p?.requiredRoleId ?? null);
     // photo picker state: undefined = untouched, string = new upload, null = removed
     photoPick = undefined;
     const prev = form.querySelector('.pe-photo-prev');
@@ -2340,6 +2360,8 @@ function wireProducts(store, slug, products) {
       priceUsd: parsePrice(form.querySelector('.pe-price').value),
       lifetime: form.querySelector('.pe-billing').value === 'lifetime',
       purchaseLimit: form.querySelector('.pe-limit').value.trim() || null,
+      expiresAt: form.querySelector('.pe-expires').value || null,
+      requiredRoleId: form.querySelector('.pe-gate').value || null,
     };
     if (!fields.name) return fieldErr('prod', optionParent || products.find((x) => x.planKey === editing)?.variantOf ? 'Label the option — e.g. Monthly.' : 'Name your product.');
     if (!Number.isFinite(fields.priceUsd) || fields.priceUsd < 1) return fieldErr('prod', 'Set a price of at least $1 — e.g. 59.99');
@@ -2400,7 +2422,15 @@ function wireProducts(store, slug, products) {
     try {
       let planKey = editing;
       if (editing) {
-        await api('/api/onboard', { step: 'product-update', storeId: store.id, planKey: editing, ...fields });
+        // Unchanged expiry/gate stay OUT of the payload — an already-ended
+        // product must stay editable (re-sending its past date would trip
+        // the future-only validation on every unrelated save).
+        const payload = { ...fields };
+        const cur = products.find((x) => x.planKey === editing);
+        const curDate = cur?.expiresAt ? new Date(cur.expiresAt * 1000).toISOString().slice(0, 10) : null;
+        if ((payload.expiresAt ?? null) === curDate) delete payload.expiresAt;
+        if ((payload.requiredRoleId ?? null) === (cur?.requiredRoleId ?? null)) delete payload.requiredRoleId;
+        await api('/api/onboard', { step: 'product-update', storeId: store.id, planKey: editing, ...payload });
       } else {
         const out = await api('/api/onboard', { step: 'product', storeId: store.id, ...fields });
         planKey = out.plan.planKey;
@@ -2410,11 +2440,12 @@ function wireProducts(store, slug, products) {
         // rejection here must SURFACE (the product exists; the form stays
         // open in edit mode so the owner fixes the field and saves again),
         // never silently discard what was typed.
-        if (fields.purchaseLimit !== undefined || fields.successUrl || fields.linkSlug) {
+        if (fields.purchaseLimit !== undefined || fields.successUrl || fields.linkSlug || fields.expiresAt || fields.requiredRoleId) {
           try {
             await api('/api/onboard', {
               step: 'product-update', storeId: store.id, planKey,
               purchaseLimit: fields.purchaseLimit, successUrl: fields.successUrl, linkSlug: fields.linkSlug,
+              expiresAt: fields.expiresAt, requiredRoleId: fields.requiredRoleId,
             });
           } catch (err) {
             state.products = null;

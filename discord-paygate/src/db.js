@@ -250,6 +250,14 @@ function db() {
       // under a Lifetime $500 product) — its own Stripe price and payments,
       // the parent's identity (name, photo, roles, page).
       await driver.exec('ALTER TABLE store_plans ADD COLUMN variant_of TEXT').catch(() => {});
+      // Limited-time products: after expires_at (unix seconds) the product
+      // stops being sold — hidden from the store, refused at checkout.
+      // Buyers who already bought keep everything.
+      await driver.exec(`ALTER TABLE store_plans ADD COLUMN expires_at ${intType}`).catch(() => {});
+      // Gated products: only buyers already holding this Discord role in the
+      // store's server may purchase (e.g. an upsell for @PREMIUM members).
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN required_role_id TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN required_role_name TEXT').catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN dashboard_prefs TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE stores ADD COLUMN show_members ${intType}`).catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
@@ -613,6 +621,9 @@ const planRow = (r) =>
         successUrl: r.success_url ?? null,
         linkSlug: r.link_slug ?? null,
         variantOf: r.variant_of ?? null,
+        expiresAt: r.expires_at === null || r.expires_at === undefined ? null : Number(r.expires_at),
+        requiredRoleId: r.required_role_id ?? null,
+        requiredRoleName: r.required_role_name ?? null,
         hasImageData: Boolean(r.image_data), // the data URL itself never rides list payloads
         createdAt: r.created_at === null || r.created_at === undefined ? null : Number(r.created_at),
       }
@@ -643,6 +654,9 @@ export async function updateStorePlan(storeId, planKey, fields) {
     imageData: 'image_data',
     linkSlug: 'link_slug',
     variantOf: 'variant_of',
+    expiresAt: 'expires_at',
+    requiredRoleId: 'required_role_id',
+    requiredRoleName: 'required_role_name',
   };
   const sets = [];
   const params = [];

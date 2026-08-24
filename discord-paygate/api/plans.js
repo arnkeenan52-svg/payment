@@ -68,6 +68,10 @@ export default guard(async function handler(req, res) {
       descriptionHighlight: p.descriptionHighlight ?? null,
       linkSlug: p.linkSlug ?? null,
       variantOf: p.variantOf ?? null,
+      // Buyer-facing hints: "offer ends …" and "for @X members only". The
+      // checkout endpoint enforces both — these just explain the page.
+      expiresAt: p.expiresAt ?? null,
+      requiredRoleName: p.requiredRoleName ?? null,
     })),
   });
 });

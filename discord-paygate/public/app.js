@@ -185,6 +185,24 @@ function renderBrand() {
   // Discount codes exist on onboarded stores only.
   const df = $('#discount-field');
   if (df) df.hidden = !STORE_SLUG;
+  // Availability + gating, spelled out where the buyer decides. The server
+  // enforces both at checkout — these lines just make the page honest.
+  const par = parentOf(plan);
+  const bits = [];
+  if (par.requiredRoleName) bits.push(`For ${roleLabel(par.requiredRoleName)} members only`);
+  if (par.expiresAt) {
+    bits.push(`Available until ${new Date(par.expiresAt * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`);
+  }
+  let gate = $('#gate-note');
+  if (!gate) {
+    gate = document.createElement('p');
+    gate.id = 'gate-note';
+    gate.className = 'tagline';
+    gate.style.cssText = 'font-weight:600;opacity:0.85;';
+    $('#roles-box')?.after(gate);
+  }
+  gate.textContent = bits.join(' · ');
+  gate.hidden = bits.length === 0;
 }
 
 // The order card is a PRODUCT page: it shows exactly the product its link

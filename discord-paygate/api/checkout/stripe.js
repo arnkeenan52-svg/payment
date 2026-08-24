@@ -4,6 +4,7 @@ import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { createCheckoutSession, stripeFetch } from '../../src/lib/stripe.js';
 import { memberLimitBlocks } from '../../src/services/billing.js';
+import { getGuildMember } from '../../src/lib/discord.js';
 import * as db from '../../src/db.js';
 
 export default guard(async function handler(req, res) {
@@ -35,6 +36,24 @@ export default guard(async function handler(req, res) {
     sendJson(res, 409, { error: 'This product is not for sale right now.' });
     return;
   }
+  // Limited-time products refuse new purchases past their end date — the
+  // storefront hides them, but the link may be cached or shared.
+  if (plan.expiresAt && plan.expiresAt <= Math.floor(Date.now() / 1000)) {
+    sendJson(res, 409, { error: 'This product is no longer available.' });
+    return;
+  }
+  // Gated products: the buyer must already hold the required role in the
+  // store's server. Verified against Discord at purchase time — a chip on
+  // the page is advice, this is the enforcement.
+  if (plan.requiredRoleId) {
+    const member = await getGuildMember(uid, store.guildId).catch(() => null);
+    if (!member || !(member.roles ?? []).includes(plan.requiredRoleId)) {
+      sendJson(res, 403, {
+        error: `This product is for ${plan.requiredRoleName ?? 'members with a specific role'} members only — unlock that first, then come back.`,
+      });
+      return;
+    }
+  }
   // Purchase limit: caps total distinct buyers, never a returning one.
   if (plan.purchaseLimit !== null && plan.purchaseLimit !== undefined) {
     const own = (await db.subscriptionsForMember(uid)).some((s) => {
@@ -56,7 +75,8 @@ export default guard(async function handler(req, res) {
     const d = store.id !== null && store.id !== undefined ? await db.getDiscount(store.id, codeRaw) : null;
     const valid =
       d &&
-      (d.planKey === null || d.planKey === plan.id) &&
+      // A product-scoped code covers the product's price options too.
+      (d.planKey === null || d.planKey === plan.id || d.planKey === plan.variantOf) &&
       (d.expiresAt === null || d.expiresAt > now) &&
       (d.maxUses === null || d.uses < d.maxUses);
     if (!valid) {

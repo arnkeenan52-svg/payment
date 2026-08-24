@@ -176,6 +176,9 @@ export async function plansOf(store) {
     successUrl: p.successUrl,
     linkSlug: p.linkSlug ?? null,
     variantOf: p.variantOf ?? null,
+    expiresAt: p.expiresAt ?? null,
+    requiredRoleId: p.requiredRoleId ?? null,
+    requiredRoleName: p.requiredRoleName ?? null,
     createdAt: p.createdAt,
   }));
   // A variant is one PRICE OPTION of its parent product: price, billing and
@@ -193,6 +196,11 @@ export async function plansOf(store) {
     v.roleIds = parent.roleIds;
     v.roleNames = parent.roleNames;
     v.successUrl = v.successUrl ?? parent.successUrl;
+    // Availability and purchase gating are PRODUCT decisions — every price
+    // option ends when the product ends and is locked when the product is.
+    v.expiresAt = parent.expiresAt;
+    v.requiredRoleId = parent.requiredRoleId;
+    v.requiredRoleName = parent.requiredRoleName;
   }
   return plans;
 }
@@ -204,8 +212,10 @@ export async function plansOf(store) {
 // option — parent gone — never sells).
 export async function sellablePlansOf(store) {
   const plans = await plansOf(store);
-  const activeByKey = new Map(plans.map((p) => [p.id, p.active !== false]));
-  return plans.filter((p) => p.active !== false && (!p.variantOf || activeByKey.get(p.variantOf) === true));
+  const now = Math.floor(Date.now() / 1000);
+  const fresh = (p) => p.active !== false && (!p.expiresAt || p.expiresAt > now);
+  const freshByKey = new Map(plans.map((p) => [p.id, fresh(p)]));
+  return plans.filter((p) => fresh(p) && (!p.variantOf || freshByKey.get(p.variantOf) === true));
 }
 
 export async function planOf(store, planId) {

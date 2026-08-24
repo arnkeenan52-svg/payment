@@ -463,6 +463,45 @@ export default guard(async function handler(req, res) {
           fields.linkSlug = raw;
         }
       }
+      // Limited-time availability: the product stops being sold after this
+      // moment (hidden from the store, refused at checkout) — buyers who
+      // already bought keep everything. A date-only value means "through
+      // that day" (end-of-day UTC), the same rule discount expiry uses.
+      if (body.expiresAt !== undefined) {
+        if (existing.variantOf) {
+          return sendJson(res, 400, { error: "Options end when their product ends — set the expiry on the product itself." });
+        }
+        if (body.expiresAt === null || body.expiresAt === '') {
+          fields.expiresAt = null;
+        } else {
+          const raw = String(body.expiresAt);
+          const ts = Math.floor(new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T23:59:59Z` : raw).getTime() / 1000);
+          if (!Number.isFinite(ts)) return sendJson(res, 400, { error: 'That expiry date could not be read.' });
+          if (ts <= Math.floor(Date.now() / 1000)) return sendJson(res, 400, { error: 'The expiry must be in the future.' });
+          fields.expiresAt = ts;
+        }
+      }
+      // Purchase gate: only buyers already holding this role in the server
+      // may buy (e.g. an upsell reserved for @PREMIUM members). Any role
+      // works as a gate — the bot only READS it, it never has to grant it.
+      if (body.requiredRoleId !== undefined) {
+        if (existing.variantOf) {
+          return sendJson(res, 400, { error: "Options are gated by their product — set who can buy on the product itself." });
+        }
+        if (body.requiredRoleId === null || body.requiredRoleId === '') {
+          fields.requiredRoleId = null;
+          fields.requiredRoleName = null;
+        } else {
+          const roleId = String(body.requiredRoleId);
+          const roles = await getGuildRoles(row.guild_id);
+          const role = (roles ?? []).find((r) => r.id === roleId);
+          if (!role || role.id === row.guild_id) {
+            return sendJson(res, 400, { error: 'That role was not found in your server — pick one from the list.' });
+          }
+          fields.requiredRoleId = role.id;
+          fields.requiredRoleName = `@${role.name}`;
+        }
+      }
       if (body.priceUsd !== undefined) {
         const priceUsd = Math.round(Number(body.priceUsd) * 100) / 100;
         if (!Number.isFinite(priceUsd) || priceUsd < 1 || priceUsd > 10000) {
