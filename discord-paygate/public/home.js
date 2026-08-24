@@ -63,11 +63,29 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   });
 }
 
-// ── hero media ───────────────────────────────────────────────────────────────
-// The hero is a pure-CSS auto-pan over a themed dashboard screenshot (see
-// styles.css → "Hero: the dashboard scrolls itself"). It themes and animates
-// entirely in CSS — dark shot on the Black theme, light shot on the White theme
-// — so there's nothing to wire up here and it autoplays everywhere.
+// ── hero media: the product-tour video, themed to the page ───────────────────
+// A muted, inline, looping <video> that autoplays everywhere (incl. iOS). The
+// dark tour ships as the default <source>; here we swap to the light tour on the
+// White theme and back when the theme toggles, keeping playback going.
+(() => {
+  const v = document.getElementById('hero-media');
+  if (!v || v.tagName !== 'VIDEO') return;
+  const V = '108';
+  const apply = () => {
+    const light = document.documentElement.dataset.theme === 'light';
+    const want = `/hero-tour-${light ? 'light' : 'dark'}.mp4?v=${V}`;
+    if (v.getAttribute('data-src') === want) return; // already on the right source
+    v.setAttribute('data-src', want);
+    v.poster = `/hero-poster-${light ? 'light' : 'dark'}.webp?v=${V}`;
+    v.src = want;
+    v.load();
+    v.play().catch(() => {}); // refused autoplay → the poster holds; no harm
+  };
+  // The default <source> is the dark tour, so only act up-front if we're on light.
+  if (document.documentElement.dataset.theme === 'light') apply();
+  // Follow the sun/moon toggle (it flips data-theme on <html>).
+  new MutationObserver(apply).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
 
 // ── pricing: monthly / yearly toggle (two months free on yearly) ─────────────
 (() => {

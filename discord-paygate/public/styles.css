@@ -2997,28 +2997,13 @@ body.home .hiw-step:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Hero: the dashboard scrolls itself. Two themed screenshots (dark on Black,
-   light on White) scrolled by transform:translateY — GPU-accelerated so it
-   autoplays reliably in every browser incl. iOS Safari (background-position
-   animation does not). Reduced-motion holds the top frame.
+   Hero: the real product-tour video (a screen recording of the dashboard),
+   themed to the page — dark tour on Black, light tour on White (home.js swaps
+   the source on toggle). Muted + inline + loop so it autoplays everywhere incl.
+   iOS Safari; object-fit:cover fills the 16:9 browser frame.
    ═══════════════════════════════════════════════════════════════════════════ */
 body.home .browser-frame .hero-video {
-  position: relative; overflow: hidden; aspect-ratio: 1920 / 1080;
-  width: 100%; background: #0a0a0a;
+  display: block; width: 100%; aspect-ratio: 1920 / 1080;
+  object-fit: cover; background: #0a0a0a; border: 0;
 }
 html[data-theme='light'] body.home .browser-frame .hero-video { background: #fafaf8; }
-body.home .hv-shot {
-  position: absolute; top: 0; left: 0; width: 100%; height: auto; display: block;
-  will-change: transform;
-  animation: heroScroll 15s ease-in-out infinite alternate;
-}
-body.home .hv-light { display: none; }
-html[data-theme='light'] body.home .hv-dark { display: none; }
-html[data-theme='light'] body.home .hv-light { display: block; }
-@keyframes heroScroll {
-  0%   { transform: translateY(0); }
-  100% { transform: translateY(-49.5%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  body.home .hv-shot { animation: none; }
-}
