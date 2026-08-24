@@ -2922,3 +2922,44 @@ body.home .kicker::after { color: color-mix(in srgb, var(--brand-text) 45%, tran
 
 /* nav links pick up the accent on hover */
 body.home .top-center .nav-link:hover { color: var(--brand-text); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Landing polish — soft blurple atmosphere + depth. Kept whisper-subtle (large
+   radius, low alpha) so it reads as ambience, not a glow. Clipped to the hero
+   and finale (both already overflow:hidden); the recommended plan gets a gentle
+   elevation; feature/step cards lift on hover. All body.home only.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* hero: a soft blurple aura behind the headline and the top of the mockup */
+body.home .xhero::before {
+  content: ''; position: absolute; z-index: 0; pointer-events: none;
+  top: -220px; left: 50%; transform: translateX(-50%);
+  width: min(1150px, 125vw); height: 760px;
+  background: radial-gradient(50% 50% at 50% 50%,
+    rgba(88, 101, 242, 0.17) 0%, rgba(88, 101, 242, 0.06) 42%, transparent 72%);
+}
+body.home .xhero > * { position: relative; z-index: 1; }
+
+/* finale: the closing CTA gets its own quiet aura so the page ends on a beat */
+body.home .xcta::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(58% 72% at 50% 42%,
+    rgba(88, 101, 242, 0.13) 0%, transparent 68%);
+}
+body.home .xcta > * { position: relative; z-index: 1; }
+
+/* recommended plan: a soft elevation (not a neon halo) to pull the eye */
+body.home #pricing .price-card.popular {
+  box-shadow: 0 24px 64px -30px rgba(88, 101, 242, 0.5);
+}
+
+/* feature + step cards lift and pick up a faint blurple edge on hover */
+body.home .feat-cell,
+body.home .hiw-step {
+  transition: transform 0.28s var(--ease-out), border-color 0.28s var(--ease-out);
+}
+body.home .feat-cell:hover,
+body.home .hiw-step:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--brand-1) 38%, var(--edge));
+}
