@@ -2924,33 +2924,43 @@ body.home .kicker::after { color: color-mix(in srgb, var(--brand-text) 45%, tran
 body.home .top-center .nav-link:hover { color: var(--brand-text); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Landing polish — soft blurple atmosphere + depth. Kept whisper-subtle (large
-   radius, low alpha) so it reads as ambience, not a glow. Clipped to the hero
-   and finale (both already overflow:hidden); the recommended plan gets a gentle
-   elevation; feature/step cards lift on hover. All body.home only.
+   Discord-native landing — no background glows (flat, the way Discord's own
+   surfaces are); the page dark shifts from pure black to Discord's blue-tinted
+   charcoal so it reads as a Discord product. Blurple stays on the accents.
+   Dark theme + body.home only, so light mode and the app chrome are untouched.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* hero: a soft blurple aura behind the headline and the top of the mockup */
-body.home .xhero::before {
-  content: ''; position: absolute; z-index: 0; pointer-events: none;
-  top: -220px; left: 50%; transform: translateX(-50%);
-  width: min(1150px, 125vw); height: 760px;
-  background: radial-gradient(50% 50% at 50% 50%,
-    rgba(88, 101, 242, 0.17) 0%, rgba(88, 101, 242, 0.06) 42%, transparent 72%);
+/* Discord's dark surfaces are a cool blue-charcoal, never pure black. Retint the
+   landing's palette to match (guarded to dark; light theme keeps its own). */
+html:not([data-theme='light']) body.home {
+  --bg: #0c0d11;               /* page — near-black with Discord's blue undertone */
+  --panel: #1a1c24;            /* cards float above the page, like Discord surfaces */
+  --panel-hover: #21242e;
+  --well: #0f1015;
+  --raised: #20232d;
+  --edge: #2b2e39;             /* card borders, cool grey */
+  --edge-hot: #3a3e4c;
+  --hairline: #1c1e26;
+  --hairline-2: #262935;
+  --active-fill: #23262f;
 }
-body.home .xhero > * { position: relative; z-index: 1; }
-
-/* finale: the closing CTA gets its own quiet aura so the page ends on a beat */
-body.home .xcta::before {
-  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: radial-gradient(58% 72% at 50% 42%,
-    rgba(88, 101, 242, 0.13) 0%, transparent 68%);
+/* Discord's surfaces are generously rounded — soften the landing's cards */
+body.home .panel,
+body.home .feat-cell,
+body.home .price-card,
+body.home .hiw-step,
+body.home .calc,
+body.home .faq-item { border-radius: 14px; }
+/* the nav bar and its scrolled glass follow the same blue-charcoal */
+html:not([data-theme='light']) body.home .top { background: transparent; }
+html:not([data-theme='light']) body.home .top.scrolled {
+  background: color-mix(in srgb, #0e0f13 82%, transparent);
+  border-bottom-color: var(--hairline-2);
 }
-body.home .xcta > * { position: relative; z-index: 1; }
 
-/* recommended plan: a soft elevation (not a neon halo) to pull the eye */
+/* recommended plan: a real drop shadow (Discord-style elevation, not a glow) */
 body.home #pricing .price-card.popular {
-  box-shadow: 0 24px 64px -30px rgba(88, 101, 242, 0.5);
+  box-shadow: 0 22px 50px -28px rgba(0, 0, 0, 0.72);
 }
 
 /* feature + step cards lift and pick up a faint blurple edge on hover */
