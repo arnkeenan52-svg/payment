@@ -169,7 +169,7 @@ export default guard(async function handler(req, res) {
       return sendJson(res, 400, { error: 'Links are 2–40 lowercase letters, numbers and dashes.' });
     }
     if (slug !== store.slug) {
-      if (isReservedSlug(slug) || (await db.getStoreBySlug(slug))) {
+      if (isReservedSlug(slug, store.guildId) || (await db.getStoreBySlug(slug))) {
         return sendJson(res, 409, { error: 'That link is taken — pick another.' });
       }
       fields.slug = slug;

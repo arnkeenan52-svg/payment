@@ -5,14 +5,21 @@ const $ = (sel) => document.querySelector(sel);
 const roleLabel = (r) => `@${String(r ?? '').replace(/^@+/, '')}`;
 // Which store this page shows: /<slug> (or legacy /s/<slug>). Every store —
 // the platform's own included — lives at its unique slug; there is no
-// special path that belongs to any store.
+// special path that belongs to any store. Slugs and product links are stored
+// lowercase [a-z0-9-]; the path is decoded and lowercased first so a link
+// that picked up capitals or percent-encoding in transit (chat apps love
+// both) still reaches the store it names instead of quietly parsing as no
+// store at all.
+const CLEAN_PATH = (() => {
+  try { return decodeURIComponent(location.pathname).toLowerCase(); } catch { return location.pathname.toLowerCase(); }
+})();
 const PATH_MATCH =
-  location.pathname.match(/^\/s\/([a-z0-9-]+)$/) ??
-  location.pathname.match(/^\/([a-z0-9-]+)\/([a-z0-9-]+)$/) ??
-  location.pathname.match(/^\/([a-z0-9-]+)$/);
+  CLEAN_PATH.match(/^\/s\/([a-z0-9-]+)\/?$/) ??
+  CLEAN_PATH.match(/^\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/) ??
+  CLEAN_PATH.match(/^\/([a-z0-9-]+)\/?$/);
 const STORE_SLUG = PATH_MATCH?.[1] ?? '';
 // Product links: /<store>/<product> — resolved against linkSlug or plan key.
-const PRODUCT_SLUG = location.pathname.startsWith('/s/') ? null : PATH_MATCH?.[2] ?? null;
+const PRODUCT_SLUG = CLEAN_PATH.startsWith('/s/') ? null : PATH_MATCH?.[2] ?? null;
 const storeQS = STORE_SLUG ? `?store=${encodeURIComponent(STORE_SLUG)}` : '';
 const loginStoreQ = STORE_SLUG ? `&store=${encodeURIComponent(STORE_SLUG)}` : '';
 
@@ -618,11 +625,16 @@ async function main() {
     state.plans.find((p) => p.id === requested) ??
     (PRODUCT_SLUG ? state.plans.find((p) => (p.linkSlug ?? p.id) === PRODUCT_SLUG || p.id === PRODUCT_SLUG) : undefined);
   state.planId = requestedPlan?.id ?? state.plans[0]?.id ?? null;
+  // A product link that matches nothing (renamed link, deleted product) must
+  // NEVER quietly open the checkout of some other product — that sells the
+  // buyer the wrong thing. It lands on the shop instead, where every product
+  // is visible and correctly priced.
+  const deadProductLink = Boolean(PRODUCT_SLUG) && !requestedPlan;
   // The overall store page: multi-product stores open on the shop. A ?plan
   // deep link, a checkout return, or the dashboard preview (?view=checkout)
   // goes straight to the order card. One-product stores skip the shop.
   state.view =
-    requestedPlan || state.plans.length <= 1 || search.get('checkout') || search.get('view') === 'checkout'
+    !deadProductLink && (requestedPlan || state.plans.length <= 1 || search.get('checkout') || search.get('view') === 'checkout')
       ? 'checkout'
       : 'shop';
   const back = $('#back-to-shop');

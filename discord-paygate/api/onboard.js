@@ -119,7 +119,7 @@ export default guard(async function handler(req, res) {
       }
 
       let slug = slugify(name);
-      if (isReservedSlug(slug) || (await db.getStoreBySlug(slug))) {
+      if (isReservedSlug(slug, guildId) || (await db.getStoreBySlug(slug))) {
         slug = `${slug}-${guildId.slice(-4)}`;
         if (await db.getStoreBySlug(slug)) return sendJson(res, 409, { error: 'Try a different store name.' });
       }

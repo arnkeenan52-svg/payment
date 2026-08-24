@@ -2051,6 +2051,72 @@ test("no store can claim the built-in store's link (reserved slug)", async () =>
   assert.equal(Buffer.from(await draftImg.arrayBuffer()).toString('base64'), DRAFT_PNG, 'draft photo bytes intact');
 });
 
+test("the built-in guild's own store can hold the brand slug — dashboard links match the storefront", async () => {
+  // The bug this pins down: a managed store for the BUILT-IN guild holding
+  // the brand slug (legacy rows predate the reserved-slug guard) was
+  // shadowed by the virtual env store on the buyer side. The dashboard
+  // showed (and copy-linked) the DB catalog while /brand-slug kept selling
+  // plans.json — so a freshly made product's link opened some OTHER
+  // product's checkout. The owner's own twin must win; foreign stores must
+  // still never claim the slug (previous scenario).
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=code_u13&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  const u13Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  const call = (path, payload) =>
+    fetch(`${appUrl}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u13Cookie },
+      body: JSON.stringify(payload),
+    });
+  const plansAt = async (slug) => (await (await fetch(`${appUrl}/api/plans?store=${slug}`)).json()).plans;
+
+  // The owner's store (created in the takeover scenario) may TAKE the brand
+  // slug — same guild, so the guard's foreign-store rejection does not apply.
+  const claim = await call('/api/admin/store', { store: 'tradeleaks-pro', slug: 'tradeleaks' });
+  assert.equal(claim.status, 200, `the built-in guild's own store must be allowed the brand slug: ${await claim.text()}`);
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u13Cookie } })).json();
+  const mine = owned.stores.find((s) => s.slug === 'tradeleaks');
+  assert.ok(mine, 'the renamed store is in the owner payload');
+
+  // Buyers at the brand link now get the DASHBOARD-MANAGED catalog, not the
+  // env one — what the owner sees is what buyers see.
+  const before = await plansAt('tradeleaks');
+  assert.notEqual(before.length, PLANS.length, 'the env catalog must step aside for the owner-managed one');
+
+  // The user's exact reproduction: make a new product, take its copied link,
+  // open it — the link must resolve to THAT product.
+  const made = await call('/api/onboard', { step: 'product', storeId: mine.id, name: 'Insider Alpha', priceUsd: 17, lifetime: true });
+  const madeBody = await made.text();
+  assert.equal(made.status, 200, madeBody);
+  const newKey = JSON.parse(madeBody).plan.planKey;
+  const listed = await (await call('/api/onboard', { step: 'products', storeId: mine.id })).json();
+  const copied = listed.products.find((p) => p.planKey === newKey).checkoutUrl;
+  assert.match(copied, /\/tradeleaks\/insider-alpha$/, 'the dashboard copies the brand-slug product link');
+  const after = await plansAt('tradeleaks');
+  const alpha = after.find((p) => (p.linkSlug ?? p.id) === 'insider-alpha' || p.id === 'insider-alpha');
+  assert.ok(alpha, 'the new product is in the storefront payload its link points at');
+  assert.equal(alpha.priceUsd, 17, 'at its own price');
+  const page = await fetch(`${appUrl}/tradeleaks/insider-alpha`);
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /\/tradeleaks\/insider-alpha/, 'the product page canonicalizes to the product link');
+
+  // Safety net: with every product switched off, the brand link falls back
+  // to the env catalog instead of an empty dead store.
+  for (const p of after) assert.equal((await call('/api/onboard', { step: 'product-update', storeId: mine.id, planKey: p.id, active: false })).status, 200);
+  assert.equal((await plansAt('tradeleaks')).length, PLANS.length, 'an empty twin leaves the env checkout serving');
+  for (const p of after) assert.equal((await call('/api/onboard', { step: 'product-update', storeId: mine.id, planKey: p.id, active: true })).status, 200);
+
+  // Restore the world for the scenarios below: back to its own slug, and the
+  // brand link back on the env catalog.
+  assert.equal((await call('/api/admin/store', { store: 'tradeleaks', slug: 'tradeleaks-pro' })).status, 200);
+  assert.equal((await plansAt('tradeleaks')).length, PLANS.length, 'the brand link serves the env catalog again');
+});
+
 test('store delete: payment history refuses; a draft deletes, freeing its link and guild', async () => {
   const loginAs = async (code) => {
     const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });

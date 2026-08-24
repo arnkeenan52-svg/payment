@@ -68,12 +68,29 @@ export async function storeBySlug(slug) {
   // built-in store. By URL it is reachable ONLY at its own unique slug.
   if (!slug) return defaultStore();
   const def = defaultStore();
-  // SECURITY: the built-in store's slug always resolves to the built-in
-  // store, never to a managed row that claimed it (belt-and-braces with the
-  // reserved-slug write guard — this also neutralizes any impostor row that
-  // predates that guard). Buyers of the platform's brand link always reach
-  // the real, env-configured store and its Stripe account.
-  if (def && slug === defaultSlug()) return def;
+  if (def && slug === defaultSlug()) {
+    // The built-in guild's OWN managed store may hold the brand slug (rows
+    // from before the reserved-slug guard, or an owner claiming it via the
+    // guild-aware guard). It is the editable twin every by-guild lookup
+    // already prefers — shadowing it here split the catalog: products made
+    // in the dashboard (and their copied links) never appeared on the
+    // storefront, which kept selling the env catalog instead. The twin wins
+    // once it actually sells something; a bare row leaves the env-configured
+    // checkout untouched.
+    // SECURITY: a row with this slug but ANOTHER guild is an impostor and
+    // never resolves (belt-and-braces with the write guard — this also
+    // neutralizes foreign rows that predate it). Buyers of the brand link
+    // reach the platform's real store, whichever of the two that is.
+    const managed = hydrate(await db.getStoreBySlug(slug));
+    if (
+      managed &&
+      String(managed.guildId) === String(def.guildId) &&
+      (await sellablePlansOf(managed)).length > 0
+    ) {
+      return managed;
+    }
+    return def;
+  }
   return hydrate(await db.getStoreBySlug(slug));
 }
 
@@ -209,10 +226,19 @@ export const STORE_CATEGORIES = [
 ];
 export const isStoreCategory = (v) => STORE_CATEGORIES.some(([k]) => k === v);
 
-export function isReservedSlug(slug) {
+export function isReservedSlug(slug, guildId = null) {
   const s = String(slug ?? '').toLowerCase();
-  // The built-in store's own slug is reserved too: no managed store may claim
-  // the platform's brand link and hijack its storefront/checkout.
-  if (config.discord.guildId && s === defaultSlug()) return true;
+  // The built-in store's own slug is reserved against every FOREIGN store: no
+  // one else may claim the platform's brand link and hijack its storefront or
+  // checkout. The built-in guild's own managed store is the one exception —
+  // holding the brand slug is how its owner brings the brand link's catalog
+  // into the dashboard (storeBySlug then resolves the managed row first).
+  if (
+    config.discord.guildId &&
+    s === defaultSlug() &&
+    String(guildId ?? '') !== String(config.discord.guildId)
+  ) {
+    return true;
+  }
   return RESERVED_SLUGS.has(s);
 }
