@@ -72,6 +72,11 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
 (() => {
   const img = $('#hero-media');
   if (!img) return;
+  // The hero is a static Dues dashboard frame while the animated screen tour
+  // is re-recorded under the new brand. Skip the video upgrade entirely so no
+  // old-brand footage ever loads.
+  return;
+  // eslint-disable-next-line no-unreachable
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     img.src = '/shot-dashboard.png?v=97'; // hold a still frame instead
     return;
