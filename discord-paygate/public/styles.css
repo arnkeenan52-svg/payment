@@ -2930,19 +2930,36 @@ body.home .top-center .nav-link:hover { color: var(--brand-text); }
    Dark theme + body.home only, so light mode and the app chrome are untouched.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Discord's dark surfaces are a cool blue-charcoal, never pure black. Retint the
-   landing's palette to match (guarded to dark; light theme keeps its own). */
+/* Discord DARK — their real tokens: deep #1e1f22 page, #2b2d31 surfaces floating
+   above it, #313338 on hover, #3f4147 dividers. Grey, never pure black. */
 html:not([data-theme='light']) body.home {
-  --bg: #0c0d11;               /* page — near-black with Discord's blue undertone */
-  --panel: #1a1c24;            /* cards float above the page, like Discord surfaces */
-  --panel-hover: #21242e;
-  --well: #0f1015;
-  --raised: #20232d;
-  --edge: #2b2e39;             /* card borders, cool grey */
-  --edge-hot: #3a3e4c;
-  --hairline: #1c1e26;
-  --hairline-2: #262935;
-  --active-fill: #23262f;
+  --bg: #1e1f22;               /* Discord background-deep — the page */
+  --panel: #2b2d31;            /* Discord surface — cards float here */
+  --panel-hover: #313338;      /* Discord main-canvas — hover/raised */
+  --well: #1a1b1e;             /* insets sit a touch below the page */
+  --raised: #313338;
+  --edge: #3a3c42;             /* card borders, between Discord's surface + divider */
+  --edge-hot: #4a4d55;
+  --hairline: #2b2d31;
+  --hairline-2: #3f4147;       /* Discord divider */
+  --active-fill: #313338;
+}
+/* Discord LIGHT — the "white and blue": white #ffffff cards on a cool #f2f3f5
+   page, #e3e5e8 borders, near-black #060607 text, same blurple accent. */
+html[data-theme='light'] body.home {
+  --bg: #f2f3f5;               /* Discord light background-secondary — the page */
+  --panel: #ffffff;            /* Discord white surface — cards */
+  --panel-hover: #f7f8fa;
+  --well: #ebedef;
+  --raised: #ffffff;
+  --edge: #e3e5e8;             /* Discord light divider */
+  --edge-hot: #d4d7dc;
+  --hairline: #ebedef;
+  --hairline-2: #e3e5e8;
+  --active-fill: #e8eaed;
+  --ink: #1e1f22;             /* Discord light text-normal (headers read near-black) */
+  --dim: #4e5058;             /* Discord light text-muted */
+  --faint: #b7bbc2;
 }
 /* Discord's surfaces are generously rounded — soften the landing's cards */
 body.home .panel,
@@ -2951,10 +2968,14 @@ body.home .price-card,
 body.home .hiw-step,
 body.home .calc,
 body.home .faq-item { border-radius: 14px; }
-/* the nav bar and its scrolled glass follow the same blue-charcoal */
-html:not([data-theme='light']) body.home .top { background: transparent; }
+/* the nav bar follows the same surfaces; its scrolled glass tints per theme */
+body.home .top { background: transparent; }
 html:not([data-theme='light']) body.home .top.scrolled {
-  background: color-mix(in srgb, #0e0f13 82%, transparent);
+  background: color-mix(in srgb, #1e1f22 84%, transparent);
+  border-bottom-color: var(--hairline-2);
+}
+html[data-theme='light'] body.home .top.scrolled {
+  background: color-mix(in srgb, #f2f3f5 86%, transparent);
   border-bottom-color: var(--hairline-2);
 }
 
