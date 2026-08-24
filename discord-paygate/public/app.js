@@ -176,24 +176,22 @@ function renderBrand() {
   if (df) df.hidden = !STORE_SLUG;
 }
 
+// The order card is a PRODUCT page: it shows exactly the product its link
+// names — one product, one link. The store's other products live in the shop
+// (the "All products" button above), never as a cross-sell picker inside
+// someone else's checkout.
 function renderOptions() {
   const box = $('#options');
   box.innerHTML = '';
-  for (const plan of state.plans) {
-    const row = document.createElement('button');
-    row.type = 'button';
-    row.className = `option${plan.id === state.planId ? ' selected' : ''}`;
-    row.innerHTML = `
-      <span class="opt-name">${esc(plan.lifetime ? (state.plans.length > 1 ? plan.name : 'One Time') : plan.name)}<small>${plan.lifetime ? '(lifetime)' : `/ ${esc(plan.interval)}`}</small></span>
-      <span class="opt-price">${fmtPrice(plan.priceUsd)}</span>`;
-    row.onclick = () => {
-      state.planId = plan.id;
-      render();
-      // A code applied to the old plan is re-checked against the new one.
-      if (state.discount && state.discount.planId !== plan.id) applyDiscount();
-    };
-    box.append(row);
-  }
+  const plan = selectedPlan();
+  if (!plan) return;
+  const row = document.createElement('div');
+  row.className = 'option selected';
+  row.style.cursor = 'default';
+  row.innerHTML = `
+    <span class="opt-name">${esc(plan.name)}<small>${plan.lifetime ? '(lifetime)' : `/ ${esc(plan.interval)}`}</small></span>
+    <span class="opt-price">${fmtPrice(plan.priceUsd)}</span>`;
+  box.append(row);
 }
 
 function renderMethods() {
@@ -570,6 +568,8 @@ function openCheckout(planId) {
   state.view = 'checkout';
   history.pushState({ plan: planId }, '', plan ? productPath(plan) : `/${STORE_SLUG}?plan=${encodeURIComponent(planId)}`);
   render();
+  // A code applied on another product's page is re-checked against this one.
+  if (state.discount && state.discount.planId !== planId) applyDiscount();
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
