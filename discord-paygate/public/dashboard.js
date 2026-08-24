@@ -54,6 +54,7 @@ const I = {
   gear: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.01a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>',
   shop: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16l1 5a3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1-6 0 3 3 0 0 1-3 3 3 3 0 0 1-3-3l1-5z"/><path d="M5 12v9h14v-9M9 21v-6h6v6"/></svg>',
   palette: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 2.5 2.5 0 0 0 1.8-4.2c-.6-.7-.1-1.8.9-1.8H17a5 5 0 0 0 5-5c0-5-4.5-9-10-9z"/><circle cx="7.5" cy="11.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
+  card: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>',
 };
 
 const state = {
@@ -1079,6 +1080,7 @@ const SECTIONS = [
   ['discounts', 'Discounts', 'tag'],
   ['store', 'Store', 'shop'],
   ['customize', 'Customize', 'palette'],
+  ['billing', 'Billing', 'card'],
   ['settings', 'Settings', 'gear'],
 ];
 
@@ -1710,15 +1712,25 @@ function wireCustomize(store, slug) {
   $('#dc-reset').onclick = () => saveDc(null);
 }
 
+// Billing gets its own top-level section so upgrading a plan is one click from
+// the sidebar, not buried in Settings. The panel itself is renderBillingPanel().
+function sectionBilling() {
+  return `
+    <h2 class="sec-title">Billing</h2>
+    <div class="settings-stack">
+    ${setCard({
+      id: 'billing-panel',
+      title: 'Your Dues plan',
+      sub: 'Upgrade, downgrade or cancel anytime. One plan covers every store on your account.',
+      body: `<div id="billing-body"><p class="note-help">Loading your plan…</p></div>`,
+    })}
+    </div>`;
+}
+
 function sectionSettings(store, isPlatformOwner) {
   return `
     <h2 class="sec-title">Settings</h2>
     <div class="settings-stack">
-    ${setCard({
-      id: 'billing-panel',
-      title: 'Dues plan',
-      body: `<div id="billing-body"><p class="note-help">Loading your plan…</p></div>`,
-    })}
     ${
       !store.isDefault
         ? setCard({
@@ -1827,6 +1839,7 @@ async function viewStore(slug) {
     body = store.isDefault
       ? '<h2 class="sec-title">Customize</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store — its dashboard uses the platform look. Set up your server’s own store to customize.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
       : sectionCustomize(store);
+  else if (section === 'billing') body = sectionBilling();
   else if (section === 'settings') body = sectionSettings(store, isPlatformOwner);
   else if (section === 'payments') {
     const checkouts = data.checkouts ?? [];
@@ -1982,7 +1995,7 @@ async function viewStore(slug) {
         if (!b || b.exempt || b.usage.limit === null || b.usage.members < b.usage.limit) return;
         const el = document.createElement('div');
         el.className = 'limit-banner';
-        el.innerHTML = `<strong>Member limit reached</strong> — ${b.usage.members} of ${b.usage.limit} on the ${esc(b.current.name)} plan. New checkouts are paused. <a href="#/store/${esc(slug)}/settings">Upgrade your plan</a>`;
+        el.innerHTML = `<strong>Member limit reached</strong> — ${b.usage.members} of ${b.usage.limit} on the ${esc(b.current.name)} plan. New checkouts are paused. <a href="#/store/${esc(slug)}/billing">Upgrade your plan</a>`;
         document.querySelector('.app-body')?.prepend(el);
       })
       .catch(() => {});
@@ -2056,8 +2069,8 @@ async function viewStore(slug) {
   if (section === 'discounts' && !store.isDefault) wireDiscounts(store, slug);
   if (section === 'store' && !store.isDefault) { wireStoreSettings(store, slug); wireAppearance(store, slug); wireDiscovery(store, slug); }
   if (section === 'customize' && !store.isDefault) wireCustomize(store, slug);
+  if (section === 'billing') renderBillingPanel();
   if (section === 'settings') {
-    renderBillingPanel();
     const pmSave = $('#pm-save');
     if (pmSave)
       pmSave.onclick = async () => {

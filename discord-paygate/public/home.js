@@ -78,7 +78,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   return;
   // eslint-disable-next-line no-unreachable
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=104'; // hold a still frame instead
+    img.src = '/shot-dashboard.png?v=105'; // hold a still frame instead
     return;
   }
 
@@ -95,8 +95,8 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   v.setAttribute('aria-label', img.alt);
 
   const sources = [
-    ['/hero-demo.mp4?v=104', 'video/mp4; codecs="avc1.640028"'],
-    ['/hero-demo.webm?v=104', 'video/webm; codecs="vp9"'],
+    ['/hero-demo.mp4?v=105', 'video/mp4; codecs="avc1.640028"'],
+    ['/hero-demo.webm?v=105', 'video/webm; codecs="vp9"'],
   ];
   const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
   if (!playable.length) return; // the animated image simply stays
