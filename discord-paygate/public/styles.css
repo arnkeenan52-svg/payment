@@ -2872,3 +2872,53 @@ html[data-theme='light'] .st-status.draft .st-dot { background: #9a6700; box-sha
 }
 .field textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .field-help { margin: 6px 0 0; font-size: 12px; color: var(--dim); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Front-page accent — Discord blurple → violet. The product chrome stays
+   monochrome; a flat Discord blurple lands on the landing (body.home) accents
+   only — primary CTAs, the sign-in pill, the popular plan, the badge and the
+   section labels. Type stays neutral. The hue is fixed so it reads light + dark.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --brand-1: #5865f2;                 /* Discord blurple — flat, no gradient */
+  --brand-1-hover: #4752c4;           /* Discord's own button-hover blurple */
+  --brand-text: #a5b0ff;              /* readable blurple for text on dark chrome */
+}
+html[data-theme='light'] { --brand-text: #4a54d6; }  /* deeper blurple on white */
+
+/* Headlines stay neutral — the way Discord keeps type monochrome and lets the
+   blurple live on the buttons and accents. (.hl-dim / .dim-line revert to their
+   default var(--dim); nothing to override here.) */
+
+/* primary filled CTAs are solid blurple, white text (hero Invite, popular plan) */
+body.home .btn-fill,
+body.home #pricing .price-card.popular .price-cta {
+  background: var(--brand-1); color: #fff; border-color: transparent;
+}
+body.home .btn-fill:hover,
+body.home #pricing .price-card.popular .price-cta:hover { background: var(--brand-1-hover); filter: none; }
+body.home .btn-fill:focus-visible { outline-color: var(--brand-1); }
+
+/* nav "Sign in with Discord" pill — solid blurple */
+body.home .account .btn-pill { background: var(--brand-1); color: #fff; border-color: transparent; }
+body.home .account .btn-pill:hover { background: var(--brand-1-hover); }
+
+/* the "Most popular" badge — solid blurple */
+body.home #pricing .price-badge { background: var(--brand-1); color: #fff; }
+
+/* popular plan: a blurple frame + barely-there wash so it reads as the pick */
+body.home #pricing .price-card.popular {
+  border-color: color-mix(in srgb, var(--brand-1) 50%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--brand-1) 5%, transparent), transparent 55%),
+    var(--panel);
+}
+body.home #pricing .price-card.popular .price-list li::before { color: var(--brand-1); }
+
+/* section labels — [ Features ] [ Pricing ] etc. */
+body.home .kicker { color: var(--brand-text); }
+body.home .kicker::before,
+body.home .kicker::after { color: color-mix(in srgb, var(--brand-text) 45%, transparent); }
+
+/* nav links pick up the accent on hover */
+body.home .top-center .nav-link:hover { color: var(--brand-text); }
