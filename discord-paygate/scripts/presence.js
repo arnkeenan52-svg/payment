@@ -14,14 +14,14 @@
 //   DISCORD_BOT_TOKEN=...  node scripts/presence.js
 //
 // Optional env:
-//   PRESENCE_TEXT    activity text            (default "ripleybot.com")
+//   PRESENCE_TEXT    activity text            (default "dues.gg")
 //   PRESENCE_TYPE    0 playing 2 listening 3 watching 5 competing (default 3)
 //   PRESENCE_STATUS  online | idle | dnd      (default "online")
 //   PORT             if set, serves GET / with a JSON health snapshot
 //   GATEWAY_URL      override (tests point this at a mock gateway)
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN ?? '';
-const TEXT = process.env.PRESENCE_TEXT ?? 'ripleybot.com';
+const TEXT = process.env.PRESENCE_TEXT ?? 'dues.gg';
 const TYPE = Number(process.env.PRESENCE_TYPE ?? 3);
 const STATUS = process.env.PRESENCE_STATUS ?? 'online';
 const API = (process.env.DISCORD_API_BASE ?? 'https://discord.com/api/v10').replace(/\/$/, '');

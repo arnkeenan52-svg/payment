@@ -148,9 +148,9 @@ const welcomeMessage = (ch) => `**Welcome to Dues**
 Dues lets Discord server owners sell paid roles and memberships — Stripe checkout straight into your own account, roles delivered in seconds, 0% of sales.
 
 **Start here**
-- Website: <https://ripleybot.com>
-- Set up your own store: <https://ripleybot.com/dashboard>
-- Browse stores: <https://ripleybot.com/discover>
+- Website: <https://dues.gg>
+- Set up your own store: <https://dues.gg/dashboard>
+- Browse stores: <https://dues.gg/discover>
 
 **Where things happen**
 - <#${ch['get-help']}> — setup questions. We answer.

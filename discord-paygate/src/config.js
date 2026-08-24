@@ -36,7 +36,14 @@ function loadPlans() {
 const env = (key, fallback = '') => process.env[key] ?? fallback;
 const num = (key, fallback) => Number(process.env[key] ?? fallback);
 
-const publicBaseUrl = env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`).replace(/\/$/, '');
+// Domain bridge (ripleybot.com → dues.gg): the platform moved and the old
+// domain no longer serves. A PUBLIC_BASE_URL still pointing at it would mint
+// dead links, dead image URLs and dead webhook registrations — so it is
+// rewritten here until the env var itself is updated. Remove once
+// PUBLIC_BASE_URL says https://dues.gg.
+const publicBaseUrl = env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`)
+  .replace(/\/$/, '')
+  .replace(/^https:\/\/(www\.)?ripleybot\.com$/, 'https://dues.gg');
 const isProd = publicBaseUrl.startsWith('https://');
 
 // SESSION_SECRET signs session cookies AND derives the at-rest key for every

@@ -44,7 +44,7 @@ export function demoPlansPayload({ platformName, brandFallback }) {
       description: 'A demo of a Dues store — nothing here is for sale.',
       bannerUrl: null, theme: DEMO_THEME,
       about: 'This is what buyers see when a seller shares their Dues store link: every product, the store\u2019s own colors and type, and a checkout that pays straight into the seller\u2019s Stripe account.\nBuild yours in minutes \u2014 invite Dues, paste a Stripe key, pick the roles to sell.',
-      links: { website: 'https://www.ripleybot.com' },
+      links: { website: 'https://dues.gg' },
       memberCount: 134,
     },
     server: { name: DEMO_NAME, guildId: '', iconUrl: '/favicon.png' },

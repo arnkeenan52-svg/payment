@@ -153,6 +153,16 @@ export async function everyStore() {
   return [def, ...rows];
 }
 
+// Uploaded product photos are stored as ABSOLUTE /api/img URLs minted under
+// whatever domain the platform had at upload time. Serving them re-based on
+// the current base keeps every photo alive across domain moves
+// (ripleybot.com → dues.gg). Foreign image links pass through untouched.
+export function rebaseImageUrl(u) {
+  if (typeof u !== 'string') return u ?? null;
+  const at = u.indexOf('/api/img?');
+  return at > 0 ? `${config.publicBaseUrl}${u.slice(at)}` : u;
+}
+
 // The store's product catalog in the same shape plans.json uses, so the
 // storefront, checkout and entitlements treat both kinds identically.
 export async function plansOf(store) {
@@ -163,7 +173,7 @@ export async function plansOf(store) {
     name: p.name,
     description: p.description ?? '',
     descriptionHighlight: null,
-    imageUrl: p.imageUrl ?? null,
+    imageUrl: rebaseImageUrl(p.imageUrl),
     roleNames: p.roleNames,
     priceUsd: p.priceUsd,
     interval: p.lifetime ? 'lifetime' : 'month',
@@ -232,7 +242,7 @@ export function slugify(name) {
   return base || 'server';
 }
 
-// Store links live at the domain root (ripleybot.com/<slug>), so every path
+// Store links live at the domain root (dues.gg/<slug>), so every path
 // the platform itself uses is off-limits as a store name.
 const RESERVED_SLUGS = new Set([
   'store', 'account', 'dashboard', 'receipt', 'terms', 'privacy', 'diagnostics',

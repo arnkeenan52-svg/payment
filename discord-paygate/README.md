@@ -155,7 +155,7 @@ required variable is `DISCORD_BOT_TOKEN` (the same one Vercel uses).
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `DISCORD_BOT_TOKEN` | — | required |
-| `PRESENCE_TEXT` | `ripleybot.com` | activity text; empty for status only |
+| `PRESENCE_TEXT` | `dues.gg` | activity text; empty for status only |
 | `PRESENCE_TYPE` | `3` (Watching) | 0 Playing · 2 Listening · 3 Watching · 5 Competing |
 | `PRESENCE_STATUS` | `online` | `online`, `idle` or `dnd` |
 | `PORT` | unset | if set, serves a JSON health snapshot on `GET /` |

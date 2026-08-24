@@ -116,7 +116,7 @@ const startClient = (port, env = {}) =>
       ...process.env,
       DISCORD_BOT_TOKEN: 'test-token',
       GATEWAY_URL: `ws://127.0.0.1:${port}/?v=10&encoding=json`,
-      PRESENCE_TEXT: 'ripleybot.com',
+      PRESENCE_TEXT: 'dues.gg',
       PORT: '',
       ...env,
     },
@@ -176,7 +176,7 @@ await check('identifies with presence, heartbeats, and resumes after a drop', as
     assert.equal(seen.identify.token, 'test-token');
     assert.equal(seen.identify.intents, 0, 'presence-only bots need no intents');
     assert.equal(seen.identify.presence.status, 'online');
-    assert.equal(seen.identify.presence.activities[0].name, 'ripleybot.com');
+    assert.equal(seen.identify.presence.activities[0].name, 'dues.gg');
     await waitFor(() => seen.resume, 'RESUME after the gateway dropped us');
     assert.equal(seen.resume.session_id, 'sess-1', 'resumes the same session');
     assert.ok(seen.resume.seq >= 1, 'resumes from the last sequence number');

@@ -177,7 +177,7 @@ const server = http.createServer(async (req, res) => {
         await storePage(req, res);
         return;
       }
-      // Product links: ripleybot.com/<store>/<product> (vercel.json's
+      // Product links: dues.gg/<store>/<product> (vercel.json's
       // two-segment rewrite).
       let pm;
       if ((pm = url.pathname.match(/^\/([a-z0-9-]+)\/([a-z0-9-]+)$/))) {

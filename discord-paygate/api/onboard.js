@@ -7,7 +7,7 @@ import { sealSecret } from '../src/lib/secretbox.js';
 import { getUser } from '../src/db.js';
 import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember, getGuildChannels } from '../src/lib/discord.js';
 import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache, isStripeKey, stripeKeyMode } from '../src/lib/stripe.js';
-import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf } from '../src/services/stores.js';
+import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf, rebaseImageUrl } from '../src/services/stores.js';
 
 const ADMINISTRATOR = 1n << 3n;
 const MANAGE_GUILD = 1n << 5n;
@@ -387,6 +387,7 @@ export default guard(async function handler(req, res) {
         const linkOwner = (p.variantOf && byKey.get(p.variantOf)) || p;
         out.push({
           ...p,
+          imageUrl: rebaseImageUrl(p.imageUrl),
           buyers: await db.countBuyersOfPlan(row.id, p.planKey),
           checkoutUrl: `${config.publicBaseUrl}/${row.slug}/${encodeURIComponent(linkOwner.linkSlug ?? linkOwner.planKey)}`,
         });
@@ -444,7 +445,7 @@ export default guard(async function handler(req, res) {
         fields.purchaseLimit = n;
       }
       if (body.active !== undefined) fields.active = Boolean(body.active);
-      // The product's own link segment: ripleybot.com/<store>/<this>. Blank
+      // The product's own link segment: dues.gg/<store>/<this>. Blank
       // falls back to the plan key; taken segments are refused.
       if (body.linkSlug !== undefined) {
         if (existing.variantOf) {

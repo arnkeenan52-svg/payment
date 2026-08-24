@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { config } from '../../src/config.js';
 import { sendJson, sendText, guard } from '../../src/lib/http.js';
 import { sweepExpirations } from '../../src/services/entitlements.js';
+import { healStoreWebhooks } from '../../src/services/webhook-heal.js';
 
 // Replaces the old setInterval sweep — there is no long-lived process on
 // Vercel. vercel.json schedules this; Vercel sends Authorization: Bearer
@@ -24,5 +25,11 @@ export default guard(async function handler(req, res) {
     return;
   }
   const result = await sweepExpirations();
-  sendJson(res, 200, { ok: true, ...result });
+  // Keep sellers' Stripe webhook registrations pointed at THIS deployment —
+  // after a domain move they'd otherwise deliver into the old, dead host.
+  const webhooks = await healStoreWebhooks().catch((err) => {
+    console.warn(`[cron] webhook heal failed: ${err.message}`);
+    return null;
+  });
+  sendJson(res, 200, { ok: true, ...result, ...(webhooks ? { webhooks } : {}) });
 });

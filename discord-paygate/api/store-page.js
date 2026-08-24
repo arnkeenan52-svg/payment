@@ -1,5 +1,5 @@
 // Server-rendered store page: store.html with the head's link-preview tags
-// replaced per store, so sharing ripleybot.com/<slug> in Discord (or
+// replaced per store, so sharing dues.gg/<slug> in Discord (or
 // anywhere) unfurls with the store's name, description and the product
 // photo the owner added. Unfurlers never execute JS — only tags rendered
 // here count. The rest of the page stays the same client-driven checkout.
@@ -13,11 +13,8 @@ import { validateTheme, themeCss } from '../src/lib/theme.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// Canonical URLs must not point through a redirect. Production serves on
-// www (apex 307s there) while PUBLIC_BASE_URL stays apex for OAuth and
-// webhook registrations — so canonicals (and og:url) pin the www host.
-const canonicalBase = () =>
-  config.publicBaseUrl.replace(/^https:\/\/ripleybot\.com/, 'https://www.ripleybot.com');
+// dues.gg serves on the apex directly — the base URL IS the canonical host.
+const canonicalBase = () => config.publicBaseUrl;
 
 let template = null;
 const load = () => (template ??= fs.readFileSync(path.join(config.root, 'public', 'store.html'), 'utf8'));

@@ -243,7 +243,7 @@ function db() {
       // known keys), and the opt-in live member-count badge.
       await driver.exec('ALTER TABLE stores ADD COLUMN about TEXT').catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN links TEXT').catch(() => {});
-      // Per-product custom link segment: ripleybot.com/<store>/<link>.
+      // Per-product custom link segment: dues.gg/<store>/<link>.
       await driver.exec('ALTER TABLE store_plans ADD COLUMN link_slug TEXT').catch(() => {});
       // Pricing options: a plan row whose variant_of names another plan_key in
       // the same store is one PRICE OPTION of that product (e.g. Monthly $50

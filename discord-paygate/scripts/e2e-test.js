@@ -2230,7 +2230,7 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   const vs = await get('/vs/whop');
   assert.equal(vs.status, 200);
   assert.match(vs.body, /Dues vs Whop/);
-  assert.match(vs.body, /rel="canonical" href="https:\/\/www\.ripleybot\.com\/vs\/whop"/);
+  assert.match(vs.body, /rel="canonical" href="https:\/\/dues\.gg\/vs\/whop"/);
   const vsIdx = await get('/vs');
   assert.equal(vsIdx.status, 200);
   assert.match(vsIdx.body, /Compare Discord Monetization Platforms/);
@@ -2245,7 +2245,7 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.match(sm.body, /\/vs\/whop<\/loc>/);
   const rb = await get('/robots.txt');
   assert.equal(rb.status, 200);
-  assert.match(rb.body, /Sitemap: https:\/\/www\.ripleybot\.com\/sitemap\.xml/);
+  assert.match(rb.body, /Sitemap: https:\/\/dues\.gg\/sitemap\.xml/);
   assert.match(rb.body, /User-agent: GPTBot/, 'AI crawlers are explicitly welcomed');
   const sub = await get('/vs/subscord');
   assert.equal(sub.status, 200);
@@ -3034,7 +3034,7 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   assert.equal(plans.capabilities.stripe, true, 'the checkout still renders fully');
   assert.deepEqual(plans.plans.map((p) => p.priceUsd), [49.99, 14.99, 79.99]);
   assert.equal(plans.store.theme.bg, '#0a0a0a', 'the demo store is the black Midnight look');
-  assert.equal(plans.store.links.website, 'https://www.ripleybot.com');
+  assert.equal(plans.store.links.website, 'https://dues.gg');
   assert.equal(plans.store.memberCount, 134);
   assert.match(plans.store.about, /invite Dues/i);
   // The demo's one discount code previews like a real one.

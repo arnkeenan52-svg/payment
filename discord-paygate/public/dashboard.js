@@ -1653,7 +1653,7 @@ function sectionStore(store, link) {
     ${setCard({
       id: 'st-card-discover',
       title: 'Discover listing',
-      sub: 'Put your store on ripleybot.com/discover — the public directory of communities. Off by default; entirely your call.',
+      sub: 'Put your store on dues.gg/discover — the public directory of communities. Off by default; entirely your call.',
       body: `
         <label class="disc-toggle">
           <input type="checkbox" id="dv-on" ${store.discoverable ? 'checked' : ''} />

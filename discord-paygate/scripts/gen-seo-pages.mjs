@@ -14,8 +14,8 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
-const BASE = 'https://www.ripleybot.com';
-const V = '114'; // keep in step with the ?v= asset version on index.html
+const BASE = 'https://dues.gg';
+const V = '115'; // keep in step with the ?v= asset version on index.html
 
 // Dues plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -227,7 +227,7 @@ const USE_CASES = {
     intro:
       'Early videos, extended cuts, sample packs, presets, art drops: creators run exclusives through Discord because the community already lives there. Dues gates those channels with a role your fans buy in one checkout.',
     points: [
-      ['One link to share', 'ripleybot.com/yourname — put it in every bio. It is your store.'],
+      ['One link to share', 'dues.gg/yourname — put it in every bio. It is your store.'],
       ['Lifetime or recurring', 'Sell a one-time supporter pass or a monthly membership.'],
       ['Fans stay yours', 'No marketplace between you and your audience — buyers check out under your name.'],
     ],
@@ -246,7 +246,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=114" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=115" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/#features">Features</a>
@@ -263,7 +263,7 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=114" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=115" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -323,10 +323,10 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta property="og:url" content="${canonical}" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" href="/favicon.png?v=114" />
+  <link rel="icon" type="image/png" href="/favicon.png?v=115" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
-  <script src="/theme.js?v=114"></script>
+  <script src="/theme.js?v=115"></script>
 </head>
 <body class="home seo-page">
 ${nav}
@@ -366,7 +366,7 @@ const ripleyRows = {
   fee: '0% — always',
   monthly: 'Free up to 10 paying members, then from $14.99/mo',
   money: 'Your own Stripe account, directly',
-  store: 'ripleybot.com/yourname',
+  store: 'dues.gg/yourname',
 };
 
 // ── /vs/<competitor> ──────────────────────────────────────────────────────────
@@ -680,7 +680,7 @@ function useCasePage(slug, u) {
   const steps = [
     ['Connect your server', 'Sign in with Discord, pick your server, and add the Dues bot.'],
     ['Create your products', 'Name, price, photo, and the role each product unlocks — built in the dashboard, no Stripe dashboard needed.'],
-    ['Share your link', 'Your store lives at ripleybot.com/yourname. Buyers pay on Stripe and get their role in seconds.'],
+    ['Share your link', 'Your store lives at dues.gg/yourname. Buyers pay on Stripe and get their role in seconds.'],
   ];
   const body = `
     <section class="xhero seo-hero">
@@ -786,7 +786,7 @@ const GUIDES = {
     intro: 'A paid role is the cleanest product a Discord server can sell: buyers pay, the role lands, the channels unlock. Here is the whole setup, end to end.',
     sections: [
       ['1. Create the role and gate the channels', `<p>Make a role named after the product (<em>@VIP</em>, <em>@Signals</em>, <em>@Inner Circle</em>) and set your premium channels to be visible only with it. Leave a public lobby so non-members can see what they are missing.</p>`],
-      ['2. Connect a checkout that delivers roles', `<p>Invite the payment bot, connect your Stripe account, and map the product to the role. On <a href="/">Dues</a> that is the whole onboarding: invite → paste your Stripe key → create the product → pick the role. Your store goes live at ripleybot.com/yourname.</p>`],
+      ['2. Connect a checkout that delivers roles', `<p>Invite the payment bot, connect your Stripe account, and map the product to the role. On <a href="/">Dues</a> that is the whole onboarding: invite → paste your Stripe key → create the product → pick the role. Your store goes live at dues.gg/yourname.</p>`],
       ['3. Price it', `<p>Monthly for ongoing value (signals, picks, coaching), lifetime for a one-time unlock, or both at different price points. Each product maps to its own role, so tiers are just more products.</p>`],
       ['4. Share the link', `<p>Pin it, put it in the server description, link it from your socials. Buyers sign in with Discord, pay on Stripe’s checkout, and the role is delivered in seconds — buyers who are not in the server yet get pulled in with the role attached.</p>`],
       ['5. Let lapses handle themselves', `<p>When a subscription ends, the role should come off without you doing anything. Dues removes it automatically and re-checks access hourly, so the members list and the paying list never drift apart.</p>`],
@@ -840,7 +840,7 @@ const GUIDES = {
     intro: 'Selling server access is three pieces: something worth unlocking, a checkout link you can share anywhere, and delivery that never needs you online. Most owners overbuild the first and underbuild the last.',
     sections: [
       ['The product is a role', `<p>Package access as a role that unlocks channels. One role for a simple membership, several for tiers. If you can describe what the role unlocks in one sentence, buyers will get it too.</p>`],
-      ['The checkout is a link', `<p>Your store lives at a link — Dues gives you <strong>ripleybot.com/yourname</strong>, with your server’s name, icon and products on it, sharable in bios, pinned messages and DMs. Buyers sign in with Discord, pay on Stripe, done. Link previews carry your product photo automatically.</p>`],
+      ['The checkout is a link', `<p>Your store lives at a link — Dues gives you <strong>dues.gg/yourname</strong>, with your server’s name, icon and products on it, sharable in bios, pinned messages and DMs. Buyers sign in with Discord, pay on Stripe, done. Link previews carry your product photo automatically.</p>`],
       ['Delivery is instant, and so is revocation', `<p>The role lands seconds after payment and comes off automatically when a subscription lapses. Buyers not yet in the server are pulled in with the role attached. That is the entire operational load: zero.</p>`],
       ['What it costs', `<p>Dues is free up to 10 paying members, then flat plans from $14.99/mo — always 0% of sales, with payments in your own Stripe account. For the full landscape, see <a href="/guides/how-to-monetize-a-discord-server">the monetization guide</a> and the <a href="/vs">comparisons</a>.</p>`],
     ],
@@ -897,7 +897,7 @@ const GUIDES = {
     sections: [
       ['Structure: what is free, what is paid', `<p>Keep a public lobby with rules, announcements and enough real activity to prove the server is alive. Put the value in clearly named locked categories that non-members can see but not read. A paywall nobody can see through does not convert — visible-but-locked is the whole trick.</p>`],
       ['The paywall is a role', `<p>Create one role per paid tier and set your premium channels to require it. That role is your paywall: grant it and the channels open, remove it and they close. Everything below automates granting and removing it.</p>`],
-      ['Connect the checkout', `<p>Invite a payment bot, connect your Stripe account, map the product to the role. On <a href="/">Dues</a> the whole setup is invite → paste Stripe key → create product → pick role, and your paywall goes live at ripleybot.com/yourname. Buyers pay on Stripe and the role lands in seconds; those not yet in the server are pulled in with it attached.</p>`],
+      ['Connect the checkout', `<p>Invite a payment bot, connect your Stripe account, map the product to the role. On <a href="/">Dues</a> the whole setup is invite → paste Stripe key → create product → pick role, and your paywall goes live at dues.gg/yourname. Buyers pay on Stripe and the role lands in seconds; those not yet in the server are pulled in with it attached.</p>`],
       ['Make the paywall self-healing', `<p>The point of automating it is that lapses handle themselves: when a subscription ends, the role comes off and the channels re-lock without you touching anything, with access re-checked hourly. A manual paywall leaks the moment your server grows. One Discord gotcha: the bot's role must sit above the roles it manages in Server Settings → Roles.</p>`],
       ['What a paywall costs to run', `<p>The tool's fee is the recurring cost, so pick the model deliberately: percentage platforms take a cut of everything the paywall earns, flat-fee platforms charge a fixed plan and 0% of sales. Compare both on the <a href="/vs">comparisons page</a> or estimate with the <a href="/tools/discord-fee-calculator">fee calculator</a>.</p>`],
     ],
@@ -1154,7 +1154,7 @@ const out = [];
 function helpPage() {
   const FEATURES = [
     ['Your store page', 'One link with everything you sell — your name, banner, about section and colors. Buyers browse products and check out without leaving the page.', '/demo', 'See the demo store'],
-    ['Product links', 'Every product also has its own URL, like ripleybot.com/your-store/vip — rename the last part in the product editor and share it anywhere.', '/dashboard', 'Dashboard → Products'],
+    ['Product links', 'Every product also has its own URL, like dues.gg/your-store/vip — rename the last part in the product editor and share it anywhere.', '/dashboard', 'Dashboard → Products'],
     ['Checkout & payments', 'Buyers pay by card through Stripe, straight into your own Stripe account. Dues never holds your money and takes 0% of sales.', '/demo/vip-access', 'Try a demo checkout'],
     ['Automatic role delivery', 'The Discord role is granted seconds after payment and removed when a membership ends. Failed renewals get a short grace period before access is pulled.', '/guides/how-to-sell-discord-roles', 'How role selling works'],
     ['Discounts', 'Create percentage codes in the dashboard; buyers apply them at checkout and pay the discounted amount.', '/dashboard', 'Dashboard → Discounts'],
@@ -1194,7 +1194,7 @@ function helpPage() {
           <p>1. Open the <a href="/dashboard">dashboard</a> and sign in with Discord.</p>
           <p>2. Pick your server and invite the Dues bot.</p>
           <p>3. Connect Stripe with an API key — payments go straight to your Stripe account.</p>
-          <p>4. Create a product, attach the role it unlocks, publish. Your store is live at ripleybot.com/your-store.</p>
+          <p>4. Create a product, attach the role it unlocks, publish. Your store is live at dues.gg/your-store.</p>
         </section>
       </div>
     </section>
@@ -1251,13 +1251,13 @@ emit(
   'llms.txt',
   `# Dues
 
-> Dues (https://www.ripleybot.com) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (ripleybot.com/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Dues never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $14.99/month) and Dues takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
+> Dues (https://dues.gg) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (dues.gg/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Dues never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $14.99/month) and Dues takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
 
 Key product facts:
 - 0% platform fees on sales; flat plans: Free (10 paying members), Pro $14.99/mo (50), Max $44.99/mo (500), Unlimited $134.99/mo (unlimited)
 - Payments settle in the owner's own Stripe account (owner supplies their Stripe key)
 - Instant role delivery (~2s) and automatic removal on cancellation/lapse; hourly access re-checks
-- Store page at ripleybot.com/<name> with the server's branding and product photos
+- Store page at dues.gg/<name> with the server's branding and product photos
 - Monthly subscriptions, lifetime (one-time) products, tiered roles, discount codes, purchase limits
 - Emailed receipts on every sale; optional "New Subscriber" ping in a Discord channel of the owner's choice
 - The bot never asks for Discord Administrator permission

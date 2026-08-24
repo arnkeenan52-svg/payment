@@ -671,7 +671,7 @@ async function main() {
       <h1 class="order-title">Store Not Found</h1>
       <p class="order-sub">There is no store at this link${STORE_SLUG ? ` (/${STORE_SLUG})` : ''}.
         Check the link your community shared — or start your own store with Dues.</p>
-      <a class="btn-pill" style="display:inline-block;text-decoration:none;margin-top:8px" href="/">Go to ripleybot.com</a>`;
+      <a class="btn-pill" style="display:inline-block;text-decoration:none;margin-top:8px" href="/">Go to dues.gg</a>`;
     return;
   }
   const plansBody = await plansRes.json();
