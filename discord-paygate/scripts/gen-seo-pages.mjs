@@ -322,6 +322,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta property="og:image" content="${BASE}/og-card.png" />
   <meta property="og:url" content="${canonical}" />
   <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" href="/favicon.png?v=96" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
