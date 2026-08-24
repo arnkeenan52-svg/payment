@@ -146,7 +146,7 @@ const ddl = (dialect) => {
     recorded_at ${int} NOT NULL
   );
 
-  -- The Ripley plan a store owner is on (platform billing). One row per
+  -- The Dues plan a store owner is on (platform billing). One row per
   -- owner: their paid tier covers every store they run. status active or
   -- past_due keeps the paid limits; anything else falls back to Free.
   CREATE TABLE IF NOT EXISTS platform_billing (
@@ -298,7 +298,7 @@ export async function allUsersSafe({ limit = 1000 } = {}) {
   return rows;
 }
 
-// Every owner's Ripley plan row — the platform admin view sums MRR from this.
+// Every owner's Dues plan row — the platform admin view sums MRR from this.
 export async function allPlatformBilling() {
   const { rows } = await q('SELECT * FROM platform_billing', []);
   return rows;
@@ -778,7 +778,7 @@ export async function membersWithLiveSubscriptions() {
 }
 
 // How many distinct members currently hold a live membership across these
-// stores — the number the owner's Ripley plan is priced on. storeIds may mix
+// stores — the number the owner's Dues plan is priced on. storeIds may mix
 // concrete ids and null (the built-in default store).
 export async function countLiveMembers(storeIds) {
   const parts = [];
@@ -798,7 +798,7 @@ export async function countLiveMembers(storeIds) {
   return Number(rows[0]?.n ?? 0);
 }
 
-// ── platform billing (the owner's Ripley plan) ───────────────────────────────
+// ── platform billing (the owner's Dues plan) ───────────────────────────────
 
 export async function getPlatformBilling(ownerDiscordId) {
   const { rows } = await q('SELECT * FROM platform_billing WHERE owner_discord_id = ?', [ownerDiscordId]);

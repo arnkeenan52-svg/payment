@@ -299,7 +299,7 @@ async function discordHandler(req, res) {
     if (m[1] === G2) {
       json(res, 200, [
         { id: G2, name: '@everyone', position: 0, permissions: '0', color: 0 },
-        { id: R2_BOT, name: 'Ripley', position: 40, permissions: String(1 << 28), color: 0, managed: true },
+        { id: R2_BOT, name: 'Dues', position: 40, permissions: String(1 << 28), color: 0, managed: true },
         { id: R2_VIP, name: 'VIP', position: 7, permissions: '0', color: 5793266 },
       ]);
       return;
@@ -677,7 +677,7 @@ test('npm start entry prints the config banner (storage + cron lines)', async ()
 });
 
 test('storefront serves the tenant-generic checkout, plans API exposes capabilities', async () => {
-  // "/" is the Ripley platform landing. The built-in store is NOT special:
+  // "/" is the Dues platform landing. The built-in store is NOT special:
   // it lives at its brand slug like every other store. /store belongs to NO
   // store — it is a reserved word nobody can claim, the built-in one included.
   const home = await (await fetch(`${appUrl}/`)).text();
@@ -1857,7 +1857,7 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   const receipt = resend.emails.at(-1);
   assert.ok(receipt, 'a receipt email must be sent');
   assert.deepEqual(receipt.to, ['buyer8@e2e.test']);
-  assert.equal(receipt.from, 'Ripley <receipts@tradeleaks.e2e>', 'the sender self-provisions from the verified domain');
+  assert.equal(receipt.from, 'Dues <receipts@tradeleaks.e2e>', 'the sender self-provisions from the verified domain');
   assert.match(receipt.subject, /VIP Signals/);
   assert.match(receipt.html, /VIP Access/);
   assert.match(receipt.html, /\$49\.99/);
@@ -2163,7 +2163,7 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   };
   const vs = await get('/vs/whop');
   assert.equal(vs.status, 200);
-  assert.match(vs.body, /Ripley vs Whop/);
+  assert.match(vs.body, /Dues vs Whop/);
   assert.match(vs.body, /rel="canonical" href="https:\/\/www\.ripleybot\.com\/vs\/whop"/);
   const vsIdx = await get('/vs');
   assert.equal(vsIdx.status, 200);
@@ -2183,7 +2183,7 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.match(rb.body, /User-agent: GPTBot/, 'AI crawlers are explicitly welcomed');
   const sub = await get('/vs/subscord');
   assert.equal(sub.status, 200);
-  assert.match(sub.body, /Ripley vs Subscord/);
+  assert.match(sub.body, /Dues vs Subscord/);
   assert.match(sub.body, /plan-dependent/i, 'Subscord claims stay hedged');
   const guide = await get('/guides/how-to-monetize-a-discord-server');
   assert.equal(guide.status, 200);
@@ -2192,7 +2192,7 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   const alt = await get('/alternatives/subscord-alternatives');
   assert.equal(alt.status, 200);
   assert.match(alt.body, /Subscord Alternatives/i);
-  assert.match(alt.body, /our product/, 'the Ripley entry is disclosed as ours');
+  assert.match(alt.body, /our product/, 'the Dues entry is disclosed as ours');
   const llms = await get('/llms.txt');
   assert.equal(llms.status, 200);
   assert.match(llms.body, /0% of sales/);
@@ -2218,7 +2218,7 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.match(homeFooter, /href="\/vs\/subscord"/, 'the homepage links the Subscord comparison');
 
 
-  // The homepage's "Invite Ripley" button: a stable hop to Discord's
+  // The homepage's "Invite Dues" button: a stable hop to Discord's
   // authorize screen, bot scope — same as the wizard.
   const inv = await fetch(`${appUrl}/api/invite`, { redirect: 'manual' });
   assert.equal(inv.status, 302);
@@ -2234,7 +2234,7 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.equal(perms & 8n, 0n, 'the invite never asks for Administrator');
   const homeHtml = await (await fetch(`${appUrl}/`)).text();
   assert.match(homeHtml, /href="\/api\/invite"/, 'the hero links the invite');
-  assert.match(homeHtml, /Invite Ripley/);
+  assert.match(homeHtml, /Invite Dues/);
 });
 
 test('platform billing: Free gates at 10 members, paid tiers unlock, switch cancels the old sub, cancel re-gates', async () => {
@@ -2794,25 +2794,25 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {
   // The page serves with its own head and the Emerald theme server-rendered.
   const page = await (await fetch(`${appUrl}/demo`)).text();
-  assert.match(page, /Ripley Membership — Demo Store/);
+  assert.match(page, /Dues Membership — Demo Store/);
   assert.match(page, /store-theme/, 'the demo ships its theme in the head');
   assert.match(page, /id="shop"/, 'the storefront carries the shop view');
   const demoProd = await (await fetch(`${appUrl}/demo/vip-access`)).text();
-  assert.match(demoProd, /VIP Access — Ripley Membership/, 'demo product links carry product previews');
+  assert.match(demoProd, /VIP Access — Dues Membership/, 'demo product links carry product previews');
   // /store/<slug> is the same overall URL, everywhere.
   const red = await fetch(`${appUrl}/store/demo`, { redirect: 'manual' });
   assert.equal(red.status, 308);
   assert.equal(red.headers.get('location'), '/demo', '/store/<slug> redirects to the overall URL');
   // The plans payload is fixed, flagged, and never touches the database.
   const plans = await (await fetch(`${appUrl}/api/plans?store=demo`)).json();
-  assert.equal(plans.brand, 'Ripley Membership');
+  assert.equal(plans.brand, 'Dues Membership');
   assert.equal(plans.capabilities.demo, true, 'the client needs the demo flag to disarm pay');
   assert.equal(plans.capabilities.stripe, true, 'the checkout still renders fully');
   assert.deepEqual(plans.plans.map((p) => p.priceUsd), [49.99, 14.99, 79.99]);
   assert.equal(plans.store.theme.bg, '#0a0a0a', 'the demo store is the black Midnight look');
   assert.equal(plans.store.links.website, 'https://www.ripleybot.com');
   assert.equal(plans.store.memberCount, 134);
-  assert.match(plans.store.about, /invite Ripley/i);
+  assert.match(plans.store.about, /invite Dues/i);
   // The demo's one discount code previews like a real one.
   const d = await (await fetch(`${appUrl}/api/discount?store=demo&code=LAUNCH20&plan=vip-access`)).json();
   assert.equal(d.discountedUsd, 39.99, 'LAUNCH20 takes 20% off the demo product');

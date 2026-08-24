@@ -1,6 +1,6 @@
-# Ripley
+# Dues
 
-> Ripley (https://www.ripleybot.com) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (ripleybot.com/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Ripley never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $14.99/month) and Ripley takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
+> Dues (https://www.ripleybot.com) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (ripleybot.com/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Dues never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $14.99/month) and Dues takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
 
 Key product facts:
 - 0% platform fees on sales; flat plans: Free (10 paying members), Starter $14.99/mo (50), Growth $44.99/mo (500), Scale $134.99/mo (unlimited)
@@ -21,12 +21,12 @@ Key product facts:
 - [Best Discord monetization platforms](https://www.ripleybot.com/alternatives/best-discord-monetization-platforms)
 
 ## Compare
-- [Ripley vs Whop](https://www.ripleybot.com/vs/whop)
-- [Ripley vs LaunchPass](https://www.ripleybot.com/vs/launchpass)
-- [Ripley vs Subscord](https://www.ripleybot.com/vs/subscord)
-- [Ripley vs DoorFee](https://www.ripleybot.com/vs/doorfee)
-- [Ripley vs XOE](https://www.ripleybot.com/vs/xoe)
-- [Ripley vs Patreon](https://www.ripleybot.com/vs/patreon)
+- [Dues vs Whop](https://www.ripleybot.com/vs/whop)
+- [Dues vs LaunchPass](https://www.ripleybot.com/vs/launchpass)
+- [Dues vs Subscord](https://www.ripleybot.com/vs/subscord)
+- [Dues vs DoorFee](https://www.ripleybot.com/vs/doorfee)
+- [Dues vs XOE](https://www.ripleybot.com/vs/xoe)
+- [Dues vs Patreon](https://www.ripleybot.com/vs/patreon)
 - [All comparisons](https://www.ripleybot.com/vs)
 
 ## Guides

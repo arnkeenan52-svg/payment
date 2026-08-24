@@ -39,7 +39,7 @@ const state = {
   store: null,
   brand: null,
   server: null,
-  platform: { name: 'Ripley' },
+  platform: { name: 'Dues' },
   me: { loggedIn: false },
   planId: null,
   method: null,
@@ -413,7 +413,7 @@ async function pay(btn, plan) {
   // The hosted demo store demos the whole flow but sells nothing.
   if (state.capabilities.demo) {
     $('#notice').innerHTML =
-      '<div class="callout pending">This is Ripley\u2019s demo store \u2014 nothing is for sale. <a href="/api/invite">Invite Ripley</a> to open yours in minutes.</div>';
+      '<div class="callout pending">This is Dues\u2019s demo store \u2014 nothing is for sale. <a href="/api/invite">Invite Dues</a> to open yours in minutes.</div>';
     return;
   }
   btn.disabled = true;
@@ -497,7 +497,7 @@ function renderShop() {
   $('#shop-desc').textContent = desc;
   $('#shop-desc').hidden = !desc;
   // Trust chips: the live member count (only when the owner shows it) plus
-  // two platform facts that hold for every Ripley store.
+  // two platform facts that hold for every Dues store.
   const ICON_MEMBERS = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 20c.7-3.4 3.2-5.2 6.2-5.2s5.5 1.8 6.2 5.2"/><path d="M15.5 5.2a3.4 3.4 0 0 1 0 5.9M18.2 14.9c1.7.8 2.7 2.4 3 5.1"/></svg>';
   const ICON_LOCK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
   const ICON_BOLT = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg>';
@@ -597,7 +597,7 @@ async function main() {
     document.querySelector('.order-card').innerHTML = `
       <h1 class="order-title">Store Not Found</h1>
       <p class="order-sub">There is no store at this link${STORE_SLUG ? ` (/${STORE_SLUG})` : ''}.
-        Check the link your community shared — or start your own store with Ripley.</p>
+        Check the link your community shared — or start your own store with Dues.</p>
       <a class="btn-pill" style="display:inline-block;text-decoration:none;margin-top:8px" href="/">Go to ripleybot.com</a>`;
     return;
   }

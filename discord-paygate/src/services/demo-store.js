@@ -5,7 +5,7 @@
 // APIs refuse the slug outright.
 export const DEMO_SLUG = 'demo';
 
-export const DEMO_NAME = 'Ripley Membership';
+export const DEMO_NAME = 'Dues Membership';
 
 // The Midnight preset, same tokens the dashboard offers — the platform's
 // own black look.
@@ -41,9 +41,9 @@ export function demoPlansPayload({ platformName, brandFallback }) {
     platform: { name: platformName ?? brandFallback },
     store: {
       slug: DEMO_SLUG, status: 'live',
-      description: 'A demo of a Ripley store — nothing here is for sale.',
+      description: 'A demo of a Dues store — nothing here is for sale.',
       bannerUrl: null, theme: DEMO_THEME,
-      about: 'This is what buyers see when a seller shares their Ripley store link: every product, the store\u2019s own colors and type, and a checkout that pays straight into the seller\u2019s Stripe account.\nBuild yours in minutes \u2014 invite Ripley, paste a Stripe key, pick the roles to sell.',
+      about: 'This is what buyers see when a seller shares their Dues store link: every product, the store\u2019s own colors and type, and a checkout that pays straight into the seller\u2019s Stripe account.\nBuild yours in minutes \u2014 invite Dues, paste a Stripe key, pick the roles to sell.',
       links: { website: 'https://www.ripleybot.com' },
       memberCount: 134,
     },

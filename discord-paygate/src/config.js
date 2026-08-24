@@ -68,9 +68,9 @@ const cookieDomain = (() => {
 
 export const config = {
   root: ROOT,
-  // Ripley is the host checkout platform; the product being sold is the
+  // Dues is the host checkout platform; the product being sold is the
   // Discord server itself (DISCORD_GUILD_NAME, e.g. Tradeleaks).
-  platform: env('PLATFORM_NAME', 'Ripley'),
+  platform: env('PLATFORM_NAME', 'Dues'),
   brand: env('BRAND') || 'Tradeleaks',
   // Discord user id of the store owner: unlocks owner-only platform views.
   ownerDiscordId: env('OWNER_DISCORD_ID'),

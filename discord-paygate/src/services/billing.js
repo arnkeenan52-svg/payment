@@ -1,4 +1,4 @@
-// The owner's Ripley plan: platform billing, charged on RIPLEY's own Stripe
+// The owner's Dues plan: platform billing, charged on RIPLEY's own Stripe
 // account (config.stripe.secretKey) — completely separate from the money a
 // store makes, which lands on the store owner's account.
 //
@@ -115,8 +115,8 @@ export async function ensureTierPrice(tier, interval = 'month') {
       await stripeFetch('/v1/products', {
         method: 'POST',
         form: {
-          name: `Ripley ${tier.name}`,
-          description: `Ripley platform plan — ${tier.maxMembers === null ? 'unlimited' : `up to ${tier.maxMembers}`} paying members`,
+          name: `Dues ${tier.name}`,
+          description: `Dues platform plan — ${tier.maxMembers === null ? 'unlimited' : `up to ${tier.maxMembers}`} paying members`,
           metadata: { managed_by: 'ripley-paygate', tier: tier.id },
         },
       })
@@ -201,7 +201,7 @@ export async function activatePlatformPlan({ ownerDiscordId, tierId, subscriptio
 }
 
 // Whether this Stripe subscription id belongs to platform billing (an owner's
-// Ripley plan) rather than a buyer membership.
+// Dues plan) rather than a buyer membership.
 export async function isPlatformSubscription(subscriptionId) {
   return Boolean(await db.getPlatformBillingByRef(subscriptionId));
 }

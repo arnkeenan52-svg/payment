@@ -1195,7 +1195,7 @@ body.home .landing { overflow-x: clip; }
 a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-decoration: none; }
 .price-note { text-align: center; color: color-mix(in srgb, var(--ink) 45%, transparent); font-size: 13px; margin: 26px auto 0; max-width: 560px; }
 
-/* ── dashboard: Ripley plan card + limit banner + toast ─────────────────────── */
+/* ── dashboard: Dues plan card + limit banner + toast ─────────────────────── */
 .usage-row { display: flex; flex-direction: column; gap: 7px; margin: 4px 0 14px; }
 .usage-nums { font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .usage-bar { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 7%, transparent); overflow: hidden; max-width: 420px; }

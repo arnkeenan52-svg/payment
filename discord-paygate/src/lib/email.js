@@ -30,7 +30,7 @@ export async function receiptFrom() {
   if (explicit && !explicit.includes('resend.dev')) return explicit;
   const now = Date.now();
   if (senderCache.value && now - senderCache.at < 10 * 60_000) return senderCache.value;
-  let from = 'Ripley <onboarding@resend.dev>';
+  let from = 'Dues <onboarding@resend.dev>';
   try {
     const key = await resendApiKey();
     if (key) {
@@ -40,7 +40,7 @@ export async function receiptFrom() {
       });
       if (res.ok) {
         const verified = ((await res.json()).data ?? []).find((d) => d.status === 'verified');
-        if (verified) from = `Ripley <receipts@${verified.name}>`;
+        if (verified) from = `Dues <receipts@${verified.name}>`;
       }
     }
   } catch {
@@ -98,7 +98,7 @@ export function receiptHtml({ storeName, planName, amountUsd, lifetime, discordU
         </a>
       </div>
       <p style="margin:20px 0 0;font-size:11.5px;color:#9a9f98;line-height:1.6;">
-        Stripe processed your payment. Ripley sent this receipt for ${esc(storeName)}.
+        Stripe processed your payment. Dues sent this receipt for ${esc(storeName)}.
         Reply to this email if anything looks wrong.
       </p>
     </div>

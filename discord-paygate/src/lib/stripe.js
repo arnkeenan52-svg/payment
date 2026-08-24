@@ -71,7 +71,7 @@ export const STRIPE_KEY_RE = /^(sk|rk)_(live|test)_[A-Za-z0-9]/;
 export const isStripeKey = (key) => STRIPE_KEY_RE.test(String(key ?? '').trim());
 export const stripeKeyMode = (key) => (/^(sk|rk)_live_/.test(String(key ?? '').trim()) ? 'live' : 'test');
 
-// Exactly what Ripley calls with a store's key. A restricted key missing any
+// Exactly what Dues calls with a store's key. A restricted key missing any
 // of these fails later with an opaque Stripe error, so the UI lists them and
 // the onboarding check names the missing one.
 export const STRIPE_KEY_PERMISSIONS = [
@@ -152,7 +152,7 @@ export function createWebhookEndpoint(url, key = config.stripe.secretKey) {
         'customer.subscription.updated',
         'customer.subscription.deleted',
       ],
-      description: 'Ripley paygate — registered automatically by the setup doctor',
+      description: 'Dues paygate — registered automatically by the setup doctor',
       metadata: { managed_by: 'ripley-paygate' },
     },
   });

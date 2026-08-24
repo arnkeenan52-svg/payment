@@ -3,8 +3,8 @@ import { sessionUserId } from '../src/lib/session.js';
 import { capabilities } from '../src/config.js';
 import { TIERS, tierById, billingFor, memberUsage, createBillingCheckout, cancelBilling } from '../src/services/billing.js';
 
-// The signed-in owner's Ripley plan: read it, upgrade it (Stripe Checkout on
-// Ripley's own account), or cancel it. Buyer payments never touch this.
+// The signed-in owner's Dues plan: read it, upgrade it (Stripe Checkout on
+// Dues's own account), or cancel it. Buyer payments never touch this.
 export default guard(async function handler(req, res) {
   const uid = sessionUserId(req);
   if (!uid) {

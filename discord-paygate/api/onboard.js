@@ -92,7 +92,7 @@ export default guard(async function handler(req, res) {
         return sendJson(res, 409, { error: 'That server already has a store.' });
       }
       if (!(await getGuild(guildId))) {
-        return sendJson(res, 409, { error: 'bot_missing', detail: 'The Ripley bot is not in that server yet — invite it, then retry.' });
+        return sendJson(res, 409, { error: 'bot_missing', detail: 'The Dues bot is not in that server yet — invite it, then retry.' });
       }
       // The key must actually work before anything is stored.
       let account;
@@ -253,7 +253,7 @@ export default guard(async function handler(req, res) {
                 : r.managed
                   ? 'managed by an integration'
                   : r.position >= botTop.position
-                    ? `at or above the bot's top role — drag Ripley's role higher in Server Settings → Roles`
+                    ? `at or above the bot's top role — drag Dues's role higher in Server Settings → Roles`
                     : null,
           })),
       });
@@ -265,7 +265,7 @@ export default guard(async function handler(req, res) {
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const channels = await getGuildChannels(row.guild_id);
       if (!channels) {
-        return sendJson(res, 409, { error: 'Could not list channels — is the Ripley bot still in your server?' });
+        return sendJson(res, 409, { error: 'Could not list channels — is the Dues bot still in your server?' });
       }
       return sendJson(res, 200, { channels });
     }
@@ -290,7 +290,7 @@ export default guard(async function handler(req, res) {
       for (const rid of botMember?.roles ?? []) botTop = Math.max(botTop, byId.get(rid)?.position ?? 0);
       if (role.position >= botTop) {
         return sendJson(res, 400, {
-          error: `"${role.name}" sits at or above the bot's top role — drag Ripley's role above it in Server Settings → Roles, then retry.`,
+          error: `"${role.name}" sits at or above the bot's top role — drag Dues's role above it in Server Settings → Roles, then retry.`,
         });
       }
       await db.setStorePlanRoles(row.id, planKey, [role.id], [`@${role.name}`]);

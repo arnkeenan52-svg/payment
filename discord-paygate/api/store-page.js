@@ -38,8 +38,8 @@ export default guard(async (req, res) => {
     const demoPlan = productSeg ? matchPlan(demoPlans(), productSeg) : null;
     const title = demoPlan ? `${demoPlan.name} — ${DEMO_NAME}` : `${DEMO_NAME} — Demo Store`;
     const desc = demoPlan
-      ? `${demoPlan.description} $${demoPlan.priceUsd.toFixed(2)}${demoPlan.lifetime ? ' · lifetime' : '/month'} — a Ripley demo product.`
-      : 'Walk a live Ripley checkout — themed store page, products and discounts. Nothing here is for sale.';
+      ? `${demoPlan.description} $${demoPlan.priceUsd.toFixed(2)}${demoPlan.lifetime ? ' · lifetime' : '/month'} — a Dues demo product.`
+      : 'Walk a live Dues checkout — themed store page, products and discounts. Nothing here is for sale.';
     const image = `${config.publicBaseUrl}/shot-store.png`;
     head = `<title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />

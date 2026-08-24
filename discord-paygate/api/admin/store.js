@@ -146,7 +146,7 @@ export default guard(async function handler(req, res) {
       const channels = await getGuildChannels(store.guildId);
       const channel = channels?.find((c) => c.id === channelId);
       if (!channel) {
-        return sendJson(res, 409, { error: 'That channel is not in your server — is the Ripley bot still there?' });
+        return sendJson(res, 409, { error: 'That channel is not in your server — is the Dues bot still there?' });
       }
       const posted = await postChannelMessage(channelId, {
         embeds: [{
@@ -157,7 +157,7 @@ export default guard(async function handler(req, res) {
       });
       if (!posted) {
         return sendJson(res, 409, {
-          error: `The bot cannot post in #${channel.name}. Give the Ripley role View Channel and Send Messages there, then retry.`,
+          error: `The bot cannot post in #${channel.name}. Give the Dues role View Channel and Send Messages there, then retry.`,
         });
       }
       fields.notifyChannelId = channelId;

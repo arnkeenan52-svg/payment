@@ -4,26 +4,26 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Patreon fee calculator — what Patreon costs your Discord</title>
-  <meta name="description" content="Estimate what Patreon's fees (8–12% of earnings) cost your Discord community each month, compared with Ripley's flat 0%-fee plans." />
+  <meta name="description" content="Estimate what Patreon's fees (8–12% of earnings) cost your Discord community each month, compared with Dues's flat 0%-fee plans." />
   <link rel="canonical" href="https://www.ripleybot.com/tools/patreon-fee-calculator" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Patreon fee calculator — what Patreon costs your Discord" />
-  <meta property="og:description" content="Estimate what Patreon's fees (8–12% of earnings) cost your Discord community each month, compared with Ripley's flat 0%-fee plans." />
+  <meta property="og:description" content="Estimate what Patreon's fees (8–12% of earnings) cost your Discord community each month, compared with Dues's flat 0%-fee plans." />
   <meta property="og:image" content="https://www.ripleybot.com/og-card.png" />
   <meta property="og:url" content="https://www.ripleybot.com/tools/patreon-fee-calculator" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" href="/favicon.png?v=96" />
-  <link rel="stylesheet" href="/styles.css?v=96" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Ripley","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://www.ripleybot.com/tools"},{"@type":"ListItem","position":3,"name":"Patreon fee calculator","item":"https://www.ripleybot.com/tools/patreon-fee-calculator"}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much does Patreon take from my sales?","acceptedAnswer":{"@type":"Answer","text":"Patreon's publicly listed pricing is 8–12% of earnings. Check their site for current numbers."}},{"@type":"Question","name":"What does Ripley cost?","acceptedAnswer":{"@type":"Answer","text":"Free up to 10 paying members, then flat plans from $14.99/mo. Ripley takes 0% of your sales."}},{"@type":"Question","name":"Are Stripe fees included?","acceptedAnswer":{"@type":"Answer","text":"No — Stripe’s standard card-processing fees apply on every platform, so they cancel out of the comparison."}}]}</script>
-  <script src="/theme.js?v=96"></script>
+  <link rel="icon" type="image/png" href="/favicon.png?v=97" />
+  <link rel="stylesheet" href="/styles.css?v=97" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://www.ripleybot.com/tools"},{"@type":"ListItem","position":3,"name":"Patreon fee calculator","item":"https://www.ripleybot.com/tools/patreon-fee-calculator"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much does Patreon take from my sales?","acceptedAnswer":{"@type":"Answer","text":"Patreon's publicly listed pricing is 8–12% of earnings. Check their site for current numbers."}},{"@type":"Question","name":"What does Dues cost?","acceptedAnswer":{"@type":"Answer","text":"Free up to 10 paying members, then flat plans from $14.99/mo. Dues takes 0% of your sales."}},{"@type":"Question","name":"Are Stripe fees included?","acceptedAnswer":{"@type":"Answer","text":"No — Stripe’s standard card-processing fees apply on every platform, so they cancel out of the comparison."}}]}</script>
+  <script src="/theme.js?v=97"></script>
 </head>
 <body class="home seo-page">
 
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/#features">Features</a>
@@ -41,7 +41,7 @@
     <section class="xhero seo-hero">
       <div class="hero-inner">
         <h1>Patreon Fee Calculator</h1>
-        <p class="hero-sub">Patreon's publicly listed pricing is 8–12% of earnings. Move the sliders to see what that costs at your size — and what the same store costs on Ripley's flat plans.</p>
+        <p class="hero-sub">Patreon's publicly listed pricing is 8–12% of earnings. Move the sliders to see what that costs at your size — and what the same store costs on Dues's flat plans.</p>
       </div>
     </section>
     <section class="xsection">
@@ -60,14 +60,14 @@
               <div class="calc-result">
                 <span class="calc-result-label">Monthly sales volume</span>
                 <span class="calc-result-num" id="t-rev">$0</span>
-                <span class="calc-result-label" style="margin-top:12px">Estimated annual savings with Ripley</span>
+                <span class="calc-result-label" style="margin-top:12px">Estimated annual savings with Dues</span>
                 <span class="calc-result-num" id="t-save">$0</span>
               </div>
             </div>
             <div class="calc-bars">
               <span class="calc-bars-label">Monthly platform cost</span>
             <div class="calc-bar-row" id="t-row-ripley">
-              <div class="calc-bar-meta"><span class="calc-bar-name">Ripley</span><span class="calc-bar-amt" id="t-ripley">$0</span></div>
+              <div class="calc-bar-meta"><span class="calc-bar-name">Dues</span><span class="calc-bar-amt" id="t-ripley">$0</span></div>
               <div class="calc-bar mine"><span id="t-bar-ripley"></span></div>
               <span class="calc-bar-sub">Flat plan · 0% of sales</span>
             </div>
@@ -87,7 +87,7 @@
         <h2 class="section-title center">Frequently asked</h2>
         <div class="faq">
           <details class="panel faq-item"><summary>How much does Patreon take from my sales?</summary><p>Patreon's publicly listed pricing is 8–12% of earnings. Check their site for current numbers.</p></details>
-          <details class="panel faq-item"><summary>What does Ripley cost?</summary><p>Free up to 10 paying members, then flat plans from $14.99/mo. Ripley takes 0% of your sales.</p></details>
+          <details class="panel faq-item"><summary>What does Dues cost?</summary><p>Free up to 10 paying members, then flat plans from $14.99/mo. Dues takes 0% of your sales.</p></details>
           <details class="panel faq-item"><summary>Are Stripe fees included?</summary><p>No — Stripe’s standard card-processing fees apply on every platform, so they cancel out of the comparison.</p></details>
         </div>
       </div></section>
@@ -135,16 +135,16 @@
 
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
-      <span class="footer-copy">© Ripley</span>
+      <img class="powered-mark" src="/dues.png" alt="Dues" height="16" />
+      <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
       <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
       <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
-      <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
-      <a href="/vs/subscord">Ripley vs Subscord</a><a href="/vs/doorfee">Ripley vs DoorFee</a>
-      <a href="/vs/xoe">Ripley vs XOE</a><a href="/vs/patreon">Ripley vs Patreon</a>
+      <a href="/vs/whop">Dues vs Whop</a><a href="/vs/launchpass">Dues vs LaunchPass</a>
+      <a href="/vs/subscord">Dues vs Subscord</a><a href="/vs/doorfee">Dues vs DoorFee</a>
+      <a href="/vs/xoe">Dues vs XOE</a><a href="/vs/patreon">Dues vs Patreon</a>
       <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
       <a href="/alternatives/whop-alternatives">Whop alternatives</a></nav>
     <nav class="footer-col"><span class="footer-head">Guides</span>

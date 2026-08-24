@@ -83,7 +83,7 @@ export default guard(async function handler(req, res) {
       return;
     }
   }
-  // The owner's Ripley plan caps how many members their stores can hold.
+  // The owner's Dues plan caps how many members their stores can hold.
   // Existing members are never blocked — only brand-new signups wait until
   // the owner upgrades.
   if (await memberLimitBlocks(store, uid)) {

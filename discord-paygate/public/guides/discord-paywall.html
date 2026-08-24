@@ -13,18 +13,18 @@
   <meta property="og:url" content="https://www.ripleybot.com/guides/discord-paywall" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" href="/favicon.png?v=96" />
-  <link rel="stylesheet" href="/styles.css?v=96" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Ripley","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.ripleybot.com/guides"},{"@type":"ListItem","position":3,"name":"How to Paywall a Discord Server","item":"https://www.ripleybot.com/guides/discord-paywall"}]}</script>
+  <link rel="icon" type="image/png" href="/favicon.png?v=97" />
+  <link rel="stylesheet" href="/styles.css?v=97" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.ripleybot.com/guides"},{"@type":"ListItem","position":3,"name":"How to Paywall a Discord Server","item":"https://www.ripleybot.com/guides/discord-paywall"}]}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can you put a paywall on a Discord server?","acceptedAnswer":{"@type":"Answer","text":"Yes. You gate channels behind a role and use a checkout that grants the role on payment and removes it when payment stops. Discord itself supports this through roles; the checkout and automation come from a payment bot."}},{"@type":"Question","name":"Is it allowed to paywall a Discord?","acceptedAnswer":{"@type":"Answer","text":"Selling access to your own community is a normal, widespread use of Discord. Follow Discord’s Terms for what you sell and your local rules, and you are on solid ground."}},{"@type":"Question","name":"What is the cheapest way to paywall a Discord?","acceptedAnswer":{"@type":"Answer","text":"At low volume, a percentage tool with no monthly fee can be cheapest; as you grow, a flat-fee plan that takes 0% of sales wins because the cost stops scaling with your revenue. Compare at your numbers before committing."}},{"@type":"Question","name":"How do members get past the paywall after paying?","acceptedAnswer":{"@type":"Answer","text":"The role is delivered automatically the moment payment clears — usually within a couple of seconds — and the locked channels open for them. No manual approval step."}}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How to Paywall a Discord Server","description":"Add a paywall to a Discord server: structure a free lobby and locked channels, gate them behind a paid role, and connect a checkout that grants and removes access automatically.","author":{"@type":"Organization","name":"Ripley"},"publisher":{"@type":"Organization","name":"Ripley","url":"https://www.ripleybot.com"},"mainEntityOfPage":"https://www.ripleybot.com/guides/discord-paywall"}</script>
-  <script src="/theme.js?v=96"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How to Paywall a Discord Server","description":"Add a paywall to a Discord server: structure a free lobby and locked channels, gate them behind a paid role, and connect a checkout that grants and removes access automatically.","author":{"@type":"Organization","name":"Dues"},"publisher":{"@type":"Organization","name":"Dues","url":"https://www.ripleybot.com"},"mainEntityOfPage":"https://www.ripleybot.com/guides/discord-paywall"}</script>
+  <script src="/theme.js?v=97"></script>
 </head>
 <body class="home seo-page">
 
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/#features">Features</a>
@@ -52,7 +52,7 @@
         <h2>The paywall is a role</h2>
         <p>Create one role per paid tier and set your premium channels to require it. That role is your paywall: grant it and the channels open, remove it and they close. Everything below automates granting and removing it.</p>
         <h2>Connect the checkout</h2>
-        <p>Invite a payment bot, connect your Stripe account, map the product to the role. On <a href="/">Ripley</a> the whole setup is invite → paste Stripe key → create product → pick role, and your paywall goes live at ripleybot.com/yourname. Buyers pay on Stripe and the role lands in seconds; those not yet in the server are pulled in with it attached.</p>
+        <p>Invite a payment bot, connect your Stripe account, map the product to the role. On <a href="/">Dues</a> the whole setup is invite → paste Stripe key → create product → pick role, and your paywall goes live at ripleybot.com/yourname. Buyers pay on Stripe and the role lands in seconds; those not yet in the server are pulled in with it attached.</p>
         <h2>Make the paywall self-healing</h2>
         <p>The point of automating it is that lapses handle themselves: when a subscription ends, the role comes off and the channels re-lock without you touching anything, with access re-checked hourly. A manual paywall leaks the moment your server grows. One Discord gotcha: the bot's role must sit above the roles it manages in Server Settings → Roles.</p>
         <h2>What a paywall costs to run</h2>
@@ -81,16 +81,16 @@
 
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
-      <span class="footer-copy">© Ripley</span>
+      <img class="powered-mark" src="/dues.png" alt="Dues" height="16" />
+      <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
       <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
       <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
-      <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
-      <a href="/vs/subscord">Ripley vs Subscord</a><a href="/vs/doorfee">Ripley vs DoorFee</a>
-      <a href="/vs/xoe">Ripley vs XOE</a><a href="/vs/patreon">Ripley vs Patreon</a>
+      <a href="/vs/whop">Dues vs Whop</a><a href="/vs/launchpass">Dues vs LaunchPass</a>
+      <a href="/vs/subscord">Dues vs Subscord</a><a href="/vs/doorfee">Dues vs DoorFee</a>
+      <a href="/vs/xoe">Dues vs XOE</a><a href="/vs/patreon">Dues vs Patreon</a>
       <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
       <a href="/alternatives/whop-alternatives">Whop alternatives</a></nav>
     <nav class="footer-col"><span class="footer-head">Guides</span>

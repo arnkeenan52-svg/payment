@@ -13,18 +13,18 @@
   <meta property="og:url" content="https://www.ripleybot.com/guides/discord-membership-bot" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" href="/favicon.png?v=96" />
-  <link rel="stylesheet" href="/styles.css?v=96" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Ripley","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.ripleybot.com/guides"},{"@type":"ListItem","position":3,"name":"What a Discord Membership Bot Actually Does","item":"https://www.ripleybot.com/guides/discord-membership-bot"}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is a Discord membership bot?","acceptedAnswer":{"@type":"Answer","text":"A bot that sells access to your server as a paid membership: it runs checkout, grants the member role automatically on payment, handles renewals, and removes the role when a membership lapses or is cancelled."}},{"@type":"Question","name":"Can a membership bot handle tiers?","acceptedAnswer":{"@type":"Answer","text":"Yes. Each tier is a product mapped to its own role, so you can sell, say, a base membership and an inner-circle tier at different prices, each unlocking different channels."}},{"@type":"Question","name":"Does a membership bot take a cut of my revenue?","acceptedAnswer":{"@type":"Answer","text":"It depends on the tool. Percentage bots take a share of every membership; flat-fee bots like Ripley charge a fixed monthly plan and take 0% of sales, with Stripe’s standard processing applying either way."}},{"@type":"Question","name":"What happens when a member cancels?","acceptedAnswer":{"@type":"Answer","text":"A good membership bot removes the role automatically at the end of the paid period and re-checks access on a schedule, so your member list and your paying list never drift apart."}}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"What a Discord Membership Bot Actually Does","description":"What a Discord membership bot does, how paid memberships and role delivery work, and the checklist for choosing one without percentage fees or held funds.","author":{"@type":"Organization","name":"Ripley"},"publisher":{"@type":"Organization","name":"Ripley","url":"https://www.ripleybot.com"},"mainEntityOfPage":"https://www.ripleybot.com/guides/discord-membership-bot"}</script>
-  <script src="/theme.js?v=96"></script>
+  <link rel="icon" type="image/png" href="/favicon.png?v=97" />
+  <link rel="stylesheet" href="/styles.css?v=97" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://www.ripleybot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.ripleybot.com/guides"},{"@type":"ListItem","position":3,"name":"What a Discord Membership Bot Actually Does","item":"https://www.ripleybot.com/guides/discord-membership-bot"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is a Discord membership bot?","acceptedAnswer":{"@type":"Answer","text":"A bot that sells access to your server as a paid membership: it runs checkout, grants the member role automatically on payment, handles renewals, and removes the role when a membership lapses or is cancelled."}},{"@type":"Question","name":"Can a membership bot handle tiers?","acceptedAnswer":{"@type":"Answer","text":"Yes. Each tier is a product mapped to its own role, so you can sell, say, a base membership and an inner-circle tier at different prices, each unlocking different channels."}},{"@type":"Question","name":"Does a membership bot take a cut of my revenue?","acceptedAnswer":{"@type":"Answer","text":"It depends on the tool. Percentage bots take a share of every membership; flat-fee bots like Dues charge a fixed monthly plan and take 0% of sales, with Stripe’s standard processing applying either way."}},{"@type":"Question","name":"What happens when a member cancels?","acceptedAnswer":{"@type":"Answer","text":"A good membership bot removes the role automatically at the end of the paid period and re-checks access on a schedule, so your member list and your paying list never drift apart."}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"What a Discord Membership Bot Actually Does","description":"What a Discord membership bot does, how paid memberships and role delivery work, and the checklist for choosing one without percentage fees or held funds.","author":{"@type":"Organization","name":"Dues"},"publisher":{"@type":"Organization","name":"Dues","url":"https://www.ripleybot.com"},"mainEntityOfPage":"https://www.ripleybot.com/guides/discord-membership-bot"}</script>
+  <script src="/theme.js?v=97"></script>
 </head>
 <body class="home seo-page">
 
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/#features">Features</a>
@@ -52,11 +52,11 @@
         <h2>The four jobs</h2>
         <p>End to end: a store page where members join, verified payment processing (checkout by Stripe or similar), instant role delivery when payment clears, and automatic role removal on cancellation, failed renewal, or refund. If any of the four is manual, the bot is not really doing the job.</p>
         <h2>Tiers and lifetime memberships</h2>
-        <p>A membership is a role with a price. Two or three roles at different prices give you tiers; a one-time lifetime seat is the same mechanism without a renewal. On Ripley each product maps to its own role, so tiers and lifetime seats are just more products — no extra setup.</p>
+        <p>A membership is a role with a price. Two or three roles at different prices give you tiers; a one-time lifetime seat is the same mechanism without a renewal. On Dues each product maps to its own role, so tiers and lifetime seats are just more products — no extra setup.</p>
         <h2>The checklist for choosing one</h2>
         <ul><li><strong>Fees:</strong> 0% flat-plan pricing vs a percentage of every membership — <a href="/tools/discord-fee-calculator">run your numbers</a>.</li><li><strong>Payouts:</strong> straight to your own Stripe, or held and paid out on the platform's schedule.</li><li><strong>Lifecycle:</strong> automatic grant, renew, and revoke, with periodic re-checks.</li><li><strong>Receipts and dashboard:</strong> emailed confirmations, revenue, members, transactions.</li><li><strong>Lock-in:</strong> your Stripe account and member list should be yours to leave with.</li></ul><p>See how the tools stack up on the <a href="/alternatives/best-discord-monetization-platforms">platform shortlist</a>.</p>
-        <h2>Where Ripley sits</h2>
-        <p>Ripley is a membership bot with a flat plan: free up to 10 paying members, then from $14.99/mo, 0% of sales, checkout by Stripe into your own account, roles delivered in seconds and removed automatically on lapse. Compare it directly with <a href="/vs/subscord">Subscord</a>, <a href="/vs/launchpass">LaunchPass</a> or <a href="/vs">the whole field</a>.</p>
+        <h2>Where Dues sits</h2>
+        <p>Dues is a membership bot with a flat plan: free up to 10 paying members, then from $14.99/mo, 0% of sales, checkout by Stripe into your own account, roles delivered in seconds and removed automatically on lapse. Compare it directly with <a href="/vs/subscord">Subscord</a>, <a href="/vs/launchpass">LaunchPass</a> or <a href="/vs">the whole field</a>.</p>
       </div>
     </section>
     <section class="xsection">
@@ -65,7 +65,7 @@
         <div class="faq">
           <details class="panel faq-item"><summary>What is a Discord membership bot?</summary><p>A bot that sells access to your server as a paid membership: it runs checkout, grants the member role automatically on payment, handles renewals, and removes the role when a membership lapses or is cancelled.</p></details>
           <details class="panel faq-item"><summary>Can a membership bot handle tiers?</summary><p>Yes. Each tier is a product mapped to its own role, so you can sell, say, a base membership and an inner-circle tier at different prices, each unlocking different channels.</p></details>
-          <details class="panel faq-item"><summary>Does a membership bot take a cut of my revenue?</summary><p>It depends on the tool. Percentage bots take a share of every membership; flat-fee bots like Ripley charge a fixed monthly plan and take 0% of sales, with Stripe’s standard processing applying either way.</p></details>
+          <details class="panel faq-item"><summary>Does a membership bot take a cut of my revenue?</summary><p>It depends on the tool. Percentage bots take a share of every membership; flat-fee bots like Dues charge a fixed monthly plan and take 0% of sales, with Stripe’s standard processing applying either way.</p></details>
           <details class="panel faq-item"><summary>What happens when a member cancels?</summary><p>A good membership bot removes the role automatically at the end of the paid period and re-checks access on a schedule, so your member list and your paying list never drift apart.</p></details>
         </div>
       </div></section>
@@ -81,16 +81,16 @@
 
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
-      <span class="footer-copy">© Ripley</span>
+      <img class="powered-mark" src="/dues.png" alt="Dues" height="16" />
+      <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
       <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
       <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
-      <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
-      <a href="/vs/subscord">Ripley vs Subscord</a><a href="/vs/doorfee">Ripley vs DoorFee</a>
-      <a href="/vs/xoe">Ripley vs XOE</a><a href="/vs/patreon">Ripley vs Patreon</a>
+      <a href="/vs/whop">Dues vs Whop</a><a href="/vs/launchpass">Dues vs LaunchPass</a>
+      <a href="/vs/subscord">Dues vs Subscord</a><a href="/vs/doorfee">Dues vs DoorFee</a>
+      <a href="/vs/xoe">Dues vs XOE</a><a href="/vs/patreon">Dues vs Patreon</a>
       <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
       <a href="/alternatives/whop-alternatives">Whop alternatives</a></nav>
     <nav class="footer-col"><span class="footer-head">Guides</span>

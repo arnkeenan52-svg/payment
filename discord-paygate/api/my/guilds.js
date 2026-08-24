@@ -9,7 +9,7 @@ const ADMINISTRATOR = 1n << 3n;
 const MANAGE_GUILD = 1n << 5n;
 
 // The dashboard's server picker: every guild the signed-in user can set up
-// (owner, Administrator or Manage Server), with whether the Ripley bot is
+// (owner, Administrator or Manage Server), with whether the Dues bot is
 // already inside and whether a store already exists for it.
 export default guard(async function handler(req, res) {
   const uid = sessionUserId(req);
@@ -19,7 +19,7 @@ export default guard(async function handler(req, res) {
   }
   const user = await getUser(uid);
   if (!user?.access_token) {
-    sendJson(res, 428, { error: 'reauth', detail: 'Sign in again so Ripley can list your servers.' });
+    sendJson(res, 428, { error: 'reauth', detail: 'Sign in again so Dues can list your servers.' });
     return;
   }
   let guilds;
@@ -28,7 +28,7 @@ export default guard(async function handler(req, res) {
   } catch {
     // Tokens from before the `guilds` scope (or expired ones) can't list
     // servers — a fresh sign-in fixes both.
-    sendJson(res, 428, { error: 'reauth', detail: 'Sign in again so Ripley can list your servers.' });
+    sendJson(res, 428, { error: 'reauth', detail: 'Sign in again so Dues can list your servers.' });
     return;
   }
 

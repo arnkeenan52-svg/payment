@@ -1,4 +1,4 @@
-// Ripley owner dashboard — Subscord-style app: left sidebar (Overview /
+// Dues owner dashboard — Subscord-style app: left sidebar (Overview /
 // Products / Members / Transactions / Discounts / Store / Settings), dense
 // tables, one accent for the primary action of each screen. Views are
 // hash-routed (#/ picker, #/setup/<guildId> wizard, #/store/<slug>/<section>).
@@ -32,7 +32,7 @@ const keyScopesHtml = () => `
   <details class="key-scopes">
     <summary>Permissions a restricted key needs</summary>
     <ul>${KEY_SCOPES.map(([name, level]) => `<li><span>${name}</span><em>${level}</em></li>`).join('')}</ul>
-    <p>Everything else can stay <em>None</em>. Ripley never reads your balance, payouts or customer list.</p>
+    <p>Everything else can stay <em>None</em>. Dues never reads your balance, payouts or customer list.</p>
   </details>`;
 
 const I = {
@@ -259,7 +259,7 @@ async function viewAdmin() {
     <div class="admin-wrap">
       <div class="admin-head">
         <div><h2 class="sec-title">Platform</h2>
-        <p class="card-sub">Everything across Ripley — only you can see this page.</p></div>
+        <p class="card-sub">Everything across Dues — only you can see this page.</p></div>
         <a class="btn-secondary" href="#/">${I.back} My servers</a>
       </div>
 
@@ -269,7 +269,7 @@ async function viewAdmin() {
         <div class="ck-stat"><span class="ck-num ck-good">${t.activeMembers}</span><span class="ck-lab">Active members</span></div>
         <div class="ck-stat"><span class="ck-num ck-good">${usd(t.allTimeUsd)}</span><span class="ck-lab">All-time volume</span></div>
         <div class="ck-stat"><span class="ck-num">${t.checkoutsStarted}<span class="ck-sub"> ${conv} paid</span></span><span class="ck-lab">Checkouts started</span></div>
-        <div class="ck-stat"><span class="ck-num ck-good">${usd(t.mrrUsd)}<span class="ck-sub">${t.payingOwners ? ` ${t.payingOwners} paying` : ''}</span></span><span class="ck-lab">Ripley MRR</span></div>
+        <div class="ck-stat"><span class="ck-num ck-good">${usd(t.mrrUsd)}<span class="ck-sub">${t.payingOwners ? ` ${t.payingOwners} paying` : ''}</span></span><span class="ck-lab">Dues MRR</span></div>
       </div>
 
       <section class="panel table-panel">
@@ -330,8 +330,8 @@ async function viewPicker() {
         <span>Logged in as <strong>${esc(me.username ?? me.discordId)}</strong></span>
         <button class="btn-ghost" id="logout2">Logout</button>
       </div>
-      <div class="picker-welcome"><h1>Welcome to Ripley</h1><p>Let’s get your Discord server monetized in a few steps.</p></div>
-      ${me.isOwner ? `<a class="admin-link panel" href="#/admin">${I.gear}<span><strong>Platform admin</strong><em>Users, stores and totals across all of Ripley</em></span>${I.arrow}</a>` : ''}
+      <div class="picker-welcome"><h1>Welcome to Dues</h1><p>Let’s get your Discord server monetized in a few steps.</p></div>
+      ${me.isOwner ? `<a class="admin-link panel" href="#/admin">${I.gear}<span><strong>Platform admin</strong><em>Users, stores and totals across all of Dues</em></span>${I.arrow}</a>` : ''}
       <p class="picker-label">Your Servers</p>
       <div class="g-list" id="g-list"><div class="sk-row panel" aria-hidden="true"></div><div class="sk-row panel" aria-hidden="true"></div></div>
     </section></div>`;
@@ -340,7 +340,7 @@ async function viewPicker() {
   const list = $('#g-list');
   if (!list) return;
   if (status === 'reauth') {
-    list.innerHTML = `<p class="note-help">One more sign-in needed — a new permission lets Ripley list your servers.</p>
+    list.innerHTML = `<p class="note-help">One more sign-in needed — a new permission lets Dues list your servers.</p>
       <button class="btn-pill" id="reauth">Sign in again</button>`;
     $('#reauth').onclick = () => (window.location.href = '/auth/login');
     return;
@@ -418,7 +418,7 @@ async function viewSetup(guildId) {
 function renderSetupStep(g, step) {
   if (step === 1) {
     wizShell(g, 1, `
-      <h2>${I.bot} Invite the Ripley bot</h2>
+      <h2>${I.bot} Invite the Dues bot</h2>
       <p class="note-help">The bot delivers roles to buyers. Invite it to <strong>${esc(g.name)}</strong>, then hit Continue — this page also advances by itself the moment the bot joins.</p>
       <div class="wiz-actions">
         <a class="btn-secondary" id="invite-link" href="${esc(state.botInvite)}&guild_id=${esc(g.id)}" target="_blank" rel="noopener">Invite the bot ${I.external}</a>
@@ -463,7 +463,7 @@ function renderSetupStep(g, step) {
   if (step === 2) {
     wizShell(g, 2, `
       <h2>Connect Stripe</h2>
-      <p class="note-help">Payments go straight to <strong>your own Stripe account</strong> — Ripley never holds your money. Find the key in Stripe → Developers → API keys.</p>
+      <p class="note-help">Payments go straight to <strong>your own Stripe account</strong> — Dues never holds your money. Find the key in Stripe → Developers → API keys.</p>
       <label class="field">
         <span class="field-label">Store name <span aria-hidden="true">*</span></span>
         <input id="f-name" type="text" maxlength="60" value="${esc(g.name)}" autocomplete="organization" />
@@ -604,7 +604,7 @@ function renderSetupStep(g, step) {
       $('#role-hint').textContent = err.message;
       return;
     }
-    $('#role-hint').innerHTML = `Greyed roles sit at or above the bot’s top role <strong>${esc(data.botTop.name)}</strong> — drag Ripley’s role higher in Server Settings → Roles to unlock them.`;
+    $('#role-hint').innerHTML = `Greyed roles sit at or above the bot’s top role <strong>${esc(data.botTop.name)}</strong> — drag Dues’s role higher in Server Settings → Roles to unlock them.`;
     const list = $('#role-list');
     list.innerHTML = '';
     for (const role of data.roles) {
@@ -1229,7 +1229,7 @@ async function renderChecklist(store, slug) {
       { ok: true, label: 'Payment method connected — Stripe' },
       { ok: products.length > 0, label: 'First product created', href: `#/store/${slug}/products` },
       { ok: store.status === 'live' && withRoles.length > 0, label: 'Store published with a role to deliver', href: `#/store/${slug}/products` },
-      { ok: rolesOk, label: 'Bot role sits above the roles it delivers', href: null, hint: 'Drag the Ripley role higher in Server Settings → Roles.' },
+      { ok: rolesOk, label: 'Bot role sits above the roles it delivers', href: null, hint: 'Drag the Dues role higher in Server Settings → Roles.' },
     ];
     if (checks.every((c) => c.ok)) return;
     slot.innerHTML = `<section class="panel checklist"><div class="card-head"><div><h3>Finish setting up</h3><p class="card-sub">A couple of steps left before everything runs on its own.</p></div></div>
@@ -1716,7 +1716,7 @@ function sectionSettings(store, isPlatformOwner) {
     <div class="settings-stack">
     ${setCard({
       id: 'billing-panel',
-      title: 'Ripley plan',
+      title: 'Dues plan',
       body: `<div id="billing-body"><p class="note-help">Loading your plan…</p></div>`,
     })}
     ${
@@ -1737,11 +1737,11 @@ function sectionSettings(store, isPlatformOwner) {
       !store.isDefault
         ? setCard({
             title: 'Sale notifications',
-            sub: 'Ripley posts every order to a channel in your server the moment payment clears.',
+            sub: 'Dues posts every order to a channel in your server the moment payment clears.',
             body: `
               <label class="field"><span class="field-label">Channel</span>
                 <select id="nc-channel"><option value="">Loading channels…</option></select>
-                <span class="field-help">Pick a channel the Ripley bot can post in, or Off to disable.</span></label>
+                <span class="field-help">Pick a channel the Dues bot can post in, or Off to disable.</span></label>
               <p class="field-err" id="err-nc" role="alert"></p>`,
             foot: `<button class="btn-secondary" id="nc-save">Save</button>`,
           })
@@ -1749,7 +1749,7 @@ function sectionSettings(store, isPlatformOwner) {
     }
     ${setCard({
       title: 'Receipt emails',
-      sub: 'Ripley emails every buyer a membership confirmation after checkout. Nothing to configure.',
+      sub: 'Dues emails every buyer a membership confirmation after checkout. Nothing to configure.',
     })}
     ${
       !store.isDefault
@@ -2188,7 +2188,7 @@ function wireProducts(store, slug, products) {
       } catch (err) {
         rolesLoaded = null;
         sel.innerHTML = `<option value="">Couldn’t load roles</option>`;
-        help.textContent = `${err.message} — invite the Ripley bot to your server, then reopen this form. You can still save the product and attach its role later.`;
+        help.textContent = `${err.message} — invite the Dues bot to your server, then reopen this form. You can still save the product and attach its role later.`;
         return;
       }
     }
@@ -2528,7 +2528,7 @@ function wireAppearance(store, slug) {
     }
   };
   $('#th-reset').onclick = async () => {
-    if (!confirm('Reset the store to the default Ripley look?')) return;
+    if (!confirm('Reset the store to the default Dues look?')) return;
     try {
       await api('/api/admin/store', { store: slug, theme: null });
       state.data = null;
@@ -2709,7 +2709,7 @@ function wireReceiptSettings(store, slug) {
   };
 }
 
-// The Ripley-plan card on Settings: usage meter + tier grid, wired to
+// The Dues-plan card on Settings: usage meter + tier grid, wired to
 // /api/billing (upgrade → Stripe Checkout, cancel → back to Free).
 async function renderBillingPanel() {
   const el = $('#billing-body');
@@ -2784,7 +2784,7 @@ async function renderBillingPanel() {
   const cancelBtn = $('#cancel-plan');
   if (cancelBtn)
     cancelBtn.onclick = async () => {
-      if (!confirm('Cancel your Ripley plan?\n\nYour stores drop back to the Free limit (10 members). Existing members keep their roles.')) return;
+      if (!confirm('Cancel your Dues plan?\n\nYour stores drop back to the Free limit (10 members). Existing members keep their roles.')) return;
       cancelBtn.disabled = true;
       cancelBtn.textContent = 'Canceling…';
       await api('/api/billing', { action: 'cancel' }).catch(() => {});
@@ -2814,7 +2814,7 @@ window.addEventListener('hashchange', () => route().catch(() => {}));
     const t = document.createElement('div');
     t.className = 'toast-ok';
     t.setAttribute('role', 'status');
-    t.textContent = 'Payment received — your Ripley plan is being activated.';
+    t.textContent = 'Payment received — your Dues plan is being activated.';
     document.body.append(t);
     setTimeout(() => t.remove(), 6000);
   }

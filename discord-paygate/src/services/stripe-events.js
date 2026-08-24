@@ -12,7 +12,7 @@ import { activatePlatformPlan, applyPlatformSubscriptionEvent, isPlatformSubscri
 // this delivery with that store's OWN signing secret, so the event provably
 // belongs to routeStore — event metadata (which the paying Stripe account
 // fully controls) must never reassign it to another tenant. Metadata and the
-// stored subscription row are trusted only on the platform endpoint (Ripley's
+// stored subscription row are trusted only on the platform endpoint (Dues's
 // own account), where routeStore is null.
 async function resolveStore(routeStore, metadataStoreId, row = null) {
   if (routeStore) return routeStore;
@@ -28,8 +28,8 @@ export async function processStripeEvent(event, routeStore = null) {
   const obj = event.data?.object ?? {};
   switch (event.type) {
     case 'checkout.session.completed': {
-      // A store owner buying a Ripley plan — platform billing, not a buyer
-      // membership. This only ever happens on Ripley's own account (the
+      // A store owner buying a Dues plan — platform billing, not a buyer
+      // membership. This only ever happens on Dues's own account (the
       // platform endpoint, routeStore null). SECURITY: ignore a platform_plan
       // marker on a per-store endpoint — a tenant must not activate a platform
       // tier by stamping metadata on an event from their own Stripe account.

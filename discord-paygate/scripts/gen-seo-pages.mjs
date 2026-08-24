@@ -5,7 +5,7 @@
 // the output.
 //
 // Content rules: every competitor number is their PUBLICLY LISTED pricing,
-// always asterisked to "check their site"; Ripley claims only what the
+// always asterisked to "check their site"; Dues claims only what the
 // product actually does. No fabricated testimonials, counts or reviews.
 
 import fs from 'node:fs';
@@ -15,9 +15,9 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '96'; // keep in step with the ?v= asset version on index.html
+const V = '97'; // keep in step with the ?v= asset version on index.html
 
-// Ripley plan facts (src/services/billing.js TIERS — keep in sync).
+// Dues plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
   { name: 'Free', priceUsd: 0, maxMembers: 10 },
   { name: 'Starter', priceUsd: 14.99, maxMembers: 50 },
@@ -83,7 +83,7 @@ const COMPETITORS = {
     feeLine: 'plan-dependent pricing*',
     cost: null, // no calculator — their pricing is not a single stable formula
     blurb:
-      'Subscord is a Discord subscription bot in the same category as Ripley: paid plans gate roles, checkout runs on Stripe. Its pricing and fees are plan-dependent — check subscord.com for current numbers.',
+      'Subscord is a Discord subscription bot in the same category as Dues: paid plans gate roles, checkout runs on Stripe. Its pricing and fees are plan-dependent — check subscord.com for current numbers.',
     rows: { fee: 'Plan-dependent*', monthly: 'Plan-dependent*', money: 'Via their Stripe integration*', store: 'Hosted checkout page' },
   },
   gumroad: {
@@ -129,7 +129,7 @@ const COMPETITORS = {
     feeLine: 'card sales at 0%, a cut on crypto, optional paid tier*',
     cost: null,
     blurb:
-      'XOE is a Discord payment and security bot that leans on crypto: its listed pricing takes a percentage on crypto payments, keeps card sales at 0%, and offers an optional paid tier. Ripley is the card-native, flat-plan shape of the same job.',
+      'XOE is a Discord payment and security bot that leans on crypto: its listed pricing takes a percentage on crypto payments, keeps card sales at 0%, and offers an optional paid tier. Dues is the card-native, flat-plan shape of the same job.',
     rows: { fee: '0% on cards, a cut on crypto*', monthly: 'Free, optional paid tier*', money: 'Cards to Stripe / crypto to a wallet*', store: 'Hosted checkout page' },
   },
 };
@@ -140,15 +140,15 @@ const USE_CASES = {
     h1: 'Sell Access to Your Trading Discord',
     desc: 'Charge for your trading signals, analysis channels and mentorship with 0% platform fees. Payments go straight to your own Stripe account.',
     intro:
-      'Signal groups, futures rooms, options flow, crypto research: if your calls are worth following, they are worth paying for. Ripley puts a checkout in front of your premium channels and delivers the member role the second payment clears.',
+      'Signal groups, futures rooms, options flow, crypto research: if your calls are worth following, they are worth paying for. Dues puts a checkout in front of your premium channels and delivers the member role the second payment clears.',
     points: [
       ['Premium role, instantly', 'Buyers get the role that unlocks your signals channels within seconds of paying.'],
       ['Monthly or lifetime', 'Sell a monthly membership, a lifetime seat, or both at different prices.'],
       ['Access that heals itself', 'If a subscription lapses, the role comes off automatically — no manual pruning.'],
     ],
     faq: [
-      ['Do I need my own Stripe account?', 'Yes — that is the point. Every payment lands directly in your own Stripe account. Ripley never holds your money.'],
-      ['What happens when a member cancels?', 'When the subscription ends, Ripley removes the paid role automatically. Members in good standing are re-checked hourly.'],
+      ['Do I need my own Stripe account?', 'Yes — that is the point. Every payment lands directly in your own Stripe account. Dues never holds your money.'],
+      ['What happens when a member cancels?', 'When the subscription ends, Dues removes the paid role automatically. Members in good standing are re-checked hourly.'],
       ['Can I charge different prices for different channels?', 'Yes. Each product maps to its own Discord role, so you can sell tiered access at different prices.'],
     ],
   },
@@ -157,14 +157,14 @@ const USE_CASES = {
     h1: 'Sell Memberships to Your Sports Picks Discord',
     desc: 'Monetize your sports handicapping community with 0% platform fees, instant role delivery and payments straight to your own Stripe account.',
     intro:
-      'Cappers live and die by their record. Platform fees should not decide your revenue. Ripley gates your picks channels behind a clean checkout, keeps 0% of your sales, and removes access when a subscription lapses.',
+      'Cappers live and die by their record. Platform fees should not decide your revenue. Dues gates your picks channels behind a clean checkout, keeps 0% of your sales, and removes access when a subscription lapses.',
     points: [
       ['Gate your picks channels', 'Free lobby for the record, paid role for the plays. Buyers unlock instantly.'],
       ['Weekly-equivalent pricing', 'Sell monthly memberships at any price point, or lifetime seats for your core group.'],
       ['Discount codes', 'Run promos with percentage or fixed-amount codes, capped and expiring however you like.'],
     ],
     faq: [
-      ['Does Ripley take a cut of sales?', 'No. Ripley charges a flat monthly plan and takes 0% of your sales. Stripe’s standard card fees still apply, as they do everywhere.'],
+      ['Does Dues take a cut of sales?', 'No. Dues charges a flat monthly plan and takes 0% of your sales. Stripe’s standard card fees still apply, as they do everywhere.'],
       ['How fast do buyers get access?', 'The role is delivered the moment Stripe confirms payment — typically within a couple of seconds.'],
       ['Can I remove someone manually?', 'Yes — revoke from the dashboard and the role comes off immediately.'],
     ],
@@ -174,7 +174,7 @@ const USE_CASES = {
     h1: 'Sell Your Coaching Community on Discord',
     desc: 'Turn your fitness coaching Discord into a paid membership with 0% platform fees and automatic role delivery.',
     intro:
-      'Programming channels, check-in threads, form review, accountability groups: coaching happens in Discord already. Ripley adds the paywall. Members pay on a hosted checkout and get their client role in seconds.',
+      'Programming channels, check-in threads, form review, accountability groups: coaching happens in Discord already. Dues adds the paywall. Members pay on a hosted checkout and get their client role in seconds.',
     points: [
       ['Client-only channels', 'Map each membership to a role that unlocks your coaching channels.'],
       ['Subscriptions that renew', 'Monthly billing through Stripe, cancellations handled automatically.'],
@@ -191,9 +191,9 @@ const USE_CASES = {
     h1: 'Sell Access to Your Cook Group',
     desc: 'Monetize your reselling Discord — monitors, guides and restock alerts — with 0% platform fees and instant role delivery.',
     intro:
-      'Monitors, sitelists, restock pings and flip guides earn while they are fast, so your checkout should be fast too. Ripley delivers the member role seconds after payment and takes 0% of your sales.',
+      'Monitors, sitelists, restock pings and flip guides earn while they are fast, so your checkout should be fast too. Dues delivers the member role seconds after payment and takes 0% of your sales.',
     points: [
-      ['Limited seats', 'Set a purchase limit on any product and Ripley stops selling when it is full.'],
+      ['Limited seats', 'Set a purchase limit on any product and Dues stops selling when it is full.'],
       ['Renewals enforced', 'Lapsed subscriptions lose the role automatically — no freeloaders in your pings.'],
       ['Restocks on your terms', 'Toggle a product off to close the group; back on to reopen. The link never changes.'],
     ],
@@ -208,16 +208,16 @@ const USE_CASES = {
     h1: 'Sell Your Ecommerce Mentorship on Discord',
     desc: 'Charge for your dropshipping or ecom mentorship community with 0% platform fees and payments straight to your Stripe account.',
     intro:
-      'Product research channels, supplier contacts, store teardowns, weekly Q&A: the mentorship already lives in your server. Ripley adds the payment layer and takes no cut of it.',
+      'Product research channels, supplier contacts, store teardowns, weekly Q&A: the mentorship already lives in your server. Dues adds the payment layer and takes no cut of it.',
     points: [
       ['Tiered mentorship', 'Sell basic and inner-circle tiers as separate products with separate roles.'],
-      ['Your own Stripe account', 'Revenue lands in your Stripe directly. Ripley never touches your money.'],
+      ['Your own Stripe account', 'Revenue lands in your Stripe directly. Dues never touches your money.'],
       ['Analytics built in', 'Revenue, sales and member growth with previous-period comparisons.'],
     ],
     faq: [
       ['How do tiers work?', 'Each product grants its own role. Stack channels behind roles however you like.'],
       ['Can I offer a founding-member discount?', 'Yes — create a discount code with a use cap and expiry.'],
-      ['Is there a free plan?', 'Yes. Ripley is free until your store passes 10 paying members.'],
+      ['Is there a free plan?', 'Yes. Dues is free until your store passes 10 paying members.'],
     ],
   },
   'exclusive-content': {
@@ -225,15 +225,15 @@ const USE_CASES = {
     h1: 'Sell Exclusive Content in Your Discord',
     desc: 'Put your exclusive drops, early access and behind-the-scenes channels behind a paid Discord role — 0% platform fees.',
     intro:
-      'Early videos, extended cuts, sample packs, presets, art drops: creators run exclusives through Discord because the community already lives there. Ripley gates those channels with a role your fans buy in one checkout.',
+      'Early videos, extended cuts, sample packs, presets, art drops: creators run exclusives through Discord because the community already lives there. Dues gates those channels with a role your fans buy in one checkout.',
     points: [
       ['One link to share', 'ripleybot.com/yourname — put it in every bio. It is your store.'],
       ['Lifetime or recurring', 'Sell a one-time supporter pass or a monthly membership.'],
       ['Fans stay yours', 'No marketplace between you and your audience — buyers check out under your name.'],
     ],
     faq: [
-      ['Do I need a website?', 'No. Your Ripley store page is hosted for you at your own link with your name and icon.'],
-      ['What does Ripley cost?', 'Free for your first 10 paying members, then flat plans from $14.99/mo. Ripley takes 0% of sales.'],
+      ['Do I need a website?', 'No. Your Dues store page is hosted for you at your own link with your name and icon.'],
+      ['What does Dues cost?', 'Free for your first 10 paying members, then flat plans from $14.99/mo. Dues takes 0% of sales.'],
       ['Can fans pay with Apple Pay?', 'Checkout is Stripe-hosted — cards, Apple Pay, Google Pay and Link, per your Stripe settings.'],
     ],
   },
@@ -246,7 +246,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/ripley.png" alt="Ripley" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/#features">Features</a>
@@ -263,16 +263,16 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/ripley.png" alt="Ripley" height="16" />
-      <span class="footer-copy">© Ripley</span>
+      <img class="powered-mark" src="/dues.png" alt="Dues" height="16" />
+      <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
       <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
       <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
-      <a href="/vs/whop">Ripley vs Whop</a><a href="/vs/launchpass">Ripley vs LaunchPass</a>
-      <a href="/vs/subscord">Ripley vs Subscord</a><a href="/vs/doorfee">Ripley vs DoorFee</a>
-      <a href="/vs/xoe">Ripley vs XOE</a><a href="/vs/patreon">Ripley vs Patreon</a>
+      <a href="/vs/whop">Dues vs Whop</a><a href="/vs/launchpass">Dues vs LaunchPass</a>
+      <a href="/vs/subscord">Dues vs Subscord</a><a href="/vs/doorfee">Dues vs DoorFee</a>
+      <a href="/vs/xoe">Dues vs XOE</a><a href="/vs/patreon">Dues vs Patreon</a>
       <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
       <a href="/alternatives/whop-alternatives">Whop alternatives</a></nav>
     <nav class="footer-col"><span class="footer-head">Guides</span>
@@ -300,7 +300,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
     ? [{
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
-        itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Ripley', item: `${BASE}/` }].concat(
+        itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Dues', item: `${BASE}/` }].concat(
           crumbs.map(([name, href], i) => ({ '@type': 'ListItem', position: i + 2, name, item: `${BASE}${href}` })),
         ),
       }]
@@ -323,10 +323,10 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta property="og:url" content="${canonical}" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" href="/favicon.png?v=96" />
+  <link rel="icon" type="image/png" href="/favicon.png?v=97" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
-  <script src="/theme.js?v=96"></script>
+  <script src="/theme.js?v=97"></script>
 </head>
 <body class="home seo-page">
 ${nav}
@@ -372,29 +372,29 @@ const ripleyRows = {
 // ── /vs/<competitor> ──────────────────────────────────────────────────────────
 
 function vsPage(slug, c) {
-  const title = `Ripley vs ${c.name} — Discord monetization compared`;
-  const desc = `${c.name} charges ${c.feeLine.replace('*', '')} — Ripley takes 0% of your sales and payments land in your own Stripe account. A side-by-side comparison for Discord server owners.`;
+  const title = `Dues vs ${c.name} — Discord monetization compared`;
+  const desc = `${c.name} charges ${c.feeLine.replace('*', '')} — Dues takes 0% of your sales and payments land in your own Stripe account. A side-by-side comparison for Discord server owners.`;
   const faq = [
-    [`How much does ${c.name} cost compared to Ripley?`, `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Ripley charges a flat plan (free up to 10 paying members, then from $14.99/mo) and takes 0% of your sales.`],
-    ['Does Ripley really take 0% of sales?', 'Yes. Ripley charges a flat monthly plan only. Stripe’s standard card-processing fees still apply, as they do on every platform.'],
-    ['Where does my money go with Ripley?', 'Straight into your own Stripe account. Ripley never holds, routes, or freezes your funds.'],
-    ['Can I switch without losing my members?', 'Your members keep their Discord roles while you set Ripley up, and your Stripe customers stay in your own Stripe account either way.'],
+    [`How much does ${c.name} cost compared to Dues?`, `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Dues charges a flat plan (free up to 10 paying members, then from $14.99/mo) and takes 0% of your sales.`],
+    ['Does Dues really take 0% of sales?', 'Yes. Dues charges a flat monthly plan only. Stripe’s standard card-processing fees still apply, as they do on every platform.'],
+    ['Where does my money go with Dues?', 'Straight into your own Stripe account. Dues never holds, routes, or freezes your funds.'],
+    ['Can I switch without losing my members?', 'Your members keep their Discord roles while you set Dues up, and your Stripe customers stay in your own Stripe account either way.'],
   ];
   const row = (k, label) => `
             <tr><td>${esc(label)}</td><td class="cmp-good">${esc(ripleyRows[k])}</td><td>${esc(c.rows[k])}</td></tr>`;
   const body = `
     <section class="xhero seo-hero">
       <div class="hero-inner">
-        <h1>Ripley vs ${esc(c.name)}</h1>
+        <h1>Dues vs ${esc(c.name)}</h1>
         <p class="hero-sub">${esc(c.blurb)}</p>
-        <p class="hero-sub">Ripley is the other model: a flat plan, <strong>0% of your sales</strong>, and payments that land in <strong>your own Stripe account</strong> with roles delivered in seconds.</p>
+        <p class="hero-sub">Dues is the other model: a flat plan, <strong>0% of your sales</strong>, and payments that land in <strong>your own Stripe account</strong> with roles delivered in seconds.</p>
       </div>
     </section>
     <section class="xsection">
       <div class="wrap narrow">
         <div class="panel cmp-card">
           <div class="table-scroll"><table class="cmp-table">
-            <thead><tr><th></th><th>Ripley</th><th>${esc(c.name)}</th></tr></thead>
+            <thead><tr><th></th><th>Dues</th><th>${esc(c.name)}</th></tr></thead>
             <tbody>${row('fee', 'Platform fee on sales')}${row('monthly', 'Monthly cost')}${row('money', 'Where the money goes')}${row('store', 'Your store lives at')}
             <tr><td>Discord roles</td><td class="cmp-good">Delivered in seconds, removed on lapse</td><td>Varies by integration</td></tr>
             </tbody>
@@ -405,7 +405,7 @@ function vsPage(slug, c) {
     </section>
     <section class="xsection">
       <div class="wrap narrow">
-        <h2 class="section-title center">Why server owners pick Ripley</h2>
+        <h2 class="section-title center">Why server owners pick Dues</h2>
         <ul class="tick-list seo-ticks">
           <li><strong>0% platform fees</strong> — a flat plan, whatever you earn. Estimate the difference with the <a href="/tools/${['whop', 'launchpass', 'patreon'].includes(slug) ? slug : 'discord'}-fee-calculator">fee calculator</a>.</li>
           <li><strong>Your own Stripe account</strong> — revenue is never held or routed by a middleman.</li>
@@ -422,7 +422,7 @@ ${cta(`Switching from ${c.name}?`)}`;
     title,
     desc,
     body,
-    crumbs: [['Compare', '/vs'], [`Ripley vs ${c.name}`, `/vs/${slug}`]],
+    crumbs: [['Compare', '/vs'], [`Dues vs ${c.name}`, `/vs/${slug}`]],
     jsonld: [faqJsonld(faq)],
   });
 }
@@ -432,8 +432,8 @@ function vsIndex() {
     .map(
       ([slug, c]) => `
           <a class="panel seo-card" href="/vs/${slug}">
-            <strong>Ripley vs ${esc(c.name)}</strong>
-            <p>${esc(c.rows.fee)} vs Ripley's 0% — the full side-by-side.</p>
+            <strong>Dues vs ${esc(c.name)}</strong>
+            <p>${esc(c.rows.fee)} vs Dues's 0% — the full side-by-side.</p>
             <span class="seo-card-cta">Compare →</span>
           </a>`,
     )
@@ -442,7 +442,7 @@ function vsIndex() {
     <section class="xhero seo-hero">
       <div class="hero-inner">
         <h1>Compare Discord Monetization Platforms</h1>
-        <p class="hero-sub">Every platform below is a real way to sell Discord access. The difference is what it costs you and who holds your money. Ripley takes 0% of sales and your revenue lands in your own Stripe account.</p>
+        <p class="hero-sub">Every platform below is a real way to sell Discord access. The difference is what it costs you and who holds your money. Dues takes 0% of sales and your revenue lands in your own Stripe account.</p>
       </div>
     </section>
     <section class="xsection">
@@ -454,7 +454,7 @@ function vsIndex() {
 ${cta()}`;
   return page({
     urlPath: '/vs',
-    title: 'Ripley vs Whop, LaunchPass, Patreon & more — compare Discord monetization',
+    title: 'Dues vs Whop, LaunchPass, Patreon & more — compare Discord monetization',
     desc: 'Side-by-side comparisons of Discord monetization platforms: fees, payouts, role delivery and lock-in. See what 0% platform fees change.',
     body,
     crumbs: [['Compare', '/vs']],
@@ -501,7 +501,7 @@ function calcScript(rowsJs) {
 function calcBars(rows) {
   return `
             <div class="calc-bar-row" id="t-row-ripley">
-              <div class="calc-bar-meta"><span class="calc-bar-name">Ripley</span><span class="calc-bar-amt" id="t-ripley">$0</span></div>
+              <div class="calc-bar-meta"><span class="calc-bar-name">Dues</span><span class="calc-bar-amt" id="t-ripley">$0</span></div>
               <div class="calc-bar mine"><span id="t-bar-ripley"></span></div>
               <span class="calc-bar-sub">Flat plan · 0% of sales</span>
             </div>${rows
@@ -540,7 +540,7 @@ function calculatorPage({ slug, title, desc, h1, intro, rows, rowsJs, faq, crumb
               <div class="calc-result">
                 <span class="calc-result-label">Monthly sales volume</span>
                 <span class="calc-result-num" id="t-rev">$0</span>
-                <span class="calc-result-label" style="margin-top:12px">Estimated annual savings with Ripley</span>
+                <span class="calc-result-label" style="margin-top:12px">Estimated annual savings with Dues</span>
                 <span class="calc-result-num" id="t-save">$0</span>
               </div>
             </div>
@@ -584,7 +584,7 @@ function competitorCalculator(key) {
   const rowsJs = `[{ id: '${key}', cost: ${COST_EXPR[key]} }]`;
   const faq = [
     [`How much does ${c.name} take from my sales?`, `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Check their site for current numbers.`],
-    ['What does Ripley cost?', 'Free up to 10 paying members, then flat plans from $14.99/mo. Ripley takes 0% of your sales.'],
+    ['What does Dues cost?', 'Free up to 10 paying members, then flat plans from $14.99/mo. Dues takes 0% of your sales.'],
     ['Are Stripe fees included?', 'No — Stripe’s standard card-processing fees apply on every platform, so they cancel out of the comparison.'],
   ];
   return {
@@ -592,9 +592,9 @@ function competitorCalculator(key) {
     html: calculatorPage({
       slug,
       title: `${c.name} fee calculator — what ${c.name} costs your Discord`,
-      desc: `Estimate what ${c.name}'s fees (${c.feeLine.replace('*', '')}) cost your Discord community each month, compared with Ripley's flat 0%-fee plans.`,
+      desc: `Estimate what ${c.name}'s fees (${c.feeLine.replace('*', '')}) cost your Discord community each month, compared with Dues's flat 0%-fee plans.`,
       h1: `${c.name} Fee Calculator`,
-      intro: `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Move the sliders to see what that costs at your size — and what the same store costs on Ripley's flat plans.`,
+      intro: `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Move the sliders to see what that costs at your size — and what the same store costs on Dues's flat plans.`,
       rows,
       rowsJs,
       faq,
@@ -613,16 +613,16 @@ function allInOneCalculator() {
       { id: 'upgrade-chat', cost: 49 }
     ]`;
   const faq = [
-    ['Which Discord monetization platform is cheapest?', 'It depends on your volume: percentage-fee platforms get more expensive as you grow, flat-fee platforms do not. Ripley is a flat plan (free up to 10 paying members, then from $14.99/mo) with 0% of sales.'],
+    ['Which Discord monetization platform is cheapest?', 'It depends on your volume: percentage-fee platforms get more expensive as you grow, flat-fee platforms do not. Dues is a flat plan (free up to 10 paying members, then from $14.99/mo) with 0% of sales.'],
     ['Are these the platforms’ real prices?', 'They are the publicly listed prices at the time this page was written, marked with an asterisk — always check the platform’s own site for current numbers.'],
-    ['Does 0% platform fees mean completely free?', 'Ripley’s plans are flat monthly subscriptions and the platform takes 0% of your sales. Stripe’s standard card-processing fees apply everywhere.'],
+    ['Does 0% platform fees mean completely free?', 'Dues’s plans are flat monthly subscriptions and the platform takes 0% of your sales. Stripe’s standard card-processing fees apply everywhere.'],
   ];
   return {
     slug: 'discord-fee-calculator',
     html: calculatorPage({
       slug: 'discord-fee-calculator',
-      title: 'Discord monetization fee calculator — Whop vs LaunchPass vs Patreon vs Ripley',
-      desc: 'Compare what Whop, LaunchPass, Patreon and Upgrade.Chat cost your Discord community each month against Ripley’s flat 0%-fee plans.',
+      title: 'Discord monetization fee calculator — Whop vs LaunchPass vs Patreon vs Dues',
+      desc: 'Compare what Whop, LaunchPass, Patreon and Upgrade.Chat cost your Discord community each month against Dues’s flat 0%-fee plans.',
       h1: 'Discord Monetization Fee Calculator',
       intro: 'Every platform prices differently — percentages, subscriptions, or both. Set your community size and price to compare monthly platform costs side by side.',
       rows,
@@ -635,7 +635,7 @@ function allInOneCalculator() {
 
 function toolsIndex() {
   const tools = [
-    ['discord-fee-calculator', 'Discord fee calculator', 'Whop vs LaunchPass vs Patreon vs Upgrade.Chat vs Ripley, at your numbers.'],
+    ['discord-fee-calculator', 'Discord fee calculator', 'Whop vs LaunchPass vs Patreon vs Upgrade.Chat vs Dues, at your numbers.'],
     ['whop-fee-calculator', 'Whop fee calculator', "What 3% of sales adds up to at your community's size."],
     ['launchpass-fee-calculator', 'LaunchPass fee calculator', 'What $29/mo + 3.5% of sales costs as you grow.'],
     ['patreon-fee-calculator', 'Patreon fee calculator', 'What 8–12% of earnings means in real dollars.'],
@@ -678,7 +678,7 @@ ${cta()}`;
 
 function useCasePage(slug, u) {
   const steps = [
-    ['Connect your server', 'Sign in with Discord, pick your server, and add the Ripley bot.'],
+    ['Connect your server', 'Sign in with Discord, pick your server, and add the Dues bot.'],
     ['Create your products', 'Name, price, photo, and the role each product unlocks — built in the dashboard, no Stripe dashboard needed.'],
     ['Share your link', 'Your store lives at ripleybot.com/yourname. Buyers pay on Stripe and get their role in seconds.'],
   ];
@@ -704,7 +704,7 @@ function useCasePage(slug, u) {
         <ul class="tick-list seo-ticks">${u.points
           .map(([t, d]) => `<li><strong>${esc(t)}</strong> — ${esc(d)}</li>`)
           .join('')}
-          <li><strong>0% platform fees</strong> — Ripley charges a flat plan and never takes a cut of your sales.</li>
+          <li><strong>0% platform fees</strong> — Dues charges a flat plan and never takes a cut of your sales.</li>
         </ul>
       </div>
     </section>
@@ -712,7 +712,7 @@ function useCasePage(slug, u) {
 ${cta()}`;
   return page({
     urlPath: `/use-cases/${slug}`,
-    title: `${u.h1} — Ripley`,
+    title: `${u.h1} — Dues`,
     desc: u.desc,
     body,
     crumbs: [['Use cases', '/use-cases'], [u.name, `/use-cases/${slug}`]],
@@ -734,8 +734,8 @@ function useCasesIndex() {
   const body = `
     <section class="xhero seo-hero">
       <div class="hero-inner">
-        <h1>What Communities Sell with Ripley</h1>
-        <p class="hero-sub">If your server has something worth paying for, Ripley sells it and delivers the role — with 0% platform fees and payments straight to your own Stripe account.</p>
+        <h1>What Communities Sell with Dues</h1>
+        <p class="hero-sub">If your server has something worth paying for, Dues sells it and delivers the role — with 0% platform fees and payments straight to your own Stripe account.</p>
       </div>
     </section>
     <section class="xsection">
@@ -748,14 +748,14 @@ ${cta()}`;
   return page({
     urlPath: '/use-cases',
     title: 'Discord monetization use cases — trading, coaching, cook groups & more',
-    desc: 'How trading groups, sports picks communities, coaches, cook groups and creators sell Discord access with 0% platform fees on Ripley.',
+    desc: 'How trading groups, sports picks communities, coaches, cook groups and creators sell Discord access with 0% platform fees on Dues.',
     body,
     crumbs: [['Use cases', '/use-cases']],
   });
 }
 
 // ── /guides/<slug> — long-form how-tos for the queries owners actually type ──
-// Content rules as everywhere: Ripley claims only what the product does,
+// Content rules as everywhere: Dues claims only what the product does,
 // platform facts stay hedged, no invented numbers.
 
 const GUIDES = {
@@ -767,7 +767,7 @@ const GUIDES = {
     sections: [
       ['Decide what is worth paying for', `<p>Paid Discord communities sell access, not content volume. The strongest offers are channels people check daily: trading signals and analysis rooms, sports picks, cook-group monitors, coaching check-ins, early drops, or a private floor where the real conversation happens. Look at your server and ask which two or three channels members would miss most — that is your product.</p><p>Browse real examples by niche: <a href="/use-cases/trading">trading</a>, <a href="/use-cases/sports-betting">sports picks</a>, <a href="/use-cases/fitness">coaching</a>, <a href="/use-cases/reselling">cook groups</a>.</p>`],
       ['Pick a model: monthly, lifetime, or tiers', `<p>Three models cover almost every server:</p><ul><li><strong>Monthly membership</strong> — recurring revenue, the default for signals, picks and coaching.</li><li><strong>Lifetime seat</strong> — one payment, permanent role. Works as a premium tier or a launch offer.</li><li><strong>Tiers</strong> — two or three roles at different prices (say, Signals at $15/mo and Inner Circle at $50/mo). Each tier maps to its own role and channels.</li></ul><p>Start with one product. Add tiers when members ask for more, not before.</p>`],
-      ['Choose the payment layer', `<p>This is where most owners lose money without noticing. The options fall into three camps:</p><ul><li><strong>Marketplaces</strong> (Whop and similar) — your store lives on their domain and they take a percentage of every sale.</li><li><strong>Percentage platforms</strong> (LaunchPass, Patreon, Ko-fi and similar) — a cut of your revenue, sometimes on top of a monthly fee.</li><li><strong>Flat-fee platforms</strong> (Ripley) — a fixed monthly plan, 0% of sales, payments straight into your own Stripe account.</li></ul><p>Percentages feel painless at $200/mo and brutal at $5,000/mo. Run your own numbers in the <a href="/tools/discord-fee-calculator">fee calculator</a>, or see the <a href="/vs">side-by-side comparisons</a>.</p>`],
+      ['Choose the payment layer', `<p>This is where most owners lose money without noticing. The options fall into three camps:</p><ul><li><strong>Marketplaces</strong> (Whop and similar) — your store lives on their domain and they take a percentage of every sale.</li><li><strong>Percentage platforms</strong> (LaunchPass, Patreon, Ko-fi and similar) — a cut of your revenue, sometimes on top of a monthly fee.</li><li><strong>Flat-fee platforms</strong> (Dues) — a fixed monthly plan, 0% of sales, payments straight into your own Stripe account.</li></ul><p>Percentages feel painless at $200/mo and brutal at $5,000/mo. Run your own numbers in the <a href="/tools/discord-fee-calculator">fee calculator</a>, or see the <a href="/vs">side-by-side comparisons</a>.</p>`],
       ['Gate the channels behind a role', `<p>Structure the server so free members can see that the paid area exists: a public lobby, a pinned message describing what is inside, and locked channels visible but unreadable. Create one role per product, put the premium channels behind it, and let the payment layer grant and remove that role automatically.</p><p>One Discord-specific pitfall: the bot delivering roles must sit <em>above</em> the roles it manages in Server Settings → Roles, or Discord will refuse the assignment.</p>`],
       ['Launch without a relaunch', `<p>Announce once, pin the store link, and put it in the server description and your bios. A short launch discount (a code with an expiry and a redemption cap) gives the announcement urgency without training members to wait for sales.</p>`],
       ['Keep access healthy after launch', `<p>The part nobody plans for: cancellations, failed renewals, chargebacks, people leaving and rejoining. Manual role pruning does not survive contact with a growing server. Whatever platform you pick, make sure lapsed subscriptions lose the role automatically, access is re-checked on a schedule, and you can revoke or re-sync one member without spelunking. Buyers should get a receipt they can find later — it cuts support pings dramatically.</p>`],
@@ -776,7 +776,7 @@ const GUIDES = {
       ['How many members do I need to monetize a Discord server?', 'There is no minimum. A server with 200 engaged members in a niche where information has value often out-earns a 20,000-member general server. Conversion depends on how much your paid channels are worth, not raw size.'],
       ['Can I charge for Discord access directly through Discord?', 'Discord’s own Server Subscriptions exist but are limited by region and take a platform share. Most owners use an external checkout layer that grants roles, which keeps pricing and payout terms in their control.'],
       ['What should I charge for a paid Discord?', 'Typical ranges: $10–$30/mo for signals and picks communities, $25–$100/mo for coaching or mentorship, and 3–6× the monthly price for lifetime seats. Price against the value of the information, then adjust from real conversion.'],
-      ['Do I need my own Stripe account?', 'On Ripley, yes — that is the design. Payments land directly in your own Stripe account and Ripley never holds your money. On marketplaces, the platform holds funds and pays you out on their schedule.'],
+      ['Do I need my own Stripe account?', 'On Dues, yes — that is the design. Payments land directly in your own Stripe account and Dues never holds your money. On marketplaces, the platform holds funds and pays you out on their schedule.'],
     ],
   },
   'how-to-sell-discord-roles': {
@@ -786,14 +786,14 @@ const GUIDES = {
     intro: 'A paid role is the cleanest product a Discord server can sell: buyers pay, the role lands, the channels unlock. Here is the whole setup, end to end.',
     sections: [
       ['1. Create the role and gate the channels', `<p>Make a role named after the product (<em>@VIP</em>, <em>@Signals</em>, <em>@Inner Circle</em>) and set your premium channels to be visible only with it. Leave a public lobby so non-members can see what they are missing.</p>`],
-      ['2. Connect a checkout that delivers roles', `<p>Invite the payment bot, connect your Stripe account, and map the product to the role. On <a href="/">Ripley</a> that is the whole onboarding: invite → paste your Stripe key → create the product → pick the role. Your store goes live at ripleybot.com/yourname.</p>`],
+      ['2. Connect a checkout that delivers roles', `<p>Invite the payment bot, connect your Stripe account, and map the product to the role. On <a href="/">Dues</a> that is the whole onboarding: invite → paste your Stripe key → create the product → pick the role. Your store goes live at ripleybot.com/yourname.</p>`],
       ['3. Price it', `<p>Monthly for ongoing value (signals, picks, coaching), lifetime for a one-time unlock, or both at different price points. Each product maps to its own role, so tiers are just more products.</p>`],
       ['4. Share the link', `<p>Pin it, put it in the server description, link it from your socials. Buyers sign in with Discord, pay on Stripe’s checkout, and the role is delivered in seconds — buyers who are not in the server yet get pulled in with the role attached.</p>`],
-      ['5. Let lapses handle themselves', `<p>When a subscription ends, the role should come off without you doing anything. Ripley removes it automatically and re-checks access hourly, so the members list and the paying list never drift apart.</p>`],
+      ['5. Let lapses handle themselves', `<p>When a subscription ends, the role should come off without you doing anything. Dues removes it automatically and re-checks access hourly, so the members list and the paying list never drift apart.</p>`],
     ],
     faq: [
-      ['Can a bot really remove the role when someone stops paying?', 'Yes — that is the core of a subscription bot. On Ripley, lapsed and canceled subscriptions lose the role automatically, and access is re-verified hourly.'],
-      ['What if the buyer is not in my server yet?', 'Ripley pulls buyers into the server with the role already attached when they complete checkout, using the authorization they grant at sign-in.'],
+      ['Can a bot really remove the role when someone stops paying?', 'Yes — that is the core of a subscription bot. On Dues, lapsed and canceled subscriptions lose the role automatically, and access is re-verified hourly.'],
+      ['What if the buyer is not in my server yet?', 'Dues pulls buyers into the server with the role already attached when they complete checkout, using the authorization they grant at sign-in.'],
       ['Why is the bot not assigning my role?', 'Almost always role hierarchy: drag the bot’s role above the roles it delivers in Server Settings → Roles.'],
       ['Do buyers need Stripe accounts?', 'No. Buyers pay with a card or wallet on a standard Stripe checkout page. Only the store owner needs a Stripe account, and payments land there directly.'],
     ],
@@ -808,7 +808,7 @@ const GUIDES = {
       ['The checkout layer', `<p>Buyers should be able to go from your pinned link to unlocked channels in under a minute, without a human involved: sign in with Discord, pay on Stripe, get the role. That flow is exactly what a <a href="/guides/discord-subscription-bot">Discord subscription bot</a> automates. Compare the platforms that do it — and what each costs — on the <a href="/vs">comparisons page</a>.</p>`],
       ['Onboard paying members like you mean it', `<p>Give new members a welcome channel inside the paid area: how the channels work, where to ask questions, what to read first. Members who orient in the first ten minutes stay; confused ones churn at renewal.</p>`],
       ['Retention beats acquisition', `<p>Renewals are won inside the community: consistent posting cadence in the paid channels, visible wins, and fast answers. Watch who stops reading before they stop paying. A monthly member kept for a year is worth more than three one-month members.</p>`],
-      ['The metrics that matter', `<p>Track revenue by period, new members per week, and which products carry the revenue — then price and post accordingly. Ripley’s dashboard charts revenue with a previous-period comparison, lists every transaction, and pings a channel on every sale so the team sees momentum.</p>`],
+      ['The metrics that matter', `<p>Track revenue by period, new members per week, and which products carry the revenue — then price and post accordingly. Dues’s dashboard charts revenue with a previous-period comparison, lists every transaction, and pings a channel on every sale so the team sees momentum.</p>`],
     ],
     faq: [
       ['Is it against Discord’s rules to charge for server access?', 'Selling access to your own community is a normal, widespread use of Discord — creators do it through Server Subscriptions and third-party tools alike. What matters is following Discord’s Terms and your local rules for what you sell.'],
@@ -825,12 +825,12 @@ const GUIDES = {
       ['The job description', `<p>Four things, end to end: a store page where buyers pay, verified payment processing (checkout by Stripe or similar), instant role delivery on payment, and automatic role removal on cancellation, failed renewal, or refund. If any of the four is manual, you have bought yourself a part-time job.</p>`],
       ['The checklist for choosing one', `<ul><li><strong>Who holds the money?</strong> Directly-to-your-Stripe beats platform-held funds paid out on their schedule.</li><li><strong>What does it take from each sale?</strong> 0% flat-plan pricing vs percentage fees changes everything at scale — <a href="/tools/discord-fee-calculator">run your numbers</a>.</li><li><strong>Does access heal itself?</strong> Lapse → role removed, automatically, with periodic re-checks.</li><li><strong>Do buyers get receipts?</strong> Emailed confirmations cut support load.</li><li><strong>Is there a real dashboard?</strong> Revenue, members, transactions, refund-safe controls.</li><li><strong>Can you leave?</strong> If your Stripe account and customers are yours, migration is painless. If the platform owns them, that is lock-in.</li></ul>`],
       ['The pricing traps', `<p>Three patterns to read carefully before connecting anything:</p><ul><li><strong>Percentage stacking</strong> — a platform percentage on top of card-processing fees, so your effective rate is far above the headline number.</li><li><strong>Held funds</strong> — revenue that sits with the platform, subject to their payout schedule and their freeze policies.</li><li><strong>Feature-gated basics</strong> — role removal or receipts locked behind higher tiers.</li></ul>`],
-      ['Where Ripley sits', `<p>Ripley is the flat-fee shape of this category: free up to 10 paying members, flat plans after that, 0% of sales, checkout by Stripe into your own account, roles delivered in about two seconds and removed automatically on lapse. Compare it directly with <a href="/vs/whop">Whop</a>, <a href="/vs/launchpass">LaunchPass</a>, <a href="/vs/subscord">Subscord</a> or <a href="/vs">the whole field</a>.</p>`],
+      ['Where Dues sits', `<p>Dues is the flat-fee shape of this category: free up to 10 paying members, flat plans after that, 0% of sales, checkout by Stripe into your own account, roles delivered in about two seconds and removed automatically on lapse. Compare it directly with <a href="/vs/whop">Whop</a>, <a href="/vs/launchpass">LaunchPass</a>, <a href="/vs/subscord">Subscord</a> or <a href="/vs">the whole field</a>.</p>`],
     ],
     faq: [
       ['What is the best Discord subscription bot?', 'The one whose pricing model fits your volume and whose automation you never think about. Judge candidates on fees, who holds funds, role-lifecycle automation, receipts, and lock-in — the checklist above.'],
       ['Can I run subscriptions without a bot?', 'You can collect payments with generic links and assign roles by hand, but every cancellation and failed renewal becomes manual work, and it scales exactly as badly as it sounds.'],
-      ['Do subscription bots work with lifetime products?', 'Ripley sells lifetime seats alongside monthly plans — one payment, permanent role, no renewal to manage.'],
+      ['Do subscription bots work with lifetime products?', 'Dues sells lifetime seats alongside monthly plans — one payment, permanent role, no renewal to manage.'],
     ],
   },
   'sell-discord-server-access': {
@@ -840,9 +840,9 @@ const GUIDES = {
     intro: 'Selling server access is three pieces: something worth unlocking, a checkout link you can share anywhere, and delivery that never needs you online. Most owners overbuild the first and underbuild the last.',
     sections: [
       ['The product is a role', `<p>Package access as a role that unlocks channels. One role for a simple membership, several for tiers. If you can describe what the role unlocks in one sentence, buyers will get it too.</p>`],
-      ['The checkout is a link', `<p>Your store lives at a link — Ripley gives you <strong>ripleybot.com/yourname</strong>, with your server’s name, icon and products on it, sharable in bios, pinned messages and DMs. Buyers sign in with Discord, pay on Stripe, done. Link previews carry your product photo automatically.</p>`],
+      ['The checkout is a link', `<p>Your store lives at a link — Dues gives you <strong>ripleybot.com/yourname</strong>, with your server’s name, icon and products on it, sharable in bios, pinned messages and DMs. Buyers sign in with Discord, pay on Stripe, done. Link previews carry your product photo automatically.</p>`],
       ['Delivery is instant, and so is revocation', `<p>The role lands seconds after payment and comes off automatically when a subscription lapses. Buyers not yet in the server are pulled in with the role attached. That is the entire operational load: zero.</p>`],
-      ['What it costs', `<p>Ripley is free up to 10 paying members, then flat plans from $14.99/mo — always 0% of sales, with payments in your own Stripe account. For the full landscape, see <a href="/guides/how-to-monetize-a-discord-server">the monetization guide</a> and the <a href="/vs">comparisons</a>.</p>`],
+      ['What it costs', `<p>Dues is free up to 10 paying members, then flat plans from $14.99/mo — always 0% of sales, with payments in your own Stripe account. For the full landscape, see <a href="/guides/how-to-monetize-a-discord-server">the monetization guide</a> and the <a href="/vs">comparisons</a>.</p>`],
     ],
     faq: [
       ['Can I sell one-time access instead of subscriptions?', 'Yes — lifetime products are one payment for a permanent role. Sell them alone or next to a monthly plan at a different price.'],
@@ -868,7 +868,7 @@ const GUIDES = {
     faq: [
       ['Which idea should I start with?', 'The one closest to what your members already ask you for. Package the thing you repeatedly give away, gate it behind one role, price it monthly.'],
       ['Can I run several of these at once?', 'Yes — each is just a product mapped to a role. Two or three complementary offers (signals + lifetime + VIP AMA) is a common shape.'],
-      ['How do I take payments for all this?', 'Any subscription layer works mechanically; they differ in fees and who holds your money. Ripley charges a flat plan, takes 0% of sales, and pays straight into your own Stripe account.'],
+      ['How do I take payments for all this?', 'Any subscription layer works mechanically; they differ in fees and who holds your money. Dues charges a flat plan, takes 0% of sales, and pays straight into your own Stripe account.'],
     ],
   },
   'best-discord-monetization-platform': {
@@ -877,15 +877,15 @@ const GUIDES = {
     h1: 'The Best Discord Monetization Platform Is the One That Fits Your Volume',
     intro: 'There is no single best platform — there is the pricing shape that fits how you plan to grow, and the automation you never want to think about again. This is the honest way to choose, with the whole field laid out.',
     sections: [
-      ['The three pricing models', `<p>Every Discord monetization tool falls into one of three camps, and the camp matters more than the brand:</p><ul><li><strong>Marketplace</strong> — your store lives on the platform's domain and it takes a percentage of every sale (Whop). Discovery in exchange for a cut and a storefront you do not own.</li><li><strong>Percentage / hybrid</strong> — a cut of revenue, sometimes on top of a monthly fee (LaunchPass, Patreon, DoorFee, Ko-fi). Painless small, expensive at scale.</li><li><strong>Flat-fee</strong> — a fixed monthly plan and 0% of sales, money into your own account (Ripley). Costs the same at $200/mo and $20,000/mo.</li></ul><p>See exactly what each costs at your size in the <a href="/tools/discord-fee-calculator">fee calculator</a>.</p>`],
+      ['The three pricing models', `<p>Every Discord monetization tool falls into one of three camps, and the camp matters more than the brand:</p><ul><li><strong>Marketplace</strong> — your store lives on the platform's domain and it takes a percentage of every sale (Whop). Discovery in exchange for a cut and a storefront you do not own.</li><li><strong>Percentage / hybrid</strong> — a cut of revenue, sometimes on top of a monthly fee (LaunchPass, Patreon, DoorFee, Ko-fi). Painless small, expensive at scale.</li><li><strong>Flat-fee</strong> — a fixed monthly plan and 0% of sales, money into your own account (Dues). Costs the same at $200/mo and $20,000/mo.</li></ul><p>See exactly what each costs at your size in the <a href="/tools/discord-fee-calculator">fee calculator</a>.</p>`],
       ['The six questions that actually decide it', `<ul><li><strong>What does it take per sale?</strong> A percentage compounds as you grow; a flat plan does not. <a href="/tools/discord-fee-calculator">Run your numbers</a>.</li><li><strong>Who holds the money?</strong> Straight into your own Stripe beats platform-held funds paid out on someone else's schedule.</li><li><strong>Does access heal itself?</strong> Lapse → role removed, automatically, with periodic re-checks — or you prune by hand forever.</li><li><strong>Do buyers get receipts?</strong> Emailed confirmations cut support pings sharply.</li><li><strong>Is there a real dashboard?</strong> Revenue, members, transactions, refund-safe controls.</li><li><strong>Can you leave?</strong> Your Stripe account and customer list being yours is the difference between a tool and a trap.</li></ul>`],
-      ['The field, honestly', `<p>Card-native flat-fee: <a href="/vs/whop">Ripley vs Whop</a>, <a href="/vs/launchpass">vs LaunchPass</a>. Crypto-forward: <a href="/vs/xoe">XOE</a>. Percentage Discord-native: <a href="/vs/doorfee">DoorFee</a>, <a href="/vs/subscord">Subscord</a>. Creator platforms with Discord bolted on: <a href="/vs/patreon">Patreon</a>, <a href="/vs/gumroad">Gumroad</a>. The full grid is on the <a href="/vs">comparisons page</a>, and the shortlists live under <a href="/alternatives">alternatives</a>.</p>`],
-      ['Where Ripley fits', `<p>Ripley is the flat-fee, card-native shape: free up to 10 paying members, flat plans after that, 0% of sales, checkout by Stripe into your own account, roles delivered in about two seconds and removed automatically on lapse. If your plan is to grow, a flat fee is the model that does not punish you for it.</p>`],
+      ['The field, honestly', `<p>Card-native flat-fee: <a href="/vs/whop">Dues vs Whop</a>, <a href="/vs/launchpass">vs LaunchPass</a>. Crypto-forward: <a href="/vs/xoe">XOE</a>. Percentage Discord-native: <a href="/vs/doorfee">DoorFee</a>, <a href="/vs/subscord">Subscord</a>. Creator platforms with Discord bolted on: <a href="/vs/patreon">Patreon</a>, <a href="/vs/gumroad">Gumroad</a>. The full grid is on the <a href="/vs">comparisons page</a>, and the shortlists live under <a href="/alternatives">alternatives</a>.</p>`],
+      ['Where Dues fits', `<p>Dues is the flat-fee, card-native shape: free up to 10 paying members, flat plans after that, 0% of sales, checkout by Stripe into your own account, roles delivered in about two seconds and removed automatically on lapse. If your plan is to grow, a flat fee is the model that does not punish you for it.</p>`],
     ],
     faq: [
-      ['What is the best platform to monetize a Discord server?', 'The one whose pricing model fits your volume and whose role automation is invisible. Percentage platforms are cheapest at low volume; flat-fee platforms like Ripley win as you scale because the cost does not move with your revenue.'],
+      ['What is the best platform to monetize a Discord server?', 'The one whose pricing model fits your volume and whose role automation is invisible. Percentage platforms are cheapest at low volume; flat-fee platforms like Dues win as you scale because the cost does not move with your revenue.'],
       ['Which Discord monetization platform has the lowest fees?', 'Flat-fee platforms take 0% of sales and charge a fixed plan instead, so their effective rate falls as you grow. Percentage platforms stay proportional. Compare at your own numbers with the fee calculator rather than trusting a headline rate.'],
-      ['Do any of them let me keep my own Stripe account?', 'Yes — Ripley, LaunchPass and others run checkout on your own Stripe account so payouts are direct. Marketplaces typically hold funds and pay you out on their schedule; that is the trade for their discovery.'],
+      ['Do any of them let me keep my own Stripe account?', 'Yes — Dues, LaunchPass and others run checkout on your own Stripe account so payouts are direct. Marketplaces typically hold funds and pay you out on their schedule; that is the trade for their discovery.'],
       ['Can I switch platforms without losing members?', 'Your Discord members keep their roles while you set up a new checkout, and if your payments already run on your own Stripe account your customers move with you. Marketplace-held customer relationships are the hard ones to migrate.'],
     ],
   },
@@ -897,7 +897,7 @@ const GUIDES = {
     sections: [
       ['Structure: what is free, what is paid', `<p>Keep a public lobby with rules, announcements and enough real activity to prove the server is alive. Put the value in clearly named locked categories that non-members can see but not read. A paywall nobody can see through does not convert — visible-but-locked is the whole trick.</p>`],
       ['The paywall is a role', `<p>Create one role per paid tier and set your premium channels to require it. That role is your paywall: grant it and the channels open, remove it and they close. Everything below automates granting and removing it.</p>`],
-      ['Connect the checkout', `<p>Invite a payment bot, connect your Stripe account, map the product to the role. On <a href="/">Ripley</a> the whole setup is invite → paste Stripe key → create product → pick role, and your paywall goes live at ripleybot.com/yourname. Buyers pay on Stripe and the role lands in seconds; those not yet in the server are pulled in with it attached.</p>`],
+      ['Connect the checkout', `<p>Invite a payment bot, connect your Stripe account, map the product to the role. On <a href="/">Dues</a> the whole setup is invite → paste Stripe key → create product → pick role, and your paywall goes live at ripleybot.com/yourname. Buyers pay on Stripe and the role lands in seconds; those not yet in the server are pulled in with it attached.</p>`],
       ['Make the paywall self-healing', `<p>The point of automating it is that lapses handle themselves: when a subscription ends, the role comes off and the channels re-lock without you touching anything, with access re-checked hourly. A manual paywall leaks the moment your server grows. One Discord gotcha: the bot's role must sit above the roles it manages in Server Settings → Roles.</p>`],
       ['What a paywall costs to run', `<p>The tool's fee is the recurring cost, so pick the model deliberately: percentage platforms take a cut of everything the paywall earns, flat-fee platforms charge a fixed plan and 0% of sales. Compare both on the <a href="/vs">comparisons page</a> or estimate with the <a href="/tools/discord-fee-calculator">fee calculator</a>.</p>`],
     ],
@@ -916,14 +916,14 @@ const GUIDES = {
     sections: [
       ['Membership bot vs subscription bot', `<p>They are the same category from two angles. A <a href="/guides/discord-subscription-bot">subscription bot</a> emphasizes the recurring billing; a membership bot emphasizes the member relationship — tiers, renewals, and the roster of who is in good standing. Any good tool does both: recurring checkout and automatic role lifecycle.</p>`],
       ['The four jobs', `<p>End to end: a store page where members join, verified payment processing (checkout by Stripe or similar), instant role delivery when payment clears, and automatic role removal on cancellation, failed renewal, or refund. If any of the four is manual, the bot is not really doing the job.</p>`],
-      ['Tiers and lifetime memberships', `<p>A membership is a role with a price. Two or three roles at different prices give you tiers; a one-time lifetime seat is the same mechanism without a renewal. On Ripley each product maps to its own role, so tiers and lifetime seats are just more products — no extra setup.</p>`],
+      ['Tiers and lifetime memberships', `<p>A membership is a role with a price. Two or three roles at different prices give you tiers; a one-time lifetime seat is the same mechanism without a renewal. On Dues each product maps to its own role, so tiers and lifetime seats are just more products — no extra setup.</p>`],
       ['The checklist for choosing one', `<ul><li><strong>Fees:</strong> 0% flat-plan pricing vs a percentage of every membership — <a href="/tools/discord-fee-calculator">run your numbers</a>.</li><li><strong>Payouts:</strong> straight to your own Stripe, or held and paid out on the platform's schedule.</li><li><strong>Lifecycle:</strong> automatic grant, renew, and revoke, with periodic re-checks.</li><li><strong>Receipts and dashboard:</strong> emailed confirmations, revenue, members, transactions.</li><li><strong>Lock-in:</strong> your Stripe account and member list should be yours to leave with.</li></ul><p>See how the tools stack up on the <a href="/alternatives/best-discord-monetization-platforms">platform shortlist</a>.</p>`],
-      ['Where Ripley sits', `<p>Ripley is a membership bot with a flat plan: free up to 10 paying members, then from $14.99/mo, 0% of sales, checkout by Stripe into your own account, roles delivered in seconds and removed automatically on lapse. Compare it directly with <a href="/vs/subscord">Subscord</a>, <a href="/vs/launchpass">LaunchPass</a> or <a href="/vs">the whole field</a>.</p>`],
+      ['Where Dues sits', `<p>Dues is a membership bot with a flat plan: free up to 10 paying members, then from $14.99/mo, 0% of sales, checkout by Stripe into your own account, roles delivered in seconds and removed automatically on lapse. Compare it directly with <a href="/vs/subscord">Subscord</a>, <a href="/vs/launchpass">LaunchPass</a> or <a href="/vs">the whole field</a>.</p>`],
     ],
     faq: [
       ['What is a Discord membership bot?', 'A bot that sells access to your server as a paid membership: it runs checkout, grants the member role automatically on payment, handles renewals, and removes the role when a membership lapses or is cancelled.'],
       ['Can a membership bot handle tiers?', 'Yes. Each tier is a product mapped to its own role, so you can sell, say, a base membership and an inner-circle tier at different prices, each unlocking different channels.'],
-      ['Does a membership bot take a cut of my revenue?', 'It depends on the tool. Percentage bots take a share of every membership; flat-fee bots like Ripley charge a fixed monthly plan and take 0% of sales, with Stripe’s standard processing applying either way.'],
+      ['Does a membership bot take a cut of my revenue?', 'It depends on the tool. Percentage bots take a share of every membership; flat-fee bots like Dues charge a fixed monthly plan and take 0% of sales, with Stripe’s standard processing applying either way.'],
       ['What happens when a member cancels?', 'A good membership bot removes the role automatically at the end of the paid period and re-checks access on a schedule, so your member list and your paying list never drift apart.'],
     ],
   },
@@ -957,8 +957,8 @@ ${cta()}`;
         '@type': 'Article',
         headline: g.h1,
         description: g.desc,
-        author: { '@type': 'Organization', name: 'Ripley' },
-        publisher: { '@type': 'Organization', name: 'Ripley', url: BASE },
+        author: { '@type': 'Organization', name: 'Dues' },
+        publisher: { '@type': 'Organization', name: 'Dues', url: BASE },
         mainEntityOfPage: `${BASE}/guides/${slug}`,
       },
     ],
@@ -980,7 +980,7 @@ function guidesIndex() {
     <section class="xhero seo-hero">
       <div class="hero-inner">
         <h1>Guides to Monetizing Discord</h1>
-        <p class="hero-sub">Practical, no-fluff guides to selling roles, running paid servers and choosing the payment layer — written by the team behind Ripley.</p>
+        <p class="hero-sub">Practical, no-fluff guides to selling roles, running paid servers and choosing the payment layer — written by the team behind Dues.</p>
       </div>
     </section>
     <section class="xsection">
@@ -1003,7 +1003,7 @@ ${cta()}`;
 
 const ALT_LIST = {
   ripley: {
-    name: 'Ripley',
+    name: 'Dues',
     line: 'Flat plans (free up to 10 paying members, then from $14.99/mo), 0% of sales, payments straight into your own Stripe account, roles delivered in seconds. That is us — the disclosure is the point.',
     href: '/',
   },
@@ -1016,7 +1016,7 @@ const ALT_LIST = {
   whop: { name: 'Whop', line: 'Marketplace model: your store lives on whop.com and the platform takes a listed percentage of every sale before paying out*.', href: '/vs/whop' },
   buymeacoffee: { name: 'Buy Me a Coffee', line: 'Simple memberships with a listed 5% platform fee; Discord via integration*.', href: '/vs/buymeacoffee' },
   doorfee: { name: 'DoorFee', line: 'Discord-native, with a page builder and marketing add-ons. Listed pricing takes a percentage of every sale — higher on the free plan, lower on a paid plan*.', href: '/vs/doorfee' },
-  xoe: { name: 'XOE', line: 'Discord payment and security bot. Listed pricing keeps card sales at 0%, takes a cut on crypto, and offers an optional paid tier — crypto-forward where Ripley is card-native and flat*.', href: '/vs/xoe' },
+  xoe: { name: 'XOE', line: 'Discord payment and security bot. Listed pricing keeps card sales at 0%, takes a cut on crypto, and offers an optional paid tier — crypto-forward where Dues is card-native and flat*.', href: '/vs/xoe' },
   sublyna: { name: 'Sublyna', line: 'Discord subscription tool positioned as a Subscord alternative; pricing is plan-dependent — check their site*.', href: null },
   paybot: { name: 'PayBot', line: 'Card-only Discord payment bot with a simple setup and a listed 0% platform fee; a narrower toolset than a full store platform*.', href: null },
 };
@@ -1064,9 +1064,9 @@ function altPage(slug, a) {
   const title = `Best ${a.target} Alternatives for Discord (2026)`;
   const desc = `${a.target} alternatives for monetizing a Discord server, compared honestly: flat-fee vs percentage pricing, who holds your money, and how roles are delivered.`;
   const faq = [
-    [`What is the best ${a.target} alternative?`, `It depends on the pricing shape you want. Flat-fee platforms like Ripley cost the same whatever you earn and pay into your own Stripe account; percentage platforms scale their cut with your revenue. The list above marks each model.`],
+    [`What is the best ${a.target} alternative?`, `It depends on the pricing shape you want. Flat-fee platforms like Dues cost the same whatever you earn and pay into your own Stripe account; percentage platforms scale their cut with your revenue. The list above marks each model.`],
     ['Are the listed fees current?', 'They are the publicly listed prices at the time of writing, always asterisked — verify on each platform’s own site.'],
-    ['Is this list neutral?', 'No, and it does not pretend to be: Ripley is our product and it is listed first. Every factual claim about other platforms is their own published pricing, linked from the full comparison pages.'],
+    ['Is this list neutral?', 'No, and it does not pretend to be: Dues is our product and it is listed first. Every factual claim about other platforms is their own published pricing, linked from the full comparison pages.'],
   ];
   const items = picks
     .map(
@@ -1155,13 +1155,13 @@ function helpPage() {
   const FEATURES = [
     ['Your store page', 'One link with everything you sell — your name, banner, about section and colors. Buyers browse products and check out without leaving the page.', '/demo', 'See the demo store'],
     ['Product links', 'Every product also has its own URL, like ripleybot.com/your-store/vip — rename the last part in the product editor and share it anywhere.', '/dashboard', 'Dashboard → Products'],
-    ['Checkout & payments', 'Buyers pay by card through Stripe, straight into your own Stripe account. Ripley never holds your money and takes 0% of sales.', '/demo/vip-access', 'Try a demo checkout'],
+    ['Checkout & payments', 'Buyers pay by card through Stripe, straight into your own Stripe account. Dues never holds your money and takes 0% of sales.', '/demo/vip-access', 'Try a demo checkout'],
     ['Automatic role delivery', 'The Discord role is granted seconds after payment and removed when a membership ends. Failed renewals get a short grace period before access is pulled.', '/guides/how-to-sell-discord-roles', 'How role selling works'],
     ['Discounts', 'Create percentage codes in the dashboard; buyers apply them at checkout and pay the discounted amount.', '/dashboard', 'Dashboard → Discounts'],
     ['Sale alerts in Discord', 'Pick a channel and every sale is posted there the moment it lands — product, amount and buyer.', '/dashboard', 'Dashboard → Settings'],
     ['Members & transactions', 'Every member and payment in one place: search, CSV export, and manual extend or revoke when you need to step in.', '/dashboard', 'Dashboard → Members'],
     ['Make it yours', 'Theme presets, custom colors, corner radius and typeface — with a live preview of your storefront before anything is saved.', '/dashboard', 'Dashboard → Store → Appearance'],
-    ['Discover', 'An optional public directory of Ripley stores. Off by default; list yours from the Store section if you want the traffic.', '/discover', 'Browse Discover'],
+    ['Discover', 'An optional public directory of Dues stores. Off by default; list yours from the Store section if you want the traffic.', '/discover', 'Browse Discover'],
     ['Your plan', 'Free for your first 10 paying members. After that, flat monthly plans from $14.99 — always 0% of sales, on every plan.', '/#pricing', 'See pricing'],
     ['For buyers: your account', 'Cancel a renewing membership yourself, see what you own, and re-sync your Discord role if it ever goes missing.', '/account', 'Open your account'],
     ['Receipts', 'Buyers get a confirmation email after every purchase, and each payment has a receipt page they can get back to.', '/terms', 'Delivery & refunds'],
@@ -1177,14 +1177,14 @@ function helpPage() {
   const faq = [
     ['My Discord role went missing — what do I do?', 'Open your account page and hit "Re-sync my access". It re-checks your purchases and puts the role back. If it still fails, message the server owner on Discord.'],
     ['How do I cancel a membership?', 'From your account page, any time — no asking anyone. You keep access until the end of the period you already paid for.'],
-    ['Where does the money go?', 'Directly to the seller’s own Stripe account on every sale. Ripley never sits between you and your payout — Stripe pays out on its normal schedule.'],
-    ['Do I need the Stripe dashboard to run my store?', 'No. Connect Stripe once with an API key; after that products, prices, discounts and refund-worthy situations are all handled from the Ripley dashboard.'],
+    ['Where does the money go?', 'Directly to the seller’s own Stripe account on every sale. Dues never sits between you and your payout — Stripe pays out on its normal schedule.'],
+    ['Do I need the Stripe dashboard to run my store?', 'No. Connect Stripe once with an API key; after that products, prices, discounts and refund-worthy situations are all handled from the Dues dashboard.'],
   ];
   const body = `
     <section class="xhero seo-hero">
       <div class="hero-inner">
         <h1>Help</h1>
-        <p class="hero-sub">Everything Ripley does, in about two minutes. Every card links to the real thing.</p>
+        <p class="hero-sub">Everything Dues does, in about two minutes. Every card links to the real thing.</p>
       </div>
     </section>
     <section class="xsection">
@@ -1192,7 +1192,7 @@ function helpPage() {
         <section class="panel sub-card legal">
           <h2>Set up in four steps</h2>
           <p>1. Open the <a href="/dashboard">dashboard</a> and sign in with Discord.</p>
-          <p>2. Pick your server and invite the Ripley bot.</p>
+          <p>2. Pick your server and invite the Dues bot.</p>
           <p>3. Connect Stripe with an API key — payments go straight to your Stripe account.</p>
           <p>4. Create a product, attach the role it unlocks, publish. Your store is live at ripleybot.com/your-store.</p>
         </section>
@@ -1210,8 +1210,8 @@ function helpPage() {
 ${cta('Set up your store today')}`;
   return page({
     urlPath: '/help',
-    title: 'Help — how Ripley works',
-    desc: 'A short guide to every Ripley feature: store pages, product links, Stripe checkout, automatic role delivery, discounts, sale alerts, themes and plans.',
+    title: 'Help — how Dues works',
+    desc: 'A short guide to every Dues feature: store pages, product links, Stripe checkout, automatic role delivery, discounts, sale alerts, themes and plans.',
     body,
     jsonld: [faqJsonld(faq)],
     crumbs: [['Help', '/help']],
@@ -1249,9 +1249,9 @@ for (const [slug, a] of Object.entries(ALTERNATIVES)) emit(`alternatives/${slug}
 // Facts only — the same claims the pages make, in plain markdown.
 emit(
   'llms.txt',
-  `# Ripley
+  `# Dues
 
-> Ripley (https://www.ripleybot.com) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (ripleybot.com/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Ripley never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $14.99/month) and Ripley takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
+> Dues (https://www.ripleybot.com) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (ripleybot.com/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Dues never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $14.99/month) and Dues takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
 
 Key product facts:
 - 0% platform fees on sales; flat plans: Free (10 paying members), Starter $14.99/mo (50), Growth $44.99/mo (500), Scale $134.99/mo (unlimited)
@@ -1272,12 +1272,12 @@ Key product facts:
 - [Best Discord monetization platforms](${BASE}/alternatives/best-discord-monetization-platforms)
 
 ## Compare
-- [Ripley vs Whop](${BASE}/vs/whop)
-- [Ripley vs LaunchPass](${BASE}/vs/launchpass)
-- [Ripley vs Subscord](${BASE}/vs/subscord)
-- [Ripley vs DoorFee](${BASE}/vs/doorfee)
-- [Ripley vs XOE](${BASE}/vs/xoe)
-- [Ripley vs Patreon](${BASE}/vs/patreon)
+- [Dues vs Whop](${BASE}/vs/whop)
+- [Dues vs LaunchPass](${BASE}/vs/launchpass)
+- [Dues vs Subscord](${BASE}/vs/subscord)
+- [Dues vs DoorFee](${BASE}/vs/doorfee)
+- [Dues vs XOE](${BASE}/vs/xoe)
+- [Dues vs Patreon](${BASE}/vs/patreon)
 - [All comparisons](${BASE}/vs)
 
 ## Guides
