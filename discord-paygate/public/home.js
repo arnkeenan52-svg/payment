@@ -63,63 +63,11 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   });
 }
 
-// ── hero media: animated tour image, upgraded to real video when proven ──────
-// The markup ships an animated WebP <img> — it renders and moves everywhere:
-// no codec negotiation, no autoplay policy, no range requests, works with JS
-// disabled. Here we build a <video> OFF-DOM and swap it in only after the
-// browser has decoded frames AND started playback, so a broken video stack
-// can never take the motion away.
-(() => {
-  const img = $('#hero-media');
-  if (!img) return;
-  // The hero is a static Dues dashboard frame while the animated screen tour
-  // is re-recorded under the new brand. Skip the video upgrade entirely so no
-  // old-brand footage ever loads.
-  return;
-  // eslint-disable-next-line no-unreachable
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    img.src = '/shot-dashboard.png?v=105'; // hold a still frame instead
-    return;
-  }
-
-  const v = document.createElement('video');
-  v.className = 'hero-video';
-  v.muted = true;
-  v.loop = true;
-  v.autoplay = true;
-  v.preload = 'auto';
-  v.playsInline = true;
-  v.setAttribute('playsinline', ''); // older iOS reads the attribute, not the prop
-  v.width = 1920;
-  v.height = 1080;
-  v.setAttribute('aria-label', img.alt);
-
-  const sources = [
-    ['/hero-demo.mp4?v=105', 'video/mp4; codecs="avc1.640028"'],
-    ['/hero-demo.webm?v=105', 'video/webm; codecs="vp9"'],
-  ];
-  const playable = sources.filter(([, t]) => v.canPlayType(t) !== '');
-  if (!playable.length) return; // the animated image simply stays
-
-  let upgraded = false;
-  v.addEventListener('playing', () => {
-    if (upgraded || v.readyState < 2) return;
-    upgraded = true;
-    img.replaceWith(v);
-  });
-
-  let at = 0;
-  const load = () => {
-    v.src = playable[at][0];
-    v.load();
-    v.play().catch(() => {}); // refused autoplay → the image stays; no harm done
-  };
-  v.addEventListener('error', () => {
-    at += 1;
-    if (!upgraded && at < playable.length) load();
-  });
-  load();
-})();
+// ── hero media ───────────────────────────────────────────────────────────────
+// The hero is a pure-CSS auto-pan over a themed dashboard screenshot (see
+// styles.css → "Hero: the dashboard scrolls itself"). It themes and animates
+// entirely in CSS — dark shot on the Black theme, light shot on the White theme
+// — so there's nothing to wire up here and it autoplays everywhere.
 
 // ── pricing: monthly / yearly toggle (two months free on yearly) ─────────────
 (() => {

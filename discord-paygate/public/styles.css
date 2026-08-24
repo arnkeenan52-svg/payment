@@ -2995,3 +2995,26 @@ body.home .hiw-step:hover {
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--brand-1) 38%, var(--edge));
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Hero: the dashboard scrolls itself. A slow auto-pan over a themed screenshot
+   — dark dashboard on the Black theme, light dashboard on the White theme, both
+   the same shot — so it reads as a live product tour. Pure CSS: autoplays in
+   every browser (no codec/autoplay policy/JS), and reduced-motion holds still.
+   ═══════════════════════════════════════════════════════════════════════════ */
+body.home .browser-frame .hero-video {
+  background: #0a0a0a url('/hero-dash-dark.webp?v=106') no-repeat center top;
+  background-size: 100% auto;
+  animation: heroPan 26s ease-in-out infinite alternate;
+}
+html[data-theme='light'] body.home .browser-frame .hero-video {
+  background-color: #fafaf8;
+  background-image: url('/hero-dash-light.webp?v=106');
+}
+@keyframes heroPan {
+  0%   { background-position: center top; }
+  100% { background-position: center bottom; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.home .browser-frame .hero-video { animation: none; }
+}
