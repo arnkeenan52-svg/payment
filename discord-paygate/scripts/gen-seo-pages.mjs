@@ -15,14 +15,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://www.ripleybot.com';
-const V = '98'; // keep in step with the ?v= asset version on index.html
+const V = '99'; // keep in step with the ?v= asset version on index.html
 
 // Dues plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
   { name: 'Free', priceUsd: 0, maxMembers: 10 },
-  { name: 'Starter', priceUsd: 14.99, maxMembers: 50 },
-  { name: 'Growth', priceUsd: 44.99, maxMembers: 500 },
-  { name: 'Scale', priceUsd: 134.99, maxMembers: null },
+  { name: 'Pro', priceUsd: 14.99, maxMembers: 50 },
+  { name: 'Max', priceUsd: 44.99, maxMembers: 500 },
+  { name: 'Unlimited', priceUsd: 134.99, maxMembers: null },
 ];
 
 // Competitors, with the same publicly-listed numbers the homepage calculator
@@ -246,7 +246,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=98" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=99" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/#features">Features</a>
@@ -263,7 +263,7 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=98" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=99" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -323,10 +323,10 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta property="og:url" content="${canonical}" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" href="/favicon.png?v=98" />
+  <link rel="icon" type="image/png" href="/favicon.png?v=99" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
-  <script src="/theme.js?v=98"></script>
+  <script src="/theme.js?v=99"></script>
 </head>
 <body class="home seo-page">
 ${nav}
@@ -1254,7 +1254,7 @@ emit(
 > Dues (https://www.ripleybot.com) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (ripleybot.com/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Dues never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $14.99/month) and Dues takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
 
 Key product facts:
-- 0% platform fees on sales; flat plans: Free (10 paying members), Starter $14.99/mo (50), Growth $44.99/mo (500), Scale $134.99/mo (unlimited)
+- 0% platform fees on sales; flat plans: Free (10 paying members), Pro $14.99/mo (50), Max $44.99/mo (500), Unlimited $134.99/mo (unlimited)
 - Payments settle in the owner's own Stripe account (owner supplies their Stripe key)
 - Instant role delivery (~2s) and automatic removal on cancellation/lapse; hourly access re-checks
 - Store page at ripleybot.com/<name> with the server's branding and product photos
