@@ -2997,24 +2997,28 @@ body.home .hiw-step:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Hero: the dashboard scrolls itself. A slow auto-pan over a themed screenshot
-   — dark dashboard on the Black theme, light dashboard on the White theme, both
-   the same shot — so it reads as a live product tour. Pure CSS: autoplays in
-   every browser (no codec/autoplay policy/JS), and reduced-motion holds still.
+   Hero: the dashboard scrolls itself. Two themed screenshots (dark on Black,
+   light on White) scrolled by transform:translateY — GPU-accelerated so it
+   autoplays reliably in every browser incl. iOS Safari (background-position
+   animation does not). Reduced-motion holds the top frame.
    ═══════════════════════════════════════════════════════════════════════════ */
 body.home .browser-frame .hero-video {
-  background: #0a0a0a url('/hero-dash-dark.webp?v=106') no-repeat center top;
-  background-size: 100% auto;
-  animation: heroPan 26s ease-in-out infinite alternate;
+  position: relative; overflow: hidden; aspect-ratio: 1920 / 1080;
+  width: 100%; background: #0a0a0a;
 }
-html[data-theme='light'] body.home .browser-frame .hero-video {
-  background-color: #fafaf8;
-  background-image: url('/hero-dash-light.webp?v=106');
+html[data-theme='light'] body.home .browser-frame .hero-video { background: #fafaf8; }
+body.home .hv-shot {
+  position: absolute; top: 0; left: 0; width: 100%; height: auto; display: block;
+  will-change: transform;
+  animation: heroScroll 15s ease-in-out infinite alternate;
 }
-@keyframes heroPan {
-  0%   { background-position: center top; }
-  100% { background-position: center bottom; }
+body.home .hv-light { display: none; }
+html[data-theme='light'] body.home .hv-dark { display: none; }
+html[data-theme='light'] body.home .hv-light { display: block; }
+@keyframes heroScroll {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-49.5%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  body.home .browser-frame .hero-video { animation: none; }
+  body.home .hv-shot { animation: none; }
 }
