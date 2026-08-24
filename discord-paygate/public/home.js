@@ -70,7 +70,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
 (() => {
   const v = document.getElementById('hero-media');
   if (!v || v.tagName !== 'VIDEO') return;
-  const V = '115';
+  const V = '116';
   const apply = () => {
     const light = document.documentElement.dataset.theme === 'light';
     const want = `/hero-tour-${light ? 'light' : 'dark'}.mp4?v=${V}`;

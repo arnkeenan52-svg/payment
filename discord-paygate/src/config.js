@@ -36,15 +36,7 @@ function loadPlans() {
 const env = (key, fallback = '') => process.env[key] ?? fallback;
 const num = (key, fallback) => Number(process.env[key] ?? fallback);
 
-// Domain bridge (ripleybot.com → dues.gg): the platform moved and the old
-// domain no longer serves. The production PUBLIC_BASE_URL still says
-// ripleybot.com (verified empirically — removing this bridge flipped live
-// og:url back to the dead host), so it is rewritten here until the env var
-// really is updated for the Production environment. Remove only after a
-// bridge-less deploy keeps emitting https://dues.gg.
-const publicBaseUrl = env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`)
-  .replace(/\/$/, '')
-  .replace(/^https:\/\/(www\.)?ripleybot\.com$/, 'https://dues.gg');
+const publicBaseUrl = env('PUBLIC_BASE_URL', `http://localhost:${num('PORT', 4000)}`).replace(/\/$/, '');
 const isProd = publicBaseUrl.startsWith('https://');
 
 // SESSION_SECRET signs session cookies AND derives the at-rest key for every
