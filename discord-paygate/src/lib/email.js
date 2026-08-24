@@ -39,7 +39,15 @@ export async function receiptFrom() {
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
-        const verified = ((await res.json()).data ?? []).find((d) => d.status === 'verified');
+        const domains = ((await res.json()).data ?? []).filter((d) => d.status === 'verified');
+        // Prefer the domain the site actually lives on: after a domain move
+        // (ripleybot.com → dues.gg) BOTH can be verified at once, and the
+        // first-listed one would keep sending from the old brand forever.
+        let host = null;
+        try {
+          host = new URL(config.publicBaseUrl).hostname.replace(/^www\./, '');
+        } catch { /* dev base — any verified domain will do */ }
+        const verified = domains.find((d) => host && (d.name === host || host.endsWith(`.${d.name}`))) ?? domains[0];
         if (verified) from = `Dues <receipts@${verified.name}>`;
       }
     }
