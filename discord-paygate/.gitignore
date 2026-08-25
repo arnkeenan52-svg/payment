@@ -14,3 +14,4 @@ tmp-hero-frames/
 # scripts/build-film.mjs frame output — regenerated, never committed
 tmp-film-frames/
 tmp-hero-frames/
+tmp-film-audio.wav

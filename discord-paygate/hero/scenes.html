@@ -1173,6 +1173,41 @@ const FILM = [
   { key: 'endcard', el: 's-end', at: 18.85, dur: 1.15, sc: () => ENDCARD },
 ];
 
+// CARRY-THROUGH. The teardown's single most important finding about the
+// reference: "the S chip is the carry-over object and it never stops existing".
+// A junction where one object visibly BECOMES the next scene's object reads as
+// one continuous move; two unrelated things crossfading reads as a cut with a
+// blur on it, which is what four earlier attempts at this video did.
+//
+// Each entry maps the outgoing scene's key element onto the incoming scene's key
+// element. Boxes are in the 1920x1080 layout space, centre and size, so the
+// transform is just the difference between two rectangles.
+const CARRY = [
+  {
+    at: 3.40, dur: 0.42,
+    // The store card collapses into the Stripe slab. Same object, same rotation
+    // continuing — which is why scene 3 lands its slab with a rotateZ still
+    // running down to zero rather than appearing square.
+    from: { sel: '#s-store .card', cx: 960, cy: 630, w: 1452 },
+    to: { sel: '#s-stripe .slab', cx: 960, cy: 596, w: 448 },
+  },
+  {
+    at: 11.85, dur: 0.40,
+    // The clearest carry in the film: the live store preview the seller has just
+    // been theming IS the page the buyer lands on. It grows into the browser
+    // window rather than being replaced by it.
+    from: { sel: '#s-theme .prev', cx: 1420, cy: 544, w: 700 },
+    to: { sel: '#s-shop .win', cx: 960, cy: 550, w: 1120 },
+  },
+  {
+    at: 18.85, dur: 0.38,
+    // The #sale-alerts panel shrinks into its own place on the endcard, so the
+    // last beat is assembled out of the film rather than cut to.
+    from: { sel: '#alerts .panel', cx: 960, cy: 540, w: 1080 },
+    to: { sel: '#s-end .mock.dark', cx: 560, cy: 750, w: 700 },
+  },
+];
+
 const FILM_SCENE = {
   stage: null,
   duration: 20.0,
@@ -1197,13 +1232,17 @@ const FILM_SCENE = {
     const washDn = seg(t, 5.52, 0.33);
     wash.style.opacity = (0.88 * (washUp - washDn)).toFixed(4);
 
+    // Which beats are inside a carry, so the generic exit does not fight it.
+    const carrying = new Set();
+    CARRY.forEach((c) => {
+      if (t >= c.at - c.dur && t <= c.at + c.dur) { carrying.add(c.from.sel); carrying.add(c.to.sel); }
+    });
+
     FILM.forEach((b) => {
       const el = document.getElementById(b.el);
       const sc = b.sc();
       const end = b.at + b.dur;
-      // Each beat stays mounted 0.35s past its own end so the junction has two
-      // scenes to work with. Outside that it is fully hidden and costs nothing.
-      const live = t >= b.at - 0.35 && t <= end + 0.35;
+      const live = t >= b.at - 0.45 && t <= end + 0.45;
       if (!live) { el.style.opacity = '0'; return; }
 
       sc.apply(clamp01((t - b.at) / b.dur) * b.dur);
@@ -1216,10 +1255,41 @@ const FILM_SCENE = {
       const out = seg(t, end - 0.06, 0.20, (x) => x);
       el.style.opacity = Math.max(0, inn - out).toFixed(4);
 
-      // The outgoing beat keeps MOVING as it leaves. A scene that freezes and
-      // fades reads as a slide; one that accelerates out reads as a camera.
-      el.style.transform = out > 0 ? `scale(${(1 + 0.055 * out).toFixed(4)})` : 'none';
-      el.style.filter = out > 0 ? `blur(${(9 * out).toFixed(2)}px)` : 'none';
+      // A scene that freezes and fades reads as a slide; one that accelerates
+      // out reads as a camera. Suppressed where a carry is doing the work.
+      const inCarry = [...carrying].some((sel) => el.contains(document.querySelector(sel)));
+      el.style.transform = out > 0 && !inCarry ? `scale(${(1 + 0.055 * out).toFixed(4)})` : 'none';
+      el.style.filter = out > 0 && !inCarry ? `blur(${(9 * out).toFixed(2)}px)` : 'none';
+    });
+
+    // Run the carries last, so they overwrite whatever the generic pass wrote.
+    CARRY.forEach((c) => {
+      const a = document.querySelector(c.from.sel);
+      const bEl = document.querySelector(c.to.sel);
+      if (!a || !bEl) return;
+      const p = seg(t, c.at - c.dur * 0.55, c.dur, inOutCubic);
+      if (p <= 0 || p >= 1) return;
+      // The incoming element sits above the outgoing one for the whole carry, so
+      // the handoff never depends on document order.
+      bEl.style.zIndex = '60';
+      a.style.zIndex = '59';
+
+      const k = c.to.w / c.from.w;
+      // Outgoing: travel all the way onto the incoming element's rectangle.
+      a.style.transformOrigin = 'center center';
+      a.style.transform =
+        `translate(${lerp(0, c.to.cx - c.from.cx, p).toFixed(1)}px, ${lerp(0, c.to.cy - c.from.cy, p).toFixed(1)}px) scale(${lerp(1, k, p).toFixed(4)})`;
+      a.style.opacity = (1 - clamp01((p - 0.52) / 0.26)).toFixed(3);
+      a.parentElement.style.opacity = '1';
+
+      // Incoming: arrive FROM the outgoing element's rectangle, so for the frames
+      // where both exist they occupy the same box and the swap is invisible.
+      const ik = c.from.w / c.to.w;
+      bEl.style.transformOrigin = 'center center';
+      bEl.style.transform =
+        `translate(${lerp(c.from.cx - c.to.cx, 0, p).toFixed(1)}px, ${lerp(c.from.cy - c.to.cy, 0, p).toFixed(1)}px) scale(${lerp(ik, 1, p).toFixed(4)})`;
+      bEl.style.opacity = clamp01((p - 0.46) / 0.24).toFixed(3);
+      bEl.parentElement.style.opacity = '1';
     });
   },
 };
