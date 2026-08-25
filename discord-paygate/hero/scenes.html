@@ -39,13 +39,27 @@
        savings calculator. Painting it here would advertise an embed Dues has
        never sent. */
     --good: #ffffff;
+    --well: #0c0c0c;
+    --raised: #141414;
+    --edge-hot: #3d3d3d;   /* every extruded side face. FLAT — see .side below */
+    --accent: #ededed;     /* the shipped primary. NOT green. */
+    --accent-ink: #0a0a0a;
+    --faint: #4a4a4a;
+    --blurple: #5865f2;
+    --stripe: #635bff;
     --grotesk: 'Dues Grotesk', 'Space Grotesk', system-ui, sans-serif;
     --sans: 'Dues Sans', 'DM Sans', system-ui, sans-serif;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     width: 1920px; height: 1080px;
-    background: var(--bg); color: var(--ink);
+    background:
+      linear-gradient(50deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.02) 100%),
+      linear-gradient(140deg,
+        #0a0a0a 0%, #0a0a0a 12.2%, #121212 12.2%, #161616 31%,
+        #1a1a1a 47%, #1a1a1a 53%, #161616 71%, #121212 87.2%,
+        #0a0a0a 87.2%, #0a0a0a 100%);
+    color: var(--ink);
     font-family: var(--sans);
     overflow: hidden;
     /* Screen recordings of dark UI show banding badly once compressed; the
@@ -172,6 +186,107 @@
     background: radial-gradient(circle, rgba(245,245,244,0.9) 0%, rgba(245,245,244,0) 68%);
     mix-blend-mode: screen; will-change: transform, opacity;
   }
+
+  /* ── shared film furniture ──────────────────────────────────────────────── */
+  /* Titles. A title that arrives WITH a new scene shares that scene's blur; a
+     title that changes INSIDE a settled scene uses the per-glyph sweep. That is
+     a real distinction in the reference, not a stylistic choice. */
+  .title {
+    position: absolute; left: 0; right: 0; top: 118px;
+    text-align: center; font-family: var(--grotesk); font-weight: 700;
+    font-size: 72px; letter-spacing: -0.025em; color: var(--ink);
+    will-change: filter, opacity;
+  }
+  .title span { display: inline-block; white-space: pre; will-change: transform, opacity; }
+  .sub { position: absolute; left: 0; right: 0; text-align: center; color: var(--dim); font-size: 26px; }
+
+  /* Real extruded depth. NOT a box-shadow: the reference's side faces measure
+     row-wise luma sd 0.3-0.7, i.e. there is no lighting anywhere in this film,
+     and a shadow reads as a sticker stuck on the frame. */
+  .solid { transform-style: preserve-3d; }
+  .solid > .side {
+    position: absolute; inset: 0; background: var(--edge-hot);
+    border-radius: inherit;
+    transform: translateZ(-24px) translate(9px, 15px);
+    z-index: 0;
+  }
+  .solid > .face { position: absolute; inset: 0; border-radius: inherit; z-index: 1; }
+
+  .card { position: absolute; border-radius: 21px; will-change: transform, opacity; }
+  .card > .face { background: var(--panel); border: 1px solid var(--edge); }
+  .fieldrow { background: var(--panel-2); border-radius: 12px; overflow: hidden; }
+  .btn {
+    background: var(--accent); color: var(--accent-ink); border-radius: 12px;
+    font-family: var(--grotesk); font-weight: 700; text-align: center; overflow: hidden;
+  }
+  /* A designed prop, not an OS pointer — the reference's cursor is a large
+     stylised arrow that reads at a glance on a 1920 frame. */
+  .cursor { position: absolute; width: 54px; height: 74px; will-change: transform; z-index: 40; }
+
+  /* ── 1 title ────────────────────────────────────────────────────────────── */
+  /* Frame 0 is BARE GROUND. The spec opened on a dead-still logo to make the
+     loop pixel-exact; the adversarial pass killed that — the reference's frame 0
+     is empty and its headline is already working by frame 2. A loop property
+     nobody can perceive is not worth the opening. */
+  #s-title .headline { top: 470px; font-size: 92px; }
+
+  /* ── 2 store ────────────────────────────────────────────────────────────── */
+  #s-store .wrap { position: absolute; inset: 0; perspective: 15000px; }
+  #s-store .card { width: 1452px; height: 660px; left: 234px; top: 300px; }
+  #s-store .steps { position: absolute; left: 60px; top: 92px; }
+  #s-store .step { display: flex; align-items: center; gap: 16px; margin-bottom: 34px; font-size: 25px; color: var(--dim); }
+  #s-store .step b { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+    border: 2px solid var(--edge-hot); font-size: 18px; color: var(--faint); }
+  #s-store .step.on b { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  #s-store .step.on { color: var(--ink); }
+  #s-store .body { position: absolute; left: 520px; top: 76px; right: 74px; }
+  #s-store h2 { font-family: var(--grotesk); font-size: 66px; letter-spacing: -0.02em; margin-bottom: 54px; }
+  #s-store .lab { font-size: 24px; color: var(--dim); margin-bottom: 30px; }
+  #s-store .fieldrow { height: 88px; display: flex; align-items: center; padding: 0 26px; font-size: 30px; color: var(--ink); }
+  #s-store .btn { margin-top: 56px; height: 86px; line-height: 86px; font-size: 30px; }
+
+  /* ── 3 stripe ───────────────────────────────────────────────────────────── */
+  /* POSE A, the "hero slab" — the film's only hard 3D. perspective 2600px and
+     rotateX(60deg), solved analytically from the reference's symmetric edge
+     slopes and trapezoid taper (theta is tight at 59.3-60.3deg).
+     THE FACE IS WHITE. The spec had it dark-on-dark; the adversarial pass
+     measured the reference sitting at Lmean 180-225 with 36-46% saturated pixels
+     and called a dark slab on a dark ground the reason the beat would die. This
+     is the real Dues lockup inverted, and it is exactly the reference's own
+     white-keycap-with-black-glyph. */
+  #s-stripe .rig { position: absolute; inset: 0; perspective: 2600px; }
+  #s-stripe .slab {
+    position: absolute; left: 736px; top: 372px; width: 448px; height: 448px;
+    border-radius: 38px; transform-style: preserve-3d; will-change: transform;
+  }
+  #s-stripe .slab .top {
+    position: absolute; inset: 0; border-radius: 38px; background: var(--ink);
+    display: grid; place-items: center;
+  }
+  #s-stripe .slab .top img { width: 250px; filter: invert(1); }
+  #s-stripe .slab .sidef {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 60px;
+    background: var(--ink); border-radius: 0 0 38px 38px;
+    transform-origin: bottom center; transform: rotateX(-90deg);
+  }
+  /* A hard-edged cone, fixed geometry — the reference's is a clip-path polygon,
+     not a soft radial, and softening it is what would make it read as a glow. */
+  #s-stripe .cone {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(245,245,244,0.16), rgba(245,245,244,0));
+    clip-path: polygon(246px 0, 1674px 0, 1130px 1080px, 790px 1080px);
+    will-change: opacity;
+  }
+  #s-stripe .rule { position: absolute; left: 0; top: 690px; height: 13px; background: var(--edge); }
+  #s-stripe .rule.l { right: 50%; transform-origin: right center; }
+  #s-stripe .rule.r { left: 50%; right: 0; transform-origin: left center; }
+  #s-stripe .comet { position: absolute; top: 690px; width: 180px; height: 13px; will-change: transform, opacity; }
+  #s-stripe .keyfield {
+    position: absolute; left: 660px; top: 872px; width: 600px; height: 74px;
+    background: var(--panel-2); border-radius: 12px; display: flex; align-items: center;
+    padding: 0 24px; font-size: 27px; color: var(--dim); font-family: var(--sans);
+  }
+  #s-stripe .fine { top: 812px; font-size: 25px; }
 </style>
 </head>
 <body>
@@ -183,6 +298,51 @@
   </div>
 </div>
 
+
+
+<div class="stage" id="s-title">
+  <div class="title headline" data-text="Sell Discord roles. Keep every dollar."></div>
+</div>
+
+<div class="stage" id="s-store">
+  <div class="wrap">
+    <div class="card solid">
+      <div class="side"></div>
+      <div class="face">
+      <div class="steps">
+        <div class="step on"><b>&#10003;</b>Invite the bot</div>
+        <div class="step"><b>2</b>Connect Stripe</div>
+        <div class="step"><b>3</b>Create a product</div>
+        <div class="step"><b>4</b>Pick the role</div>
+      </div>
+      <div class="body">
+        <h2>Name your store</h2>
+        <div class="lab">Store name</div>
+        <div class="fieldrow"><span class="iris">Dues Membership</span></div>
+        <div class="btn"><span class="iris">Create store</span></div>
+      </div>
+      </div>
+    </div>
+  </div>
+  <svg class="cursor" viewBox="0 0 54 74"><path d="M4 2 48 40 28 42 38 66 28 70 18 46 4 58Z"
+    fill="#f5f5f4" stroke="#0a0a0a" stroke-width="3" stroke-linejoin="round"/></svg>
+</div>
+
+
+<div class="stage" id="s-stripe">
+  <div class="cone"></div>
+  <div class="title" data-text="Connect your own Stripe key"></div>
+  <div class="rule l"></div><div class="rule r"></div>
+  <div class="comet" id="cometL"></div><div class="comet" id="cometR"></div>
+  <div class="rig">
+    <div class="slab">
+      <div class="sidef"></div>
+      <div class="top"><img src="../assets/dues-mark.png" alt="" /></div>
+    </div>
+  </div>
+  <div class="sub fine">Payouts land in your Stripe account. Dues takes 0%.</div>
+  <div class="keyfield">rk_live_&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</div>
+</div>
 
 <div class="stage" id="burst">
   <div class="stage-in">
@@ -415,7 +575,182 @@ const BURST = {
   },
 };
 
-const SCENES = { brand: BRAND, burst: BURST, alerts: ALERTS };
+
+// ── shared helpers for the scene set ─────────────────────────────────────────
+const inQuint = (x) => x * x * x * x * x;
+const inQuad = (x) => x * x;
+const outQuad = (x) => 1 - (1 - x) * (1 - x);
+const inOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+// Extremely sharp middle: the reference's chip landing puts 80% of its travel
+// into 0.13s (measured per-frame displacement 3,0,3,6,18,54,135,48,15,6,0).
+const expoInOut = (x) =>
+  x === 0 ? 0 : x === 1 ? 1 : x < 0.5 ? Math.pow(2, 20 * x - 10) / 2 : (2 - Math.pow(2, -20 * x + 10)) / 2;
+
+// Split a line into per-glyph spans ONCE. The sweep then only writes opacity and
+// transform, never innerHTML.
+// Titles carry their copy in data-text so a scene can render it either way.
+// Fill every one at build time: a scene using the whole-line blur never calls
+// sweep(), and before this ran those headlines rendered as nothing at all.
+function fillTitles() {
+  document.querySelectorAll('[data-text]').forEach((el) => {
+    if (!el.dataset.built && !el.textContent) el.textContent = el.dataset.text;
+  });
+}
+
+function glyphs(el) {
+  if (el.dataset.built) return [...el.children];
+  el.innerHTML = [...el.dataset.text].map((c) => `<span>${c === ' ' ? '&nbsp;' : c}</span>`).join('');
+  el.dataset.built = '1';
+  return [...el.children];
+}
+
+// THE FILM'S SIGNATURE MOVE. Each glyph arrives blurred and resolves, the front
+// sweeping left to right. The blur is ONE filter on the PARENT — never one per
+// span, which would be 40 composited layers per frame at 3840x2160.
+function sweep(el, t, at, per = 0.0123, dur = 0.082) {
+  const gs = glyphs(el);
+  let front = 0;
+  gs.forEach((g, i) => {
+    const p = clamp01((t - at - i * per) / dur);
+    front = Math.max(front, p);
+    g.style.opacity = p.toFixed(3);
+    g.style.transform = `translateY(${lerp(7, 0, outExpo(p)).toFixed(2)}px)`;
+  });
+  const whole = clamp01((t - at) / (per * gs.length + dur));
+  el.style.filter = whole < 1 ? `blur(${(6 * (1 - whole)).toFixed(2)}px)` : 'none';
+  return front;
+}
+
+// ── scene 1: title ────────────────────────────────────────────────────────────
+// Frame 0 is bare ground. The reference's own opening is empty for exactly two
+// frames and then works immediately; an earlier draft held a dead-still logo for
+// 0.45s to make the loop pixel-exact, which bought a property nobody watching can
+// perceive at the cost of the one moment everybody sees.
+const TITLE = {
+  stage: 's-title',
+  duration: 1.15,
+  apply(t) {
+    const h = document.querySelector('#s-title .headline');
+    sweep(h, t, 0.067);
+    // EXIT RAMP. inQuint, so terminal velocity is ~33px per 40ms and the audience
+    // is already reading "this is leaving" before the swap.
+    const out = seg(t, 0.45, 0.65, inQuint);
+    h.style.transform = `translateY(${lerp(0, -108, out).toFixed(2)}px) scale(${lerp(1, 1.04, out).toFixed(4)})`;
+    h.style.opacity = (1 - seg(t, 1.05, 0.10, (x) => x)).toFixed(3);
+  },
+};
+
+// ── scene 2: store ────────────────────────────────────────────────────────────
+// POSE B, the "document card": near-orthographic (perspective 15000px) with a
+// small rotateZ. Measured taper is only 4%, against pose A's 16% — the two poses
+// are structurally different and using one for both flattens the film.
+const STORE = {
+  stage: 's-store',
+  duration: 2.25,
+  apply(t) {
+    const card = document.querySelector('#s-store .card');
+    const cur = document.querySelector('#s-store .cursor');
+    const btn = document.querySelector('#s-store .btn');
+
+    // The card BLOWS OUT OF THE SEED left by the title's exit: one frame from
+    // nothing to 0.77, then it settles. It scales and rises — it never flips.
+    const grow = t < 0.001 ? 0 : lerp(0.77, 1, seg(t, 0.0, 0.33));
+    card.style.transform =
+      `translateY(${lerp(168, 0, seg(t, 0, 0.33)).toFixed(1)}px) rotateZ(-5.7deg) rotateY(1.6deg) scale(${grow.toFixed(4)})`;
+    card.style.opacity = t < 0.001 ? '0' : '1';
+
+    // IRIS. clip-path opening from the centre over a STATICALLY positioned label,
+    // which is provable in the reference: mid-open its field reads "iness Club".
+    const iris = (el, at, dur) => {
+      const p = seg(t, at, dur, inOutCubic);
+      el.style.clipPath = `inset(0 ${(46 * (1 - p)).toFixed(2)}% 0 ${(46 * (1 - p)).toFixed(2)}%)`;
+    };
+    iris(document.querySelector('#s-store .fieldrow'), 0.05, 0.60);
+    iris(document.querySelector('#s-store .btn'), 0.18, 0.62);
+
+    // CURSOR on a genuine arc: x eases with inQuad, y with outQuad. Two curves on
+    // two axes is the whole trick — one eased translate along a straight line
+    // reads as wrong even when nobody can say why.
+    const fly = clamp01((t - 0.05) / 0.50);
+    const cx = lerp(-140, 1180, inQuad(fly));
+    const cy = lerp(1220, 812, outQuad(fly));
+    // PRESS at 1.30. The cursor's dip is measurably deeper than the button's —
+    // keep the asymmetry, it is what sells the contact.
+    const down = seg(t, 1.30, 0.067, inQuad);
+    const up = seg(t, 1.367, 0.133);
+    const press = down - up;
+    cur.style.transform = `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${(1 - 0.21 * press).toFixed(4)})`;
+    btn.style.transform = `scale(${(1 - 0.146 * press).toFixed(4)})`;
+  },
+};
+
+
+// ── scene 3: stripe ───────────────────────────────────────────────────────────
+const STRIPE_S = {
+  stage: 's-stripe',
+  duration: 2.2,
+  apply(t) {
+    const slab = document.querySelector('#s-stripe .slab');
+    const top = document.querySelector('#s-stripe .slab .top');
+    const sidef = document.querySelector('#s-stripe .slab .sidef');
+    const title = document.querySelector('#s-stripe .title');
+    const cone = document.querySelector('#s-stripe .cone');
+
+    // LANDS by continuing scene 2's rotation rather than being re-introduced.
+    // expoInOut with an extremely sharp middle: 80% of the travel in 0.13s,
+    // matching the reference's measured per-frame displacement curve.
+    const land = seg(t, 0, 0.45, expoInOut);
+    slab.style.transform =
+      `translateY(${lerp(-288, 0, land).toFixed(1)}px) rotateX(60deg) rotateZ(${lerp(14.5, 0, land).toFixed(2)}deg)`;
+
+    // A title arriving WITH a new scene shares that scene's blur — it does NOT
+    // use the per-glyph sweep, which is reserved for a title changing inside a
+    // settled scene. Blur is X-only, so it reads as speed rather than softness.
+    const tin = seg(t, 0.30, 0.17);
+    title.style.opacity = tin.toFixed(3);
+    title.style.filter = tin < 1 ? `blur(${(8 * (1 - tin)).toFixed(2)}px)` : 'none';
+
+    // The rule draws in from both sides with a DELIBERATE STAGGER and a SHARED
+    // LANDING: the left half starts earlier and travels slower, the right half
+    // starts later and travels twice as fast, so they arrive together. That is
+    // what reads as designed rather than symmetric-by-default.
+    const l = seg(t, 0.35, 0.20, inOutCubic);
+    const r = seg(t, 0.50, 0.10, inOutCubic);
+    document.querySelector('#s-stripe .rule.l').style.transform = `scaleX(${l.toFixed(4)})`;
+    document.querySelector('#s-stripe .rule.r').style.transform = `scaleX(${r.toFixed(4)})`;
+
+    // IGNITION. The slab's face and its extruded side lerp to Stripe indigo —
+    // the beat's only saturated hue, and the moment the rule stops being --edge.
+    const fire = seg(t, 0.97, 0.43);
+    const mixed = `color-mix(in srgb, #635bff ${(fire * 100).toFixed(1)}%, #f5f5f4)`;
+    top.style.background = mixed;
+    sidef.style.background = mixed;
+    document.querySelectorAll('#s-stripe .rule').forEach((el) => {
+      el.style.background = `color-mix(in srgb, #635bff ${(fire * 100).toFixed(1)}%, #232323)`;
+    });
+    cone.style.opacity = (seg(t, 0.25, 0.35) * (1 - seg(t, 1.85, 0.35))).toFixed(3);
+
+    // COMETS. One 180px gradient sliver per side running inward along the rule.
+    // The most alive-feeling 0.27s in the beat, and it costs nothing.
+    const c = seg(t, 0.60, 0.27, inOutCubic);
+    const fade = 1 - seg(t, 0.80, 0.07, (x) => x);
+    const cl = document.getElementById('cometL');
+    const cr = document.getElementById('cometR');
+    cl.style.background = 'linear-gradient(90deg, transparent, #635bff, transparent)';
+    cr.style.background = 'linear-gradient(90deg, transparent, #635bff, transparent)';
+    cl.style.transform = `translateX(${lerp(-200, 860, c).toFixed(1)}px)`;
+    cr.style.transform = `translateX(${lerp(1960, 880, c).toFixed(1)}px)`;
+    cl.style.opacity = cr.style.opacity = (c > 0 ? fade : 0).toFixed(3);
+
+    // PRESS. Asymmetric on purpose: 0.20s down on ease-in, a two-frame hold at
+    // the bottom, 0.17s back up on ease-out.
+    const dn = seg(t, 1.42, 0.20, inQuad);
+    const upP = seg(t, 1.69, 0.17);
+    slab.style.marginTop = `${(21 * (dn - upP)).toFixed(2)}px`;
+  },
+};
+
+const SCENES = { brand: BRAND, title: TITLE, store: STORE, stripe: STRIPE_S, burst: BURST, alerts: ALERTS };
 
 const name = new URLSearchParams(location.search).get('scene') || 'brand';
 const scene = SCENES[name];
@@ -423,7 +758,10 @@ if (!scene) {
   document.body.innerHTML = `<pre style="color:#f5f5f4;padding:40px;font:20px monospace">
 unknown scene "${name}" — known: ${Object.keys(SCENES).join(', ')}</pre>`;
 } else {
-  document.getElementById(name).classList.add('on');
+  const stageEl = document.getElementById(scene.stage || name);
+  if (!stageEl) throw new Error(`scene "${name}" declares stage "${scene.stage || name}", which is not in the document`);
+  stageEl.classList.add('on');
+  fillTitles();
   if (scene.build) scene.build();
   scene.apply(0);
 }
