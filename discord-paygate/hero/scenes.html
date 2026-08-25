@@ -335,6 +335,68 @@
   #s-theme .prev .pv-row b { font-size: 27px; }
   #s-theme .prev .pv-row span { margin-left: auto; font-size: 25px; opacity: 0.75; }
   #s-theme .prev .pv-pay { height: 78px; line-height: 78px; text-align: center; font-size: 26px; font-weight: 700; margin-top: 12px; }
+
+  /* ── 6 storefront ───────────────────────────────────────────────────────── */
+  /* The film's ONE LIGHT ISLAND, and it is earned: the previous beat ended on
+     Ivory, a real preset a real seller clicked, so the buyer-facing page simply
+     IS that theme. The reference borrows its light ground; Dues' is a feature. */
+  #s-shop .rig { position: absolute; inset: 0; perspective: 2400px; }
+  #s-shop .win {
+    position: absolute; left: 400px; top: 150px; width: 1120px; height: 800px;
+    background: #faf9f7; color: #161616; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 60px 140px rgba(0,0,0,0.6); will-change: transform, opacity;
+  }
+  #s-shop .bar { height: 62px; background: #ffffff; border-bottom: 1px solid #e6e4df;
+    display: flex; align-items: center; gap: 10px; padding: 0 22px; }
+  #s-shop .dot { width: 13px; height: 13px; border-radius: 50%; background: #d9d6cf; }
+  #s-shop .url { margin-left: 18px; font-size: 20px; color: #8a8880; }
+  #s-shop .body2 { padding: 46px 58px; }
+  #s-shop h3 { font-size: 46px; margin-bottom: 10px; font-family: var(--grotesk); }
+  #s-shop .tag { font-size: 22px; color: #6d6b64; margin-bottom: 40px; }
+  #s-shop .row { display: flex; align-items: center; background: #ffffff; border: 1px solid #e6e4df;
+    border-radius: 14px; padding: 28px 30px; margin-bottom: 18px; }
+  #s-shop .row b { font-size: 29px; }
+  #s-shop .row i { font-style: normal; margin-left: 14px; font-size: 19px; color: #6d6b64; }
+  #s-shop .row span { margin-left: auto; font-size: 27px; }
+  #s-shop .pay { height: 84px; line-height: 84px; text-align: center; background: #161616; color: #faf9f7;
+    border-radius: 14px; font-family: var(--grotesk); font-weight: 700; font-size: 27px; margin-top: 30px; }
+
+  /* ── 9 endcard ──────────────────────────────────────────────────────────── */
+  /* Lockup PLUS product, not a bare lockup. The reference's own endcard carries
+     its wordmark in the upper third and a large tilted device mock filling the
+     lower two-thirds — and every asset the pairing needs already exists by the
+     time the film reaches this frame. */
+  #s-end .lock { position: absolute; left: 0; right: 0; top: 176px; text-align: center; }
+  #s-end .lock img { height: 96px; }
+  #s-end .lock .tag { margin-top: 22px; font-size: 27px; color: var(--dim); }
+  #s-end .lock .tag b { color: var(--ink); }
+  #s-end .rig { position: absolute; left: 0; right: 0; top: 470px; height: 610px; perspective: 2200px; }
+  #s-end .pair { position: absolute; inset: 0; transform-style: preserve-3d; }
+  #s-end .mock {
+    position: absolute; top: 0; width: 700px; height: 560px; border-radius: 18px; overflow: hidden;
+    border: 1px solid var(--edge);
+  }
+  #s-end .mock.dark { left: 210px; background: var(--panel); }
+  #s-end .mock.light { left: 1010px; background: #faf9f7; color: #161616; }
+  /* The pair carries REAL content, not blank slabs. Every element here is a
+     miniature of something the film already showed: the #sale-alerts panel from
+     scene 8 and the Ivory store card from scene 6. An endcard of two empty
+     rectangles says the product has nothing in it. */
+  #s-end .mock .hd { padding: 22px 28px; border-bottom: 1px solid var(--edge);
+    font-family: var(--grotesk); font-weight: 700; font-size: 24px; }
+  #s-end .mock.light .hd { border-bottom-color: #e6e4df; }
+  #s-end .mock .bd { padding: 24px 28px; }
+  #s-end .em { border-left: 4px solid #ffffff; background: var(--panel-2); border-radius: 5px;
+    padding: 14px 18px; margin-bottom: 18px; }
+  #s-end .em b { display: block; font-size: 20px; margin-bottom: 5px; }
+  #s-end .em span { font-size: 18px; color: #c9cec7; }
+  #s-end .em span u { text-decoration: none; color: var(--ink); font-weight: 700; }
+  #s-end .lrow { display: flex; align-items: center; background: #ffffff; border: 1px solid #e6e4df;
+    border-radius: 14px; padding: 22px 24px; margin-bottom: 16px; }
+  #s-end .lrow b { font-size: 24px; }
+  #s-end .lrow span { margin-left: auto; font-size: 22px; }
+  #s-end .lpay { height: 68px; line-height: 68px; text-align: center; background: #161616; color: #faf9f7;
+    border-radius: 14px; font-family: var(--grotesk); font-weight: 700; font-size: 22px; margin-top: 24px; }
 </style>
 </head>
 <body>
@@ -424,6 +486,48 @@
   </div></div>
   <svg class="cursor" viewBox="0 0 54 74"><path d="M4 2 48 40 28 42 38 66 28 70 18 46 4 58Z"
     fill="#f5f5f4" stroke="#0a0a0a" stroke-width="3" stroke-linejoin="round"/></svg>
+</div>
+
+
+<div class="stage" id="s-shop">
+  <div class="rig"><div class="win">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="url">dues.gg/dues-membership</span></div>
+    <div class="body2">
+      <h3>Dues Membership</h3>
+      <div class="tag">Premium roles, private channels and member-only drops.</div>
+      <div class="row"><b>VIP Access</b><i>One-time</i><span>$49.99</span></div>
+      <div class="row"><b>Signals Monthly</b><i>Monthly</i><span>$14.99 / mo</span></div>
+      <div class="pay">Pay with card</div>
+    </div>
+  </div></div>
+  <svg class="cursor" viewBox="0 0 54 74"><path d="M4 2 48 40 28 42 38 66 28 70 18 46 4 58Z"
+    fill="#f5f5f4" stroke="#0a0a0a" stroke-width="3" stroke-linejoin="round"/></svg>
+</div>
+
+<div class="stage" id="s-end">
+  <div class="lock">
+    <img src="../assets/dues-mark.png" alt="Dues" />
+    <div class="tag">Sell Discord roles. <b>Keep every dollar.</b></div>
+  </div>
+  <div class="rig"><div class="pair">
+    <div class="mock dark">
+      <div class="hd"># sale-alerts</div>
+      <div class="bd">
+        <div class="em"><b>New Subscriber!</b><span>@drift139 just bought Inner Circle &middot; <u>$79.99</u></span></div>
+        <div class="em"><b>New Subscriber!</b><span>@nova142 just bought VIP Access &middot; <u>$49.99</u></span></div>
+        <div class="em"><b>New Subscriber!</b><span>@halo151 just bought Signals Monthly &middot; <u>$14.99</u></span></div>
+      </div>
+    </div>
+    <div class="mock light">
+      <div class="hd">Dues Membership</div>
+      <div class="bd">
+        <div class="lrow"><b>VIP Access</b><span>$49.99</span></div>
+        <div class="lrow"><b>Signals Monthly</b><span>$14.99 / mo</span></div>
+        <div class="lpay">Pay with card</div>
+      </div>
+    </div>
+  </div></div>
 </div>
 
 <div class="stage" id="burst">
@@ -982,7 +1086,61 @@ const THEME_SC = {
   },
 };
 
-const SCENES = { brand: BRAND, title: TITLE, store: STORE, stripe: STRIPE_S, product: PRODUCT, theme: THEME_SC, burst: BURST, alerts: ALERTS };
+
+// ── scene 6: storefront ───────────────────────────────────────────────────────
+const SHOP = {
+  stage: 's-shop',
+  duration: 2.15,
+  apply(t) {
+    const win = document.querySelector('#s-shop .win');
+    const cur = document.querySelector('#s-shop .cursor');
+    const pay = document.querySelector('#s-shop .pay');
+
+    // The window arrives by settling TOWARD the camera rather than sliding from
+    // an edge — an edge slide would imply a direction the burst then has to
+    // honour, and the burst ignites from a point.
+    const inn = seg(t, 0, 0.45);
+    win.style.opacity = inn.toFixed(3);
+    win.style.transform = `rotateX(${lerp(9, 0, inn).toFixed(2)}deg) scale(${lerp(0.90, 1, inn).toFixed(4)})`;
+
+    const rows = document.querySelectorAll('#s-shop .row, #s-shop .pay');
+    rows.forEach((el, i) => {
+      const p = seg(t, 0.34 + i * 0.10, 0.40);
+      el.style.opacity = p.toFixed(3);
+      el.style.transform = `translateY(${lerp(20, 0, p).toFixed(1)}px)`;
+    });
+
+    // The cursor lands on the pay button and presses at 1.72 — the burst's
+    // ignition point (954, 726) is this button's centre, which is what makes
+    // the next beat read as caused rather than cut to.
+    const fly = clamp01((t - 0.70) / 0.55);
+    cur.style.transform =
+      `translate(${lerp(1560, 930, inQuad(fly)).toFixed(0)}px, ${lerp(1180, 700, outQuad(fly)).toFixed(0)}px)`;
+    const press = seg(t, 1.72, 0.07, inQuad) - seg(t, 1.79, 0.13);
+    pay.style.scale = (1 - 0.05 * press).toFixed(4);
+  },
+};
+
+// ── scene 9: endcard ──────────────────────────────────────────────────────────
+const ENDCARD = {
+  stage: 's-end',
+  duration: 1.4,
+  apply(t) {
+    const lock = document.querySelector('#s-end .lock');
+    const pair = document.querySelector('#s-end .pair');
+    const inn = seg(t, 0.05, 0.5);
+    lock.style.opacity = inn.toFixed(3);
+    lock.style.transform = `translateY(${lerp(26, 0, inn).toFixed(1)}px)`;
+    // The two mocks rise as ONE rigid pair on a shared tilt, so they read as a
+    // product family rather than two floating cards.
+    const rise = seg(t, 0.18, 0.62);
+    pair.style.opacity = rise.toFixed(3);
+    pair.style.transform =
+      `rotateX(${lerp(26, 17, rise).toFixed(2)}deg) rotateZ(-4deg) translateY(${lerp(120, 0, rise).toFixed(1)}px)`;
+  },
+};
+
+const SCENES = { brand: BRAND, title: TITLE, store: STORE, stripe: STRIPE_S, product: PRODUCT, theme: THEME_SC, shop: SHOP, burst: BURST, alerts: ALERTS, endcard: ENDCARD };
 
 const name = new URLSearchParams(location.search).get('scene') || 'brand';
 const scene = SCENES[name];
