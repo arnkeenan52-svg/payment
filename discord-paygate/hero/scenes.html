@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dues hero scenes</title>
+<!--
+  Authoring surface for the hero film's designed beats. NOT shipped: it is loaded
+  over file:// by scripts/record-hero.mjs and captured at deviceScaleFactor 2, so
+  a 1920x1080 layout lands as 3840x2160 native pixels.
+
+  WHY THIS EXISTS. The founder kept exactly two beats out of the old cut — the
+  opening title and the new-subscriber alerts — and cut every raw dashboard
+  screencast in between. Those two are the only beats that were composed motion
+  graphics rather than a cursor wandering a UI. That is the brief: the film has to
+  be designed, not recorded. This file is where the designed beats live.
+
+  EVERY ANIMATION IS DRIVEN BY window.__seek(t), NOT BY CSS OR requestAnimationFrame.
+  A screenshot takes far longer than a frame interval, so anything tied to wall
+  clock would desync and stutter. The recorder sets an explicit time, screenshots,
+  advances. The result is a perfect 30fps regardless of how slow capture is, and
+  the same t always produces the same pixels — so a re-shoot months from now is
+  frame-identical and the cut still lines up.
+-->
+<style>
+  /* Installed system-wide by the font pipeline (assets/fonts/README.md). Named
+     rather than @font-face'd because fontconfig already resolves them and
+     Chromium picks them up by family. */
+  :root {
+    --bg: #0a0a0a;
+    --panel: #131313;
+    --panel-2: #191919;
+    --edge: #232323;
+    --ink: #f5f5f4;
+    --dim: #9a9a94;
+    --good: #22c55e;
+    --grotesk: 'Dues Grotesk', 'Space Grotesk', system-ui, sans-serif;
+    --sans: 'Dues Sans', 'DM Sans', system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1920px; height: 1080px;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--sans);
+    overflow: hidden;
+    /* Screen recordings of dark UI show banding badly once compressed; the
+       browser's own subpixel AA also fights the encoder. Greyscale AA keeps
+       glyph edges clean through a 2:1 downscale. */
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { position: absolute; inset: 0; display: none; }
+  .stage.on { display: block; }
+
+  /* ── brand ──────────────────────────────────────────────────────────────── */
+  #brand .lockup {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 26px;
+    will-change: transform, opacity;
+  }
+  #brand .mark { display: flex; align-items: center; gap: 22px; }
+  #brand .mark img { height: 76px; width: auto; display: block; }
+  #brand .tag { font-size: 27px; letter-spacing: -0.01em; color: var(--dim); }
+  #brand .tag b { color: var(--ink); font-weight: 700; }
+
+  /* ── alerts ─────────────────────────────────────────────────────────────── */
+  #alerts .panel {
+    position: absolute; left: 50%; top: 50%;
+    width: 1080px;
+    transform: translate(-50%, -50%);
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 16px;
+    box-shadow: 0 60px 120px rgba(0,0,0,0.65);
+    overflow: hidden;
+    will-change: transform, opacity;
+  }
+  #alerts .chan {
+    display: flex; align-items: center; gap: 10px;
+    padding: 22px 30px;
+    border-bottom: 1px solid var(--edge);
+    font-family: var(--grotesk); font-weight: 700; font-size: 22px;
+  }
+  #alerts .chan i { font-style: normal; color: var(--dim); font-size: 26px; }
+  /* Fixed height, clipped. 626px is MEASURED, not guessed: it is the feed's
+     scrollHeight with all four cards laid out (4 x 145px card + 20/26 padding).
+     Fixed so the panel never resizes mid-shot — a container that grows as cards
+     land reads as a bug rather than as motion — and clipped so nothing can ride
+     up over the channel header, which an earlier scroll-lift version did. */
+  #alerts .feed { padding: 20px 30px 26px; height: 626px; overflow: hidden; }
+  #alerts .msg { display: flex; gap: 18px; padding: 14px 0; will-change: transform, opacity; }
+  #alerts .av {
+    width: 46px; height: 46px; border-radius: 50%; flex: none;
+    background: var(--panel-2); border: 1px solid var(--edge);
+    display: grid; place-items: center;
+    font-family: var(--grotesk); font-weight: 700; font-size: 20px; color: var(--ink);
+  }
+  #alerts .body { flex: 1; }
+  #alerts .who { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+  #alerts .who b { font-family: var(--grotesk); font-size: 19px; }
+  #alerts .bot {
+    background: #4d4d4d; color: #fff; font-size: 11px; font-weight: 700;
+    padding: 2px 6px; border-radius: 4px; letter-spacing: 0.06em;
+  }
+  #alerts .when { color: var(--dim); font-size: 15px; }
+  #alerts .embed {
+    background: var(--panel-2);
+    border-left: 4px solid var(--good);
+    border-radius: 5px;
+    padding: 15px 18px;
+  }
+  #alerts .embed strong { display: block; font-size: 19px; margin-bottom: 6px; }
+  #alerts .embed span { font-size: 17px; color: #c9cec7; }
+  #alerts .embed span em { font-style: normal; color: var(--good); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="stage" id="brand">
+  <div class="lockup">
+    <div class="mark"><img src="../assets/dues-mark.png" alt="Dues" /></div>
+    <div class="tag">Sell Discord roles. <b>Keep every dollar.</b></div>
+  </div>
+</div>
+
+<div class="stage" id="alerts">
+  <div class="panel">
+    <div class="chan"><i>#</i> sale-alerts</div>
+    <div class="feed"></div>
+  </div>
+</div>
+
+<script>
+// ── timing helpers ────────────────────────────────────────────────────────────
+// One easing curve for the whole film. Mixing curves is what makes motion read as
+// assembled from parts; a single expressive out-curve reads as one hand.
+const outExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+// Progress of a segment that starts at `at` and runs for `dur`, eased.
+const seg = (t, at, dur, ease = outExpo) => ease(clamp01((t - at) / dur));
+const lerp = (a, b, p) => a + (b - a) * p;
+
+// ── scene: brand ──────────────────────────────────────────────────────────────
+// The title is the first thing anyone sees, so it cannot look like a slide. The
+// mark settles, the wordmark lifts with it, the line arrives a beat later, and
+// then the whole lockup keeps drifting almost imperceptibly so the frame is never
+// dead. A still title card is what makes a hero read as cheap.
+const BRAND = {
+  duration: 2.6,
+  apply(t) {
+    const lockup = document.querySelector('#brand .lockup');
+    const mark = document.querySelector('#brand .mark');
+    const tag = document.querySelector('#brand .tag');
+
+    const inMark = seg(t, 0.10, 0.85);
+    const inTag = seg(t, 0.55, 0.80);
+    // A drift this small is invisible as motion but keeps the compressor from
+    // seeing a frozen frame — and a frozen frame is what "cheap" looks like.
+    const drift = lerp(1.0, 1.018, clamp01(t / BRAND.duration));
+
+    lockup.style.transform = `translate(-50%, -50%) scale(${drift.toFixed(5)})`;
+    mark.style.opacity = inMark.toFixed(4);
+    mark.style.transform = `translateY(${lerp(16, 0, inMark).toFixed(3)}px)`;
+    tag.style.opacity = inTag.toFixed(4);
+    tag.style.transform = `translateY(${lerp(12, 0, inTag).toFixed(3)}px)`;
+  },
+};
+
+// ── scene: alerts ─────────────────────────────────────────────────────────────
+// The payoff beat: money landing in Discord. Cards arrive one at a time on a
+// steady pulse so it reads as events happening, not a list rendering. The feed
+// eases upward as it fills, which is what a real channel does and what makes the
+// shot feel live rather than staged.
+const SALES = [
+  { user: '@drift139', product: 'Inner Circle', price: '$63.99' },
+  { user: '@nova142', product: 'VIP Access', price: '$49.99' },
+  { user: '@halo151', product: 'Signals Monthly', price: '$14.99' },
+  { user: '@sirius147', product: 'VIP Access', price: '$49.99' },
+];
+const ALERT_AT = [0.55, 1.25, 1.95, 2.65]; // one every 0.70s — a heartbeat, not a burst
+
+const ALERTS = {
+  duration: 3.9,
+  build() {
+    const feed = document.querySelector('#alerts .feed');
+    feed.innerHTML = SALES.map((s) => `
+      <div class="msg">
+        <div class="av">D</div>
+        <div class="body">
+          <div class="who"><b>Dues</b><span class="bot">BOT</span><span class="when">Today</span></div>
+          <div class="embed">
+            <strong>New Subscriber!</strong>
+            <span>${s.user} just bought ${s.product} · <em>${s.price}</em></span>
+          </div>
+        </div>
+      </div>`).join('');
+  },
+  apply(t) {
+    const panel = document.querySelector('#alerts .panel');
+    const feed = document.querySelector('#alerts .feed');
+    const msgs = [...document.querySelectorAll('#alerts .msg')];
+
+    const inPanel = seg(t, 0, 0.5);
+    panel.style.opacity = inPanel.toFixed(4);
+    // The panel settles toward the camera rather than sliding in from an edge —
+    // an edge slide would imply a direction the next shot has to honour.
+    panel.style.transform = `translate(-50%, -50%) scale(${lerp(0.965, 1, inPanel).toFixed(5)})`;
+
+    let landed = 0;
+    msgs.forEach((m, i) => {
+      const p = seg(t, ALERT_AT[i], 0.55);
+      if (p > 0) landed = i + 1;
+      m.style.opacity = p.toFixed(4);
+      m.style.transform = `translateY(${lerp(22, 0, p).toFixed(3)}px)`;
+    });
+    // No scroll lift: the feed is sized for exactly these four, so each card
+    // lands in its own slot. An earlier version lifted the feed as it filled and
+    // drove the first card up behind the channel header — motion for its own
+    // sake, and broken motion at that.
+    void landed;
+    void feed;
+  },
+};
+
+const SCENES = { brand: BRAND, alerts: ALERTS };
+
+const name = new URLSearchParams(location.search).get('scene') || 'brand';
+const scene = SCENES[name];
+if (!scene) {
+  document.body.innerHTML = `<pre style="color:#f5f5f4;padding:40px;font:20px monospace">
+unknown scene "${name}" — known: ${Object.keys(SCENES).join(', ')}</pre>`;
+} else {
+  document.getElementById(name).classList.add('on');
+  if (scene.build) scene.build();
+  scene.apply(0);
+}
+
+// The recorder's whole contract with this page.
+window.__scene = name;
+window.__duration = scene ? scene.duration : 0;
+window.__seek = (t) => {
+  if (!scene) return false;
+  scene.apply(Number(t));
+  return true;
+};
+// Set once the fonts are actually resolved. Shooting before this fires captures
+// a fallback face, which is the kind of error nobody notices until it ships.
+window.__ready = false;
+document.fonts.ready.then(() => { window.__ready = true; });
+</script>
+</body>
+</html>
