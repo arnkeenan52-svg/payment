@@ -7,3 +7,6 @@ node_modules/
 
 # scripts/post-message.mjs dry-run output — a render for review, never committed
 tmp-post-preview/
+
+# scripts/record-hero.mjs output — regenerated, never committed
+tmp-hero-frames/

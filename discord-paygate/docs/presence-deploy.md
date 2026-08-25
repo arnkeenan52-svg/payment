@@ -149,3 +149,46 @@ against `sha256sum content/<name>.txt | cut -c1-8` on main before confirming.
 
 Changing a `[marker]` orphans the message already in that channel; the next
 run posts a second one. `Dues · Server Rules` is live and must not change.
+
+## Re-shooting the hero tour
+
+`scripts/record-hero.mjs` drives the real dashboard in Chromium at
+`deviceScaleFactor: 2`, so a 1920x1080 viewport captures at 3840x2160.
+
+**Why 2x.** The old master was 1080p and the edit pushes in on several scenes.
+A push-in on a 1080p source is an upscale, so those moments are soft before any
+encoder touches them — three encode passes hit that wall and none could move
+it. At 2x a 1.5x push-in still has native pixels.
+
+It records the actual app, not a mock: a seeded database, a minted session
+cookie, and real rows rendering. Three pieces, in order:
+
+    DB_PATH=/tmp/hero.sqlite node scripts/seed-demo.mjs      # deterministic data
+    node scripts/hero-mock-discord.mjs &                     # :4312
+    DISCORD_API_BASE=http://127.0.0.1:4312 node scripts/dev-server.js &
+    node scripts/record-hero.mjs --scene overview            # a still, to review
+    node scripts/record-hero.mjs --scene overview --frames   # the frame sequence
+
+`seed-demo.mjs` is deterministic (a seeded xorshift, never `Math.random`) so
+re-shooting months later gives the same chart shape and the same numbers — a
+tour whose revenue graph changes between takes cannot be re-cut. It writes
+through db.js's own helpers, so it cannot drift from the schema.
+
+`hero-mock-discord.mjs` stands in for Discord: the server picker, role pickers
+and bot-presence checks all call it for real, and depending on a live guild
+would make every shoot hostage to someone's Discord account. It serves only
+what the dashboard reads and 404s loudly on anything else, so a scene that
+quietly depends on an unmocked endpoint fails during the shoot.
+
+Frames land in `tmp-hero-frames/<scene>-<theme>/` as PNGs. Encoding is
+deliberately NOT done here — that is `encode-hero.sh`'s job, and it carries the
+cut and the encoder reasoning.
+
+### Known gaps before a full shoot
+
+  - `recordCheckoutAttempt` stamps `created_at` at insert time, so every seeded
+    sale lands today: the 30d window holds all 145 and the revenue sparkline is
+    flat-then-spike instead of a curve. The seed needs to set `created_at`
+    directly before the numbers match the old tour's.
+  - The "Finish setting up" checklist renders above the stat row and would have
+    to be satisfied (or the store's setup state faked) so the layout matches.
