@@ -4,3 +4,6 @@ node_modules/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+
+# scripts/post-rules.mjs dry-run output — a render for review, never committed
+tmp-rules-preview/

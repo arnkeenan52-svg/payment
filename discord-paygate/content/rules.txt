@@ -1,0 +1,47 @@
+# The Dues community rules, as posted in #rules by scripts/post-rules.mjs.
+#
+# This file is the source of truth. Edit it, re-run the script, and the
+# existing message is edited in place — the script never posts a second copy.
+#
+# {placeholders} in the body become real channel mentions using the ids in
+# [channels] below. Always mention by id: every channel name in this server
+# carries an emoji prefix, so name-based mentions do not resolve.
+#
+# Lines starting with # are comments. Blank lines inside a block are kept.
+
+[channels]
+rules          = 1541819014643322900
+support        = 1541818254740422748
+welcome        = 1541820038695227492
+announcements  = 1541818939711955066
+official-links = 1541819865625657384
+general        = 1540823394961063949
+
+[title]
+Server Rules
+
+[subtitle]
+Read once. They are short.
+
+[intro]
+Dues is a payment platform, so this server has people's money in it. Most of
+these rules exist to keep that from going wrong. Breaking one gets you a
+warning; breaking 5, 6, 7 or 8 does not.
+
+[rules]
+Be civil. No harassment, hate speech, slurs, or personal attacks.
+No spam, mass mentions, or unsolicited DMs.
+No advertising or recruiting for other servers, stores, or services.
+Support goes in {support}. Include your order email or order id.
+Never post card numbers, bot tokens, API keys, or passwords. Not even in a ticket.
+Staff never DM you first. Anyone who DMs you asking for payment, tokens, or passwords is a scammer. Report it in {support}.
+No impersonating Dues staff, sellers, or other members.
+Do not leak or resell content you bought through a Dues store.
+Open a ticket in {support} before you go to your bank. A chargeback is not a refund route: it costs the seller a fee on top of the money, and it gets your access pulled and your account blocked from the store. Asking us is faster and usually cheaper for you.
+Sellers: deliver what your listing promises, and honour your own refund policy.
+Follow Discord's Terms of Service. Nothing illegal, no NSFW.
+Staff decisions are final. Raise disputes in {support}, not in public.
+
+[outro]
+Official links are in {official-links} and nowhere else. If you found a "Dues"
+link somewhere else, it is not ours.

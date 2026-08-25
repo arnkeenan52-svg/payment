@@ -99,3 +99,46 @@ Fatal close codes (4004 bad token, 4010–4014 bad shard/intents) exit non-zero
 immediately rather than retrying — the host surfaces the misconfiguration
 instead of silently looping. Everything else reconnects with jittered
 backoff and resumes the existing session where Discord allows it.
+
+## The #rules post
+
+`scripts/post-rules.mjs` publishes the community rules to the Dues server's
+rules channel, with the same brand chrome as the welcome card (the banner
+comes from `renderBannerCard` in `src/lib/welcome-card.js`, so both surfaces
+move together).
+
+This is a one-shot script, not part of the worker. It does not need to be
+deployed anywhere — run it from a checkout whenever the rules change.
+
+**The text lives in `content/rules.txt`, and that file is the source of
+truth.** Editing the message by hand in Discord is pointless: the next run
+overwrites whatever is there.
+
+    npm run rules                 # dry run — renders, reports, sends nothing
+    npm run rules -- --confirm    # actually post or update
+
+Safety properties, all covered by `npm run test:rules`:
+
+  - **Idempotent.** Discord messages carry no custom metadata, so the script
+    stamps a fixed marker into the embed footer and, on every run, scans the
+    channel for a message that is both authored by this bot and carries that
+    marker. Found → edit it. Not found → post one and pin it. Three runs
+    leave one message.
+  - **Dry by default.** Without `--confirm` it writes the rendered card, the
+    resolved text and the exact payload to `tmp-rules-preview/` and makes
+    only GET requests. It also tells you whether a real run would post or
+    edit.
+  - **Refuses to publish nothing.** An empty `[rules]` block, a missing
+    title, a missing file or an unknown `{placeholder}` aborts before any
+    write — a branded, official-looking, blank rules post is worse than no
+    post.
+  - **Cannot ping.** `allowed_mentions: { parse: [] }`, so an `@everyone`
+    that finds its way into the text file stays inert.
+
+Channel mentions are written as `{support}`, `{official-links}` and so on,
+and resolved to `<#id>` from the `[channels]` block. Always by id: every
+channel in this server carries an emoji prefix, so name-based mentions do
+not resolve.
+
+Changing `MARKER` in the script orphans the message already in the channel —
+the next run will not recognise it and will post a second one.

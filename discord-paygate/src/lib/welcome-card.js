@@ -70,9 +70,9 @@ const THEMES = {
 
 // The faint repeating wordmark behind everything, like a pressed watermark.
 // Alternate rows are offset so the grid reads as a weave, not a table.
-function watermark(text, t) {
+function watermark(text, t, height = H) {
   const rows = [];
-  for (let row = 0, y = 46; y < H + 120; row += 1, y += 116) {
+  for (let row = 0, y = 46; y < height + 120; row += 1, y += 116) {
     const x = row % 2 === 0 ? -70 : -230;
     rows.push(
       `<text x="${x}" y="${y}" font-family="${GROTESK}" font-size="84" font-weight="700" ` +
@@ -144,6 +144,53 @@ export async function renderWelcomeCard({ username, avatarPng = null, memberNumb
       ? `<text x="${W / 2}" y="512" text-anchor="middle" font-family="${SANS}" font-size="33" fill="${t.sub}">Member #${Number(memberNumber)}</text>`
       : ''
   }
+</svg>`;
+
+  return sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer();
+}
+
+// ── banner cards ──────────────────────────────────────────────────────────────
+// The same chrome as the join card — ground, pressed watermark, mark and
+// wordmark — but sized as a header strip and carrying a title instead of a
+// member. Used for the pinned #rules post, so a channel the bot owns looks
+// like it belongs to the same product as everything else.
+
+const BANNER_H = 400;
+
+// Same estimate-and-shrink approach as fitHeadline, against the banner's own
+// width budget. A title is author-written rather than user-supplied, so there
+// is no truncation step: an over-long title shrinks instead of being cut.
+function fitTitle(text, max, min, perChar) {
+  let size = max;
+  while (size > min && text.length * size * perChar > SAFE_W) size -= 2;
+  return size;
+}
+
+/**
+ * Render a titled header card.
+ *
+ * @param {object} o
+ * @param {string} o.title
+ * @param {string} [o.subtitle]
+ * @param {'dark'|'light'} [o.theme]
+ * @returns {Promise<Buffer>} PNG bytes
+ */
+export async function renderBannerCard({ title, subtitle = '', theme = 'dark' }) {
+  const { default: sharp } = await import('sharp');
+  await fontsPresent();
+  const t = THEMES[theme] ?? THEMES.dark;
+  const head = clean(title) || 'Dues';
+  const sub = clean(subtitle);
+  const headSize = fitTitle(head, 76, 34, 0.56);
+  const subSize = fitTitle(sub, 30, 20, 0.5);
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${BANNER_H}" viewBox="0 0 ${W} ${BANNER_H}">
+  <rect width="${W}" height="${BANNER_H}" fill="${t.bg}" />
+  ${watermark('DUES', t, BANNER_H)}
+  ${mark(64, 52, t)}
+  <text x="152" y="104" font-family="${GROTESK}" font-size="48" font-weight="700" fill="${t.mark}" letter-spacing="-1">Dues</text>
+  <text x="${W / 2}" y="${sub ? 258 : 282}" text-anchor="middle" font-family="${GROTESK}" font-size="${headSize}" font-weight="700" fill="${t.text}" letter-spacing="-2">${esc(head)}</text>
+  ${sub ? `<text x="${W / 2}" y="312" text-anchor="middle" font-family="${SANS}" font-size="${subSize}" fill="${t.sub}">${esc(sub)}</text>` : ''}
 </svg>`;
 
   return sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer();

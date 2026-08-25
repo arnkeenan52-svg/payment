@@ -10,7 +10,9 @@
     "migrate": "node scripts/migrate.js",
     "doctor": "node scripts/doctor.js",
     "presence": "node scripts/presence.js",
-    "test:presence": "node scripts/presence-test.js"
+    "test:presence": "node scripts/presence-test.js",
+    "rules": "node scripts/post-rules.mjs",
+    "test:rules": "node scripts/rules-test.js"
   },
   "engines": {
     "node": ">=22.5.0"
