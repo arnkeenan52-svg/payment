@@ -548,6 +548,19 @@ footer {
 .powered-community:hover { color: var(--ink); border-bottom-color: currentColor; }
 .powered-community:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
+/* The community Discord in the main nav. Fintan's note was that the invite
+   "is not on the website" — it was, but only at y=5680 on a 5910px page, which
+   is the same as not being there. A nav slot is the fix; the footer link stays
+   as the belt-and-braces copy. Carries its icon so it reads as a destination
+   rather than another section anchor. */
+.nav-link.nav-discord {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-link.nav-discord svg { opacity: 0.85; }
+.nav-link.nav-discord:hover svg { opacity: 1; }
+
 /* ── order receipt ────────────────────────────────────────────────────────── */
 .check-ring {
   width: 76px;

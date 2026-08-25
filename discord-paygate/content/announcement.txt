@@ -1,0 +1,34 @@
+# Posted to #announcements by scripts/post-message.mjs.
+#
+# Every claim here was checked against the live copy on dues.gg before it was
+# written, and they are quoted rather than paraphrased: "0% of sales",
+# "Stripe checkout, payments straight to your own account, roles delivered in
+# seconds", "Free for your first 10 paying members", "No card required".
+# If the pricing on the site moves, fix it HERE and re-run — do not let the
+# announcement outlive the offer it describes.
+
+[marker]
+Dues · Launch
+
+[channel]
+1541818939711955066
+
+[channels]
+rules   = 1541819014643322900
+support = 1541818254740422748
+
+[title]
+Dues is live
+
+[subtitle]
+0% platform fees.
+
+[intro]
+Turn your Discord into a store. Stripe checkout, payments straight to your own
+account, roles delivered in seconds — and Dues takes 0% of them.
+
+Free for your first 10 paying members. No card required.
+
+[links]
+Start selling | https://dues.gg/dashboard
+Invite someone | https://discord.gg/G6yjsX5qbB

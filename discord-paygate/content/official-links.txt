@@ -1,0 +1,31 @@
+# Posted to #official-links by scripts/post-message.mjs.
+#
+# Exactly three links, by request. Do not pad this list: its whole value is
+# that it is short enough to be checkable, and the rules message points here
+# as the answer to "is this link real?". Every entry you add makes that
+# answer weaker.
+
+[marker]
+Dues · Official Links
+
+[channel]
+1541819865625657384
+
+[channels]
+rules   = 1541819014643322900
+support = 1541818254740422748
+
+[title]
+Official Links
+
+[subtitle]
+Three. That is the whole list.
+
+[links]
+Website | https://dues.gg
+Dashboard | https://dues.gg/dashboard
+Threads | https://www.threads.com/@dues.gg
+
+[outro]
+These are the only official Dues links. Anything else claiming to be Dues is
+not ours — no matter who sent it, and no matter how right it looks.

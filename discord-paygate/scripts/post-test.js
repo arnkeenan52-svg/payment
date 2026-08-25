@@ -17,7 +17,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SCRIPT = path.join(ROOT, 'scripts', 'post-rules.mjs');
+const SCRIPT = path.join(ROOT, 'scripts', 'post-message.mjs');
 const BOT_ID = '900000000000000001';
 
 // A mock of the four Discord endpoints the script touches. Messages live in an
@@ -94,7 +94,7 @@ const check = (name, fn) =>
     },
   );
 
-console.log('rules poster:');
+console.log("standing messages:");
 
 await check('posts once, then edits that same message on every later run', async () => {
   const { server, state, port } = await mockDiscord();
@@ -102,19 +102,19 @@ await check('posts once, then edits that same message on every later run', async
   const env = {
     DISCORD_API_BASE: `http://127.0.0.1:${port}`,
     DISCORD_BOT_TOKEN: 'test-token',
-    RULES_CHANNEL_ID: '1541819014643322900',
+    POST_CHANNEL_ID: '1541819014643322900',
     PREVIEW_DIR: preview,
   };
   try {
-    const first = await run(['--confirm'], env);
+    const first = await run(['rules','--confirm'], env);
     assert.equal(first.code, 0, `first run failed: ${first.out}`);
     assert.match(first.out, /posted new message/, 'first run should POST');
 
-    const second = await run(['--confirm'], env);
+    const second = await run(['rules','--confirm'], env);
     assert.equal(second.code, 0, `second run failed: ${second.out}`);
     assert.match(second.out, /edited existing message/, 'second run should PATCH, not POST');
 
-    const third = await run(['--confirm'], env);
+    const third = await run(['rules','--confirm'], env);
     assert.match(third.out, /edited existing message/, 'third run should PATCH too');
 
     // The real assertion: one message in the channel after three runs.
@@ -151,10 +151,10 @@ await check('a run without --confirm touches Discord only to look, never to writ
   const { server, state, port } = await mockDiscord();
   const preview = fs.mkdtempSync(path.join(os.tmpdir(), 'rules-'));
   try {
-    const res = await run([], {
+    const res = await run(['rules'], {
       DISCORD_API_BASE: `http://127.0.0.1:${port}`,
       DISCORD_BOT_TOKEN: 'test-token',
-      RULES_CHANNEL_ID: '1541819014643322900',
+      POST_CHANNEL_ID: '1541819014643322900',
       PREVIEW_DIR: preview,
     });
     assert.equal(res.code, 0, res.out);
@@ -174,28 +174,67 @@ await check('a run without --confirm touches Discord only to look, never to writ
   }
 });
 
-await check('refuses to publish an empty or broken rules file', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rules-'));
+await check('refuses to publish anything empty, unmarked or broken', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'post-'));
+  const write = (n, body) => {
+    const f = path.join(dir, `${n}.txt`);
+    fs.writeFileSync(f, body);
+    return f;
+  };
+  const HEAD = '[marker]\nDues · Test\n\n[channel]\n1541819014643322900\n\n[title]\nTest\n';
   try {
-    const empty = path.join(dir, 'empty.txt');
-    fs.writeFileSync(empty, '[title]\nServer Rules\n\n[rules]\n');
-    const a = await run(['--confirm'], { RULES_PATH: empty, RULES_CHANNEL_ID: '1', DISCORD_BOT_TOKEN: 't' });
-    assert.notEqual(a.code, 0, 'an empty rules block must not publish a blank official-looking post');
-    assert.match(a.out, /no \[rules\] lines/);
+    // A blank body would publish a branded, official-looking, empty message.
+    const empty = await run(['x', '--confirm'], { POST_PATH: write('empty', `${HEAD}\n[rules]\n`), DISCORD_BOT_TOKEN: 't' });
+    assert.notEqual(empty.code, 0, 'an empty body must not publish');
+    assert.match(empty.out, /nothing to post/);
+
+    // No marker means a re-run cannot find its own message, so every run would
+    // stack another copy — the exact failure this script exists to prevent.
+    const unmarked = write('unmarked', '[channel]\n1541819014643322900\n\n[title]\nTest\n\n[rules]\nBe civil.\n');
+    const um = await run(['x', '--confirm'], { POST_PATH: unmarked, DISCORD_BOT_TOKEN: 't' });
+    assert.notEqual(um.code, 0, 'a missing marker must abort');
+    assert.match(um.out, /no \[marker\]/);
+
+    // No channel: nowhere to put it.
+    const nochan = write('nochan', '[marker]\nDues · Test\n\n[title]\nTest\n\n[rules]\nBe civil.\n');
+    const nc = await run(['x', '--confirm'], { POST_PATH: nochan, DISCORD_BOT_TOKEN: 't' });
+    assert.notEqual(nc.code, 0, 'a missing channel must abort');
+    assert.match(nc.out, /no \[channel\]/);
 
     // A typo'd placeholder must fail loudly rather than shipping "{suport}".
-    const typo = path.join(dir, 'typo.txt');
-    fs.writeFileSync(typo, '[channels]\nrules = 1541819014643322900\n\n[title]\nServer Rules\n\n[rules]\nAsk in {suport}.\n');
-    const b = await run(['--confirm'], { RULES_PATH: typo, DISCORD_BOT_TOKEN: 't' });
-    assert.notEqual(b.code, 0, 'unknown placeholder must abort');
-    assert.match(b.out, /unknown channel placeholder/);
+    const typo = write('typo', `${HEAD}\n[rules]\nAsk in {suport}.\n`);
+    const t = await run(['x', '--confirm'], { POST_PATH: typo, DISCORD_BOT_TOKEN: 't' });
+    assert.notEqual(t.code, 0, 'unknown placeholder must abort');
+    assert.match(t.out, /unknown channel placeholder/);
 
-    const missing = await run(['--confirm'], { RULES_PATH: path.join(dir, 'nope.txt'), DISCORD_BOT_TOKEN: 't' });
-    assert.notEqual(missing.code, 0, 'a missing file must abort');
+    // An unknown message name must name what does exist, not just fail.
+    const missing = await run(['no-such-message', '--confirm'], { DISCORD_BOT_TOKEN: 't' });
+    assert.notEqual(missing.code, 0);
+    assert.match(missing.out, /known messages:.*rules/s, 'should list the real messages');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 
-console.log(failures ? `\n${failures} check(s) failed.` : '\nAll rules checks green.');
+await check('every shipped message file is postable and uniquely identified', async () => {
+  // Guards the whole content/ directory at once: a new message file that is
+  // missing a marker, points nowhere, or collides with another message's
+  // marker would otherwise only be discovered by posting a duplicate.
+  const dir = path.join(ROOT, 'content');
+  const names = fs.readdirSync(dir).filter((f) => f.endsWith('.txt')).map((f) => f.replace(/\.txt$/, ''));
+  assert.ok(names.length >= 3, `expected the three standing messages, found ${names.join(', ') || 'none'}`);
+  const markers = new Map();
+  for (const name of names) {
+    const res = await run([name], { PREVIEW_DIR: fs.mkdtempSync(path.join(os.tmpdir(), 'post-')) });
+    assert.equal(res.code, 0, `${name} failed to build: ${res.out}`);
+    const marker = fs.readFileSync(path.join(dir, `${name}.txt`), 'utf8').match(/\[marker\]\s*\n([^\n]+)/)?.[1]?.trim();
+    assert.ok(marker, `${name} has no marker`);
+    assert.ok(!markers.has(marker), `${name} and ${markers.get(marker)} share the marker "${marker}" — they would overwrite each other`);
+    markers.set(marker, name);
+  }
+  // The rules message is already live; changing its marker would orphan it.
+  assert.equal(markers.get('Dues · Server Rules'), 'rules', 'the live rules message must keep its marker');
+});
+
+console.log(failures ? `\n${failures} check(s) failed.` : '\nAll post checks green.');
 process.exit(failures ? 1 : 0);

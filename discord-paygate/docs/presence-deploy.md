@@ -100,45 +100,52 @@ immediately rather than retrying — the host surfaces the misconfiguration
 instead of silently looping. Everything else reconnects with jittered
 backoff and resumes the existing session where Discord allows it.
 
-## The #rules post
+## Standing community messages
 
-`scripts/post-rules.mjs` publishes the community rules to the Dues server's
-rules channel, with the same brand chrome as the welcome card (the banner
-comes from `renderBannerCard` in `src/lib/welcome-card.js`, so both surfaces
-move together).
+`scripts/post-message.mjs` publishes the Dues server's standing messages —
+the rules, the official-links list, the launch announcement — each with the
+same brand chrome as the welcome card (`renderBannerCard` in
+`src/lib/welcome-card.js`, so every surface moves together).
 
-This is a one-shot script, not part of the worker. It does not need to be
-deployed anywhere — run it from a checkout whenever the rules change.
+One-shot scripts, not part of the worker loop, but they ARE in the worker
+image: Railway's web console runs inside that container, which is the only
+place `DISCORD_BOT_TOKEN` already exists, so the messages can be updated
+without anyone handling the credential.
 
-**The text lives in `content/rules.txt`, and that file is the source of
-truth.** Editing the message by hand in Discord is pointless: the next run
-overwrites whatever is there.
+**Each message is one file in `content/`, and that file is the source of
+truth** — its text, the channel it belongs in, and the marker that identifies
+it on re-runs. Editing a message by hand in Discord is pointless: the next run
+overwrites it. Adding a fourth standing message means adding a fourth file,
+not editing the script.
 
-    npm run rules                 # dry run — renders, reports, sends nothing
-    npm run rules -- --confirm    # actually post or update
+    npm run post -- rules                     # dry run — renders, reports, sends nothing
+    npm run post -- rules --confirm           # actually post or update
+    npm run post -- official-links --confirm
+    npm run post -- announcement --confirm
 
-Safety properties, all covered by `npm run test:rules`:
+Safety properties, all covered by `npm run test:post`:
 
-  - **Idempotent.** Discord messages carry no custom metadata, so the script
-    stamps a fixed marker into the embed footer and, on every run, scans the
-    channel for a message that is both authored by this bot and carries that
-    marker. Found → edit it. Not found → post one and pin it. Three runs
-    leave one message.
+  - **Idempotent.** Discord messages carry no custom metadata, so each file's
+    `[marker]` is stamped into the embed footer and every run scans the
+    channel for a message both authored by this bot and carrying that marker.
+    Found → edit it. Not found → post one and pin it. Three runs leave one
+    message. A missing marker is refused outright, and the test asserts no two
+    message files share one.
   - **Dry by default.** Without `--confirm` it writes the rendered card, the
-    resolved text and the exact payload to `tmp-rules-preview/` and makes
-    only GET requests. It also tells you whether a real run would post or
-    edit.
-  - **Refuses to publish nothing.** An empty `[rules]` block, a missing
-    title, a missing file or an unknown `{placeholder}` aborts before any
-    write — a branded, official-looking, blank rules post is worse than no
-    post.
-  - **Cannot ping.** `allowed_mentions: { parse: [] }`, so an `@everyone`
-    that finds its way into the text file stays inert.
+    resolved text and the exact payload to `tmp-post-preview/`, makes only GET
+    requests, and reports whether a real run would post or edit.
+  - **Refuses to publish nothing.** An empty body, a missing title, marker or
+    channel, an unknown message name or an unknown `{placeholder}` aborts
+    before any write.
+  - **Cannot ping.** `allowed_mentions: { parse: [] }`.
 
-Channel mentions are written as `{support}`, `{official-links}` and so on,
-and resolved to `<#id>` from the `[channels]` block. Always by id: every
-channel in this server carries an emoji prefix, so name-based mentions do
-not resolve.
+Channel mentions are written `{support}`, `{official-links}` and resolved to
+`<#id>` from each file's `[channels]` block. Always by id: every channel here
+carries an emoji prefix, so name-based mentions do not resolve.
 
-Changing `MARKER` in the script orphans the message already in the channel —
-the next run will not recognise it and will post a second one.
+The `version` line is a fingerprint of the message file. The image carries the
+text, so its copy is only as fresh as the last deploy — check the fingerprint
+against `sha256sum content/<name>.txt | cut -c1-8` on main before confirming.
+
+Changing a `[marker]` orphans the message already in that channel; the next
+run posts a second one. `Dues · Server Rules` is live and must not change.

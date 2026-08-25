@@ -32,10 +32,15 @@ RUN fc-cache -f >/dev/null
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --no-audit --no-fund
 
+# The real Dues lockup, composited onto every card. welcome-card.js resolves it
+# relative to itself (../../assets), so it has to land at /app/assets — unlike
+# the fonts above, which fontconfig finds system-wide.
+COPY assets/dues-mark.png ./assets/dues-mark.png
+
 COPY scripts/presence.js ./scripts/presence.js
 COPY src/lib/welcome-card.js ./src/lib/welcome-card.js
 
-# The #rules poster and its text. CMD never touches these — the worker runs
+# The standing-message poster and its texts. CMD never touches these — the worker runs
 # presence.js and nothing else — but they are here so the rules can be posted
 # and re-posted from Railway's web console, which executes inside this
 # container. That is the only place the bot token already exists, so it is the
@@ -50,9 +55,9 @@ COPY src/lib/welcome-card.js ./src/lib/welcome-card.js
 #
 # Rules changes are recurring, not one-off, so this stays.
 #
-#   npm run rules                 # dry run, sends nothing
-#   npm run rules -- --confirm    # post or update
-COPY scripts/post-rules.mjs ./scripts/post-rules.mjs
+#   npm run post -- rules                 # dry run, sends nothing
+#   npm run post -- rules --confirm       # post or update
+COPY scripts/post-message.mjs ./scripts/post-message.mjs
 COPY content ./content
 
 ENV NODE_ENV=production

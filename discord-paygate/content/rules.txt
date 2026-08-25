@@ -9,6 +9,12 @@
 #
 # Lines starting with # are comments. Blank lines inside a block are kept.
 
+[marker]
+Dues · Server Rules
+
+[channel]
+1541819014643322900
+
 [channels]
 rules          = 1541819014643322900
 support        = 1541818254740422748

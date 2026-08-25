@@ -13,6 +13,7 @@
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
 
 const GROTESK = 'Dues Grotesk'; // headline / wordmark
 const SANS = 'Dues Sans'; // supporting text
@@ -83,16 +84,36 @@ function watermark(text, t, height = H) {
   return rows.join('');
 }
 
-// The Dues mark: three stacked, sheared bars — same geometry as the site logo.
-function mark(x, y, t) {
-  const bars = [
-    { w: 56, dx: 0, dy: 0 },
-    { w: 42, dx: 8, dy: 21 },
-    { w: 49, dx: 16, dy: 42 },
-  ];
-  return bars
-    .map((b) => `<path d="M ${x + b.dx} ${y + b.dy} h ${b.w} l -14 16 h -${b.w} Z" fill="${t.mark}" />`)
-    .join('');
+// The Dues lockup — the real asset, not a redrawing of it.
+//
+// This used to be three hand-authored <path> elements with a comment claiming
+// "same geometry as the site logo". It was not: the bars in the real mark step
+// progressively LEFT as they descend, with a much wider stagger, and the hand
+// version stepped right into a tight compressed stack. A logo is not a thing to
+// approximate — composite the file the rest of the site ships.
+//
+// assets/ rather than public/, because public/ is excluded wholesale by
+// .dockerignore and re-including one file out of it has already cost us a
+// broken image build once.
+const LOGO = fileURLToPath(new URL('../../assets/dues-mark.png', import.meta.url));
+const LOGO_RATIO = 1165 / 253; // the asset's own aspect, transparent padding trimmed off
+
+// The asset is a near-white silhouette on transparency, so it can be recoloured
+// for either theme by filling a rectangle and punching the logo's alpha
+// through it. Cached per theme: this is the same handful of bytes every card.
+const logoCache = new Map();
+async function logoLayer(sharp, t, theme, x, y, h) {
+  const w = Math.round(h * LOGO_RATIO);
+  const key = `${theme}:${h}`;
+  if (!logoCache.has(key)) {
+    const mask = await sharp(LOGO).resize(w, h, { fit: 'contain' }).png().toBuffer();
+    const tinted = await sharp({ create: { width: w, height: h, channels: 4, background: t.mark } })
+      .composite([{ input: mask, blend: 'dest-in' }])
+      .png()
+      .toBuffer();
+    logoCache.set(key, `data:image/png;base64,${tinted.toString('base64')}`);
+  }
+  return `<image x="${x}" y="${y}" width="${w}" height="${h}" href="${logoCache.get(key)}" />`;
 }
 
 /**
@@ -109,6 +130,7 @@ export async function renderWelcomeCard({ username, avatarPng = null, memberNumb
   const { default: sharp } = await import('sharp');
   await fontsPresent();
   const t = THEMES[theme] ?? THEMES.dark;
+  const logo = await logoLayer(sharp, t, theme, 64, 54, 40);
   const headline = fitHeadline(clean(username) || 'a new member');
 
   // Avatar: circle-cropped through a mask so any square source works, then
@@ -135,8 +157,7 @@ export async function renderWelcomeCard({ username, avatarPng = null, memberNumb
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <rect width="${W}" height="${H}" fill="${t.bg}" />
   ${watermark('DUES', t)}
-  ${mark(64, 52, t)}
-  <text x="152" y="104" font-family="${GROTESK}" font-size="48" font-weight="700" fill="${t.mark}" letter-spacing="-1">Dues</text>
+  ${logo}
   ${avatarLayer}
   <text x="${W / 2}" y="452" text-anchor="middle" font-family="${GROTESK}" font-size="${headline.size}" font-weight="700" fill="${t.text}" letter-spacing="-1">${headline.line}</text>
   ${
@@ -179,6 +200,7 @@ export async function renderBannerCard({ title, subtitle = '', theme = 'dark' })
   const { default: sharp } = await import('sharp');
   await fontsPresent();
   const t = THEMES[theme] ?? THEMES.dark;
+  const logo = await logoLayer(sharp, t, theme, 64, 54, 40);
   const head = clean(title) || 'Dues';
   const sub = clean(subtitle);
   const headSize = fitTitle(head, 76, 34, 0.56);
@@ -187,8 +209,7 @@ export async function renderBannerCard({ title, subtitle = '', theme = 'dark' })
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${BANNER_H}" viewBox="0 0 ${W} ${BANNER_H}">
   <rect width="${W}" height="${BANNER_H}" fill="${t.bg}" />
   ${watermark('DUES', t, BANNER_H)}
-  ${mark(64, 52, t)}
-  <text x="152" y="104" font-family="${GROTESK}" font-size="48" font-weight="700" fill="${t.mark}" letter-spacing="-1">Dues</text>
+  ${logo}
   <text x="${W / 2}" y="${sub ? 258 : 282}" text-anchor="middle" font-family="${GROTESK}" font-size="${headSize}" font-weight="700" fill="${t.text}" letter-spacing="-2">${esc(head)}</text>
   ${sub ? `<text x="${W / 2}" y="312" text-anchor="middle" font-family="${SANS}" font-size="${subSize}" fill="${t.sub}">${esc(sub)}</text>` : ''}
 </svg>`;
