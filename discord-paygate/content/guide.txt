@@ -1,0 +1,46 @@
+# Posted to the guide channel by scripts/post-message.mjs.
+#
+# The four seller steps are the ones on dues.gg's own "how it works" section,
+# in the same order and saying the same thing. If that section changes, change
+# this with it — a guide that contradicts the landing page is worse than none.
+
+[marker]
+Dues · How It Works
+
+[channel]
+1541859167067971655
+
+[channels]
+rules          = 1541819014643322900
+support        = 1541818254740422748
+official-links = 1541819865625657384
+announcements  = 1541818939711955066
+
+[title]
+How Dues Works
+
+[subtitle]
+Four steps to selling. Two minutes.
+
+[intro]
+Dues turns a Discord server into a store. You sell roles, buyers pay by card,
+and the role lands automatically. Payments go to your own Stripe account —
+Dues never holds your money and takes 0% of it.
+
+[steps]
+Invite — add Dues to your server and pick a name for your store.
+Connect — paste your Stripe key, set a price, pick the role it unlocks.
+Access — members pay on your store page and their role lands in seconds.
+Payouts — money settles in your own Stripe account. Dues never holds it.
+
+[links]
+Start your store | https://dues.gg/dashboard
+Read the docs | https://dues.gg/help
+
+[outro]
+**Buying rather than selling?** Pay on the seller's store page and your role is
+applied to your Discord account within seconds. Your receipt arrives by email
+and you can manage or cancel anytime from your account page.
+
+**Stuck?** Open a ticket in {support} with your order email or order id. Read
+{rules} first — rule 6 in particular, because staff never DM you first.

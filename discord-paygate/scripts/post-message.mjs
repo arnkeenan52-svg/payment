@@ -94,7 +94,9 @@ function parseRules(text) {
     const m = line.match(/^\s*([a-z0-9-]+)\s*=\s*(\d{5,25})\s*$/i);
     if (m) channels[m[1].toLowerCase()] = m[2];
   }
-  const rules = (blocks.rules ?? []).map((l) => l.trim()).filter(Boolean);
+  // [steps] is the same numbered list as [rules], under the name that fits a
+  // guide. One message uses one or the other, never both.
+  const rules = [...(blocks.rules ?? []), ...(blocks.steps ?? [])].map((l) => l.trim()).filter(Boolean);
   // [links] is "Label | https://..." per line — a named list rather than a
   // numbered one, because #official-links is a list of destinations and
   // numbering them implies an order that does not exist.
