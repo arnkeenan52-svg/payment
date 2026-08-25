@@ -84,13 +84,33 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   const V = '122';
   let started = false;
 
+  const sound = document.getElementById('hero-sound');
+
   const begin = () => {
     if (started) return;
     started = true;
     v.src = `/hero-tour.mp4?v=${V}`;
     v.load();
     v.play().catch(() => {}); // refused autoplay → the poster holds; no harm
+    // The button appears only once there is something to unmute. Revealing it
+    // beside a poster that has no file attached yet would offer a control that
+    // does nothing.
+    if (sound) sound.hidden = false;
   };
+
+  // Sound is opt-in because it has to be: a loop that starts unmuted is a loop
+  // the browser refuses to autoplay. The click is the user gesture that lets it
+  // through. aria-pressed drives BOTH the announced state and (via CSS) the
+  // icon, so the two cannot disagree.
+  if (sound) {
+    sound.addEventListener('click', () => {
+      const on = v.muted; // about to become unmuted
+      v.muted = !on;
+      sound.setAttribute('aria-pressed', String(on));
+      sound.setAttribute('aria-label', on ? 'Turn tour sound off' : 'Turn tour sound on');
+      if (on) v.play().catch(() => {});
+    });
+  }
   const schedule = () => {
     if ('requestIdleCallback' in window) requestIdleCallback(begin, { timeout: 2000 });
     else setTimeout(begin, 200);

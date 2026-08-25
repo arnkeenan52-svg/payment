@@ -29,17 +29,17 @@
        floor; the 96px PNG is what it actually prefers to serve. -->
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=121" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=121" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=122" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=122" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=121" />
+  <link rel="stylesheet" href="/styles.css?v=122" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
-  <script src="/theme.js?v=121"></script>
+  <script src="/theme.js?v=122"></script>
 </head>
 <body class="home">
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=121" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=122" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/discover">Discover</a>
@@ -104,6 +104,17 @@
           poster="/hero-poster.webp?v=122"
           aria-label="Dues product tour: name your store, connect your own Stripe key, create a product, theme your store, and a sale landing in Discord">
         </video>
+        <!-- The film carries a scored soundtrack — a beat, and a click on every
+             frame the cursor presses. A hero loop has to start muted or the
+             browser refuses to autoplay it at all, so the sound is opt-in and
+             this button is the opt-in. It is a real <button>, keyboard-reachable
+             and aria-pressed, not a decorative overlay. home.js unhides it only
+             once the file is attached; with JS off there is nothing to unmute. -->
+        <button class="hero-sound" id="hero-sound" type="button" hidden
+          aria-pressed="false" aria-label="Turn tour sound on">
+          <svg class="hs-off" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg>
+          <svg class="hs-on" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.7 5.3a9 9 0 0 1 0 13.4"/></svg>
+        </button>
       </div>
     </section>
 
@@ -394,7 +405,7 @@
   <!-- footer:begin — stamped by scripts/gen-seo-pages.mjs; edit footerHtml there -->
 <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=121" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=122" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -427,7 +438,7 @@
   </footer>
   <!-- footer:end -->
 
-  <script src="/menu.js?v=121"></script>
-  <script src="/home.js?v=121"></script>
+  <script src="/menu.js?v=122"></script>
+  <script src="/home.js?v=122"></script>
 </body>
 </html>

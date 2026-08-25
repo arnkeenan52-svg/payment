@@ -84,12 +84,30 @@ if (process.argv.includes('--frames')) process.exit(0);
 // sets psy_rd=0.40 and deblock=1:1:1, and smears exactly the text this film is
 // made of. aq-mode=3 biases to dark scenes, which this film mostly is.
 const run = (args) => execFileSync('ffmpeg', args, { stdio: ['ignore', 'inherit', 'inherit'] });
+
+// The soundtrack is BUILT HERE, in the same command as the picture, and not by
+// hand afterwards. Every accent in it is scored to a frame number — the clicks
+// are the frames the cursor presses — so a mux done as a separate manual step
+// is a standing invitation for the two to drift a cut apart. One command, one
+// source of truth for both halves.
+const AUDIO = path.join(ROOT, 'tmp-film-audio.wav');
+execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'build-film-audio.mjs')], {
+  stdio: ['ignore', 'inherit', 'inherit'],
+  env: { ...process.env, FILM_AUDIO: AUDIO },
+});
+
 run([
   '-v', 'error', '-stats', '-framerate', String(FPS), '-i', path.join(FRAMES, 'f%04d.png'),
+  '-i', AUDIO,
   '-vf', `scale=1920:1080:flags=lanczos`,
   '-c:v', 'libx264', '-preset', 'slow', '-crf', '17',
   '-x264-params', 'aq-mode=3:deblock=-1:-1:psy-rd=1.00:0.15:ref=5:bframes=4',
-  '-g', '60', '-pix_fmt', 'yuv420p', '-an', '-movflags', '+faststart',
+  '-g', '60', '-pix_fmt', 'yuv420p',
+  // AAC-LC at 160k stereo: the one profile every browser decodes without a
+  // second thought. The hero plays MUTED by default and the visitor opts in
+  // with the speaker button, so this track costs nothing until it is wanted.
+  '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-ar', '48000',
+  '-shortest', '-movflags', '+faststart',
   '-y', path.join(ROOT, 'public', 'hero-tour.mp4'),
 ]);
 run([
@@ -97,4 +115,4 @@ run([
   '-vf', 'scale=1920:1080:flags=lanczos', '-c:v', 'libwebp', '-quality', '84',
   '-y', path.join(ROOT, 'public', 'hero-poster.webp'),
 ]);
-process.stdout.write('[film] wrote public/hero-tour.mp4 and public/hero-poster.webp\n');
+process.stdout.write('[film] wrote public/hero-tour.mp4 (with soundtrack) and public/hero-poster.webp\n');
