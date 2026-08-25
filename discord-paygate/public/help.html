@@ -12,18 +12,25 @@
   <meta property="og:image" content="https://dues.gg/og-card.png" />
   <meta property="og:url" content="https://dues.gg/help" />
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" href="/favicon.png?v=120" />
-  <link rel="stylesheet" href="/styles.css?v=120" />
+  <!-- Icons. favicon.ico stays at a stable, UNVERSIONED url on purpose: Google
+       caches the search-result favicon by URL, and a moving ?v= resets it.
+       The .ico carries 16/32/48/64, which clears Google's "multiple of 48px"
+       floor; the 96px PNG is what it actually prefers to serve. -->
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=121" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=121" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="stylesheet" href="/styles.css?v=121" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://dues.gg/"},{"@type":"ListItem","position":2,"name":"Help","item":"https://dues.gg/help"}]}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"My Discord role went missing — what do I do?","acceptedAnswer":{"@type":"Answer","text":"Open your account page and hit \"Re-sync my access\". It re-checks your purchases and puts the role back. If it still fails, message the server owner on Discord."}},{"@type":"Question","name":"How do I cancel a membership?","acceptedAnswer":{"@type":"Answer","text":"From your account page, any time — no asking anyone. You keep access until the end of the period you already paid for."}},{"@type":"Question","name":"Where does the money go?","acceptedAnswer":{"@type":"Answer","text":"Directly to the seller’s own Stripe account on every sale. Dues never sits between you and your payout — Stripe pays out on its normal schedule."}},{"@type":"Question","name":"Do I need the Stripe dashboard to run my store?","acceptedAnswer":{"@type":"Answer","text":"No. Connect Stripe once with an API key; after that products, prices, discounts and refund-worthy situations are all handled from the Dues dashboard."}}]}</script>
-  <script src="/theme.js?v=120"></script>
+  <script src="/theme.js?v=121"></script>
 </head>
 <body class="home seo-page">
 
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=120" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=121" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/#features">Features</a>
@@ -145,7 +152,7 @@
 
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=120" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=121" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>

@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Tints the iOS status-bar / browser chrome to match the page; theme.js keeps
        it in sync with the active theme so the top strip is never a stray grey. -->
-  <meta name="theme-color" content="#000000" />
+  <!-- Matches the page's own --bg in each theme, so the mobile browser chrome
+       does not sit a different black next to the page. -->
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafaf8" />
   <title>Dues — The Discord payment platform with 0% platform fees</title>
   <meta name="description" content="Monetize your Discord server and receive payments straight to your own Stripe account. 0% platform fees, instant role delivery, free for your first 10 members." />
   <meta property="og:type" content="website" />
@@ -20,17 +23,23 @@
   <meta name="twitter:title" content="Dues — Sell Discord access" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" href="/favicon.png?v=120" />
-  <link rel="apple-touch-icon" href="/favicon.png?v=120" />
-  <link rel="stylesheet" href="/styles.css?v=120" />
+  <!-- Icons. favicon.ico stays at a stable, UNVERSIONED url on purpose: Google
+       caches the search-result favicon by URL, and a moving ?v= resets it.
+       The .ico carries 16/32/48/64, which clears Google's "multiple of 48px"
+       floor; the 96px PNG is what it actually prefers to serve. -->
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=121" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=121" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="stylesheet" href="/styles.css?v=121" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
-  <script src="/theme.js?v=120"></script>
+  <script src="/theme.js?v=121"></script>
 </head>
 <body class="home">
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=120" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=121" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/discover">Discover</a>
@@ -90,7 +99,7 @@
              the page was still painting, which is what "laggy" meant. The
              poster is ~5KB, is the video's own first frame, and carries LCP. -->
         <video class="hero-video" id="hero-media" muted loop playsinline preload="none"
-          poster="/hero-poster-dark.webp?v=120"
+          poster="/hero-poster-dark.webp?v=121"
           aria-label="Dues product tour: revenue analytics, store theming, and a sale landing in Discord">
         </video>
       </div>
@@ -383,7 +392,7 @@
   <!-- footer:begin — stamped by scripts/gen-seo-pages.mjs; edit footerHtml there -->
 <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=120" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=121" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -416,7 +425,7 @@
   </footer>
   <!-- footer:end -->
 
-  <script src="/menu.js?v=120"></script>
-  <script src="/home.js?v=120"></script>
+  <script src="/menu.js?v=121"></script>
+  <script src="/home.js?v=121"></script>
 </body>
 </html>

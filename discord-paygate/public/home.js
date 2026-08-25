@@ -77,7 +77,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
 (() => {
   const v = document.getElementById('hero-media');
   if (!v || v.tagName !== 'VIDEO') return;
-  const V = '120';
+  const V = '121';
   const srcFor = (light) => `/hero-tour-${light ? 'light' : 'dark'}.mp4?v=${V}`;
 
   let started = false;
