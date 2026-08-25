@@ -135,6 +135,10 @@ await check('posts once, then edits that same message on every later run', async
     assert.deepEqual(payload.attachments, [], 'edit must reset attachments');
     assert.deepEqual(payload.allowed_mentions, { parse: [] }, 'a rules post must never ping');
     assert.equal(payload.embeds[0].footer.text, 'Dues · Server Rules', 'marker must be stable');
+    // Discord paints the accent stripe against the VIEWER's theme, so it must
+    // not follow ours: a near-white stripe is invisible to every light-theme
+    // member, near-black to every dark-theme one.
+    assert.equal(payload.embeds[0].color, 0x8a8a84, 'stripe must be the theme-independent mid tone');
 
     assert.deepEqual(state.pins, [state.messages[0].id], 'the first post is pinned, and only once');
   } finally {

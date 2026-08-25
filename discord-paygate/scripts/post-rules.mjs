@@ -138,9 +138,17 @@ if (description.length > 4096) die(`the rules run to ${description.length} chars
 const { renderBannerCard } = await import('../src/lib/welcome-card.js');
 const png = await renderBannerCard({ title: doc.title, subtitle: doc.subtitle, theme: THEME });
 
+// The embed's accent stripe is the one part of this post Discord paints
+// against the VIEWER's theme, not ours — so it cannot follow RULES_THEME. A
+// near-white stripe scores 12.6:1 on Discord dark and 1.02:1 on Discord light,
+// i.e. invisible for every light-theme member; near-black is the same failure
+// mirrored. This mid tone (already the brand's muted text colour) clears 3:1
+// against both Discord embed grounds: 3.97:1 on #2b2d31, 3.13:1 on #f2f3f5.
+const EMBED_STRIPE = 0x8a8a84;
+
 const embed = {
   description,
-  color: THEME === 'light' ? 0x0a0a0a : 0xf5f5f4,
+  color: EMBED_STRIPE,
   image: { url: 'attachment://rules.png' },
   footer: { text: MARKER },
 };

@@ -37,7 +37,7 @@ Never post card numbers, bot tokens, API keys, or passwords. Not even in a ticke
 Staff never DM you first. Anyone who DMs you asking for payment, tokens, or passwords is a scammer. Report it in {support}.
 No impersonating Dues staff, sellers, or other members.
 Do not leak or resell content you bought through a Dues store.
-Open a ticket in {support} before you go to your bank. A chargeback is not a refund route: it costs the seller a fee on top of the money, and it gets your access pulled and your account blocked from the store. Asking us is faster and usually cheaper for you.
+Open a ticket in {support} before you go to your bank. A chargeback is not a refund route - it costs the seller a fee on top of the money and takes weeks to resolve. Asking us is faster.
 Sellers: deliver what your listing promises, and honour your own refund policy.
 Follow Discord's Terms of Service. Nothing illegal, no NSFW.
 Staff decisions are final. Raise disputes in {support}, not in public.
