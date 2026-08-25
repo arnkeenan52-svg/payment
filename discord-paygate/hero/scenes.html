@@ -117,6 +117,61 @@
   #alerts .embed strong { display: block; font-size: 19px; margin-bottom: 6px; }
   #alerts .embed span { font-size: 17px; color: #c9cec7; }
   #alerts .embed span em { font-style: normal; color: var(--ink); font-weight: 700; }
+
+  /* ── burst ──────────────────────────────────────────────────────────────── */
+  /* The beat the whole film is judged on. The adversarial pass measured the
+     reference's burst at ~4x the frame-delta of any other beat, sustained 2.0s,
+     and warned that a DARK pinwheel would get the film rejected a fifth time.
+     So the wedge cycle is [ink, bg, ink, blurple] — white is the accent in a
+     monochrome system, and the twelve --bg wedges cost nothing to paint
+     because they ARE the ground. */
+  #burst .stage-in { position: absolute; inset: 0; overflow: hidden; }
+  #burst .wheelwrap {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+    will-change: filter;
+  }
+  /* Fixed-size element with an animated mask radius, NOT a scaled 4600px div:
+     it keeps the painted area bounded to the frame instead of asking the
+     compositor to rasterise a surface three times the viewport. */
+  #burst .wheel {
+    position: absolute; width: 3400px; height: 3400px;
+    left: 50%; top: 50%; margin: -1700px 0 0 -1700px;
+    background: conic-gradient(from 0deg,
+      #f5f5f4 0deg 15deg, #0a0a0a 15deg 30deg, #f5f5f4 30deg 45deg, #5865f2 45deg 60deg,
+      #f5f5f4 60deg 75deg, #0a0a0a 75deg 90deg, #f5f5f4 90deg 105deg, #5865f2 105deg 120deg,
+      #f5f5f4 120deg 135deg, #0a0a0a 135deg 150deg, #f5f5f4 150deg 165deg, #5865f2 165deg 180deg,
+      #f5f5f4 180deg 195deg, #0a0a0a 195deg 210deg, #f5f5f4 210deg 225deg, #5865f2 225deg 240deg,
+      #f5f5f4 240deg 255deg, #0a0a0a 255deg 270deg, #f5f5f4 270deg 285deg, #5865f2 285deg 300deg,
+      #f5f5f4 300deg 315deg, #0a0a0a 315deg 330deg, #f5f5f4 330deg 345deg, #5865f2 345deg 360deg);
+    will-change: transform, -webkit-mask-image;
+  }
+  #burst .stars { position: absolute; inset: 0; will-change: transform; }
+  #burst .stars svg { position: absolute; overflow: visible; }
+  /* The chip is a SIBLING of .wheelwrap, never a descendant: the exit blurs the
+     wheel to 36px, and the whole point of the shot is a razor-sharp subject
+     against a destroyed world. */
+  #burst .depth { position: absolute; inset: 0; perspective: 2000px; }
+  #burst .group { position: absolute; inset: 0; transform-style: preserve-3d; }
+  #burst .chip, #burst .pill {
+    position: absolute; left: 50%; top: 50%;
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 26px; border-radius: 999px;
+    font-family: var(--grotesk); font-weight: 700; white-space: nowrap;
+    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.5);
+    will-change: transform, opacity;
+  }
+  #burst .chip {
+    background: var(--bg); border: 2px solid var(--ink); color: var(--ink);
+    font-size: 68px; padding: 26px 52px;
+  }
+  #burst .chip i { width: 24px; height: 24px; border-radius: 50%; background: #5865f2; display: block; }
+  #burst .pill { font-size: 29px; border: 0; padding: 17px 30px; }
+  #burst .bloom {
+    position: absolute; left: 50%; top: 50%; width: 900px; height: 900px;
+    margin: -450px 0 0 -450px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(245,245,244,0.9) 0%, rgba(245,245,244,0) 68%);
+    mix-blend-mode: screen; will-change: transform, opacity;
+  }
 </style>
 </head>
 <body>
@@ -125,6 +180,17 @@
   <div class="lockup">
     <div class="mark"><img src="../assets/dues-mark.png" alt="Dues" /></div>
     <div class="tag">Sell Discord roles. <b>Keep every dollar.</b></div>
+  </div>
+</div>
+
+
+<div class="stage" id="burst">
+  <div class="stage-in">
+    <div class="wheelwrap"><div class="wheel"></div><div class="stars"></div></div>
+    <div class="bloom"></div>
+    <div class="depth"><div class="group">
+      <div class="chip"><i></i>@VIP</div>
+    </div></div>
   </div>
 </div>
 
@@ -227,7 +293,129 @@ const ALERTS = {
   },
 };
 
-const SCENES = { brand: BRAND, alerts: ALERTS };
+
+// ── scene: burst ──────────────────────────────────────────────────────────────
+// Scene 7 of the film ("unlock"), authored here in scene-local time 0..1.85.
+// In the finished cut it starts at 14.45s.
+//
+// This is the beat the film is judged on. The teardown measured the reference's
+// burst at ~4x the frame-delta of any other beat, sustained for 2.0s, and the
+// adversarial pass was blunt: a DARK pinwheel "is the one that gets it rejected
+// a fifth time". Hence white wedges. In a monochrome system white IS the accent
+// (#f5f5f4 on #0a0a0a is 18.15:1), and the twelve --bg wedges are free because
+// they are simply the ground showing through.
+//
+// The three pills are what ACTUALLY happens in these seconds. An earlier draft
+// streamed '# vip-lounge', '# signals', 'general' — but Dues does not create,
+// configure or gate channels. It delivers a ROLE; what that role opens is the
+// server owner's own permission setup. Claiming otherwise would be the one
+// failure worse than boring.
+const PILLS = [
+  { label: 'Payment captured', bg: '#635bff', fg: '#ffffff', ang: -142, dist: 232 },
+  { label: '@VIP added', bg: '#5865f2', fg: '#ffffff', ang: -38, dist: 246 },
+  { label: 'Posted to #sale-alerts', bg: '#f5f5f4', fg: '#0a0a0a', ang: 96, dist: 238 },
+];
+const PILL_AT = [0.50, 0.66, 0.82];
+
+// Eight four-point stars on a fixed deterministic ring. The reference scatters
+// coral sparkles through its ray field and they are a real part of why the beat
+// reads as celebratory rather than merely fast. Hardcoded angles, never random:
+// the film must render identically forever.
+const STARS = [
+  [18, 300, 1.0], [64, 430, 0.62], [112, 355, 0.85], [158, 470, 0.5],
+  [206, 320, 0.95], [252, 445, 0.58], [298, 375, 0.78], [344, 495, 0.66],
+];
+
+const BURST = {
+  duration: 1.85,
+  build() {
+    const stars = document.querySelector('#burst .stars');
+    stars.innerHTML = STARS.map(([a, r, sc]) => {
+      const x = 960 + Math.cos((a * Math.PI) / 180) * r;
+      const y = 540 + Math.sin((a * Math.PI) / 180) * r;
+      const s = 46 * sc;
+      return `<svg style="left:${(x - s / 2).toFixed(1)}px;top:${(y - s / 2).toFixed(1)}px" width="${s}" height="${s}" viewBox="-50 -50 100 100">
+        <path d="M0-50C0-18-18 0-50 0-18 0 0 18 0 50 0 18 18 0 50 0 18 0 0-18 0-50Z" fill="#f5f5f4"/></svg>`;
+    }).join('');
+
+    const group = document.querySelector('#burst .group');
+    group.insertAdjacentHTML('beforeend', PILLS.map((p) => {
+      const x = Math.cos((p.ang * Math.PI) / 180) * p.dist;
+      const y = Math.sin((p.ang * Math.PI) / 180) * p.dist;
+      return `<div class="pill" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}"
+        style="background:${p.bg};color:${p.fg}">${p.label}</div>`;
+    }).join(''));
+  },
+  apply(t) {
+    const wrap = document.querySelector('#burst .wheelwrap');
+    const wheel = document.querySelector('#burst .wheel');
+    const stars = document.querySelector('#burst .stars');
+    const group = document.querySelector('#burst .group');
+    const chip = document.querySelector('#burst .chip');
+    const bloom = document.querySelector('#burst .bloom');
+
+    // GROWTH. A constant x3 ratio per source frame, masked rather than scaled.
+    // The feather is not decoration: the reference's first two frames have
+    // radially smeared ray tips, not a hard disc.
+    const radius = Math.min(2600, Math.pow(3, t * 25) * 8);
+    const feather = Math.max(40, radius * 0.16);
+    const mask = `radial-gradient(circle at 50% 50%, #000 0 ${(radius - feather).toFixed(1)}px, transparent ${radius.toFixed(1)}px)`;
+    wheel.style.webkitMaskImage = mask;
+    wheel.style.maskImage = mask;
+
+    // SPIN. Dead constant -128.7 deg/s from the first frame it exists to the
+    // last — measured sd 0.25 deg/frame over 40 samples. Any ease-in or
+    // ease-out here reads as a different, cheaper effect.
+    const spin = -128.7 * t;
+    wheel.style.transform = `rotate(${spin.toFixed(3)}deg)`;
+    stars.style.transform = `rotate(${spin.toFixed(3)}deg) scale(${(1 + 0.06 * Math.sin(t * 7.5)).toFixed(4)})`;
+
+    // IGNITION AT THE CURSOR, not at frame centre. The burst is born at the pay
+    // button (954,726) and the camera pulls it to centre over 0.30s. Motivation
+    // is what separates this from a stock transition.
+    const pull = seg(t, 0, 0.30);
+    wrap.style.transform = `translate(${lerp(-6, 0, pull).toFixed(2)}px, ${lerp(186, 0, pull).toFixed(2)}px)`;
+
+    // THE ONLY SPRING IN THE FILM. theta = A e^(-zwu) cos(wd u), z=0.27,
+    // w=5.5 rad/s, A=27deg, starting 0.123s in. Its acceptance test is three
+    // measured points: it crosses zero at film-time 14.87 and reaches its
+    // extremum of -11.0deg at 15.17. It crosses zero and comes BACK, so
+    // easeOutBack is not a substitute. Nothing else in the film overshoots.
+    const u = Math.max(0, t - 0.123);
+    const wd = 5.5 * Math.sqrt(1 - 0.27 * 0.27);
+    const theta = 27 * Math.exp(-0.27 * 5.5 * u) * Math.cos(wd * u);
+    const pop = seg(t, 0.02, 0.34);
+
+    // Chip and pills share ONE perspective group: the measured fact that the
+    // pills scale ~1.35x faster than the chip falls out of a single camera
+    // curve instead of three hand-tuned tracks.
+    const camZ = lerp(-260, 300, seg(t, 0.05, 1.25));
+    group.style.transform = `translateZ(${camZ.toFixed(1)}px)`;
+
+    const exit = seg(t, 1.62, 0.23, (x) => x); // linear: the swap must land hard
+    chip.style.opacity = pop.toFixed(4);
+    chip.style.transform =
+      `translate(-50%,-50%) rotate(${theta.toFixed(3)}deg) scale(${(lerp(0.35, 1, pop) * lerp(1, 0.79, exit)).toFixed(4)})`;
+
+    document.querySelectorAll('#burst .pill').forEach((el, i) => {
+      const p = seg(t, PILL_AT[i], 0.42);
+      const x = Number(el.dataset.x) * p;
+      const y = Number(el.dataset.y) * p;
+      el.style.opacity = (p * (1 - exit)).toFixed(4);
+      el.style.transform = `translate(-50%,-50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 550px) scale(${lerp(0.6, 1, p).toFixed(4)})`;
+    });
+
+    // EXIT. The blur lands on the WHEEL WRAPPER ONLY. The bloom and the blur
+    // must peak on the swap frame: one frame early or late, while readable ray
+    // structure survives, and it reads as a cut.
+    wrap.style.filter = exit > 0 ? `blur(${(36 * exit).toFixed(1)}px)` : 'none';
+    const bl = seg(t, 1.65, 0.10);
+    bloom.style.opacity = (bl * (1 - seg(t, 1.80, 0.05))).toFixed(4);
+    bloom.style.transform = `translate(-50%,-50%) scale(${lerp(0.2, 3, bl).toFixed(3)})`;
+  },
+};
+
+const SCENES = { brand: BRAND, burst: BURST, alerts: ALERTS };
 
 const name = new URLSearchParams(location.search).get('scene') || 'brand';
 const scene = SCENES[name];
