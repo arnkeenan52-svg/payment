@@ -1,5 +1,12 @@
 # Posted to the guide channel by scripts/post-message.mjs.
 #
+# The "no slash commands" line is deliberate and load-bearing: anyone arriving
+# from a server whose guide has a Commands section will hunt for one here, and
+# absence alone reads as an omission rather than an answer. It is also
+# verifiable — nothing in the codebase registers an application command, and
+# the bot invite asks for scope=bot without applications.commands, so the bot
+# as invited could not have one.
+#
 # The four seller steps are the ones on dues.gg's own "how it works" section,
 # in the same order and saying the same thing. If that section changes, change
 # this with it — a guide that contradicts the landing page is worse than none.
@@ -26,6 +33,10 @@ Four steps to selling. Two minutes.
 Dues turns a Discord server into a store. You sell roles, buyers pay by card,
 and the role lands automatically. Payments go to your own Stripe account —
 Dues never holds your money and takes 0% of it.
+
+**There are no slash commands.** Everything runs from the dashboard on the web.
+Nothing to memorise, nothing to type in chat — the bot only needs to be in your
+server so it can hand out the roles you sell.
 
 [steps]
 Invite — add Dues to your server and pick a name for your store.
