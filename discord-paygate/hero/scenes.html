@@ -27,12 +27,18 @@
      Chromium picks them up by family. */
   :root {
     --bg: #0a0a0a;
-    --panel: #131313;
-    --panel-2: #191919;
+    --panel: #101010;
+    --panel-2: #1d1d1d;
     --edge: #232323;
     --ink: #f5f5f4;
     --dim: #9a9a94;
-    --good: #22c55e;
+    /* The REAL sale alert. src/services/stripe-events.js posts color: 0xffffff,
+       which Discord paints as the embed's left stripe — so the film shows white,
+       not green. #22c55e is not a product token: the monochrome rebrand replaced
+       --good with #ededed and the green survives only in the landing page's
+       savings calculator. Painting it here would advertise an embed Dues has
+       never sent. */
+    --good: #ffffff;
     --grotesk: 'Dues Grotesk', 'Space Grotesk', system-ui, sans-serif;
     --sans: 'Dues Sans', 'DM Sans', system-ui, sans-serif;
   }
@@ -110,7 +116,7 @@
   }
   #alerts .embed strong { display: block; font-size: 19px; margin-bottom: 6px; }
   #alerts .embed span { font-size: 17px; color: #c9cec7; }
-  #alerts .embed span em { font-style: normal; color: var(--good); font-weight: 700; }
+  #alerts .embed span em { font-style: normal; color: var(--ink); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -171,7 +177,7 @@ const BRAND = {
 // eases upward as it fills, which is what a real channel does and what makes the
 // shot feel live rather than staged.
 const SALES = [
-  { user: '@drift139', product: 'Inner Circle', price: '$63.99' },
+  { user: '@drift139', product: 'Inner Circle', price: '$79.99' },
   { user: '@nova142', product: 'VIP Access', price: '$49.99' },
   { user: '@halo151', product: 'Signals Monthly', price: '$14.99' },
   { user: '@sirius147', product: 'VIP Access', price: '$49.99' },
@@ -242,10 +248,14 @@ window.__seek = (t) => {
   scene.apply(Number(t));
   return true;
 };
-// Set once the fonts are actually resolved. Shooting before this fires captures
-// a fallback face, which is the kind of error nobody notices until it ships.
+// Set once the fonts AND every image have resolved. Fonts alone was not enough:
+// frame 0's subject is assets/dues-mark.png and frame 0 becomes the LCP poster, so
+// seeking before it decodes ships a poster with a hole where the logo goes.
 window.__ready = false;
-document.fonts.ready.then(() => { window.__ready = true; });
+Promise.all([
+  document.fonts.ready,
+  ...[...document.images].map((i) => i.decode().catch(() => {})),
+]).then(() => { window.__ready = true; });
 </script>
 </body>
 </html>
