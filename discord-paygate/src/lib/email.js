@@ -108,6 +108,7 @@ export function receiptHtml({ storeName, planName, amountUsd, lifetime, discordU
       <p style="margin:20px 0 0;font-size:11.5px;color:#9a9f98;line-height:1.6;">
         Stripe processed your payment. Dues sent this receipt for ${esc(storeName)}.
         Reply to this email if anything looks wrong.
+        <br />Run your own community? <a href="${esc(config.communityInvite)}" style="color:#c9cec7;">Join the Dues Discord</a>.
       </p>
     </div>
   </div>`;

@@ -72,6 +72,9 @@ export const config = {
   // Discord server itself (DISCORD_GUILD_NAME, e.g. Tradeleaks).
   platform: env('PLATFORM_NAME', 'Dues'),
   brand: env('BRAND') || 'Tradeleaks',
+  // The Dues community server. Permanent invite, no expiry, no use cap.
+  // Env-overridable so a re-issued invite is a dashboard change, not a deploy.
+  communityInvite: env('COMMUNITY_INVITE') || 'https://discord.gg/G6yjsX5qbB',
   // Discord user id of the store owner: unlocks owner-only platform views.
   ownerDiscordId: env('OWNER_DISCORD_ID'),
   port: num('PORT', 4000),

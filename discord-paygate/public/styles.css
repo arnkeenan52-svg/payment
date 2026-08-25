@@ -531,6 +531,23 @@ footer {
 }
 .powered-label { display: block; }
 
+/* The one place the Dues community invite appears on a seller's storefront.
+   Deliberately quiet: the receipt page already has a full-width button to the
+   SELLER's Discord, and a second, louder Discord link next to it would send
+   buyers to the wrong server. This sits inside the "powered by" strip, reads
+   as platform chrome, and is the canonical community link site-wide. */
+.powered-community {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--dim);
+  font-size: 12px;
+  text-decoration: none;
+  border-bottom: 1px solid var(--edge);
+  padding-bottom: 1px;
+}
+.powered-community:hover { color: var(--ink); border-bottom-color: currentColor; }
+.powered-community:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
 /* ── order receipt ────────────────────────────────────────────────────────── */
 .check-ring {
   width: 76px;

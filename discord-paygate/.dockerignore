@@ -1,8 +1,15 @@
 node_modules
 public
 api
-src
 data
 *.sqlite
 .git
 .env
+
+# src is excluded wholesale, but the bot worker needs exactly one file out of
+# it. Docker honours a negation after a directory exclude; .gitignore would
+# not. Without this line the image build fails at COPY with
+# "failed to compute cache key ... /src/lib/welcome-card.js: not found".
+# If Dockerfile.presence ever copies another src/ file, re-include it here too.
+src
+!src/lib/welcome-card.js
