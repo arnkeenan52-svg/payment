@@ -397,6 +397,16 @@
   #s-end .lrow span { margin-left: auto; font-size: 22px; }
   #s-end .lpay { height: 68px; line-height: 68px; text-align: center; background: #161616; color: #faf9f7;
     border-radius: 14px; font-family: var(--grotesk); font-weight: 700; font-size: 22px; margin-top: 24px; }
+
+  /* ── film assembly ──────────────────────────────────────────────────────── */
+  /* In film mode every stage is mounted at once and driven by opacity and
+     transform, because a junction where both scenes are briefly present is the
+     entire difference between a transition and a cut. */
+  body.film .stage { display: block; opacity: 0; will-change: opacity, transform, filter; }
+  #wash {
+    position: fixed; inset: 0; background: var(--ink); opacity: 0;
+    pointer-events: none; z-index: 90;
+  }
 </style>
 </head>
 <body>
@@ -409,6 +419,8 @@
 </div>
 
 
+
+<div id="wash"></div>
 
 <div class="stage" id="s-title">
   <div class="title headline" data-text="Sell Discord roles. Keep every dollar."></div>
@@ -594,7 +606,7 @@ const SALES = [
   { user: '@halo151', product: 'Signals Monthly', price: '$14.99' },
   { user: '@sirius147', product: 'VIP Access', price: '$49.99' },
 ];
-const ALERT_AT = [0.55, 1.25, 1.95, 2.65]; // one every 0.70s — a heartbeat, not a burst
+const ALERT_AT = [0.45, 1.05, 1.65, 2.25]; // one every 0.60s — a heartbeat, not a burst
 
 const ALERTS = {
   duration: 3.9,
@@ -1140,7 +1152,79 @@ const ENDCARD = {
   },
 };
 
-const SCENES = { brand: BRAND, title: TITLE, store: STORE, stripe: STRIPE_S, product: PRODUCT, theme: THEME_SC, shop: SHOP, burst: BURST, alerts: ALERTS, endcard: ENDCARD };
+
+// ── the film ──────────────────────────────────────────────────────────────────
+// Nine beats on one 20.0s timeline. The whole point of this function is the
+// JUNCTIONS: ffmpeg finds zero hard cuts in the reference at threshold 0.10, and
+// four previous attempts at this video failed because they were assembled out of
+// crossfades between unrelated screens. A junction here is a transform, and
+// wherever possible one object is CARRIED THROUGH it so the eye never loses the
+// thread — the technique the teardown found in the reference ("the S chip is the
+// carry-over object and it never stops existing").
+const FILM = [
+  { key: 'title', el: 's-title', at: 0.00, dur: 1.15, sc: () => TITLE },
+  { key: 'store', el: 's-store', at: 1.15, dur: 2.25, sc: () => STORE },
+  { key: 'stripe', el: 's-stripe', at: 3.40, dur: 2.20, sc: () => STRIPE_S },
+  { key: 'product', el: 's-product', at: 5.60, dur: 2.30, sc: () => PRODUCT },
+  { key: 'theme', el: 's-theme', at: 7.90, dur: 3.95, sc: () => THEME_SC },
+  { key: 'shop', el: 's-shop', at: 11.85, dur: 2.15, sc: () => SHOP },
+  { key: 'burst', el: 'burst', at: 14.00, dur: 1.85, sc: () => BURST },
+  { key: 'alerts', el: 'alerts', at: 15.85, dur: 3.00, sc: () => ALERTS },
+  { key: 'endcard', el: 's-end', at: 18.85, dur: 1.15, sc: () => ENDCARD },
+];
+
+const FILM_SCENE = {
+  stage: null,
+  duration: 20.0,
+  build() {
+    document.body.classList.add('film');
+    FILM.forEach((b) => {
+      const sc = b.sc();
+      if (sc.build) sc.build();
+    });
+  },
+  apply(t) {
+    const wash = document.getElementById('wash');
+
+    // J3 (stripe -> product) is the film's signature junction and the one the
+    // adversarial pass corrected: the reference's mean luma travels 44 -> 216
+    // while chroma DIPS to a minimum mid-travel, which is the unmistakable
+    // signature of a bright DESATURATING wash. Washing to --bg, as the spec
+    // originally had it, would have been the same gesture with its meaning
+    // inverted. On a near-black film a white wash is a harder cut of light than
+    // it is on the reference's cream — which is the point.
+    const washUp = seg(t, 5.32, 0.20, inQuad);
+    const washDn = seg(t, 5.52, 0.33);
+    wash.style.opacity = (0.88 * (washUp - washDn)).toFixed(4);
+
+    FILM.forEach((b) => {
+      const el = document.getElementById(b.el);
+      const sc = b.sc();
+      const end = b.at + b.dur;
+      // Each beat stays mounted 0.35s past its own end so the junction has two
+      // scenes to work with. Outside that it is fully hidden and costs nothing.
+      const live = t >= b.at - 0.35 && t <= end + 0.35;
+      if (!live) { el.style.opacity = '0'; return; }
+
+      sc.apply(clamp01((t - b.at) / b.dur) * b.dur);
+
+      // Entry and exit. Deliberately NOT a symmetric crossfade: an incoming beat
+      // is already fully opaque by the time the outgoing one starts leaving, so
+      // the two are never both half-visible — which is what a dissolve looks
+      // like, and what the reference never does.
+      const inn = seg(t, b.at - 0.10, 0.18, (x) => x);
+      const out = seg(t, end - 0.06, 0.20, (x) => x);
+      el.style.opacity = Math.max(0, inn - out).toFixed(4);
+
+      // The outgoing beat keeps MOVING as it leaves. A scene that freezes and
+      // fades reads as a slide; one that accelerates out reads as a camera.
+      el.style.transform = out > 0 ? `scale(${(1 + 0.055 * out).toFixed(4)})` : 'none';
+      el.style.filter = out > 0 ? `blur(${(9 * out).toFixed(2)}px)` : 'none';
+    });
+  },
+};
+
+const SCENES = { brand: BRAND, title: TITLE, store: STORE, stripe: STRIPE_S, product: PRODUCT, theme: THEME_SC, shop: SHOP, burst: BURST, alerts: ALERTS, endcard: ENDCARD, film: FILM_SCENE };
 
 const name = new URLSearchParams(location.search).get('scene') || 'brand';
 const scene = SCENES[name];
@@ -1148,9 +1232,11 @@ if (!scene) {
   document.body.innerHTML = `<pre style="color:#f5f5f4;padding:40px;font:20px monospace">
 unknown scene "${name}" — known: ${Object.keys(SCENES).join(', ')}</pre>`;
 } else {
-  const stageEl = document.getElementById(scene.stage || name);
-  if (!stageEl) throw new Error(`scene "${name}" declares stage "${scene.stage || name}", which is not in the document`);
-  stageEl.classList.add('on');
+  if (scene.stage !== null) {
+    const stageEl = document.getElementById(scene.stage || name);
+    if (!stageEl) throw new Error(`scene "${name}" declares stage "${scene.stage || name}", which is not in the document`);
+    stageEl.classList.add('on');
+  }
   fillTitles();
   if (scene.build) scene.build();
   scene.apply(0);

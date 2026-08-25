@@ -10,3 +10,7 @@ tmp-post-preview/
 
 # scripts/record-hero.mjs output — regenerated, never committed
 tmp-hero-frames/
+
+# scripts/build-film.mjs frame output — regenerated, never committed
+tmp-film-frames/
+tmp-hero-frames/

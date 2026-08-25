@@ -91,16 +91,18 @@
           <span class="bf-dots"><i></i><i></i><i></i></span>
           <span class="bf-url"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> dues.gg/dashboard</span>
         </div>
-        <!-- The product tour: a real screen recording of the dashboard, themed
-             to the page (dark tour on Black, light tour on White).
-             NO autoplay and preload="none" ON PURPOSE — home.js attaches the
-             source and starts playback once the page has finished its critical
-             work. Autoplay + preload="auto" made every visitor pull ~5MB while
-             the page was still painting, which is what "laggy" meant. The
-             poster is ~5KB, is the video's own first frame, and carries LCP. -->
+        <!-- The product tour. ONE FILE FOR BOTH THEMES: it used to ship a dark
+             cut and a light cut and swap them on the theme toggle, which doubled
+             the asset count to serve a film that now carries its own light beat
+             (the Ivory storefront) inside it. One file also halves what has to
+             be built, tested and cache-busted.
+             No autoplay and preload="none" ON PURPOSE — home.js attaches the
+             source once the page has finished its critical work. Autoplay plus
+             preload="auto" made every visitor pull the whole file while the page
+             was still painting, which is what "laggy" meant. -->
         <video class="hero-video" id="hero-media" muted loop playsinline preload="none"
-          poster="/hero-poster-dark.webp?v=121"
-          aria-label="Dues product tour: revenue analytics, store theming, and a sale landing in Discord">
+          poster="/hero-poster.webp?v=122"
+          aria-label="Dues product tour: name your store, connect your own Stripe key, create a product, theme your store, and a sale landing in Discord">
         </video>
       </div>
     </section>
