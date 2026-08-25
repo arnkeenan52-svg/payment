@@ -1,10 +1,19 @@
-# The always-on presence keeper — the only piece of Ripley that cannot run
-# serverless, because Discord shows a bot Online only while it holds a gateway
-# WebSocket. Deploy this image anywhere that stays up (Railway, Fly.io, Render
-# background worker, a VPS) with DISCORD_BOT_TOKEN set. Run exactly one.
+# The Dues presence keeper — the one piece of Dues that cannot be serverless.
+# Discord paints a bot "Online" only while it holds an open gateway WebSocket,
+# and a Vercel function cannot hold one. This image runs that socket and
+# nothing else: no database, no Stripe, no HTTP surface beyond an optional
+# health endpoint. Role delivery keeps running on Vercel either way.
+#
+# presence.js imports nothing outside node: builtins, so there is no install
+# step and the image is just Node + two files.
 FROM node:22-alpine
+
 WORKDIR /app
+# package.json is copied for its "type": "module" field, which presence.js
+# needs to load as ESM. Its dependencies are deliberately NOT installed.
+COPY package.json ./
 COPY scripts/presence.js ./scripts/presence.js
+
 ENV NODE_ENV=production
-USER node
+# DISCORD_BOT_TOKEN is injected as a secret by the host, never baked in.
 CMD ["node", "scripts/presence.js"]

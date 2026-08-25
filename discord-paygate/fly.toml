@@ -1,0 +1,26 @@
+# Fly.io deployment for the Dues presence keeper ONLY.
+# The web app itself lives on Vercel; this is the one always-on process that
+# holds Discord's gateway socket so the bot reads Online.
+#
+#   fly launch --no-deploy --copy-config
+#   fly secrets set DISCORD_BOT_TOKEN=...
+#   fly deploy
+#
+# Deliberately no [http_service] block: this is a worker, not a web service,
+# so Fly never auto-stops it to save money. One machine only — a second one
+# on the same token fights the first for the gateway session.
+app = "dues-presence"
+primary_region = "arn"   # Stockholm, closest to Denmark
+
+[build]
+  dockerfile = "Dockerfile.presence"
+
+[env]
+  PRESENCE_TEXT = "dues.gg"
+  PRESENCE_TYPE = "3"      # 3 = Watching
+  PRESENCE_STATUS = "online"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpus = 1
