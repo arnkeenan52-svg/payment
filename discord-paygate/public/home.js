@@ -64,27 +64,71 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
 }
 
 // ── hero media: the product-tour video, themed to the page ───────────────────
-// A muted, inline, looping <video> that autoplays everywhere (incl. iOS). The
-// dark tour ships as the default <source>; here we swap to the light tour on the
-// White theme and back when the theme toggles, keeping playback going.
+// DEFERRED ON PURPOSE. The markup ships the video with preload="none" and no
+// autoplay, so the browser fetches nothing until this runs. Before that it was
+// preload="auto" + autoplay, which meant every visitor pulled the whole file
+// immediately, competing with CSS, fonts and the poster for bandwidth during
+// first paint — on a phone or a slow connection that reads as the hero
+// stuttering, which is exactly what got reported. The poster is ~5KB and
+// paints straight away; the video arrives when the page is otherwise done.
+//
+// The trade: with JS off the poster is all you get. That is acceptable for a
+// decorative loop, and it is the same still the video opens on.
 (() => {
   const v = document.getElementById('hero-media');
   if (!v || v.tagName !== 'VIDEO') return;
-  const V = '119';
+  const V = '120';
+  const srcFor = (light) => `/hero-tour-${light ? 'light' : 'dark'}.mp4?v=${V}`;
+
+  let started = false;
   const apply = () => {
     const light = document.documentElement.dataset.theme === 'light';
-    const want = `/hero-tour-${light ? 'light' : 'dark'}.mp4?v=${V}`;
-    if (v.getAttribute('data-src') === want) return; // already on the right source
-    v.setAttribute('data-src', want);
+    const want = srcFor(light);
     v.poster = `/hero-poster-${light ? 'light' : 'dark'}.webp?v=${V}`;
+    if (started && v.getAttribute('data-src') === want) return; // already on it
+    v.setAttribute('data-src', want);
     v.src = want;
     v.load();
     v.play().catch(() => {}); // refused autoplay → the poster holds; no harm
+    started = true;
   };
-  // The default <source> is the dark tour, so only act up-front if we're on light.
-  if (document.documentElement.dataset.theme === 'light') apply();
-  // Follow the sun/moon toggle (it flips data-theme on <html>).
-  new MutationObserver(apply).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Wait for the page to finish its critical work before asking for ~5MB.
+  // requestIdleCallback where it exists; the load event everywhere else. Both
+  // are guarded so the video starts exactly once.
+  const begin = () => {
+    if (started) return;
+    apply();
+  };
+  const schedule = () => {
+    if ('requestIdleCallback' in window) requestIdleCallback(begin, { timeout: 2000 });
+    else setTimeout(begin, 200);
+  };
+  if (document.readyState === 'complete') schedule();
+  else window.addEventListener('load', schedule, { once: true });
+
+  // A visitor who never scrolls past the hero should still get it, and a
+  // visitor who scrolls straight past should not pay for it at all.
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!started) return; // not fetched yet — the schedule above owns that
+        if (entry.isIntersecting) v.play().catch(() => {});
+        else v.pause(); // scrolled past: stop burning decode on an unseen loop
+      },
+      { threshold: 0 },
+    );
+    io.observe(v);
+  }
+
+  // Follow the sun/moon toggle (it flips data-theme on <html>). Before the
+  // video has started this only swaps the poster, which is the point: toggling
+  // the theme must not pull the video forward.
+  new MutationObserver(() => {
+    const light = document.documentElement.dataset.theme === 'light';
+    v.poster = `/hero-poster-${light ? 'light' : 'dark'}.webp?v=${V}`;
+    if (started) apply();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 })();
 
 // ── pricing: monthly / yearly toggle (two months free on yearly) ─────────────
