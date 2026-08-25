@@ -23,6 +23,7 @@
 //   PREVIEW_DIR        where the dry run writes    (default ./tmp-rules-preview)
 
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -118,7 +119,15 @@ async function api(pathname, init = {}) {
 // ── build ─────────────────────────────────────────────────────────────────────
 const file = process.env.RULES_PATH ?? path.join(ROOT, 'content', 'rules.txt');
 if (!fs.existsSync(file)) die(`no rules file at ${file}`);
-const doc = parseRules(fs.readFileSync(file, 'utf8'));
+const source = fs.readFileSync(file, 'utf8');
+const doc = parseRules(source);
+
+// Baked into the worker image so the rules can be posted from Railway's web
+// console — which means the copy running here is only as fresh as the last
+// deploy. Printing a fingerprint makes a stale image visible BEFORE it
+// overwrites the live message with old text: compare it against
+// `sha256sum content/rules.txt | cut -c1-8` on main.
+const fingerprint = crypto.createHash('sha256').update(source).digest('hex').slice(0, 8);
 
 // The refusals that matter: an empty rules block would otherwise publish a
 // branded, official-looking, completely blank rules post.
@@ -172,7 +181,8 @@ if (!CONFIRM) {
     [
       '[rules] DRY RUN — nothing was sent to Discord.',
       `        channel  ${CHANNEL}`,
-      `        rules    ${doc.rules.length}`,
+      `        rules    ${doc.rules.length}  (${file})`,
+      `        version  ${fingerprint}`,
       `        chars    ${description.length} / 4096`,
       `        action   ${existing}`,
       `        preview  ${PREVIEW_DIR}`,
@@ -208,10 +218,10 @@ if (existing) {
   // attachments: [] drops the old image; the multipart part re-adds it. Without
   // this the edit appends a second copy of the banner to the same message.
   await api(`/channels/${CHANNEL}/messages/${existing.id}`, { method: 'PATCH', body: body({ ...payload, attachments: [] }) });
-  console.log(`[rules] edited existing message ${existing.id} in ${CHANNEL}`);
+  console.log(`[rules] edited existing message ${existing.id} in ${CHANNEL} (rules ${fingerprint})`);
 } else {
   const posted = await api(`/channels/${CHANNEL}/messages`, { method: 'POST', body: body(payload) });
-  console.log(`[rules] posted new message ${posted.id} in ${CHANNEL}`);
+  console.log(`[rules] posted new message ${posted.id} in ${CHANNEL} (rules ${fingerprint})`);
   // Pinning is best-effort: it needs MANAGE_MESSAGES, and a missing permission
   // should not read as "the rules failed to post".
   await fetch(`${API}/channels/${CHANNEL}/pins/${posted.id}`, { method: 'PUT', headers: { authorization: `Bot ${TOKEN}` } })

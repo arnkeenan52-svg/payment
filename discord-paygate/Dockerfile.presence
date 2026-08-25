@@ -35,6 +35,26 @@ RUN npm install --omit=dev --no-audit --no-fund
 COPY scripts/presence.js ./scripts/presence.js
 COPY src/lib/welcome-card.js ./src/lib/welcome-card.js
 
+# The #rules poster and its text. CMD never touches these — the worker runs
+# presence.js and nothing else — but they are here so the rules can be posted
+# and re-posted from Railway's web console, which executes inside this
+# container. That is the only place the bot token already exists, so it is the
+# one route where updating the rules requires nobody to handle the credential.
+#
+# The alternative was a local checkout plus `railway run`, which needs a
+# terminal the server owner does not have. Weighed against that: this adds two
+# text files, runs only when a human types the command, is dry without
+# --confirm, and its entire blast radius is one message in one channel. Anyone
+# who can reach this console already has DISCORD_BOT_TOKEN, which is strictly
+# more powerful than the script.
+#
+# Rules changes are recurring, not one-off, so this stays.
+#
+#   npm run rules                 # dry run, sends nothing
+#   npm run rules -- --confirm    # post or update
+COPY scripts/post-rules.mjs ./scripts/post-rules.mjs
+COPY content ./content
+
 ENV NODE_ENV=production
 # DISCORD_BOT_TOKEN is injected as a secret by the host, never baked in.
 CMD ["node", "scripts/presence.js"]
