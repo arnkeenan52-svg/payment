@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// One-shot builder for the official Ripley community server.
+// One-shot builder for the official Dues community server.
 //
 //   node scripts/setup-community.mjs <server-id>
 //
@@ -143,9 +143,9 @@ const LAYOUT = [
   ] },
 ];
 
-const welcomeMessage = (ch) => `**Welcome to Ripley**
+const welcomeMessage = (ch) => `**Welcome to Dues**
 
-Ripley lets Discord server owners sell paid roles and memberships — Stripe checkout straight into your own account, roles delivered in seconds, 0% of sales.
+Dues lets Discord server owners sell paid roles and memberships — Stripe checkout straight into your own account, roles delivered in seconds, 0% of sales.
 
 **Start here**
 - Website: <https://dues.gg>
@@ -155,8 +155,8 @@ Ripley lets Discord server owners sell paid roles and memberships — Stripe che
 **Where things happen**
 - <#${ch['get-help']}> — setup questions. We answer.
 - <#${ch['bug-reports']}> — something broke? Tell us exactly what you did.
-- <#${ch['feature-requests']}> — what should Ripley do next?
-- <#${ch['store-showcase']}> — selling with Ripley? Drop your store link.
+- <#${ch['feature-requests']}> — what should Dues do next?
+- <#${ch['store-showcase']}> — selling with Dues? Drop your store link.
 
 **Rules**
 1. Be decent. No harassment, no slurs.
@@ -200,7 +200,7 @@ try {
 } catch (err) {
   if (err.status === 403 || err.status === 404) {
     console.error('The bot is not in that server (or the id is wrong).');
-    console.error('Invite it first — Server Settings → open your Ripley invite link with Administrator — then re-run.');
+    console.error('Invite it first — Server Settings → open your Dues invite link with Administrator — then re-run.');
     exit(1);
   }
   if (err.status === 401) {

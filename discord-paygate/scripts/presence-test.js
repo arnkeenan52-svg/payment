@@ -202,5 +202,74 @@ await check('exits on an auth failure instead of reconnecting forever', async ()
   assert.equal(attempts, 1, 'does not retry a fatal close');
 });
 
+// 3: welcome cards — the join card path end to end, against a mock gateway
+// AND a mock Discord REST API. Proves the privileged intent is requested only
+// when the feature is on, and that a join produces a real PNG upload.
+await check('posts a welcome card on join, and only then asks for the members intent', async () => {
+  const posted = [];
+  const rest = http.createServer((req, res) => {
+    if (req.method === 'POST' && /\/channels\/9001\/messages$/.test(req.url)) {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        posted.push({ body: Buffer.concat(chunks), type: req.headers['content-type'] ?? '' });
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ id: '1' }));
+      });
+      return;
+    }
+    res.writeHead(404).end('{}');
+  });
+  await new Promise((r) => rest.listen(0, '127.0.0.1', r));
+  const restPort = rest.address().port;
+
+  const seen = { identify: null };
+  let live = null;
+  const { server, port } = await mockGateway((conn) => {
+    live = conn;
+    conn.onMessage = (msg) => {
+      if (msg.op === OP.IDENTIFY) {
+        seen.identify = msg.d;
+        conn.send(OP.DISPATCH, { user: { username: 'dues' }, session_id: 'sess-w', resume_gateway_url: `ws://127.0.0.1:${port}` }, { s: 1, t: 'READY' });
+      } else if (msg.op === OP.HEARTBEAT) {
+        conn.send(OP.ACK, null);
+      }
+    };
+    conn.send(OP.HELLO, { heartbeat_interval: 45000 });
+  });
+
+  const child = startClient(port, {
+    WELCOME_CHANNEL_ID: '9001',
+    WELCOME_GUILD_ID: '4242',
+    DISCORD_API_BASE: `http://127.0.0.1:${restPort}`,
+  });
+  try {
+    await waitFor(() => seen.identify, 'IDENTIFY');
+    assert.equal(seen.identify.intents, 2, 'welcome mode must request the GUILD_MEMBERS privileged intent');
+
+    // The guild first (that is where the member count comes from), then a join.
+    live.send(OP.DISPATCH, { id: '4242', name: 'Dues HQ', member_count: 180 }, { s: 2, t: 'GUILD_CREATE' });
+    live.send(
+      OP.DISPATCH,
+      { guild_id: '4242', user: { id: '515500000000000015', username: 'newbie', global_name: 'Newbie', avatar: null } },
+      { s: 3, t: 'GUILD_MEMBER_ADD' },
+    );
+
+    await waitFor(() => posted.length, 'the welcome card POST', 30000);
+    const sent = posted[0];
+    assert.match(sent.type, /multipart\/form-data/, 'the card must be uploaded as a real attachment');
+    const text = sent.body.toString('latin1');
+    assert.ok(text.includes('welcome.png'), 'the attachment is named welcome.png');
+    assert.ok(text.includes('PNG'), 'the attachment body is actually a PNG');
+    assert.ok(text.includes('<@515500000000000015>'), 'the message mentions the new member');
+    assert.ok(text.includes('Dues HQ'), '{server} resolves to the guild name');
+    assert.ok(text.includes('"users":["515500000000000015"]'), 'allowed_mentions is pinned to the joiner');
+  } finally {
+    child.kill('SIGKILL');
+    server.close();
+    rest.close();
+  }
+});
+
 console.log(failures ? `\n${failures} check(s) failed.` : '\nAll presence checks green.');
 process.exit(failures ? 1 : 0);

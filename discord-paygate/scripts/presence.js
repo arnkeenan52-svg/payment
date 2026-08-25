@@ -26,8 +26,38 @@ const TYPE = Number(process.env.PRESENCE_TYPE ?? 3);
 const STATUS = process.env.PRESENCE_STATUS ?? 'online';
 const API = (process.env.DISCORD_API_BASE ?? 'https://discord.com/api/v10').replace(/\/$/, '');
 
+// ── optional: welcome cards ───────────────────────────────────────────────────
+// Set WELCOME_CHANNEL_ID to post a branded join card when someone joins.
+// This is what turns the process from "presence only" into a real (tiny) bot:
+// it needs the GUILD_MEMBERS *privileged* intent, which must be switched on at
+// Discord Developer Portal -> your app -> Bot -> Privileged Gateway Intents.
+// Without it Discord refuses the connection outright with close code 4014.
+// Leave WELCOME_CHANNEL_ID unset and none of this runs — intents stay 0.
+const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID ?? '';
+// REQUIRED when cards are on. The Dues bot is multi-tenant — it sits in every
+// seller's server — and welcome cards are a Dues-community thing, not a
+// product feature every tenant gets. Pinning the guild means a join in a
+// seller's server can never trigger a Dues-branded card.
+const WELCOME_GUILD_ID = process.env.WELCOME_GUILD_ID ?? '';
+const WELCOME_THEME = process.env.WELCOME_THEME === 'light' ? 'light' : 'dark';
+const WELCOME_TEXT = process.env.WELCOME_TEXT ?? 'Hey {mention}, welcome to {server}!';
+const WELCOME = Boolean(WELCOME_CHANNEL_ID);
+const INTENT_GUILD_MEMBERS = 1 << 1;
+
 if (!TOKEN) {
   console.error('[presence] DISCORD_BOT_TOKEN is required');
+  process.exit(1);
+}
+
+// Refusing to start beats silently posting cards for every server the bot is
+// in: this bot is in other people's servers, and their joins are not ours to
+// announce.
+if (WELCOME_CHANNEL_ID && !WELCOME_GUILD_ID) {
+  console.error(
+    '[presence] WELCOME_CHANNEL_ID is set but WELCOME_GUILD_ID is not. Welcome cards are ' +
+      'scoped to ONE server (the Dues community); set WELCOME_GUILD_ID to that server id, ' +
+      'or unset WELCOME_CHANNEL_ID to run presence only.',
+  );
   process.exit(1);
 }
 
@@ -47,6 +77,10 @@ const state = {
   attempts: 0,
   reconnects: 0,
   lastError: null,
+  // guildId -> {name, count}. Seeded from GUILD_CREATE, incremented on each
+  // join so the card can say "Member #N" without an extra REST call.
+  guilds: new Map(),
+  cardsPosted: 0,
 };
 
 const log = (...a) => console.log(`[presence] ${new Date().toISOString()}`, ...a);
@@ -76,6 +110,69 @@ async function gatewayUrl() {
 
 // Full jitter backoff, capped — a long outage must not turn into a hot loop.
 const backoffMs = (attempt) => Math.round(Math.random() * Math.min(30_000, 1000 * 2 ** Math.min(attempt, 5)));
+
+// ── welcome cards ─────────────────────────────────────────────────────────────
+// Renders the join card and posts it as a real attachment. Imported lazily so
+// the presence-only path keeps its zero-dependency promise: a deployment that
+// never sets WELCOME_CHANNEL_ID never loads sharp.
+async function postWelcome(member, guild) {
+  const user = member?.user;
+  if (!user?.id) return;
+  if (user.bot) return; // other bots joining is not a moment worth announcing
+
+  const { renderWelcomeCard } = await import('../src/lib/welcome-card.js');
+
+  // Discord's CDN serves the avatar; a user with none gets the default set,
+  // picked by the modern (id >> 22) % 6 rule rather than the legacy
+  // discriminator, which is "0" for every migrated account.
+  const avatarUrl = user.avatar
+    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=256`
+    : `https://cdn.discordapp.com/embed/avatars/${Number((BigInt(user.id) >> 22n) % 6n)}.png`;
+
+  let avatarPng = null;
+  try {
+    const res = await fetch(avatarUrl, { signal: AbortSignal.timeout(8000) });
+    if (res.ok) avatarPng = Buffer.from(await res.arrayBuffer());
+  } catch {
+    // A missing avatar is not a reason to skip the card — it renders without.
+  }
+
+  const png = await renderWelcomeCard({
+    username: user.global_name || user.username,
+    avatarPng,
+    memberNumber: guild?.count || null,
+    theme: WELCOME_THEME,
+  });
+
+  const content = WELCOME_TEXT.replace('{mention}', `<@${user.id}>`)
+    .replace('{server}', guild?.name ?? 'the server')
+    .replace('{user}', user.global_name || user.username)
+    .slice(0, 1800);
+
+  const form = new FormData();
+  form.append(
+    'payload_json',
+    JSON.stringify({
+      content,
+      allowed_mentions: { users: [user.id] }, // never let {server} smuggle an @everyone
+      attachments: [{ id: 0, filename: 'welcome.png' }],
+    }),
+  );
+  form.append('files[0]', new Blob([png], { type: 'image/png' }), 'welcome.png');
+
+  const res = await fetch(`${API}/channels/${WELCOME_CHANNEL_ID}/messages`, {
+    method: 'POST',
+    headers: { authorization: `Bot ${TOKEN}` },
+    body: form,
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`POST message ${res.status} ${detail.slice(0, 200)}`);
+  }
+  state.cardsPosted += 1;
+  log(`welcome card posted for ${user.username}${guild?.count ? ` (#${guild.count})` : ''}`);
+}
 
 function connect() {
   let ws;
@@ -167,7 +264,7 @@ function connect() {
           } else {
             send(OP.IDENTIFY, {
               token: TOKEN,
-              intents: 0, // presence only: no events, no privileged intents
+              intents: WELCOME ? INTENT_GUILD_MEMBERS : 0,
               properties: { os: process.platform, browser: 'ripley-presence', device: 'ripley-presence' },
               presence: presencePayload(),
             });
@@ -199,6 +296,18 @@ function connect() {
             state.ready = true;
             state.attempts = 0;
             log('session resumed');
+          } else if (msg.t === 'GUILD_CREATE' && WELCOME) {
+            // Sent for every guild on connect, and again if the bot is added.
+            state.guilds.set(msg.d.id, { name: msg.d.name, count: Number(msg.d.member_count ?? 0) });
+          } else if (msg.t === 'GUILD_MEMBER_ADD' && WELCOME) {
+            const g = msg.d?.guild_id;
+            if (g === WELCOME_GUILD_ID) {
+              const entry = state.guilds.get(g);
+              if (entry) entry.count += 1;
+              // Never await inside the socket handler: a slow render or a
+              // rate-limited POST must not stall heartbeats.
+              postWelcome(msg.d, entry).catch((err) => log('welcome card failed:', err.message));
+            }
           }
           return;
         default:
@@ -213,7 +322,13 @@ function connect() {
     ws.addEventListener('close', (ev) => {
       const code = ev?.code ?? 0;
       if (FATAL.has(code)) {
-        bail(`gateway closed with ${code} — check DISCORD_BOT_TOKEN and its intents`, { fatal: true });
+        const why =
+          code === 4014
+            ? 'gateway closed with 4014 — WELCOME_CHANNEL_ID is set, so this bot needs the ' +
+              'SERVER MEMBERS INTENT: Discord Developer Portal -> your app -> Bot -> ' +
+              'Privileged Gateway Intents -> enable "Server Members Intent" -> Save.'
+            : `gateway closed with ${code} — check DISCORD_BOT_TOKEN and its intents`;
+        bail(why, { fatal: true });
         return;
       }
       // 4007/4009 mean the resume was refused: start clean.
@@ -235,6 +350,7 @@ if (process.env.PORT) {
         uptimeSeconds: Math.round((Date.now() - state.since) / 1000),
         connectedSeconds: state.connectedAt ? Math.round((Date.now() - state.connectedAt) / 1000) : 0,
         reconnects: state.reconnects,
+        welcomeCards: WELCOME ? state.cardsPosted : 'disabled',
         lastError: state.lastError,
       };
       res.writeHead(state.ready ? 200 : 503, { 'content-type': 'application/json' });

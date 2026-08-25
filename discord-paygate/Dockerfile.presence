@@ -1,18 +1,39 @@
-# The Dues presence keeper — the one piece of Dues that cannot be serverless.
-# Discord paints a bot "Online" only while it holds an open gateway WebSocket,
-# and a Vercel function cannot hold one. This image runs that socket and
-# nothing else: no database, no Stripe, no HTTP surface beyond an optional
-# health endpoint. Role delivery keeps running on Vercel either way.
+# The Dues bot worker — the one piece of Dues that cannot be serverless.
 #
-# presence.js imports nothing outside node: builtins, so there is no install
-# step and the image is just Node + two files.
-FROM node:22-alpine
+# Discord paints a bot "Online" only while it holds an open gateway WebSocket,
+# and a Vercel function cannot hold one. This image runs that socket, and
+# optionally posts a branded welcome card when someone joins (set
+# WELCOME_CHANNEL_ID). Nothing else: no database, no Stripe, no HTTP surface
+# beyond an optional health endpoint. Role delivery and payments keep running
+# on Vercel whether this is up or not.
+#
+# Debian slim rather than Alpine: sharp ships prebuilt binaries for glibc that
+# "just work", where musl builds have historically needed compiling from
+# source. The size difference is not worth the deploy-day surprise.
+FROM node:22-slim
+
+# fontconfig is what librsvg (inside sharp) consults to resolve font families.
+# Without it the card still renders — but in a fallback face, which looks
+# broken rather than failing loudly.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends fontconfig \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-# package.json is copied for its "type": "module" field, which presence.js
-# needs to load as ESM. Its dependencies are deliberately NOT installed.
-COPY package.json ./
+
+# Brand fonts, installed system-wide so fontconfig can find them by family
+# name ("Dues Grotesk" / "Dues Sans"). These are static instances cut from the
+# site's variable fonts; see assets/fonts/README.md.
+COPY assets/fonts/*.ttf /usr/share/fonts/dues/
+RUN fc-cache -f >/dev/null
+
+# Only the manifest first, so the dependency layer caches independently of
+# source changes. --omit=dev keeps the web app's test tooling out of the image.
+COPY package.json package-lock.json* ./
+RUN npm install --omit=dev --no-audit --no-fund
+
 COPY scripts/presence.js ./scripts/presence.js
+COPY src/lib/welcome-card.js ./src/lib/welcome-card.js
 
 ENV NODE_ENV=production
 # DISCORD_BOT_TOKEN is injected as a secret by the host, never baked in.

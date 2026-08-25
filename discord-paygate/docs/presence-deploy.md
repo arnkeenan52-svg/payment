@@ -51,6 +51,38 @@ Under systemd/pm2/Docker so it restarts on reboot. `Dockerfile.presence`
 builds a ~150MB Node-Alpine image with no install step (presence.js imports
 only node: builtins).
 
+## Welcome cards (Dues community server only)
+
+Off by default. Set both of these and the same worker also posts a branded
+join card — logo, watermark, the joiner's avatar and "Member #N":
+
+```
+WELCOME_CHANNEL_ID=<channel to post in>
+WELCOME_GUILD_ID=<the Dues community server id>     # required
+WELCOME_THEME=dark            # or light
+WELCOME_TEXT=Hey {mention}, welcome to {server}!    # {mention} {server} {user}
+```
+
+**Scope is deliberate and enforced.** The Dues bot is multi-tenant — it sits
+in every seller's server — so cards fire for exactly one guild:
+`WELCOME_GUILD_ID`. Joins anywhere else are ignored, and the worker refuses to
+start if `WELCOME_CHANNEL_ID` is set without it, rather than defaulting to
+"every server". Sellers never get Dues-branded cards in their communities.
+
+Two requirements:
+
+1. **Privileged intent.** Discord Developer Portal → your app → Bot →
+   Privileged Gateway Intents → enable **Server Members Intent** → Save.
+   Without it the gateway refuses the connection with close code 4014 (the
+   worker says exactly this and exits rather than looping).
+2. **Fonts.** Cards render through fontconfig; `Dockerfile.presence` installs
+   `assets/fonts/*.ttf` for you. Running bare-metal, copy them to
+   `/usr/share/fonts/dues/` and run `fc-cache -f`, or cards fall back to an
+   off-brand face (the renderer warns when the families are missing).
+
+Presence-only deployments never load sharp at all — the import is lazy, so
+leaving `WELCOME_CHANNEL_ID` unset keeps the zero-dependency path.
+
 ## Checking it
 
 - Discord member list: the bot shows Online with "Watching dues.gg".

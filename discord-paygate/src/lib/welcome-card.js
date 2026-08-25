@@ -1,0 +1,150 @@
+// Welcome card renderer — the image posted when someone joins a server.
+//
+// Built as an SVG and rasterized with sharp (libvips), so the only runtime
+// cost is one small PNG encode. Deliberately NOT Playwright: a headless
+// browser would be a ~400MB image and a second of CPU per join, for a card
+// that is a rectangle, a circle and three lines of text.
+//
+// Fonts are the fragile part of SVG rasterization: librsvg resolves families
+// through fontconfig, so the bundled TTFs in assets/fonts must be installed
+// on the system (the Dockerfile copies them into /usr/share/fonts). A
+// missing family silently falls back to something ugly rather than throwing,
+// so we check once and warn loudly instead of shipping wrong-looking cards.
+
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const GROTESK = 'Dues Grotesk'; // headline / wordmark
+const SANS = 'Dues Sans'; // supporting text
+const W = 1200;
+const H = 600;
+
+// Discord display names are attacker-controlled text landing inside SVG
+// markup: escape the XML metacharacters, drop control characters that would
+// break the parser outright, and cap the length so a 32-char name cannot
+// push the headline off the card.
+// Truncation happens later, against the rendered headline width, not here:
+// escaping first would let a single "&" count as five characters ("&amp;")
+// toward the limit.
+const clean = (s) => String(s ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim();
+const esc = (s) =>
+  String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
+
+// librsvg exposes no text-measurement API, so the headline is fitted with an
+// estimate: Space Grotesk Bold averages ~0.52em per character across mixed
+// case. The name is truncated first (a 32-char name plus the suffix would
+// otherwise shrink the line to nothing), then the size steps down until the
+// estimate fits. Both guards are needed - either alone still overflows.
+const SAFE_W = W - 120; // 60px of breathing room each side
+const NAME_MAX = 22;
+function fitHeadline(rawName) {
+  const name = rawName.length > NAME_MAX ? `${rawName.slice(0, NAME_MAX - 1)}\u2026` : rawName;
+  const line = `${name} just joined the server`;
+  let size = 50;
+  while (size > 28 && line.length * size * 0.52 > SAFE_W) size -= 2;
+  return { line: esc(line), size };
+}
+
+let fontsChecked = null;
+async function fontsPresent() {
+  if (fontsChecked !== null) return fontsChecked;
+  try {
+    const { stdout } = await promisify(execFile)('fc-list', [':', 'family']);
+    fontsChecked = stdout.includes(GROTESK) && stdout.includes(SANS);
+  } catch {
+    fontsChecked = false; // no fontconfig at all
+  }
+  if (!fontsChecked) {
+    console.warn(
+      `[welcome-card] brand fonts not installed (looking for "${GROTESK}" / "${SANS}") — ` +
+        'cards will render in a fallback face. Copy assets/fonts/*.ttf into /usr/share/fonts and run fc-cache -f.',
+    );
+  }
+  return fontsChecked;
+}
+
+const THEMES = {
+  dark: { bg: '#0a0a0a', text: '#f5f5f4', sub: '#8a8a84', ring: '#f5f5f4', watermark: '#151515', mark: '#f5f5f4' },
+  light: { bg: '#fafaf8', text: '#0a0a0a', sub: '#6b6b66', ring: '#0a0a0a', watermark: '#ecebe6', mark: '#0a0a0a' },
+};
+
+// The faint repeating wordmark behind everything, like a pressed watermark.
+// Alternate rows are offset so the grid reads as a weave, not a table.
+function watermark(text, t) {
+  const rows = [];
+  for (let row = 0, y = 46; y < H + 120; row += 1, y += 116) {
+    const x = row % 2 === 0 ? -70 : -230;
+    rows.push(
+      `<text x="${x}" y="${y}" font-family="${GROTESK}" font-size="84" font-weight="700" ` +
+        `fill="${t.watermark}" letter-spacing="8" transform="skewX(-12)">` +
+        `${new Array(8).fill(text).join('   ')}</text>`,
+    );
+  }
+  return rows.join('');
+}
+
+// The Dues mark: three stacked, sheared bars — same geometry as the site logo.
+function mark(x, y, t) {
+  const bars = [
+    { w: 56, dx: 0, dy: 0 },
+    { w: 42, dx: 8, dy: 21 },
+    { w: 49, dx: 16, dy: 42 },
+  ];
+  return bars
+    .map((b) => `<path d="M ${x + b.dx} ${y + b.dy} h ${b.w} l -14 16 h -${b.w} Z" fill="${t.mark}" />`)
+    .join('');
+}
+
+/**
+ * Render the join card.
+ *
+ * @param {object} o
+ * @param {string} o.username           display name shown on the card
+ * @param {Buffer|null} [o.avatarPng]   already-fetched avatar bytes (any format sharp reads)
+ * @param {number|null} [o.memberNumber] "Member #N"; omitted when null
+ * @param {'dark'|'light'} [o.theme]
+ * @returns {Promise<Buffer>} PNG bytes
+ */
+export async function renderWelcomeCard({ username, avatarPng = null, memberNumber = null, theme = 'dark' }) {
+  const { default: sharp } = await import('sharp');
+  await fontsPresent();
+  const t = THEMES[theme] ?? THEMES.dark;
+  const headline = fitHeadline(clean(username) || 'a new member');
+
+  // Avatar: circle-cropped through a mask so any square source works, then
+  // inlined as a data URI. 260px on a 600px card keeps it dominant without
+  // crowding the headline.
+  const AV = 260;
+  const CY = 244;
+  let avatarLayer = '';
+  if (avatarPng) {
+    const circle = Buffer.from(
+      `<svg width="${AV}" height="${AV}"><circle cx="${AV / 2}" cy="${AV / 2}" r="${AV / 2}" fill="#fff"/></svg>`,
+    );
+    const cropped = await sharp(avatarPng)
+      .resize(AV, AV, { fit: 'cover' })
+      .composite([{ input: circle, blend: 'dest-in' }])
+      .png()
+      .toBuffer();
+    const href = `data:image/png;base64,${cropped.toString('base64')}`;
+    avatarLayer =
+      `<circle cx="${W / 2}" cy="${CY}" r="${AV / 2 + 7}" fill="none" stroke="${t.ring}" stroke-width="7" />` +
+      `<image x="${W / 2 - AV / 2}" y="${CY - AV / 2}" width="${AV}" height="${AV}" href="${href}" />`;
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <rect width="${W}" height="${H}" fill="${t.bg}" />
+  ${watermark('DUES', t)}
+  ${mark(64, 52, t)}
+  <text x="152" y="104" font-family="${GROTESK}" font-size="48" font-weight="700" fill="${t.mark}" letter-spacing="-1">Dues</text>
+  ${avatarLayer}
+  <text x="${W / 2}" y="452" text-anchor="middle" font-family="${GROTESK}" font-size="${headline.size}" font-weight="700" fill="${t.text}" letter-spacing="-1">${headline.line}</text>
+  ${
+    memberNumber
+      ? `<text x="${W / 2}" y="512" text-anchor="middle" font-family="${SANS}" font-size="33" fill="${t.sub}">Member #${Number(memberNumber)}</text>`
+      : ''
+  }
+</svg>`;
+
+  return sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer();
+}
