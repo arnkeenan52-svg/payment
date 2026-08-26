@@ -150,45 +150,75 @@ against `sha256sum content/<name>.txt | cut -c1-8` on main before confirming.
 Changing a `[marker]` orphans the message already in that channel; the next
 run posts a second one. `Dues · Server Rules` is live and must not change.
 
-## Re-shooting the hero tour
+## Rebuilding the hero film
 
-`scripts/record-hero.mjs` drives the real dashboard in Chromium at
-`deviceScaleFactor: 2`, so a 1920x1080 viewport captures at 3840x2160.
+The hero is `public/hero-tour.mp4`. It is **not a screen recording** — it is a
+designed film that lives in `hero/scenes.html` and is rendered by Chromium.
 
-**Why 2x.** The old master was 1080p and the edit pushes in on several scenes.
-A push-in on a 1080p source is an upscale, so those moments are soft before any
-encoder touches them — three encode passes hit that wall and none could move
-it. At 2x a 1.5x push-in still has native pixels.
+    node scripts/build-film.mjs            # frames, soundtrack, encode, poster
+    node scripts/build-film.mjs --frames   # frames only, to inspect
 
-It records the actual app, not a mock: a seeded database, a minted session
-cookie, and real rows rendering. Three pieces, in order:
+One command produces everything: the frames, the soundtrack (it shells out to
+`build-film-audio.mjs` itself), the muxed mp4 and the poster. Building the audio
+by hand afterwards is the one thing not to do — every accent in it is scored to
+a frame number, and a separate manual mux is how the two drift a cut apart.
+
+**Why a film and not a recording.** Four earlier hero videos were screen
+recordings of the real dashboard, and all four were rejected as soft. The
+reason is structural: the master was 1080p and the edit pushes in, so every
+push-in was an upscale and was soft before any encoder touched it. Three encode
+passes hit that wall and none could move it. This film is vector — CSS shapes,
+3D transforms and text — so it has no source resolution to be limited by. It
+renders at `deviceScaleFactor: 2` (3840x2160) and downscales 2:1, which is
+supersampling: every output pixel is the average of four, on exactly the
+hard-edged wedges and small text that alias worst.
+
+**Why it is seek-driven.** Nothing in `scenes.html` uses CSS animation or
+`requestAnimationFrame`. Every frame is produced by calling `window.__seek(t)`
+with an explicit time. A 4K screenshot takes seconds, far longer than a frame
+interval, so anything tied to wall clock would desync and stutter. The result
+is a perfect 30fps however slow capture is, and the same `t` always renders the
+same pixels — so a re-render months from now is frame-identical and the cut
+still lines up. Two rules follow from that and both have been broken at least
+once: no `Math.random`, and nothing may leave state behind that makes a frame
+depend on which `t` was rendered before it.
+
+**Working on it.** Open `hero/scenes.html?scene=<name>` directly in a browser
+for any single beat — `title`, `store`, `stripe`, `product`, `theme`, `shop`,
+`burst`, `alerts`, `endcard` — or `?scene=film` for the whole thing. Render a
+half-resolution proof first (`FILM_DPR=0.5`); at full 4K a render is around
+half an hour.
+
+**Checking a change.** The junctions are measurable, so measure them:
+
+    ffmpeg -i public/hero-tour.mp4 -vf "select='gte(scene,0)',metadata=print" -f null -
+
+Every junction should sit under about 0.15 except the two designed flashes —
+the white wash at 5.60 and the burst ignition at 14.00. A junction that climbs
+means a carry has stopped aligning its two boxes.
+
+The soundtrack has acceptance numbers too: about -16 LUFS integrated at no more
+than -1.0 dBFS true peak. Loudness with `ffmpeg -af ebur128`; true peak needs
+oversampling, because this material reconstructs well above its own samples:
+
+    ffmpeg -i tmp-film-audio.wav -af aresample=192000:resampler=soxr -f f32le - | ...
+
+### The old recorder
+
+`scripts/record-hero.mjs` and `scripts/encode-hero.sh` are what shot those four
+rejected videos. They are kept because they still do something useful — drive
+the real seeded dashboard in Chromium and screenshot it, which is how the
+landing page's feature stills are made — but they are no longer the hero
+pipeline and nothing on the site is built from them any more.
 
     DB_PATH=/tmp/hero.sqlite node scripts/seed-demo.mjs      # deterministic data
     node scripts/hero-mock-discord.mjs &                     # :4312
     DISCORD_API_BASE=http://127.0.0.1:4312 node scripts/dev-server.js &
     node scripts/record-hero.mjs --scene overview            # a still, to review
-    node scripts/record-hero.mjs --scene overview --frames   # the frame sequence
 
 `seed-demo.mjs` is deterministic (a seeded xorshift, never `Math.random`) so
-re-shooting months later gives the same chart shape and the same numbers — a
-tour whose revenue graph changes between takes cannot be re-cut. It writes
-through db.js's own helpers, so it cannot drift from the schema.
+re-shooting months later gives the same chart shape and the same numbers.
+`hero-mock-discord.mjs` stands in for Discord so a shoot is not hostage to
+someone's account; it serves only what the dashboard reads and 404s loudly on
+anything else.
 
-`hero-mock-discord.mjs` stands in for Discord: the server picker, role pickers
-and bot-presence checks all call it for real, and depending on a live guild
-would make every shoot hostage to someone's Discord account. It serves only
-what the dashboard reads and 404s loudly on anything else, so a scene that
-quietly depends on an unmocked endpoint fails during the shoot.
-
-Frames land in `tmp-hero-frames/<scene>-<theme>/` as PNGs. Encoding is
-deliberately NOT done here — that is `encode-hero.sh`'s job, and it carries the
-cut and the encoder reasoning.
-
-### Known gaps before a full shoot
-
-  - `recordCheckoutAttempt` stamps `created_at` at insert time, so every seeded
-    sale lands today: the 30d window holds all 145 and the revenue sparkline is
-    flat-then-spike instead of a curve. The seed needs to set `created_at`
-    directly before the numbers match the old tour's.
-  - The "Finish setting up" checklist renders above the stat row and would have
-    to be satisfied (or the store's setup state faked) so the layout matches.
