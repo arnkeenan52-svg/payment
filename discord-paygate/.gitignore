@@ -16,6 +16,11 @@ tmp-hero-frames/
 # `tmp-film-frames/` rule did not match, and 600 4K PNGs per render went into
 # three commits before anyone noticed.
 tmp-film-frames*/
+
+# Scratch probes written by audit subagents while they measure the render.
+# These are throwaway by construction and a `git add -A` swept five of them
+# into a commit before the pattern existed.
+scripts/_*
 tmp-hero-frames/
 tmp-film-audio.wav
 remotion/node_modules/
