@@ -309,12 +309,20 @@
      store that was just built, in the colours it was just given. These are
      THEMES['ivory'] verbatim — bg #faf9f7, panel #ffffff, text #161616, accent
      #161616 — so the two beats cannot drift apart. */
-  #b-live .win { position: absolute; left: 400px; top: 150px; width: 1120px; height: 800px; border-radius: 22px; overflow: hidden; border: 1.5px solid var(--ink); background: #faf9f7; }
+  /* 730 and not 800: the page ended 150px short of its own window, which reads
+     as a screenshot of a half-empty page rather than as a storefront. */
+  #b-live .win { position: absolute; left: 400px; top: 176px; width: 1120px; height: 730px; border-radius: 22px; overflow: hidden; border: 1.5px solid var(--ink); background: #faf9f7; }
   #b-live .wbar { height: 66px; background: #f1f0ed; display: flex; align-items: center; gap: 12px; padding: 0 24px; }
   #b-live .wbar i { width: 14px; height: 14px; border-radius: 50%; background: #cfcdc7; display: block; }
   #b-live .wurl { margin-left: 18px; font-size: 20px; color: #6b6a63; }
   #b-live .wbody { padding: 48px 56px; color: #161616; }
+  #b-live .lhead { display: flex; align-items: center; gap: 26px; }
+  #b-live .llogo { width: 96px; height: 96px; border-radius: 22px; background: #161616;
+                   display: grid; place-items: center; flex: none; overflow: hidden; }
+  #b-live .llogo img { width: 76%; height: 76%; object-fit: contain; display: block; }
   #b-live .lrow { background: #ffffff; border: 1.5px solid #e6e4de; border-radius: 18px; height: 96px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; margin-top: 20px; font-size: 28px; }
+  #b-live .lfoot { display: flex; align-items: center; justify-content: center; gap: 12px;
+                   margin-top: 30px; font-size: 21px; color: #7a7972; }
   #b-live .lpay { background: #161616; color: #faf9f7; border-radius: 18px; height: 92px; display: grid; place-items: center; font-family: var(--grotesk); font-weight: 700; font-size: 30px; margin-top: 30px; }
 
   /* ── 7 burst — PORTED VERBATIM, this is the beat the founder kept ───────── */
@@ -431,7 +439,13 @@
             border-bottom: 1px solid #2b2d31; color: #f2f3f5;
             font-family: var(--grotesk); font-weight: 700; font-size: 19px; }
   .dc-top b { color: #82858e; font-weight: 400; font-size: 21px; }
-  .dc-feed { flex: 1; padding: 14px 22px 18px; overflow: hidden; }
+  /* BOTTOM-ANCHORED, because that is what a chat channel is: the newest
+     message sits on the composer and history runs up off the top. Ours filled
+     from the top down and left the lower 40% of the message pane empty white —
+     a large flat region, which is both the wrong read and the most expensive
+     thing in the frame for the encoder to hold. */
+  .dc-feed { flex: 1; padding: 14px 22px 18px; overflow: hidden;
+             display: flex; flex-direction: column; justify-content: flex-end; }
   .dc-msg { display: flex; gap: 16px; padding: 9px 0; }
   .dc-av { width: 48px; height: 48px; border-radius: 50%; flex: none; }
   .dc-bot { display: grid; place-items: center; overflow: hidden; }
@@ -440,6 +454,8 @@
   .dc-who { display: flex; align-items: baseline; gap: 10px; }
   .dc-who b { font-family: var(--grotesk); font-weight: 700; font-size: 19px; }
   .dc-who u { text-decoration: none; color: #6d6f78; font-size: 14px; }
+  .dc-bot-name { color: #fff; }
+  .dc.light .dc-bot-name { color: #060607; }
   .dc-line { height: 11px; border-radius: 6px; background: #3f4147; margin-top: 9px; }
 
   /* The sale alert itself — a real Discord embed: a coloured left stripe, a bot
@@ -565,7 +581,7 @@
       <div class="tile solid" style="transform:rotate(-9deg)"><div class="slab" style="background:var(--blurple-hi);transform:translate(6px,8px)"></div><div class="face" style="background:var(--blurple)">
         <svg width="58" height="44" viewBox="0 0 127 96" fill="#fff"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>
       </div></div>
-      <div class="tile solid" style="width:132px;height:112px;margin-bottom:16px"><div class="slab" style="background:var(--ink);transform:translate(6px,8px)"></div><div class="face" style="background:#fff"><img src="../assets/dues-mark.png" alt="" style="height:56px"/></div></div>
+      <div class="tile solid" style="width:132px;height:112px;margin-bottom:16px"><div class="slab" style="background:var(--ink);transform:translate(6px,8px)"></div><div class="face" style="background:#fff"><img src="../assets/dues-glyph.png" alt="" style="height:66px;filter:brightness(0)"/></div></div>
       <div class="tile solid" style="transform:rotate(9deg)"><div class="slab" style="background:#4a3fd6;transform:translate(6px,8px)"></div><div class="face" style="background:var(--stripe);color:#fff;font-family:var(--grotesk);font-weight:700;font-size:34px">S</div></div>
     </div>
   </div>
@@ -657,11 +673,21 @@
     <div class="win">
       <div class="wbar"><i></i><i></i><i></i><span class="wurl">dues.gg/dues-membership</span></div>
       <div class="wbody">
-        <div style="font-family:var(--grotesk);font-weight:700;font-size:46px">Dues Membership</div>
-        <div style="font-size:26px;color:#6b6a63;margin-top:12px">Premium roles, private channels and member-only drops.</div>
+        <!-- A real storefront leads with the seller's mark. This one led with a
+             heading and left 200px of empty page under its own Pay button. -->
+        <div class="lhead">
+          <div class="llogo"><img src="../assets/dues-glyph.png" alt="" /></div>
+          <div>
+            <div style="font-family:var(--grotesk);font-weight:700;font-size:46px">Dues Membership</div>
+            <div style="font-size:26px;color:#6b6a63;margin-top:10px">Premium roles, private channels and member-only drops.</div>
+          </div>
+        </div>
         <div class="lrow"><b>VIP Access</b><span>$49.99</span></div>
         <div class="lrow"><b>Signals Monthly</b><span>$14.99 / mo</span></div>
         <div class="lpay">Pay with card</div>
+        <div class="lfoot">
+          <svg width="17" height="21" viewBox="0 0 17 21" fill="none" aria-hidden="true"><path d="M4.5 8.5V5.5a4 4 0 0 1 8 0v3" stroke="#7a7972" stroke-width="2" stroke-linecap="round"/><rect x="1" y="8.5" width="15" height="11.5" rx="3" fill="#7a7972"/></svg>Secure checkout. Paid straight into the seller's Stripe account.
+        </div>
       </div>
     </div>
   </div>
@@ -1105,7 +1131,10 @@ function build() {
              picture is in a real server. -->
         <div class="dc-av dc-bot" style="background:${'#5865f2'}"><img src="../assets/dues-glyph.png" alt="" /></div>
         <div class="dc-body">
-          <div class="dc-who"><b style="color:#fff">Dues</b><span class="bot">BOT</span><u>Today at 18:${String(12 + i * 3).padStart(2, '0')}</u></div>
+          <!-- The colour lives in CSS, not inline. Inline #fff outranked the
+               light theme's own rule and the bot's name vanished into a white
+               chat pane -- an alert from nobody. -->
+          <div class="dc-who"><b class="dc-bot-name">Dues</b><span class="bot">BOT</span><u>Today at 18:${String(12 + i * 3).padStart(2, '0')}</u></div>
           <div class="dc-embed">
             <div class="et">New Subscriber!</div>
             <div class="ed">${sale.who} ${sale.what} · ${sale.amt}</div>
@@ -1550,7 +1579,7 @@ function applyAlert(t) {
   // same content on a plane with perspective reads as a screen, which is the
   // whole difference the founder was pointing at.
   const inn = settle(t, 15.92, 0.11);
-  win.style.opacity = clamp01(inn * 2.4).toFixed(3);
+  win.style.opacity = t < 15.92 ? '0' : '1';
   win.style.transform =
     `rotateY(${lerp(-13, -7, inn).toFixed(2)}deg) rotateX(${lerp(7, 3.2, inn).toFixed(2)}deg)`
     + ` scale(${lerp(0.90, 1, inn).toFixed(4)})`;
