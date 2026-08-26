@@ -107,12 +107,21 @@
        second blue, and two blues eight degrees apart doing different jobs is
        the exact defect the light cut was graded to remove. Black is not a
        tinted blue. */
-    --p1: #141417; --p2: #0E0E11; --p3: #08080A; --p4: #050506; --cream: #1D1D22;
+    /* THE FLOOR IS LIFTED, and it had to be. The first dark grade ran the
+       plate from #050506 to #1D1D22 — luma 5 to 29 — and measured 77% of the
+       film's six hundred frames below luma 40, with 141 below 25. That is the
+       band 8-bit h264 cannot hold a gradient in: it is the same failure the
+       very first cut of this film shipped with, and it is what "the background
+       is shit quality even on my new MacBook Air" was describing.
+       Twenty-two luma up puts the ground at 19-56 instead of 5-29 — still
+       unmistakably black, and out of the zone where a gradient breaks into
+       steps. */
+    --p1: #2C2C33; --p2: #222228; --p3: #1A1A20; --p4: #131317; --cream: #3A3A44;
     --ink: #FFFFFF;
-    --dim: #97979F;
-    --card: #0F0F13;
-    --hair: #26262D;
-    --navy: #050506;
+    --dim: #A2A2AB;
+    --card: #1A1A21;
+    --hair: #33333C;
+    --navy: #131317;
     --navy-ink: #FFFFFF;
     --navy-dim: #97979F;
     --navy-rule: #2C2C34;
@@ -127,7 +136,7 @@
       radial-gradient(52% 40% at 84% 4%,  rgba(88,101,242,0.55) 0%, rgba(88,101,242,0) 62%),
       radial-gradient(58% 48% at 6% 98%,  rgba(88,101,242,0.34) 0%, rgba(88,101,242,0) 64%),
       radial-gradient(46% 40% at 96% 92%, rgba(88,101,242,0.22) 0%, rgba(88,101,242,0) 60%),
-      radial-gradient(80% 72% at 4% 44%,  var(--p2) 0%, rgba(14,14,17,0) 64%),
+      radial-gradient(80% 72% at 4% 44%,  var(--p2) 0%, rgba(34,34,40,0) 64%),
       linear-gradient(122deg, var(--p4) 0%, var(--p3) 28%, var(--cream) 50%, var(--p2) 70%, var(--p1) 100%);
   }
   /* The dither earns its keep here: a dark gradient is exactly where 8-bit
@@ -135,20 +144,20 @@
   html[data-cut="dark"] #dither { opacity: 0.085; mix-blend-mode: soft-light; }
   html[data-cut="dark"] #b-prod .sheet > .face { background: var(--card); }
   html[data-cut="dark"] .float > .face { background: var(--card); }
-  html[data-cut="dark"] #b-stripe .plate3 > .slab { background: #1A1A20; }
+  html[data-cut="dark"] #b-stripe .plate3 > .slab { background: #2A2A32; }
   /* The mark is a near-white logotype, so on black it needs no filter at all —
      the light cut inks it, this one lets it be what it is. */
   html[data-cut="dark"] #b-end .mark img { filter: none; }
   html[data-cut="dark"] #b-end .tag b { color: var(--ink); }
   /* The storefront takes the Blurple preset, which is where the dark cut's
      theme demo lands: THEMES['blurple'] verbatim. */
-  html[data-cut="dark"] #b-live .win { background: #08080A; border-color: #2C2C34; }
-  html[data-cut="dark"] #b-live .wbar { background: #131318; }
-  html[data-cut="dark"] #b-live .wbar i { background: #35353E; }
+  html[data-cut="dark"] #b-live .win { background: #141419; border-color: #3A3A44; }
+  html[data-cut="dark"] #b-live .wbar { background: #1F1F26; }
+  html[data-cut="dark"] #b-live .wbar i { background: #45454F; }
   html[data-cut="dark"] #b-live .wurl { color: #97979F; }
   html[data-cut="dark"] #b-live .wbody { color: #FFFFFF; }
   html[data-cut="dark"] #b-live .wbody .lsub { color: #97979F; }
-  html[data-cut="dark"] #b-live .lrow { background: #131318; border-color: #26262D; }
+  html[data-cut="dark"] #b-live .lrow { background: #1F1F26; border-color: #33333C; }
   html[data-cut="dark"] #b-live .lpay { background: var(--blurple); color: #fff; }
   html[data-cut="dark"] #b-live .llogo { background: var(--blurple); }
   html[data-cut="dark"] #b-live .lfoot { color: #97979F; }
@@ -1046,7 +1055,7 @@ const THEMES = [
   // called Blurple contained no blurple at all, only a lilac accent. It is now
   // achromatic panels with Discord's own #5865F2 as the accent, which is what
   // the name has always claimed and what the dark cut is graded to.
-  { key: 'blurple', name: 'Blurple', bg: '#08080A', panel: '#131318', text: '#FFFFFF', accent: '#5865F2' },
+  { key: 'blurple', name: 'Blurple', bg: '#141419', panel: '#1F1F26', text: '#FFFFFF', accent: '#5865F2' },
   { key: 'emerald', name: 'Emerald', bg: '#071209', panel: '#0d2012', text: '#e9f6ec', accent: '#22c55e' },
   { key: 'crimson', name: 'Crimson', bg: '#150a0d', panel: '#231016', text: '#f8ecee', accent: '#ef4466' },
   { key: 'gold', name: 'Gold', bg: '#131008', panel: '#211b0e', text: '#f8f3e6', accent: '#f2b03c' },
@@ -1669,6 +1678,20 @@ function applyBurst(t) {
   });
   wrap.style.filter = exit > 0 ? `blur(${(36 * exit).toFixed(1)}px)` : 'none';
   const bl = seg(u, 1.65, 0.10);
+  // THE DARK CUT DOES NOT FLASH. The burst ends on a full-frame white bloom —
+  // right on a light film, and on a black one it is a 140-luma spike held for
+  // four frames and then hard-cut to black. Measured on the first dark render:
+  // luma 182 at f474, luma 42 at f475, a single-frame delta of 145 against the
+  // light cut's 78 at the same edit. That is the "laggy white parts flashing"
+  // this film was rebuilt to remove, reintroduced by the grade rather than by
+  // the animation.
+  //
+  // The spiral is untouched — it is the beat the founder asked to keep, and not
+  // one wedge, one star or one frame of its motion changes. Only its last four
+  // frames are dimmed into the film they live in, so the burst resolves toward
+  // black instead of away from it.
+  const stage = document.querySelector('#b-burst .stage-in');
+  stage.style.filter = DARK ? `brightness(${lerp(1, 0.32, seg(u, 1.66, 0.18)).toFixed(3)})` : 'none';
   bloom.style.opacity = (bl * (1 - seg(u, 1.80, 0.05))).toFixed(4);
   bloom.style.transform = `translate(-50%,-50%) scale(${lerp(0.2, 3, bl).toFixed(3)})`;
 }
