@@ -213,7 +213,7 @@
   /* ── 4 product ──────────────────────────────────────────────────────────── */
   #b-prod h1 { top: 138px; font-size: 72px; }
   #b-prod .sheet { position: absolute; left: 380px; top: 268px; width: 1160px; height: 620px; border-radius: 24px; }
-  #b-prod .sheet > .slab { background: var(--gold); transform: translate(16px, 18px); }
+  #b-prod .sheet > .slab { background: var(--blurple); transform: translate(16px, 18px); }
   #b-prod .sheet > .face { background: #FDFBF6; border: 1.5px solid var(--ink); padding: 46px 56px; }
   #b-prod .row2 { display: flex; gap: 30px; margin-top: 28px; }
   #b-prod .chip {
@@ -244,7 +244,15 @@
   #b-theme .prev .prow { height: 86px; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; margin-top: 18px; font-size: 24px; }
   #b-theme .prev .pget { height: 62px; display: grid; place-items: center; font-family: var(--grotesk); font-weight: 700; font-size: 22px; margin-top: 22px; }
 
-  /* ── 6 live store ───────────────────────────────────────────────────────── */
+  /* ── 6 giant CTA ────────────────────────────────────────────────────────── */
+  #b-cta .bigcta { position: absolute; left: 50%; top: 50%; width: 1080px; height: 168px; margin: -84px 0 0 -540px; border-radius: 24px; }
+  #b-cta .bigcta > .slab { background: var(--blurple-hi); transform: translate(0, 22px); }
+  #b-cta .bigcta > .face {
+    background: var(--blurple); color: #fff; display: grid; place-items: center;
+    font-family: var(--grotesk); font-weight: 700; font-size: 52px; border: none;
+  }
+
+  /* ── 7 live store ───────────────────────────────────────────────────────── */
   #b-live .win { position: absolute; left: 400px; top: 150px; width: 1120px; height: 800px; border-radius: 22px; overflow: hidden; border: 1.5px solid var(--ink); background: #0b0d1f; }
   #b-live .wbar { height: 66px; background: #131735; display: flex; align-items: center; gap: 12px; padding: 0 24px; }
   #b-live .wbar i { width: 14px; height: 14px; border-radius: 50%; background: #3a3f66; display: block; }
@@ -408,6 +416,15 @@
     </div>
   </div>
 
+  <!-- THE GIANT CTA. The reference gives this its own beat and it is the most
+       recognisable shot in their film: the whole composition leaves, and one
+       enormous button sits alone on the plate with the pointer arriving at it.
+       It is the breath before the payoff, and without it the theming beat runs
+       straight into the storefront with nothing between them. -->
+  <div class="beat" id="b-cta">
+    <div class="bigcta solid"><div class="slab"></div><div class="face">Pay with card</div></div>
+  </div>
+
   <div class="beat" id="b-live">
     <div class="win">
       <div class="wbar"><i></i><i></i><i></i><span class="wurl">dues.gg/dues-membership</span></div>
@@ -566,14 +583,13 @@ const CUR = [
   { t: 7.96, sel: '#b-prod .row2 .field', press: true },          // the price commits
   { t: 8.54, sel: '#b-prod .chip', press: true },                 // the @VIP role
   { t: 9.30, sel: '#b-theme .th[data-k="midnight"]', fx: 0.5, fy: -0.6 },
-  { t: 9.62, sel: '#b-theme .th[data-k="emerald"]', press: true },
-  { t: 10.18, sel: '#b-theme .th[data-k="gold"]', press: true },
-  { t: 10.74, sel: '#b-theme .th[data-k="blurple"]', press: true },
+  { t: 9.72, sel: '#b-theme .th[data-k="ivory"]', press: true },
+  { t: 10.46, sel: '#b-theme .th[data-k="blurple"]', press: true },
   { t: 11.30, sel: '#b-theme .knob', fx: 0.5, fy: -2.4 },         // drops toward the slider
   { t: 11.42, sel: '#b-theme .knob', grab: true },                // grabs the knob
   { t: 12.02, sel: '#b-theme .knob', grab: true },                // rides it to 0 …
   { t: 12.62, sel: '#b-theme .knob', grab: true },                // … and all the way to 24
-  { t: 13.00, at: [1030, 780] },                                  // releases, crosses to the store
+  { t: 12.74, sel: '#b-cta .bigcta', fx: 0.72, fy: 1.45 },        // releases and reaches for the giant CTA
   { t: 13.60, sel: '#b-live .lpay', press: true },                // "Pay with card" — the burst's birth
   { t: 14.00, sel: '#b-live .lpay' },                             // and it becomes the burst
 ];
@@ -693,11 +709,19 @@ const byKey = (k) => THEMES.find((x) => x.key === k);
 // Midnight by accident — Midnight is the achromatic "before" the whole beat
 // exists to destroy — and it lands on Blurple because the burst is blurple, so
 // the loudest 1.85s of the film introduces no new colour at all.
+// BLUE, WHITE AND BLACK. The product ships six presets and the film used to
+// parade four of them, which put emerald and gold on screen for a second and a
+// half each and made the palette read as a swatch page rather than as a brand.
+// Dues is blue, white and black; the sequence is now exactly that — Midnight,
+// then Ivory, then Blurple — and it still proves the same feature, because the
+// three it shows are the three that are actually the brand.
+//
+// It lands on Blurple on purpose: the burst is blurple, cream and near-black,
+// so the loudest 1.85 seconds of the film introduces no new colour at all.
 const SEQ = [
   { at: 9.00, key: 'midnight' },
-  { at: 9.62, key: 'emerald' },
-  { at: 10.18, key: 'gold' },
-  { at: 10.74, key: 'blurple' },
+  { at: 9.72, key: 'ivory' },
+  { at: 10.46, key: 'blurple' },
 ];
 const RAD_KEYS = [
   { t: 11.42, v: 16 }, { t: 12.02, v: 0 }, { t: 12.62, v: 24 }, { t: 13.60, v: 24 },
@@ -777,8 +801,9 @@ const BEATS = [
   { el: 'b-store',  from: 1.16,  to: 3.44 },
   { el: 'b-stripe', from: 3.44,  to: 6.72 },
   { el: 'b-prod',   from: 6.72,  to: 9.00 },
-  { el: 'b-theme',  from: 9.00,  to: 12.90 },
-  { el: 'b-live',   from: 12.90, to: 14.02 },
+  { el: 'b-theme',  from: 9.00,  to: 12.48 },
+  { el: 'b-cta',    from: 12.48, to: 13.10 },
+  { el: 'b-live',   from: 13.10, to: 14.02 },
   { el: 'b-burst',  from: 14.00, to: 15.88 },
   { el: 'b-alert',  from: 15.88, to: 18.16 },
   { el: 'b-end',    from: 18.16, to: 20.00 },
@@ -873,7 +898,7 @@ function applyStripe(t) {
   const fire = (at) => seg(t, at, 0.30, inOutCubic);
   document.querySelector('#b-stripe .plate3 .face').style.color = mix('#131A3D', '#635bff', fire(5.94));
   document.querySelector('#b-stripe .plate3 .slab').style.background = mix('#C8CBE0', '#635bff', fire(5.98));
-  rule.style.background = mix('#3A4270', '#F2B03C', fire(6.02));
+  rule.style.background = mix('#3A4270', '#8B96F8', fire(6.02));
   pill.style.background = mix('#EDEFFB', '#635bff', fire(6.06));
   pill.style.color = fire(6.06) > 0.5 ? '#fff' : '#131A3D';
   document.querySelector('#b-stripe .cone').style.opacity = (seg(t, 6.06, 0.24) * (1 - seg(t, 6.58, 0.14))).toFixed(3);
@@ -900,9 +925,9 @@ function applyProd(t) {
   sheet.style.filter = inn < 0.9 ? `blur(${(30 * (1 - inn)).toFixed(1)}px)` : 'none';
   sheet.style.opacity = clamp01(inn * 2.4).toFixed(3);
 
-  // Each field commits on its own beat, staggered — and the price turns gold on
-  // commit, the same gold the rule ignited to 1.5 seconds ago on the other side
-  // of the whip. No new colour.
+  // Each field commits on its own beat, staggered — and the price turns indigo
+  // on commit, the same indigo the rule ignited to 1.5 seconds ago on the other
+  // side of the whip. No new colour anywhere in the film.
   const fields = document.querySelectorAll('#b-prod .field');
   [7.10, 7.96, 8.20].forEach((at, i) => {
     if (!fields[i]) return;
@@ -910,7 +935,7 @@ function applyProd(t) {
     fields[i].style.clipPath = `inset(0 ${(50 * (1 - p)).toFixed(2)}% 0 0)`;
   });
   const price = fields[1];
-  if (price) price.style.color = mix('#14162E', '#B07A18', seg(t, 8.04, 0.24));
+  if (price) price.style.color = mix('#14162E', '#4752C4', seg(t, 8.04, 0.24));
   const chip = document.querySelector('#b-prod .chip');
   const cp = seg(t, 8.54, 0.20, inOutCubic);
   chip.style.opacity = cp.toFixed(3);
@@ -946,14 +971,36 @@ function applyTheme(t) {
   prev.style.color = text;
   prev.querySelector('.pbar').style.background = panel;
   prev.querySelector('.pav').style.background = accent;
-  prev.querySelector('.pav').style.borderRadius = `${Math.min(r * 2.6, 42).toFixed(1)}px`;
-  prev.querySelectorAll('.prow').forEach((el) => { el.style.background = panel; el.style.borderRadius = `${r.toFixed(1)}px`; });
+
+  // THE RADIUS RESHAPES THE BIG BOXES, and that was the note: "it has to be the
+  // big boxes corners that changes, not the small circle or square".
+  //
+  // It used to touch the 86px rows and a 84px avatar, which is a change you can
+  // measure and cannot see. The reference does the opposite — at its radius
+  // press EVERY WIDE ELEMENT reshapes on the same frame: the full-width fields,
+  // the full-width buttons, the CTA, and the panel around them, square edge to
+  // full pill. That simultaneity is the whole effect; one small control morphing
+  // on its own reads as a bug.
+  //
+  // So the driver below is a MULTIPLIER, not a pixel value: every box gets the
+  // slider's fraction of its OWN maximum radius, which for a wide box is half
+  // its height. At 24 the 660px preview panel is a 48px slab, the 96px rows are
+  // true pills and the avatar is a circle — all on one clock.
+  const frac = r / 24;
+  const big = (el, cap) => { el.style.borderRadius = `${(frac * cap).toFixed(1)}px`; };
+
+  big(prev, 44);                                   // the preview panel itself
+  big(document.querySelector('#b-theme .panel > .face'), 44);
+  big(document.querySelector('#b-theme .panel > .slab'), 44);
+  prev.querySelectorAll('.prow').forEach((el) => { el.style.background = panel; big(el, 43); });
   prev.querySelectorAll('.pget').forEach((el) => {
     el.style.background = accent;
-    el.style.borderRadius = `${r.toFixed(1)}px`;
+    big(el, 31);
     const [rr, gg, bb] = hex(accent);
     el.style.color = (rr * 299 + gg * 587 + bb * 114) / 1000 >= 150 ? '#0a0a0a' : '#ffffff';
   });
+  big(prev.querySelector('.pav'), 42);
+  document.querySelectorAll('#b-theme .th').forEach((el) => big(el, 30));
 
   document.querySelectorAll('#b-theme .th').forEach((el) => el.classList.toggle('on', el.dataset.k === active));
   document.querySelector('#b-theme .panel .slab').style.background = accent;
@@ -962,22 +1009,41 @@ function applyTheme(t) {
   // range — 16 down to 0, then all the way up to 24 — instead of the 16->12 a
   // preset change would give, which is invisible on a 700px card.
   document.getElementById('radval').textContent = `${Math.round(r)}px`;
-  const frac = r / 24;
   document.querySelector('#b-theme .sfill').style.width = `${(frac * 100).toFixed(2)}%`;
   document.querySelector('#b-theme .knob').style.left = `${(frac * 100).toFixed(2)}%`;
 
   // The camera pushes a WINDOW inside a static frame, never the frame itself —
   // a global push-in would move the ground and throw away the whole bitrate
   // argument.
-  const push = clamp01((t - 12.50) / 0.40);
+  const push = clamp01((t - 12.08) / 0.40);
   const g = document.getElementById('b-theme');
   g.style.transform = push > 0 ? `scale(${(1 + 0.10 * inCubic(push)).toFixed(4)})` : 'none';
   g.style.filter = push > 0.4 ? `blur(${((push - 0.4) * 24).toFixed(1)}px)` : 'none';
 }
 
+function applyCta(t) {
+  const cta = document.querySelector('#b-cta .bigcta');
+  // It ARRIVES ALREADY OVERSIZED and settles, rather than growing into place:
+  // critically damped, no overshoot, the film's standard settle.
+  const inn = settle(t, 12.48, 0.085);
+  cta.style.opacity = clamp01(inn * 2.6).toFixed(3);
+  cta.style.transform = `scale(${lerp(1.14, 1, inn).toFixed(4)})`;
+  // THE ACCELERATING DRIFT-INTO-WHIP EXIT — the reference's own gesture for this
+  // exact shot: the bar creeps upward, the creep keeps accelerating, and the cut
+  // lands while it is still speeding up. Cutting on the deceleration is what
+  // makes a cut visible.
+  const out = clamp01((t - 12.88) / 0.22);
+  if (out > 0) {
+    const o = Math.pow(out, 2.6);
+    cta.style.transform =
+      `scale(${(lerp(1.14, 1, inn) * (1 + 0.055 * o)).toFixed(4)}) translateY(${(-260 * o).toFixed(1)}px)`;
+    cta.style.filter = `blur(${(30 * o).toFixed(1)}px)`;
+  } else { cta.style.filter = 'none'; }
+}
+
 function applyLive(t) {
   const win = document.querySelector('#b-live .win');
-  const inn = settle(t, 12.90, 0.10);
+  const inn = settle(t, 13.10, 0.10);
   win.style.transform = `scale(${lerp(1.16, 1, inn).toFixed(4)})`;
   win.style.opacity = clamp01(inn * 2.4).toFixed(3);
   const pay = document.querySelector('#b-live .lpay');
@@ -1084,7 +1150,7 @@ function applyEnd(t) {
 // ── the film ─────────────────────────────────────────────────────────────────
 const APPLY = {
   'b-title': applyTitle, 'b-store': applyStore, 'b-stripe': applyStripe,
-  'b-prod': applyProd, 'b-theme': applyTheme, 'b-live': applyLive,
+  'b-prod': applyProd, 'b-theme': applyTheme, 'b-cta': applyCta, 'b-live': applyLive,
   'b-burst': applyBurst, 'b-alert': applyAlert, 'b-end': applyEnd,
 };
 

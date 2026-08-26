@@ -284,13 +284,12 @@ on(5.60, 13.51, BAR, (t) => bass(t, 55, 1.1, t < 11.85 ? 0.9 : 1.0));
 //    5.86  stripe   "Connect Stripe"        (the ignition)
 //    7.96  product  the price commits
 //    8.54  product  the @VIP role chip
-//    9.62  theme    Emerald
-//   10.18  theme    Gold
-//   10.74  theme    Blurple
+//    9.72  theme    Ivory     (the sequence is Midnight -> Ivory -> Blurple:
+//   10.46  theme    Blurple    blue, white and black, and nothing else)
 //   11.42  theme    the slider GRAB, softer because a drag is not a click
 //   12.62  theme    the RELEASE at the end of the drag, softer still
 //   13.60  live     "Pay with card", the press the burst is born from
-[2.30, 5.86, 7.96, 8.54, 9.62, 10.18, 10.74, 13.60].forEach((t) => click(t));
+[2.30, 5.86, 7.96, 8.54, 9.72, 10.46, 13.60].forEach((t) => click(t));
 click(11.42, 0.5);
 click(12.62, 0.34);
 
