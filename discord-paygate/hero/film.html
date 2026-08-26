@@ -100,9 +100,12 @@
   }
   /* Two faint arcs, exactly as the reference overlays on its plate: something
      for the eye to hold that costs nothing because it never moves. */
-  .sw { position: absolute; border-radius: 50%; border: 1px solid rgba(120,132,240,0.10); }
-  .sw.a { left: -16%; top: -38%; width: 96%; height: 150%; transform: rotate(-13deg); }
-  .sw.b { left: 34%; top: -24%; width: 104%; height: 158%; transform: rotate(9deg); }
+  /* The two "faint swoosh arcs" that used to live here were 1px STROKED
+     ellipses, and the audit caught them: a stroke is a hard edge, and a hard
+     edge is the only thing in an empty frame for the eye to find. Measured at
+     5-8 luma levels on a 210 field — invisible in a busy beat, and the most
+     salient object on screen during the title and the endcard freeze. The plate
+     is soft gradients only now. */
   #dark { background: var(--navy); opacity: 0; }
 
   /* THE DITHER, and it is STATIC — the same tile on every frame. Measured:
@@ -157,9 +160,11 @@
     margin: -6px 0 0 -6px;   /* the tip sits at (0,0) of the box */
     will-change: transform, opacity; opacity: 0;
   }
+  /* Thin, and now sized to whatever it opens on. A 4px ring at 150px read as a
+     grey blob lying across the value it was meant to be confirming. */
   #ring {
-    position: fixed; z-index: 59; width: 150px; height: 150px; border-radius: 50%;
-    border: 4px solid var(--blurple); opacity: 0; pointer-events: none;
+    position: fixed; z-index: 59; width: 120px; height: 120px; border-radius: 50%;
+    border: 2.5px solid var(--blurple); opacity: 0; pointer-events: none;
     will-change: transform, opacity;
   }
 
@@ -220,7 +225,7 @@
   #b-prod h1 { top: 138px; font-size: 72px; }
   #b-prod .sheet { position: absolute; left: 380px; top: 268px; width: 1160px; height: 620px; border-radius: 24px; }
   #b-prod .sheet > .slab { background: var(--blurple); transform: translate(16px, 18px); }
-  #b-prod .sheet > .face { background: #FDFBF6; border: 1.5px solid var(--ink); padding: 46px 56px; }
+  #b-prod .sheet > .face { background: #FFFFFF; border: 1.5px solid var(--ink); padding: 46px 56px; }
   #b-prod .row2 { display: flex; gap: 30px; margin-top: 28px; }
   #b-prod .chip {
     display: inline-flex; align-items: center; gap: 12px; height: 62px; padding: 0 26px;
@@ -228,6 +233,11 @@
     font-family: var(--grotesk); font-weight: 700; font-size: 26px; color: var(--blurple);
   }
   #b-prod .chip i { width: 16px; height: 16px; border-radius: 50%; background: var(--blurple); }
+  /* The card had no action on it at all — a form with no way to submit, and
+     37% of its height empty as a result. */
+  #b-prod .psave { margin-top: 34px; height: 84px; border-radius: 14px; background: var(--blurple);
+    color: #fff; display: grid; place-items: center;
+    font-family: var(--grotesk); font-weight: 700; font-size: 30px; }
 
   /* ── 5 theme ────────────────────────────────────────────────────────────── */
   #b-theme h1 { top: 96px; font-size: 68px; }
@@ -235,10 +245,16 @@
   #b-theme .panel > .slab { transform: translate(12px, 14px); }
   #b-theme .panel > .face { background: var(--card); border: 1.5px solid var(--ink); padding: 40px; }
   #b-theme .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-  #b-theme .th { height: 108px; border-radius: 14px; padding: 14px; border: 2px solid transparent; }
+  /* Every tile carries a hairline. Without it Ivory — panel #ffffff on a
+     #ffffff card — had no edges at all, so the beat showed two of the three
+     presets it exists to show. */
+  #b-theme .th { height: 108px; border-radius: 14px; padding: 14px; border: 2px solid #E3E1F0; }
   #b-theme .th u { display: block; height: 12px; border-radius: 6px; }
   #b-theme .th em { display: block; font-style: normal; font-size: 21px; margin-top: 44px; }
-  #b-theme .th.on { border-color: var(--ink); }
+  /* And the selected one has to stay legible after the ripple fades — without
+     this the active preset was styled identically to the inactive ones for the
+     rest of the beat. */
+  #b-theme .th.on { border-color: var(--ink); box-shadow: 0 0 0 4px rgba(88,101,242,0.18); }
   #b-theme .slider { margin-top: 46px; }
   #b-theme .strack { position: relative; height: 10px; border-radius: 5px; background: #E9E7F5; margin-top: 22px; }
   #b-theme .sfill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; }
@@ -435,14 +451,17 @@
      together. Adding text beside it renders "Dues Dues". */
   #b-end .tag { font-size: 34px; color: var(--dim); margin-top: 20px; }
   #b-end .tag b { color: var(--ink); font-weight: 700; }
-  #b-end .endmock { left: 320px; top: 500px; width: 1380px; height: 820px; }
-  #b-end .endfloat { left: 1120px; top: 748px; }
+  #b-end .endmock { left: 250px; top: 500px; width: 1330px; height: 820px; }
+    /* Clear of the message column. The audit caught the film's last frame — the
+     one anybody screenshots — with this card's left edge slicing the final '9'
+     off a price behind it. */
+  #b-end .endfloat { left: 1216px; top: 792px; }
 
 </style></style>
 </head>
 <body>
 
-<div id="plate"><div class="sw a"></div><div class="sw b"></div></div>
+<div id="plate"></div>
 <div id="dark"></div>
 <svg id="dither"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
 
@@ -502,6 +521,7 @@
         </div>
         <div class="lab" style="margin-top:32px">Role it unlocks</div>
         <div style="margin-top:16px"><span class="chip"><i></i>@VIP</span></div>
+        <div class="psave">Create product</div>
       </div>
     </div>
   </div>
@@ -684,16 +704,16 @@ function wipe(el, t, at, per = 0.028, soft = 0.10) {
 const CUR = [
   { t: 1.16, at: [-60, 980] },                                    // enters on the cut, already moving
   { t: 1.92, sel: '#b-store .field', fx: 0.30, fy: 1.9 },         // sweeps past the field
-  { t: 2.30, sel: '#b-store .cta', press: true },                 // "Create store"
+  { t: 2.30, sel: '#b-store .cta', fx: 0.78, fy: 0.72, press: true }, // "Create store" — right of the label, so the arrow does not cut its glyphs
   { t: 2.86, sel: '#b-store .cta', fx: 1.35, fy: -1.2 },
   { t: 3.30, at: [1560, 300] },                                   // leaves up-right as the card morphs
   { t: 4.80, at: [1620, 1010] },                                  // returns AHEAD of the pill, leading the beat in
   { t: 5.30, at: [1330, 930] },
-  { t: 5.86, sel: '#b-stripe .pill3', press: true },              // "Connect Stripe" — the ignition
+  { t: 5.86, sel: '#b-stripe .pill3', fx: 0.80, fy: 0.74, press: true }, // "Connect Stripe" — the ignition
   { t: 6.60, at: [700, 700] },
   { t: 7.40, sel: '#b-prod .field', fx: 0.22 },                   // the product name
   { t: 7.96, sel: '#b-prod .row2 .field', press: true },          // the price commits
-  { t: 8.54, sel: '#b-prod .chip', press: true },                 // the @VIP role
+  { t: 8.54, sel: '#b-prod .chip', fx: 0.92, fy: 0.86, press: true }, // the @VIP role, clear of its text
   { t: 9.30, sel: '#b-theme .th[data-k="midnight"]', fx: 0.5, fy: -0.6 },
   { t: 9.72, sel: '#b-theme .th[data-k="ivory"]', press: true },
   { t: 10.46, sel: '#b-theme .th[data-k="blurple"]', press: true },
@@ -701,8 +721,9 @@ const CUR = [
   { t: 11.42, sel: '#b-theme .knob', grab: true },                // grabs the knob
   { t: 12.02, sel: '#b-theme .knob', grab: true },                // rides it to 0 …
   { t: 12.62, sel: '#b-theme .knob', grab: true },                // … and all the way to 24
-  { t: 12.74, sel: '#b-cta .bigcta', fx: 0.72, fy: 1.45 },        // releases and reaches for the giant CTA
-  { t: 13.60, sel: '#b-live .lpay', press: true },                // "Pay with card" — the burst's birth
+  { t: 12.74, sel: '#b-cta .bigcta', fx: 0.30, fy: 1.9 },         // releases and reaches for the giant CTA
+  { t: 12.86, sel: '#b-cta .bigcta', fx: 0.62, press: true },     // and presses it
+  { t: 13.60, sel: '#b-live .lpay', fx: 0.74, fy: 0.72, press: true }, // "Pay with card" — the burst's birth
   { t: 14.00, sel: '#b-live .lpay' },                             // and it becomes the burst
 ];
 const CUR_ON = [[1.16, 3.34], [4.80, 14.00]];
@@ -755,6 +776,11 @@ function cursorAt(t) {
   else if (a.grab && b.grab) u = u;
   else if (a.press) u = Math.pow(u, 1.35);          // and re-accelerates out of one
 
+  // A DRAG IS NOT A SPLINE. While the hand is holding something, the pointer is
+  // exactly on it — no interpolation, no bow, no lead. Splining through it let
+  // the knob run up to 27px ahead of the arrow whenever the value was moving.
+  if (a.grab && b.grab) { const [x, y] = wpAt(b); return { x, y }; }
+
   const p0 = wpAt(CUR[Math.max(0, i - 1)]);
   const p1 = wpAt(a);
   const p2 = wpAt(b);
@@ -800,8 +826,15 @@ function drawCursor(t) {
   if (!best) { ring.style.opacity = '0'; return; }
   const rp = clamp01((t - best.t) / 0.44);
   const [bx, by] = wpAt(best);
-  ring.style.opacity = (0.55 * Math.pow(1 - rp, 1.6)).toFixed(3);
+  // SIZED TO THE TARGET, not fixed. A 150px ring on a 78px pill expanded well
+  // past the button and drew on the card behind it. Half the target's shorter
+  // side keeps the whole mark on the thing that was pressed.
+  const te = document.querySelector(best.sel || '');
+  const tr = te ? te.getBoundingClientRect() : null;
+  const cap = tr ? Math.max(46, Math.min(tr.width, tr.height) * 0.52) : 60;
+  ring.style.opacity = (0.42 * Math.pow(1 - rp, 2.0)).toFixed(3);
   ring.style.left = `${bx.toFixed(1)}px`; ring.style.top = `${by.toFixed(1)}px`;
+  ring.style.width = ring.style.height = `${(cap * 2).toFixed(0)}px`;
   ring.style.transform = `translate(-50%,-50%) scale(${lerp(0.2, 1, outExpo(rp)).toFixed(3)})`;
 }
 
@@ -857,16 +890,23 @@ const STARS = [
   [18, 300, 1.0], [64, 430, 0.62], [112, 355, 0.85], [158, 470, 0.5],
   [206, 320, 0.95], [252, 445, 0.58], [298, 375, 0.78], [344, 495, 0.66],
 ];
+// EACH PRODUCT GRANTS ITS OWN ROLE. Every alert used to end in '@VIP granted'
+// whatever had been bought, which says the three products are interchangeable —
+// the opposite of what a role-selling product does. And Signals Monthly is a
+// SUBSCRIPTION: showing it as a flat '$14.99' beside a one-time $49.99 states a
+// recurring price as a single payment.
 const SALES = [
-  { who: '@nova', what: 'just bought VIP Access', amt: '$49.99' },
-  { who: '@drift', what: 'just bought Signals Monthly', amt: '$14.99' },
-  { who: '@kite', what: 'just bought VIP Access', amt: '$49.99' },
-  { who: '@ember', what: 'just bought Inner Circle', amt: '$79.99' },
+  { who: '@nova', what: 'just bought VIP Access', amt: '$49.99', role: '@VIP' },
+  { who: '@drift', what: 'just bought Signals Monthly', amt: '$14.99 / mo', role: '@Signals' },
+  { who: '@kite', what: 'just bought VIP Access', amt: '$49.99', role: '@VIP' },
 ];
 // STACK ARRIVALS ON AN ACCELERATING CADENCE. The reference's own toasts land at
 // intervals of 0.467s, 0.400s and 0.333s. Money arriving faster and faster is
 // told entirely through the interval, with no copy at all.
-const SALE_AT = [16.20, 16.67, 17.07, 17.40];
+// THREE, NOT FOUR. The fourth overflowed the channel and was sliced by the
+// panel's bottom edge — and it carried the highest price in the film. The
+// accelerating cadence survives across three: 0.47s then 0.40s.
+const SALE_AT = [16.20, 16.67, 17.07];
 
 // ── the product surfaces, as real markup ─────────────────────────────────────
 // Density is the point. A screenshot of a product has dozens of elements in it;
@@ -874,11 +914,12 @@ const SALE_AT = [16.20, 16.67, 17.07, 17.40];
 
 const MEMBERS = [
   ['@nova', 'VIP Access', '$49.99', '#5865f2'],
-  ['@drift', 'Signals Monthly', '$14.99', '#3BA55C'],
+  ['@drift', 'Signals Monthly', '$14.99 / mo', '#3BA55C'],
   ['@kite', 'VIP Access', '$49.99', '#FAA61A'],
   ['@ember', 'Inner Circle', '$79.99', '#ED4245'],
   ['@lumen', 'VIP Access', '$49.99', '#9B59B6'],
 ];
+
 
 function dashboard(active) {
   // A revenue curve with a real shape — seeded and fixed, never random, because
@@ -918,9 +959,12 @@ function dashboard(active) {
 function discord() {
   const rail = ['#5865f2', '#3BA55C', '#ED4245', '#FAA61A', '#9B59B6'];
   const chans = [['general', 0], ['introductions', 0], ['sale-alerts', 1], ['vip-lounge', 0], ['drops', 0]];
-  const msg = (who, col, lines) => `
+  // Discord renders OLDEST AT THE TOP. These two chat lines sit above the bot's
+  // alerts, so their timestamps have to be earlier than the alerts' — ours read
+  // 18:05 above 18:00, a channel that cannot exist.
+  const msg = (who, col, lines, at) => `
     <div class="dc-msg"><div class="dc-av" style="background:${col}"></div>
-      <div class="dc-body"><div class="dc-who"><b style="color:${col}">${who}</b><u>Today at 18:0${Math.abs(who.length % 6)}</u></div>
+      <div class="dc-body"><div class="dc-who"><b style="color:${col}">${who}</b><u>Today at ${at}</u></div>
       ${lines.map((w) => `<div class="dc-line" style="width:${w}%"></div>`).join('')}</div></div>`;
   return `
   <div class="dc-rail">${rail.map((c, i) => `<i class="${i === 0 ? 'on' : ''}" style="background:${c}"></i>`).join('')}</div>
@@ -934,8 +978,8 @@ function discord() {
   <div class="dc-main">
     <div class="dc-top"><b>#</b>sale-alerts</div>
     <div class="dc-feed">
-      ${msg('@nova', '#5865f2', [64, 38])}
-      ${msg('@drift', '#3BA55C', [52])}
+      ${msg('@nova', '#5865f2', [64, 38], '18:04')}
+      ${msg('@drift', '#3BA55C', [52], '18:09')}
       <div class="dc-alerts"></div>
     </div>
   </div>`;
@@ -959,11 +1003,11 @@ function build() {
       <div class="dc-msg" data-alert="${i}">
         <div class="dc-av" style="background:${'#5865f2'}"></div>
         <div class="dc-body">
-          <div class="dc-who"><b style="color:#fff">Dues</b><span class="bot">BOT</span><u>Today at 18:0${i + 2}</u></div>
+          <div class="dc-who"><b style="color:#fff">Dues</b><span class="bot">BOT</span><u>Today at 18:${String(12 + i * 3).padStart(2, '0')}</u></div>
           <div class="dc-embed">
             <div class="et">New Subscriber!</div>
             <div class="ed">${sale.who} ${sale.what} · ${sale.amt}</div>
-            <div class="er">@VIP granted</div>
+            <div class="er">${sale.role} granted</div>
           </div>
         </div>
       </div>`).join('');
@@ -993,12 +1037,12 @@ const BEATS = [
   { el: 'b-title',  from: 0.00,  to: 1.16 },
   { el: 'b-store',  from: 1.16,  to: 3.44 },
   { el: 'b-stripe', from: 3.44,  to: 6.72 },
-  { el: 'b-prod',   from: 6.72,  to: 9.00 },
+  { el: 'b-prod',   from: 6.52,  to: 9.00 },
   { el: 'b-theme',  from: 9.00,  to: 12.48 },
-  { el: 'b-cta',    from: 12.48, to: 13.10 },
-  { el: 'b-live',   from: 13.10, to: 14.02 },
-  { el: 'b-burst',  from: 14.00, to: 15.88 },
-  { el: 'b-alert',  from: 15.88, to: 18.16 },
+  { el: 'b-cta',    from: 12.48, to: 13.22 },
+  { el: 'b-live',   from: 13.06, to: 14.02 },
+  { el: 'b-burst',  from: 14.00, to: 15.84 },
+  { el: 'b-alert',  from: 15.92, to: 18.16 },
   { el: 'b-end',    from: 18.16, to: 20.00 },
 ];
 
@@ -1055,7 +1099,10 @@ function applyStore(t) {
   // intentional rather than as an animation firing.
   const press = seg(t, 2.30, 0.08, inQuad) - seg(t, 2.42, 0.16);
   cta.style.transform = `scale(${(1 - 0.05 * press).toFixed(4)})`;
-  cta.style.background = t >= 2.50 ? mix('#5865f2', '#4752C4', clamp01((t - 2.50) / 0.10)) : '#5865f2';
+  // Down AND back up. This used to ramp to the pressed colour at 2.50 and never
+  // return, leaving the film's one call to action stuck dark for the rest of
+  // the beat. A press that does not release is a broken button.
+  cta.style.background = mix('#5865f2', '#4752C4', press);
 
   // The exit: the card tips away and shrinks toward the point the Stripe plate
   // will be born at, so the next beat is a continuation and not a cut.
@@ -1116,23 +1163,30 @@ function applyStripe(t) {
 }
 
 function applyProd(t) {
-  wipe(document.querySelector('#b-prod h1'), t, 6.86, 0.022, 0.12);
+  wipe(document.querySelector('#b-prod h1'), t, 6.78, 0.022, 0.12);
   const sheet = document.querySelector('#b-prod .sheet');
   // It slides in from the LEFT with heavy horizontal blur, mirroring the whip
   // that pushed the dark beat out to the right.
-  const inn = settle(t, 6.72, 0.11);
-  sheet.style.transform = `translateX(${lerp(-820, 0, inn).toFixed(1)}px)`;
+  // Starts 0.20s BEFORE the dark beat's whip finishes, so the incoming sheet is
+  // already on screen while the outgoing one leaves. Without the overlap there
+  // were two frames — f202 and f203 — containing nothing at all.
+  const inn = settle(t, 6.52, 0.13);
+  sheet.style.transform = `translateX(${lerp(-980, 0, inn).toFixed(1)}px)`;
   sheet.style.filter = inn < 0.9 ? `blur(${(30 * (1 - inn)).toFixed(1)}px)` : 'none';
   sheet.style.opacity = clamp01(inn * 2.4).toFixed(3);
 
   // Each field commits on its own beat, staggered — and the price turns indigo
   // on commit, the same indigo the rule ignited to 1.5 seconds ago on the other
   // side of the whip. No new colour anywhere in the film.
+  // The VALUE commits, not the box. The box is there from the start; its text
+  // arrives. A clip-path on a bordered input reads as the input growing.
   const fields = document.querySelectorAll('#b-prod .field');
   [7.10, 7.96, 8.20].forEach((at, i) => {
     if (!fields[i]) return;
-    const p = seg(t, at, 0.22, inOutCubic);
-    fields[i].style.clipPath = `inset(0 ${(50 * (1 - p)).toFixed(2)}% 0 0)`;
+    const p = seg(t, at, 0.20, inOutCubic);
+    fields[i].style.color = p > 0 ? '' : 'transparent';
+    fields[i].style.opacity = (0.45 + 0.55 * p).toFixed(3);
+    fields[i].style.transform = `translateX(${lerp(-10, 0, p).toFixed(1)}px)`;
   });
   const price = fields[1];
   if (price) price.style.color = mix('#14162E', '#4752C4', seg(t, 8.04, 0.24));
@@ -1189,9 +1243,10 @@ function applyTheme(t) {
   const frac = r / 24;
   const big = (el, cap) => { el.style.borderRadius = `${(frac * cap).toFixed(1)}px`; };
 
+  // ONLY THE SELLER'S STOREFRONT. The radius control themes the store, not the
+  // Dues dashboard around it — squaring off the admin panel and its own swatch
+  // chips claimed a behaviour the product does not have.
   big(prev, 44);                                   // the preview panel itself
-  big(document.querySelector('#b-theme .panel > .face'), 44);
-  big(document.querySelector('#b-theme .panel > .slab'), 44);
   prev.querySelectorAll('.prow').forEach((el) => { el.style.background = panel; big(el, 43); });
   prev.querySelectorAll('.pget').forEach((el) => {
     el.style.background = accent;
@@ -1200,7 +1255,6 @@ function applyTheme(t) {
     el.style.color = (rr * 299 + gg * 587 + bb * 114) / 1000 >= 150 ? '#0a0a0a' : '#ffffff';
   });
   big(prev.querySelector('.pav'), 42);
-  document.querySelectorAll('#b-theme .th').forEach((el) => big(el, 30));
 
   document.querySelectorAll('#b-theme .th').forEach((el) => el.classList.toggle('on', el.dataset.k === active));
   document.querySelector('#b-theme .panel .slab').style.background = accent;
@@ -1225,25 +1279,34 @@ function applyCta(t) {
   const cta = document.querySelector('#b-cta .bigcta');
   // It ARRIVES ALREADY OVERSIZED and settles, rather than growing into place:
   // critically damped, no overshoot, the film's standard settle.
-  const inn = settle(t, 12.48, 0.085);
-  cta.style.opacity = clamp01(inn * 2.6).toFixed(3);
+  // tau 0.085 with a 2.6x opacity multiplier put this at 97% on its FIRST
+  // frame — it appeared whole rather than arriving. It settles properly now.
+  const inn = settle(t, 12.48, 0.17);
+  cta.style.opacity = clamp01(inn * 1.5).toFixed(3);
   cta.style.transform = `scale(${lerp(1.14, 1, inn).toFixed(4)})`;
   // THE ACCELERATING DRIFT-INTO-WHIP EXIT — the reference's own gesture for this
   // exact shot: the bar creeps upward, the creep keeps accelerating, and the cut
   // lands while it is still speeding up. Cutting on the deceleration is what
   // makes a cut visible.
-  const out = clamp01((t - 12.88) / 0.22);
+  // AND IT IS PRESSED. The storefront used to simply replace it while the
+  // pointer sailed past underneath — the one shot in the film with no cause.
+  const press = seg(t, 12.86, 0.07, inQuad) - seg(t, 12.97, 0.13);
+  const out = clamp01((t - 12.97) / 0.20);
   if (out > 0) {
     const o = Math.pow(out, 2.6);
     cta.style.transform =
       `scale(${(lerp(1.14, 1, inn) * (1 + 0.055 * o)).toFixed(4)}) translateY(${(-260 * o).toFixed(1)}px)`;
     cta.style.filter = `blur(${(30 * o).toFixed(1)}px)`;
-  } else { cta.style.filter = 'none'; }
+  } else {
+    cta.style.transform = `scale(${(lerp(1.14, 1, inn) * (1 - 0.028 * press)).toFixed(4)})`;
+    cta.style.filter = 'none';
+  }
+  cta.querySelector('.face').style.background = mix('#5865f2', '#4752C4', press);
 }
 
 function applyLive(t) {
   const win = document.querySelector('#b-live .win');
-  const inn = settle(t, 13.10, 0.10);
+  const inn = settle(t, 13.06, 0.115);
   win.style.transform = `scale(${lerp(1.16, 1, inn).toFixed(4)})`;
   win.style.opacity = clamp01(inn * 2.4).toFixed(3);
   const pay = document.querySelector('#b-live .lpay');
@@ -1307,7 +1370,7 @@ function applyAlert(t) {
   // THE WINDOW IS A REAL SURFACE, TILTED. A flat panel reads as a diagram; the
   // same content on a plane with perspective reads as a screen, which is the
   // whole difference the founder was pointing at.
-  const inn = settle(t, 15.88, 0.11);
+  const inn = settle(t, 15.92, 0.11);
   win.style.opacity = clamp01(inn * 2.4).toFixed(3);
   win.style.transform =
     `rotateY(${lerp(-13, -7, inn).toFixed(2)}deg) rotateX(${lerp(7, 3.2, inn).toFixed(2)}deg)`
