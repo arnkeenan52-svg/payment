@@ -83,6 +83,78 @@
     --grotesk: 'Dues Grotesk', 'Space Grotesk', system-ui, sans-serif;
     --sans: 'Dues Sans', 'DM Sans', system-ui, sans-serif;
   }
+  /* ── THE DARK CUT ────────────────────────────────────────────────────────
+     A second grade of the same film, not an inversion of it. The light cut is
+     periwinkle and paper; this one is black, white and the Discord blurple the
+     site itself runs on — #5865f2, used as the ONLY colour, so every accent in
+     twenty seconds is one hue and everything else is a value.
+
+     The ground is near-black with blurple bloomed through it rather than a
+     grey. A flat dark ground is the thing that made the very first cut of this
+     film measure saturation 0.001, and the fix is the same fix as on the light
+     plate: one channel pinned, the other two swung, so the encoder always has a
+     gradient to hold and never a flat field to band across.
+
+     Everything below is a token swap plus the handful of surfaces that hardcode
+     a light value. The engine, the timing, the cursor path and the cue sheet
+     are untouched — the two cuts are frame-synchronised, which is the point:
+     they are the same film, graded twice. */
+  html[data-cut="dark"] {
+    /* THREE VALUES AND ONE COLOUR. The greys below are ACHROMATIC — R, G and B
+       within two points of each other at every step — so the only hue anywhere
+       in the dark cut is Discord's own #5865F2. A navy ground would have been
+       easier and it is what the first attempt did; it also quietly introduces a
+       second blue, and two blues eight degrees apart doing different jobs is
+       the exact defect the light cut was graded to remove. Black is not a
+       tinted blue. */
+    --p1: #141417; --p2: #0E0E11; --p3: #08080A; --p4: #050506; --cream: #1D1D22;
+    --ink: #FFFFFF;
+    --dim: #97979F;
+    --card: #0F0F13;
+    --hair: #26262D;
+    --navy: #050506;
+    --navy-ink: #FFFFFF;
+    --navy-dim: #97979F;
+    --navy-rule: #2C2C34;
+  }
+  html[data-cut="dark"] #plate {
+    /* The greys carry the value and the blurple carries every bit of the
+       colour, bloomed rather than filled — a flat black field is what made the
+       very first version of this film measure saturation 0.001, and the answer
+       is the same as it was on the light plate: never let the encoder see a
+       flat region. */
+    background:
+      radial-gradient(52% 40% at 84% 4%,  rgba(88,101,242,0.55) 0%, rgba(88,101,242,0) 62%),
+      radial-gradient(58% 48% at 6% 98%,  rgba(88,101,242,0.34) 0%, rgba(88,101,242,0) 64%),
+      radial-gradient(46% 40% at 96% 92%, rgba(88,101,242,0.22) 0%, rgba(88,101,242,0) 60%),
+      radial-gradient(80% 72% at 4% 44%,  var(--p2) 0%, rgba(14,14,17,0) 64%),
+      linear-gradient(122deg, var(--p4) 0%, var(--p3) 28%, var(--cream) 50%, var(--p2) 70%, var(--p1) 100%);
+  }
+  /* The dither earns its keep here: a dark gradient is exactly where 8-bit
+     h264 bands, so the static noise goes up rather than down. */
+  html[data-cut="dark"] #dither { opacity: 0.085; mix-blend-mode: soft-light; }
+  html[data-cut="dark"] #b-prod .sheet > .face { background: var(--card); }
+  html[data-cut="dark"] .float > .face { background: var(--card); }
+  html[data-cut="dark"] #b-stripe .plate3 > .slab { background: #1A1A20; }
+  /* The mark is a near-white logotype, so on black it needs no filter at all —
+     the light cut inks it, this one lets it be what it is. */
+  html[data-cut="dark"] #b-end .mark img { filter: none; }
+  html[data-cut="dark"] #b-end .tag b { color: var(--ink); }
+  /* The storefront takes the Blurple preset, which is where the dark cut's
+     theme demo lands: THEMES['blurple'] verbatim. */
+  html[data-cut="dark"] #b-live .win { background: #08080A; border-color: #2C2C34; }
+  html[data-cut="dark"] #b-live .wbar { background: #131318; }
+  html[data-cut="dark"] #b-live .wbar i { background: #35353E; }
+  html[data-cut="dark"] #b-live .wurl { color: #97979F; }
+  html[data-cut="dark"] #b-live .wbody { color: #FFFFFF; }
+  html[data-cut="dark"] #b-live .wbody .lsub { color: #97979F; }
+  html[data-cut="dark"] #b-live .lrow { background: #131318; border-color: #26262D; }
+  html[data-cut="dark"] #b-live .lpay { background: var(--blurple); color: #fff; }
+  html[data-cut="dark"] #b-live .llogo { background: var(--blurple); }
+  html[data-cut="dark"] #b-live .lfoot { color: #97979F; }
+  html[data-cut="dark"] #b-live .lfoot svg path { stroke: #97979F; }
+  html[data-cut="dark"] #b-live .lfoot svg rect { fill: #97979F; }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     width: 1920px; height: 1080px; overflow: hidden;
@@ -195,7 +267,10 @@
      width on every settled frame. And our mock rested at 700px, showing 380 of
      its 820px, so it read as a strip rather than as a screen. */
   #b-title .heromock .dc { left: 300px; top: 660px; width: 1380px; height: 820px; }
-  #b-title .heromock .float { left: 980px; top: 878px; }
+  /* 1120 and not 980: at 980 the price card lay across the bot's own alert and
+     cut 'just bought VIP Access' in half — the one line in the opening that
+     says what the product does. */
+  #b-title .heromock .float { left: 1120px; top: 878px; }
   /* THE BADGES WERE BUILT AND SWITCHED OFF. Discord, Dues and Stripe, all three
      claims true, sitting at display:none since the day they were written — so
      applyTitle never touched them and the composition carried a 292px band of
@@ -679,7 +754,7 @@
           <div class="llogo"><img src="../assets/dues-glyph.png" alt="" /></div>
           <div>
             <div style="font-family:var(--grotesk);font-weight:700;font-size:46px">Dues Membership</div>
-            <div style="font-size:26px;color:#6b6a63;margin-top:10px">Premium roles, private channels and member-only drops.</div>
+            <div class="lsub" style="font-size:26px;color:#6b6a63;margin-top:10px">Premium roles, private channels and member-only drops.</div>
           </div>
         </div>
         <div class="lrow"><b>VIP Access</b><span>$49.99</span></div>
@@ -702,7 +777,7 @@
 
   <div class="beat" id="b-alert">
     <div class="rig3">
-      <div class="dc light"></div>
+      <div class="dc dc-lit"></div>
       <div class="float solid"><div class="slab"></div><div class="face">
         <div class="fh">Dues Membership</div>
         <div class="fr"><span class="fp">@VIP</span><b>$49.99</b></div>
@@ -717,7 +792,7 @@
       <div class="tag">Sell Discord roles. <b>Keep every dollar.</b></div>
     </div>
     <div class="rig3">
-      <div class="dc light endmock"></div>
+      <div class="dc dc-lit endmock"></div>
       <div class="float solid endfloat"><div class="slab"></div><div class="face">
         <div class="fh">Dues Membership</div>
         <div class="fr"><span class="fp">@VIP</span><b>$49.99</b></div>
@@ -734,6 +809,12 @@
 </svg>
 
 <script>
+// Which grade this render is. `?cut=dark` is the only difference between the
+// two films: same engine, same timings, same cursor path, same soundtrack.
+const DARK = new URLSearchParams(location.search).get('cut') === 'dark';
+if (DARK) document.documentElement.dataset.cut = 'dark';
+
+
 // ── the clock ────────────────────────────────────────────────────────────────
 // THE FILM IS AUTHORED ON A 25fps GRID and conformed 5:6 into a 30fps container.
 // That is not a stylistic choice: the teardown established the reference's
@@ -831,8 +912,8 @@ const CUR = [
   { t: 7.96, sel: '#b-prod .row2 .field', press: true },          // the price commits
   { t: 8.54, sel: '#b-prod .chip', fx: 0.92, fy: 0.86, press: true }, // the @VIP role, clear of its text
   { t: 9.30, sel: '#b-theme .th[data-k="midnight"]', fx: 0.5, fy: -0.6 },
-  { t: 9.72, sel: '#b-theme .th[data-k="blurple"]', press: true },
-  { t: 10.46, sel: '#b-theme .th[data-k="ivory"]', press: true },
+  { t: 9.72, sel: `#b-theme .th[data-k="${DARK ? 'ivory' : 'blurple'}"]`, press: true },
+  { t: 10.46, sel: `#b-theme .th[data-k="${DARK ? 'blurple' : 'ivory'}"]`, press: true },
   { t: 11.30, sel: '#b-theme .knob', fx: 0.5, fy: -2.4 },         // drops toward the slider
   { t: 11.42, sel: '#b-theme .knob', grab: true },                // grabs the knob
   { t: 12.02, sel: '#b-theme .knob', grab: true },                // rides it to 0 …
@@ -960,7 +1041,12 @@ function drawCursor(t) {
 const THEMES = [
   { key: 'midnight', name: 'Midnight', bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4', accent: '#ededed' },
   { key: 'ivory', name: 'Ivory', bg: '#faf9f7', panel: '#ffffff', text: '#161616', accent: '#161616' },
-  { key: 'blurple', name: 'Blurple', bg: '#0b0d1f', panel: '#131735', text: '#eceefc', accent: '#8b96f8' },
+  // BLACK AND BLURPLE, not navy. This preset used to be #0b0d1f/#131735 — a
+  // deep blue that is not Discord's blue and not black either, so a theme
+  // called Blurple contained no blurple at all, only a lilac accent. It is now
+  // achromatic panels with Discord's own #5865F2 as the accent, which is what
+  // the name has always claimed and what the dark cut is graded to.
+  { key: 'blurple', name: 'Blurple', bg: '#08080A', panel: '#131318', text: '#FFFFFF', accent: '#5865F2' },
   { key: 'emerald', name: 'Emerald', bg: '#071209', panel: '#0d2012', text: '#e9f6ec', accent: '#22c55e' },
   { key: 'crimson', name: 'Crimson', bg: '#150a0d', panel: '#231016', text: '#f8ecee', accent: '#ef4466' },
   { key: 'gold', name: 'Gold', bg: '#131008', panel: '#211b0e', text: '#f8f3e6', accent: '#f2b03c' },
@@ -990,8 +1076,12 @@ const byKey = (k) => THEMES.find((x) => x.key === k);
 // blue one. The arc is still dark, blue, white — and nothing else.
 const SEQ = [
   { at: 9.00, key: 'midnight' },
-  { at: 9.72, key: 'blurple' },
-  { at: 10.46, key: 'ivory' },
+  // The light cut ends on Ivory so its storefront is paper. The dark cut ends
+  // on Blurple, so its storefront is the site's own blue — same three presses,
+  // opposite destination, and each one lands the payoff shot in the grade the
+  // film is actually in.
+  { at: 9.72, key: DARK ? 'ivory' : 'blurple' },
+  { at: 10.46, key: DARK ? 'blurple' : 'ivory' },
 ];
 const RAD_KEYS = [
   { t: 11.42, v: 16 }, { t: 12.02, v: 0 }, { t: 12.62, v: 24 }, { t: 13.60, v: 24 },
@@ -1113,6 +1203,11 @@ function discord() {
 // ── build ────────────────────────────────────────────────────────────────────
 function build() {
   fillTitles();
+  // The alerts window and the endcard's mock run Discord Light in the light
+  // cut -- it is the only thing that closes a 100-luma deficit against the
+  // reference -- and Discord's own dark theme in the dark cut, where the
+  // deficit does not exist.
+  if (!DARK) document.querySelectorAll('.dc-lit').forEach((el) => el.classList.add('light'));
 
   document.querySelector('#b-theme .tiles').innerHTML = THEMES.map((th) => `
     <div class="th" data-k="${th.key}" style="background:${th.panel}">
@@ -1188,7 +1283,13 @@ const BEATS = [
   // but the first pass overshot: b-live's 1.26 scale filled the frame with the
   // dark storefront one frame before the burst and measured 116.0, twice the
   // reference's worst anywhere.
-  { el: 'b-title',  from: 0.00,  to: 1.16,  exit: [0, -300, 1.00] },
+  // -90 and not -300. Raising the headline to its correct height in frame
+  // (cap-top at 15.1%, matching the reference's 14.2%) left it only 138px from
+  // the top edge — so a 300px exit, on top of the beat's own 58px drift, ran
+  // the headline off the top of frame for the last three frames and the film's
+  // first sentence left before the shot did. 90 plus a small push keeps the
+  // cut landing on motion without cropping the thing the motion is carrying.
+  { el: 'b-title',  from: 0.00,  to: 1.16,  exit: [0, -90, 1.07] },
   { el: 'b-store',  from: 1.16,  to: 3.44,  exit: [-210, 84, 0.92] },
   { el: 'b-stripe', from: 3.44,  to: 6.52,  exit: [1180, 0, 1.06] },
   { el: 'b-prod',   from: 6.52,  to: 9.00,  exit: [-760, -140, 0.95] },

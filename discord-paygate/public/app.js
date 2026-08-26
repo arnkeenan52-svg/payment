@@ -470,11 +470,146 @@ function showPayError(message, retry) {
   slot.querySelector('.dismiss').onclick = () => (slot.innerHTML = '');
 }
 
+// THE DEMO CHECKOUT.
+//
+// /demo sells nothing, and it used to say so with a sentence: a grey callout
+// reading "nothing is for sale". Accurate, and a dead end — the one moment a
+// visitor asks to see the product work, answered by a notice saying it does
+// not. This plays the flow instead: the checkout a buyer really lands on,
+// filling itself in, charging nothing, granting the role.
+//
+// IT CANNOT TAKE A PAYMENT AND IT CANNOT TAKE A CARD. There is no <form>, no
+// <input>, no submit target and no fetch anywhere in this function — every
+// field is a <div> whose textContent is written by a timer. A page that looks
+// like a checkout must be incapable of accepting a card number rather than
+// merely uninterested in one. The number shown is 4242 4242 4242 4242, the
+// test card Stripe publishes, and a Demo badge sits on the panel throughout.
+function demoCheckout(plan) {
+  const price = fmtPrice(plan.priceUsd);
+  const role = plan.roleNames?.[0] ? `@${plan.roleNames[0]}` : '@VIP';
+  const recurring = plan.interval ? ` / ${plan.interval}` : '';
+  const back = document.createElement('div');
+  back.className = 'dcx-back';
+  back.setAttribute('role', 'dialog');
+  back.setAttribute('aria-modal', 'true');
+  back.setAttribute('aria-label', 'Demo checkout');
+  back.innerHTML = `
+    <div class="dcx">
+      <div class="dcx-side">
+        <button class="dcx-x" type="button" aria-label="Close demo checkout">&times;</button>
+        <div class="dcx-brand" style="margin-left:38px"><img src="/favicon.png" alt=""/>${esc(state.brand ?? 'Dues Membership')}</div>
+        <div class="dcx-lead">${plan.interval ? 'Subscribe to' : 'Pay'} ${esc(plan.name)}</div>
+        <div class="dcx-amt">${price}${recurring}</div>
+        <div class="dcx-rule"></div>
+        <div class="dcx-line"><b>${esc(plan.name)}</b><span>${price}${recurring}</span></div>
+        <div class="dcx-note">${esc(plan.description ?? '')}</div>
+        <div class="dcx-rule"></div>
+        <div class="dcx-line sum"><span>Subtotal</span><span>${price}</span></div>
+        <div class="dcx-line sum"><span>Platform fee</span><span>$0.00</span></div>
+        <div class="dcx-line due"><span>Total due</span><span>${price}</span></div>
+        <div class="dcx-trust">
+          The seller keeps every cent — Dues takes no platform fee and never touches the money.
+          The role lands in Discord the moment the payment clears.
+        </div>
+      </div>
+      <div class="dcx-pay">
+        <span class="dcx-badge">Demo</span>
+        <div class="dcx-lab">Email</div>
+        <div class="dcx-f" data-f="email"><span class="t"></span><span class="caret"></span></div>
+        <div class="dcx-lab">Card information</div>
+        <div class="dcx-card">
+          <div class="dcx-f" data-f="card"><span class="t"></span><span class="caret"></span><span class="dcx-brandmark">VISA</span></div>
+          <div class="pair">
+            <div class="dcx-f" data-f="exp"><span class="t"></span><span class="caret"></span></div>
+            <div class="dcx-f" data-f="cvc"><span class="t"></span><span class="caret"></span></div>
+          </div>
+        </div>
+        <div class="dcx-lab">Cardholder name</div>
+        <div class="dcx-f" data-f="name"><span class="t"></span><span class="caret"></span></div>
+        <button class="dcx-btn" type="button" disabled>Pay ${price}</button>
+        <div class="dcx-foot">
+          <svg width="12" height="15" viewBox="0 0 12 15" fill="none" aria-hidden="true"><path d="M3 6V4a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.5"/><rect x="0.75" y="6" width="10.5" height="8" rx="2" fill="currentColor"/></svg>
+          Checkout secured by Dues
+        </div>
+        <div class="dcx-grant"><span class="pill">${esc(role)}</span> granted in ${esc(state.brand ?? 'this server')}</div>
+        <div class="dcx-out">
+          <a class="primary" href="/api/invite">Open your own store</a>
+          <button type="button" data-close>Close</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.append(back);
+  requestAnimationFrame(() => back.classList.add('in'));
+
+  const timers = [];
+  const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+  const f = (k) => back.querySelector(`[data-f="${k}"]`);
+  const btn = back.querySelector('.dcx-btn');
+  const prevFocus = document.activeElement;
+
+  const close = () => {
+    timers.forEach(clearTimeout);
+    document.removeEventListener('keydown', onKey);
+    back.classList.remove('in');
+    setTimeout(() => back.remove(), 220);
+    if (prevFocus?.focus) prevFocus.focus();
+  };
+  function onKey(e) { if (e.key === 'Escape') close(); }
+  document.addEventListener('keydown', onKey);
+  back.addEventListener('click', (e) => {
+    if (e.target === back || e.target.closest('[data-close], .dcx-x')) close();
+  });
+  back.querySelector('.dcx-x').focus();
+
+  // Someone who has asked not to be animated at gets the finished state.
+  const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  // Type into a div, character by character. Not a form field, by design.
+  const type = (el, text, start, per) => {
+    at(start - 60, () => el.classList.add('on'));
+    [...text].forEach((_, i) => at(start + i * per, () => {
+      el.querySelector('.t').textContent = text.slice(0, i + 1);
+    }));
+    at(start + text.length * per + 140, () => el.classList.remove('on'));
+  };
+
+  const settle = () => {
+    f('email').querySelector('.t').textContent = 'nova@example.com';
+    f('card').querySelector('.t').textContent = '4242 4242 4242 4242';
+    f('exp').querySelector('.t').textContent = '04 / 29';
+    f('cvc').querySelector('.t').textContent = '123';
+    f('name').querySelector('.t').textContent = 'Nova Almeida';
+    back.querySelector('.dcx-brandmark').classList.add('in');
+  };
+
+  const succeed = () => {
+    btn.classList.remove('press');
+    btn.classList.add('done');
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Payment successful';
+    at(320, () => back.querySelector('.dcx-grant').classList.add('in'));
+    at(700, () => back.querySelector('.dcx-out').classList.add('in'));
+  };
+
+  if (still) { settle(); succeed(); return; }
+
+  type(f('email'), 'nova@example.com', 380, 34);
+  type(f('card'), '4242 4242 4242 4242', 1080, 32);
+  at(1080 + 8 * 32, () => back.querySelector('.dcx-brandmark').classList.add('in'));
+  type(f('exp'), '04 / 29', 1820, 46);
+  type(f('cvc'), '123', 2180, 52);
+  type(f('name'), 'Nova Almeida', 2440, 40);
+  at(3020, () => { btn.disabled = false; btn.classList.add('press'); });
+  at(3180, () => {
+    btn.classList.remove('press');
+    btn.innerHTML = '<span class="dcx-spin"></span>Processing…';
+  });
+  at(4200, succeed);
+}
+
 async function pay(btn, plan) {
   // The hosted demo store demos the whole flow but sells nothing.
   if (state.capabilities.demo) {
-    $('#notice').innerHTML =
-      '<div class="callout pending">This is Dues\u2019s demo store \u2014 nothing is for sale. <a href="/api/invite">Invite Dues</a> to open yours in minutes.</div>';
+    demoCheckout(plan);
     return;
   }
   btn.disabled = true;

@@ -20,7 +20,14 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const FRAMES = process.env.FILM_FRAMES || path.join(ROOT, 'tmp-film-frames');
+// TWO GRADES OF ONE FILM. `FILM_CUT=dark` renders the same engine with
+// ?cut=dark, which swaps the ground, the surfaces and the theme demo's landing
+// preset to black / white / Discord blurple. Everything else -- timings, cursor
+// path, cue sheet, soundtrack -- is identical, so the two cuts are frame-for-
+// frame the same film and can be swapped without re-timing anything.
+const CUT = process.env.FILM_CUT === 'dark' ? 'dark' : 'light';
+const SUFFIX = CUT === 'dark' ? '-dark' : '';
+const FRAMES = process.env.FILM_FRAMES || path.join(ROOT, `tmp-film-frames${SUFFIX}`);
 const FPS = 30;
 const DPR = Number(process.env.FILM_DPR || 2);
 // The poster is NOT frame 0: the film deliberately opens on bare ground, so
@@ -54,7 +61,7 @@ const page = await (await browser.newContext({
 
 let failed = null;
 page.on('pageerror', (e) => { failed = e.message; });
-await page.goto(`file://${path.join(ROOT, 'hero', 'film.html')}?scene=film`);
+await page.goto(`file://${path.join(ROOT, 'hero', 'film.html')}?scene=film${CUT === 'dark' ? '&cut=dark' : ''}`);
 // Gates on fonts AND every image decode. A frame shot before either resolves
 // looks almost right, which is the kind of error nobody catches until it ships.
 await page.waitForFunction(() => window.__ready === true, { timeout: 30000 });
@@ -65,7 +72,7 @@ const total = Math.round(duration * FPS);
 fs.rmSync(FRAMES, { recursive: true, force: true });
 fs.mkdirSync(FRAMES, { recursive: true });
 
-process.stdout.write(`[film] ${duration}s · ${total} frames · ${1920 * DPR}x${1080 * DPR}\n`);
+process.stdout.write(`[film] ${CUT} cut · ${duration}s · ${total} frames · ${1920 * DPR}x${1080 * DPR}\n`);
 for (let i = 0; i < total; i += 1) {
   await page.evaluate((t) => window.__seek(t), i / FPS);
   await page.screenshot({ path: path.join(FRAMES, `f${String(i).padStart(4, '0')}.png`) });
@@ -108,11 +115,11 @@ run([
   // with the speaker button, so this track costs nothing until it is wanted.
   '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-ar', '48000',
   '-shortest', '-movflags', '+faststart',
-  '-y', path.join(ROOT, 'public', 'hero-tour.mp4'),
+  '-y', path.join(ROOT, 'public', `hero-tour${SUFFIX}.mp4`),
 ]);
 run([
   '-v', 'error', '-i', path.join(FRAMES, 'poster.png'),
   '-vf', 'scale=1920:1080:flags=lanczos', '-c:v', 'libwebp', '-quality', '84',
-  '-y', path.join(ROOT, 'public', 'hero-poster.webp'),
+  '-y', path.join(ROOT, 'public', `hero-poster${SUFFIX}.webp`),
 ]);
-process.stdout.write('[film] wrote public/hero-tour.mp4 (with soundtrack) and public/hero-poster.webp\n');
+process.stdout.write(`[film] wrote public/hero-tour${SUFFIX}.mp4 (with soundtrack) and public/hero-poster${SUFFIX}.webp\n`);
