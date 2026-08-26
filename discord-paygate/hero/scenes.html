@@ -432,6 +432,22 @@
     position: fixed; inset: 0; background: var(--ink); opacity: 0;
     pointer-events: none; z-index: 90;
   }
+  /* THE GROUND'S LIGHTING, and the film's answer to "black and white can be
+     boring" without animating the background.
+     The ground plate stays pixel-identical frame to frame — that is deliberate,
+     it is why the encoder can spend its whole budget on the subject — so the
+     colour cannot come from the plate. It comes from ONE soft radial spill
+     sitting BEHIND every stage at around 8% opacity, which changes only when
+     the beat changes and is motivated by what the beat is: Stripe indigo under
+     the key, the live preset's own accent under the theming, blurple under the
+     burst. It is lighting, not decoration — the frame is coloured by the thing
+     in it. At 8% over a 0.55s ramp the per-frame change is far below anything
+     the encoder spends bits on. */
+  #tint {
+    position: absolute; inset: 0; opacity: 0;
+    pointer-events: none; z-index: 0;
+    will-change: opacity, background;
+  }
 </style>
 </head>
 <body>
@@ -445,6 +461,7 @@
 
 
 
+<div id="tint"></div>
 <div id="wash"></div>
 
 <div class="stage" id="s-title">
@@ -1120,12 +1137,24 @@ const MORPH = 0.40; // the recolour itself, measured off the reference
 // a 700px card; a full slider sweep is both visible and equally true.
 const RAD_AT = 2.85, RAD_DUR = 0.55, RAD_FROM = 16, RAD_TO = 0;
 
+// How much colour a hex actually carries: 0 for any grey, 1 for a pure hue.
+const saturation = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const mx = Math.max(r, g, b);
+  return mx === 0 ? 0 : (mx - Math.min(r, g, b)) / mx;
+};
+
 const mix = (a, b, p) => {
   const h = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
   const [ar, ag, ab] = h(a); const [br, bg2, bb] = h(b);
   const c = (x, y) => Math.round(lerp(x, y, p)).toString(16).padStart(2, '0');
   return `#${c(ar, br)}${c(ag, bg2)}${c(ab, bb)}`;
 };
+
+// The theming beat's current accent, published for the ground light below: the
+// frame is lit by the colour the seller is choosing, live, rather than by a
+// colour someone typed next to it.
+let liveAccent = '#8b96f8';
 
 const THEME_SC = {
   stage: 's-theme',
@@ -1159,6 +1188,14 @@ const THEME_SC = {
       const [r, g, b] = [1, 3, 5].map((i) => parseInt(accent.slice(i, i + 2), 16));
       return (r * 299 + g * 587 + b * 114) / 1000;
     })();
+
+    // The ground light takes this preset's accent only in proportion to how
+    // saturated it actually is. Two of the three presets in the sequence are
+    // deliberately monochrome — Midnight's accent is #ededed and Ivory's is
+    // #161616 — and lighting the frame with those would flood it white or do
+    // nothing at all. A preset with no colour to give leaves the film's own
+    // blurple in place.
+    liveAccent = mix('#5865f2', accent, Math.min(1, saturation(accent) * 2.2));
 
     const prev = document.querySelector('#s-theme .prev');
     prev.style.background = bg;
@@ -1426,6 +1463,44 @@ function carryTo(el, base, P, dx, dy, s) {
     + ` scale(${s.toFixed(4)}) ${base}`;
 }
 
+// THE GROUND LIGHT. One key per beat: colour, where the spill sits, and how
+// strong it is. Motivated every time — Stripe's own indigo under the key beat,
+// the live preset's accent under the theming, blurple under the burst — and
+// deliberately weak elsewhere, so the two beats that ARE about colour are the
+// two the frame visibly warms for.
+//
+// `c: null` means "whatever the theming beat is currently showing".
+const TINT = [
+  { at: 0.00, c: '#5865f2', x: 50, y: 44, a: 0.045 },
+  { at: 1.15, c: '#5865f2', x: 34, y: 62, a: 0.050 },
+  { at: 3.40, c: '#635bff', x: 50, y: 56, a: 0.150 },
+  { at: 5.60, c: '#5865f2', x: 46, y: 52, a: 0.055 },
+  { at: 7.90, c: null, x: 74, y: 50, a: 0.130 },
+  { at: 11.85, c: '#5865f2', x: 50, y: 52, a: 0.045 },
+  { at: 14.00, c: '#5865f2', x: 50, y: 50, a: 0.110 },
+  { at: 15.85, c: '#5865f2', x: 50, y: 50, a: 0.055 },
+  { at: 18.85, c: '#5865f2', x: 50, y: 62, a: 0.060 },
+];
+
+function tintAt(t) {
+  let i = 0;
+  for (let j = 0; j < TINT.length; j += 1) if (t >= TINT[j].at) i = j;
+  const cur = TINT[i];
+  const prv = i === 0 ? cur : TINT[i - 1];
+  // The light leads the cut slightly — it starts moving 0.18s before the beat
+  // it belongs to, so the frame is already the right colour when the beat
+  // arrives rather than catching up afterwards.
+  const p = i === 0 ? 1 : seg(t, cur.at - 0.18, 0.55, inOutCubic);
+  const cc = cur.c || liveAccent;
+  const pc = prv.c || liveAccent;
+  return {
+    c: mix(pc, cc, p),
+    x: lerp(prv.x, cur.x, p),
+    y: lerp(prv.y, cur.y, p),
+    a: lerp(prv.a, cur.a, p),
+  };
+}
+
 const FILM_SCENE = {
   stage: null,
   duration: 20.0,
@@ -1504,6 +1579,16 @@ const FILM_SCENE = {
       el.style.transform = out > 0 && !inCarry ? `scale(${(1 + 0.055 * out).toFixed(4)})` : 'none';
       el.style.filter = out > 0 && !inCarry ? `blur(${(9 * out).toFixed(2)}px)` : 'none';
     });
+
+    // The ground light, after the scenes so the theming beat's accent is this
+    // frame's value and not the previous one's. The falloff goes to the SAME
+    // hue at zero alpha rather than to `transparent`, which in a gradient
+    // interpolates through transparent black and leaves a grey halo.
+    const ti = tintAt(t);
+    const tint = document.getElementById('tint');
+    tint.style.background =
+      `radial-gradient(1180px 760px at ${ti.x.toFixed(1)}% ${ti.y.toFixed(1)}%, ${ti.c} 0%, ${ti.c}00 70%)`;
+    tint.style.opacity = ti.a.toFixed(4);
 
     // THE CARRIES. Run last, so they compose on top of whatever the generic
     // pass and each scene's own apply() have already written this frame.
