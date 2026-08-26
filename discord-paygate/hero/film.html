@@ -142,6 +142,21 @@
   /* The dither earns its keep here: a dark gradient is exactly where 8-bit
      h264 bands, so the static noise goes up rather than down. */
   html[data-cut="dark"] #dither { opacity: 0.085; mix-blend-mode: soft-light; }
+  /* WHITE ON WHITE, and it was every form field in the dark cut.
+     .field hardcodes background:#F1F0FA and takes its text from var(--ink) —
+     which is #14162E in the light cut and #FFFFFF in this one. Measured on the
+     rendered frames: "Dues Membership" in the store card and "VIP Access" in
+     the product sheet both came out at 1.13:1 against their own painted
+     background. Invisible. A token that flips between grades cannot be paired
+     with a colour that does not. */
+  html[data-cut="dark"] .field { background: #24242C; border-color: #3A3A45; }
+  /* The knob was a white circle ringed in var(--ink) — a white ring on white.
+     The ring is what makes it read as a control rather than a dot. */
+  html[data-cut="dark"] #b-theme .knob { border-color: #0C0C10; }
+  html[data-cut="dark"] #b-theme .strack { background: #33333C; }
+  /* 3.4:1 on the dark card. Legible, but the dimmest thing in the film, and it
+     is the line that names what was bought. */
+  html[data-cut="dark"] .float .fr[style] { color: #A2A2AB !important; }
   html[data-cut="dark"] #b-prod .sheet > .face { background: var(--card); }
   html[data-cut="dark"] .float > .face { background: var(--card); }
   html[data-cut="dark"] #b-stripe .plate3 > .slab { background: #2A2A32; }
@@ -1494,7 +1509,11 @@ function applyProd(t) {
     fields[i].style.transform = `translateX(${lerp(-10, 0, p).toFixed(1)}px)`;
   });
   const price = fields[1];
-  if (price) price.style.color = mix('#14162E', '#4752C4', seg(t, 8.04, 0.24));
+  // The price commits from body text to accent. #4752C4 is a dark indigo, which
+  // is right on a near-white field and measures 3.0:1 on the dark cut's #24242C
+  // — legible, and the dimmest thing in that grade. The dark cut takes the light
+  // end of the same blue instead, which is the same commit read at 7.9:1.
+  if (price) price.style.color = mix(DARK ? '#FFFFFF' : '#14162E', DARK ? '#8B96F8' : '#4752C4', seg(t, 8.04, 0.24));
   const chip = document.querySelector('#b-prod .chip');
   const cp = seg(t, 8.54, 0.20, inOutCubic);
   chip.style.opacity = cp.toFixed(3);
