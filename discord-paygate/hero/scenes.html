@@ -874,6 +874,20 @@ function centre(sel, fx = 0.5, fy = 0.5) {
   return [r.left + r.width * fx, r.top + r.height * fy];
 }
 
+// THE POINTER LEAVES BEFORE THE BEAT DOES.
+//
+// It did not, and the contact sheet showed exactly what that looks like: at
+// 3.50 the store card is halfway through becoming the Stripe slab and the
+// cursor is still sitting where the button used to be, fading in place. A hand
+// that finishes a click takes itself out of frame; one that dissolves over the
+// thing it just pressed reads as a bug in the render.
+//
+// Returns [dx, dy, opacity] to fold into the cursor's own transform.
+function curExit(t, at, dur, dirx, diry) {
+  const p = seg(t, at, dur, inQuad);
+  return [dirx * p, diry * p, 1 - clamp01((t - at - dur * 0.45) / (dur * 0.55))];
+}
+
 // A press: down fast on ease-in, back up slower on ease-out. Returns 0..1.
 const dip = (t, at, down = 0.067, up = 0.133) => seg(t, at, down, inQuad) - seg(t, at + down, up);
 
@@ -986,7 +1000,12 @@ const STORE = {
     // PRESS at 1.30. The cursor's dip is measurably deeper than the button's —
     // keep the asymmetry, it is what sells the contact.
     const press = dip(t, 1.30);
-    cur.style.transform = `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${(1 - 0.21 * press).toFixed(4)})`;
+    // Out of frame down-right once the click is done, and gone well before the
+    // card starts becoming the Stripe slab at 3.18.
+    const [ex, ey, eo] = curExit(t, 1.62, 0.46, 620, 470);
+    cur.style.opacity = eo.toFixed(3);
+    cur.style.transform =
+      `translate(${(cx + ex).toFixed(1)}px, ${(cy + ey).toFixed(1)}px) scale(${(1 - 0.21 * press).toFixed(4)})`;
     btn.style.transform = `scale(${(1 - 0.146 * press).toFixed(4)})`;
     // The button also LIGHTS as the pointer arrives. A target that does not
     // acknowledge the cursor until it is struck reads as a still image with an
@@ -1256,8 +1275,12 @@ const THEME_SC = {
     // slider and merely being near it.
     const grab = seg(t, RAD_AT, 0.06, inQuad) - seg(t, RAD_AT + RAD_DUR, 0.12);
     const press = clamp01(dip(t, 1.05) + dip(t, 2.20) + grab);
+    // The drag releases at 3.40; the preview starts becoming the storefront at
+    // 3.73, so the pointer has exactly that gap to get out of the way.
+    const [ex, ey, eo] = curExit(t, 3.44, 0.40, -560, 520);
+    cur.style.opacity = eo.toFixed(3);
     cur.style.transform =
-      `translate(${cp[0].toFixed(1)}px, ${cp[1].toFixed(1)}px) scale(${(1 - 0.20 * press).toFixed(4)})`;
+      `translate(${(cp[0] + ex).toFixed(1)}px, ${(cp[1] + ey).toFixed(1)}px) scale(${(1 - 0.20 * press).toFixed(4)})`;
 
     // One mark per discrete click. The drag does not ring — it is one continuous
     // contact, not three hundred of them.
@@ -1303,6 +1326,10 @@ const SHOP = {
     const [cx, cy] = arc(t, 0.70, 0.55, [1560, 1180], [IGNITE[0] - 4, IGNITE[1] - 2], -0.10);
     const press = dip(t, 1.72, 0.07, 0.13);
     const hover = seg(t, 1.20, 0.16);
+    // No exit flight here: the burst is born on this button 0.43s after the
+    // press and takes the whole frame, so the pointer fades where it pressed
+    // rather than dragging a dark arrow across a bright wedge field.
+    cur.style.opacity = (1 - seg(t, 1.88, 0.16, (x) => x)).toFixed(3);
     cur.style.transform =
       `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${(1 - 0.19 * press).toFixed(4)})`;
     pay.style.scale = (1 - 0.05 * press).toFixed(4);
