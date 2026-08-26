@@ -1,5 +1,7 @@
 import "./index.css";
+import "./DuesDemo/fonts";
 import { Composition } from "remotion";
+import { DuesDemo } from "./DuesDemo";
 import { HelloWorld } from "./HelloWorld";
 import { Logo } from "./HelloWorld/Logo";
 
@@ -8,6 +10,16 @@ import { Logo } from "./HelloWorld/Logo";
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      {/* The Dues demo: npx remotion render DuesDemo out/dues-demo.mp4 */}
+      <Composition
+        id="DuesDemo"
+        component={DuesDemo}
+        durationInFrames={150}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
       <Composition
         // You can take the "id" to render a video:
         // npx remotion render HelloWorld

@@ -11,6 +11,25 @@
 
 Welcome to your Remotion project!
 
+## Compositions
+
+| id | what it is |
+|---|---|
+| `DuesDemo` | The Dues demo: 5s, 1920x1080, 30fps. Someone checks out, the Discord role lands, the mark. Source in [`src/DuesDemo/`](src/DuesDemo/). |
+| `HelloWorld`, `OnlyLogo` | The stock Remotion starter, left in place as a reference. |
+
+Render the demo:
+
+```console
+npx remotion render DuesDemo out/dues-demo.mp4
+```
+
+Brand tokens live in `src/DuesDemo/theme.ts` (mirrored from
+`discord-paygate/public/styles.css`), the mark geometry in `src/DuesDemo/Mark.tsx`
+(from `discord-paygate/public/favicon.svg`), and the fonts in `public/fonts/`
+(copied from `discord-paygate/assets/fonts/` — renamed OFL cuts, see the README
+there). Change any of those in one place and both the site and the video follow.
+
 ## Commands
 
 **Install Dependencies**
