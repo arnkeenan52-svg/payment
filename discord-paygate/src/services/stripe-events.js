@@ -74,7 +74,11 @@ export async function processStripeEvent(event, routeStore = null) {
             description:
               `**${buyer}** just subscribed to **${plan?.name ?? planId}**` +
               `${plan?.lifetime ? ' (lifetime)' : ''}.\n\nPayment received: **$${Number(amount).toFixed(2)}**`,
-            color: 0xffffff,
+            // Blurple, not white. A white embed stripe is invisible against
+            // Discord's light theme -- the accent bar renders #ffffff on an
+            // #f2f3f5 embed, so every seller whose members run light mode has
+            // been getting an alert with no accent on it at all.
+            color: 0x5865f2,
             footer: { text: store.name },
             timestamp: new Date().toISOString(),
           }],

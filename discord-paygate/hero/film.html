@@ -54,7 +54,13 @@
        blurple brand — and swings R and G. Measured through the real encoder at
        luma 204.4 / saturation 0.217 / widest flat band 46px, against the
        reference plate's 214.5 / 0.177 and the old ground's 23.8 / 0.001 / 590px. */
-    --p1: #DCDEFB; --p2: #C2C8FA; --p3: #A7B0F7; --p4: #8E99F5; --cream: #EFF1FF;
+    /* DESATURATED 22% TOWARD THEIR OWN LUMA. The correction that fixed the
+       original grey ground overshot it: measured, the film carried mean
+       saturation 0.287 against the reference's 0.197, and the bare plate 0.217
+       against their 0.177. Pulling each token 22% toward its own luminance
+       leaves every hue and every luma step exactly where it was and takes the
+       chroma out — which is also what "mainly blue, white and black" asks for. */
+    --p1: #DDDEF5; --p2: #C4C9F0; --p3: #AAB1E9; --p4: #929BE2; --cream: #F0F1FC;
 
     /* The one dark value in the film, used twice. Saturation 0.69 — more
        chromatic than any light beat, which is rule 2. */
@@ -92,10 +98,10 @@
   }
   #plate {
     background:
-      radial-gradient(46% 34% at 86% 5%,  var(--cream) 0%, rgba(239,241,255,0) 58%),
-      radial-gradient(58% 48% at 10% 96%, var(--p3) 0%, rgba(167,176,247,0) 60%),
-      radial-gradient(78% 70% at 4% 46%,  var(--p4) 0%, rgba(142,153,245,0) 62%),
-      radial-gradient(82% 72% at 98% 94%, var(--p4) 0%, rgba(142,153,245,0) 58%),
+      radial-gradient(46% 34% at 86% 5%,  var(--cream) 0%, rgba(240,241,252,0) 58%),
+      radial-gradient(58% 48% at 10% 96%, var(--p3) 0%, rgba(170,177,233,0) 60%),
+      radial-gradient(78% 70% at 4% 46%,  var(--p4) 0%, rgba(146,155,226,0) 62%),
+      radial-gradient(82% 72% at 98% 94%, var(--p4) 0%, rgba(146,155,226,0) 58%),
       linear-gradient(122deg, var(--p4) 0%, var(--p2) 30%, var(--cream) 50%, var(--p1) 68%, var(--p3) 100%);
   }
   /* Two faint arcs, exactly as the reference overlays on its plate: something
@@ -169,18 +175,36 @@
   }
 
   /* ── 1 title ────────────────────────────────────────────────────────────── */
-  #b-title h1 { top: 214px; font-size: 108px; }
+  /* HEIGHT IN FRAME, and it was wrong at rest. Our headline's resting cap-top
+     sat at y242 of 1080 — 22.4% down the frame — where the reference's is at
+     14.2%, and our line spanned 72.4% of the frame width against their 53.9%.
+     Ours only passed through the right height on its way out of frame, which is
+     why no single frame of the opening looked composed. At 96px the line is
+     64.4% of frame width and the cap-top rests at 15.1%. */
+  #b-title h1 { top: 138px; font-size: 96px; }
   #b-title .sub {
-    position: absolute; left: 0; right: 0; top: 368px; text-align: center;
-    font-size: 32px; color: var(--dim);
+    position: absolute; left: 0; right: 0; top: 292px; text-align: center;
+    font-size: 30px; color: var(--dim);
   }
   /* THE OPENING SHOWS THE PRODUCT. The reference's first beat is not type on a
      background — a Discord desktop rises into the lower half from frame edge
      while the headline sits above it, and that is what makes the first second
      read as a product film rather than a title card. */
-  #b-title .heromock .dc { left: 300px; top: 700px; width: 1380px; height: 820px; }
-  #b-title .heromock .float { left: 1120px; top: 950px; }
-  #b-title .trio { position: absolute; left: 50%; top: 636px; transform: translateX(-50%); display: none; }
+  /* The price card used to reach x=1824 of 1920 — a 96px margin, visibly jammed
+     into the corner. The reference's rightmost element sits at 77.5% of frame
+     width on every settled frame. And our mock rested at 700px, showing 380 of
+     its 820px, so it read as a strip rather than as a screen. */
+  #b-title .heromock .dc { left: 300px; top: 660px; width: 1380px; height: 820px; }
+  #b-title .heromock .float { left: 980px; top: 878px; }
+  /* THE BADGES WERE BUILT AND SWITCHED OFF. Discord, Dues and Stripe, all three
+     claims true, sitting at display:none since the day they were written — so
+     applyTitle never touched them and the composition carried a 292px band of
+     empty gradient, 27% of the frame height, exactly where the reference puts
+     its own badge cluster (y100-158 of 360). */
+  #b-title .trio {
+    position: absolute; left: 50%; top: 404px; display: flex; align-items: flex-end;
+    gap: 20px; transform-origin: 50% 100%; will-change: transform, opacity;
+  }
   #b-title .tile {
     width: 116px; height: 96px; border-radius: 20px; display: grid; place-items: center;
   }
@@ -262,7 +286,11 @@
   #b-theme .prev { position: absolute; right: 190px; top: 236px; width: 700px; height: 660px; border-radius: 22px; overflow: hidden; border: 1.5px solid var(--ink); }
   #b-theme .prev .pbar { height: 74px; display: flex; align-items: center; padding: 0 26px; gap: 10px; }
   #b-theme .prev .pin { padding: 30px 34px; }
-  #b-theme .prev .pav { width: 84px; height: 84px; }
+  /* THE STOREFRONT'S LOGO. This was an 84px block of flat accent colour — a
+     blank square sitting where a real store puts its mark, on the one surface
+     in the film that is supposed to be the seller's own shopfront. */
+  #b-theme .prev .pav { width: 84px; height: 84px; display: grid; place-items: center; overflow: hidden; }
+  #b-theme .prev .pav img { width: 100%; height: 100%; object-fit: contain; display: block; }
   #b-theme .prev .prow { height: 86px; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; margin-top: 18px; font-size: 24px; }
   #b-theme .prev .pget { height: 62px; display: grid; place-items: center; font-family: var(--grotesk); font-weight: 700; font-size: 22px; margin-top: 22px; }
 
@@ -275,13 +303,19 @@
   }
 
   /* ── 7 live store ───────────────────────────────────────────────────────── */
-  #b-live .win { position: absolute; left: 400px; top: 150px; width: 1120px; height: 800px; border-radius: 22px; overflow: hidden; border: 1.5px solid var(--ink); background: #0b0d1f; }
-  #b-live .wbar { height: 66px; background: #131735; display: flex; align-items: center; gap: 12px; padding: 0 24px; }
-  #b-live .wbar i { width: 14px; height: 14px; border-radius: 50%; background: #3a3f66; display: block; }
-  #b-live .wurl { margin-left: 18px; font-size: 20px; color: #8b90c8; }
-  #b-live .wbody { padding: 48px 56px; color: #eceefc; }
-  #b-live .lrow { background: #131735; border-radius: 18px; height: 96px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; margin-top: 20px; font-size: 28px; }
-  #b-live .lpay { background: #8b96f8; color: #0b0d1f; border-radius: 18px; height: 92px; display: grid; place-items: center; font-family: var(--grotesk); font-weight: 700; font-size: 30px; margin-top: 30px; }
+  /* THIS IS THE THEME THE SELLER JUST PICKED. It was the Blurple palette
+     (#0b0d1f / #131735 / #eceefc / #8b96f8) because the theme demo used to land
+     on Blurple; it lands on Ivory now, so the storefront the buyer sees is the
+     store that was just built, in the colours it was just given. These are
+     THEMES['ivory'] verbatim — bg #faf9f7, panel #ffffff, text #161616, accent
+     #161616 — so the two beats cannot drift apart. */
+  #b-live .win { position: absolute; left: 400px; top: 150px; width: 1120px; height: 800px; border-radius: 22px; overflow: hidden; border: 1.5px solid var(--ink); background: #faf9f7; }
+  #b-live .wbar { height: 66px; background: #f1f0ed; display: flex; align-items: center; gap: 12px; padding: 0 24px; }
+  #b-live .wbar i { width: 14px; height: 14px; border-radius: 50%; background: #cfcdc7; display: block; }
+  #b-live .wurl { margin-left: 18px; font-size: 20px; color: #6b6a63; }
+  #b-live .wbody { padding: 48px 56px; color: #161616; }
+  #b-live .lrow { background: #ffffff; border: 1.5px solid #e6e4de; border-radius: 18px; height: 96px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; margin-top: 20px; font-size: 28px; }
+  #b-live .lpay { background: #161616; color: #faf9f7; border-radius: 18px; height: 92px; display: grid; place-items: center; font-family: var(--grotesk); font-weight: 700; font-size: 30px; margin-top: 30px; }
 
   /* ── 7 burst — PORTED VERBATIM, this is the beat the founder kept ───────── */
   #b-burst .stage-in { position: absolute; inset: 0; overflow: hidden; }
@@ -400,6 +434,8 @@
   .dc-feed { flex: 1; padding: 14px 22px 18px; overflow: hidden; }
   .dc-msg { display: flex; gap: 16px; padding: 9px 0; }
   .dc-av { width: 48px; height: 48px; border-radius: 50%; flex: none; }
+  .dc-bot { display: grid; place-items: center; overflow: hidden; }
+  .dc-bot img { width: 74%; height: 74%; object-fit: contain; display: block; }
   .dc-body { flex: 1; min-width: 0; }
   .dc-who { display: flex; align-items: baseline; gap: 10px; }
   .dc-who b { font-family: var(--grotesk); font-weight: 700; font-size: 19px; }
@@ -409,8 +445,49 @@
   /* The sale alert itself — a real Discord embed: a coloured left stripe, a bot
      tag, the role that was granted. The stripe is #ffffff because that is the
      colour src/services/stripe-events.js actually posts. */
-  .dc-embed { border-left: 5px solid #fff; background: #2b2d31; border-radius: 6px;
+  .dc-embed { border-left: 5px solid var(--blurple); background: #2b2d31; border-radius: 6px;
               padding: 15px 20px; margin-top: 9px; }
+
+  /* ── DISCORD LIGHT, and why two beats use it ─────────────────────────────
+     Measured against the reference second for second, the alerts beat was the
+     film's single largest deviation: ours 101.9 mean luma where theirs is
+     203.6, and the second after it 115.4 against 209.5. The endcard was 27
+     luma short of theirs as well.
+
+     Geometry cannot fix that. The Discord window covers 63.7% of the frame,
+     so with a surface at luma 50 the beat arrives at 0.637*50 + 0.363*205 =
+     106 no matter how the plate around it is lit -- which is within four of
+     what it actually measured. Shrinking the window to 40% coverage only
+     reaches 142, and it shrinks the dense product surface that this beat was
+     rebuilt to show in the first place.
+
+     The only variable that moves it is the surface, and Discord Light is a
+     real shipping Discord theme, so using it costs no product truth. These are
+     Discord's own light values, not invented ones.
+
+     It did cost one thing, and the fix went upstream: the bot posted its embed
+     as color 0xffffff, which is invisible on a light embed. That is a genuine
+     bug for every seller whose members run light mode, and
+     src/services/stripe-events.js now posts blurple. */
+  .dc.light { background: #e3e5e8; border-color: #cdd0d5; }
+  .dc.light .dc-rail { background: #e3e5e8; }
+  .dc.light .dc-rail i.on { box-shadow: -14px 0 0 -22px #060607; }
+  .dc.light .dc-side { background: #f2f3f5; }
+  .dc.light .dc-name { color: #060607; border-bottom-color: #e0e1e5; }
+  .dc.light .dc-grp { color: #5c5e66; }
+  .dc.light .dc-ch { color: #5c5e66; }
+  .dc.light .dc-ch b { color: #8c8f96; }
+  .dc.light .dc-ch.on { background: #d7d9dc; color: #060607; }
+  .dc.light .dc-ch.on b { color: #060607; }
+  .dc.light .dc-main { background: #ffffff; }
+  .dc.light .dc-top { color: #060607; border-bottom-color: #e8e9eb; }
+  .dc.light .dc-top b { color: #8c8f96; }
+  .dc.light .dc-who u { color: #5c5e66; }
+  .dc.light .dc-line { background: #e3e5e8; }
+  .dc.light .dc-embed { background: #f2f3f5; border-left-color: var(--blurple); }
+  .dc.light .dc-embed .et { color: #060607; }
+  .dc.light .dc-embed .ed { color: #4e5058; }
+  .dc.light .dc-embed .er { background: rgba(88,101,242,0.14); color: #4752c4; }
   .dc-embed .et { color: #fff; font-family: var(--grotesk); font-weight: 700; font-size: 19px; }
   .dc-embed .ed { color: #b5bac1; font-size: 17px; margin-top: 7px; }
   .dc-embed .er { display: inline-flex; align-items: center; gap: 7px; margin-top: 11px;
@@ -444,18 +521,24 @@
      floating over its corner. The crop is what gives it scale — a mock that
      fits entirely inside the frame reads as a picture of a screen; one that
      runs off the bottom reads as a screen. */
-  #b-end .lock { position: absolute; left: 0; right: 0; top: 132px; text-align: center; z-index: 3; }
+  /* 250px of headroom, not 119px. The reference's lockup sits 32% down its
+     frame with 261px of air above it; ours was crammed against the top edge
+     with 119px, and then carried a 206px gap below to the mock — the two errors
+     compounding into a composition that was top-heavy and bottom-empty at once. */
+  #b-end .lock { position: absolute; left: 0; right: 0; top: 250px; text-align: center; z-index: 3; }
   #b-end .mark { display: inline-flex; align-items: center; gap: 24px; }
   #b-end .mark img { height: 108px; display: block; filter: brightness(0); }
   /* No wordmark span here: assets/dues-mark.png IS the logotype, glyph and word
      together. Adding text beside it renders "Dues Dues". */
   #b-end .tag { font-size: 34px; color: var(--dim); margin-top: 20px; }
   #b-end .tag b { color: var(--ink); font-weight: 700; }
-  #b-end .endmock { left: 250px; top: 500px; width: 1330px; height: 820px; }
+  #b-end .endmock { left: 340px; top: 556px; width: 1180px; height: 760px; }
     /* Clear of the message column. The audit caught the film's last frame — the
      one anybody screenshots — with this card's left edge slicing the final '9'
      off a price behind it. */
-  #b-end .endfloat { left: 1216px; top: 792px; }
+  /* left 1216 put the card's right edge at x=1890 before any scale, and the
+     beat push then carried it to 1905 with its bottom below the frame. */
+  #b-end .endfloat { left: 1084px; top: 726px; }
 
 </style></style>
 </head>
@@ -545,7 +628,7 @@
     <div class="prev">
       <div class="pbar"></div>
       <div class="pin">
-        <div class="pav"></div>
+        <div class="pav"><img src="../assets/dues-glyph.png" alt="" /></div>
         <div class="prow"><b>VIP Access</b><span>$49.99</span></div>
         <div class="pget">Get access</div>
         <div class="prow"><b>Signals Monthly</b><span>$14.99 / mo</span></div>
@@ -575,7 +658,7 @@
       <div class="wbar"><i></i><i></i><i></i><span class="wurl">dues.gg/dues-membership</span></div>
       <div class="wbody">
         <div style="font-family:var(--grotesk);font-weight:700;font-size:46px">Dues Membership</div>
-        <div style="font-size:26px;color:#8b90c8;margin-top:12px">Premium roles, private channels and member-only drops.</div>
+        <div style="font-size:26px;color:#6b6a63;margin-top:12px">Premium roles, private channels and member-only drops.</div>
         <div class="lrow"><b>VIP Access</b><span>$49.99</span></div>
         <div class="lrow"><b>Signals Monthly</b><span>$14.99 / mo</span></div>
         <div class="lpay">Pay with card</div>
@@ -593,7 +676,7 @@
 
   <div class="beat" id="b-alert">
     <div class="rig3">
-      <div class="dc"></div>
+      <div class="dc light"></div>
       <div class="float solid"><div class="slab"></div><div class="face">
         <div class="fh">Dues Membership</div>
         <div class="fr"><span class="fp">@VIP</span><b>$49.99</b></div>
@@ -608,7 +691,7 @@
       <div class="tag">Sell Discord roles. <b>Keep every dollar.</b></div>
     </div>
     <div class="rig3">
-      <div class="dc endmock"></div>
+      <div class="dc light endmock"></div>
       <div class="float solid endfloat"><div class="slab"></div><div class="face">
         <div class="fh">Dues Membership</div>
         <div class="fr"><span class="fp">@VIP</span><b>$49.99</b></div>
@@ -722,8 +805,8 @@ const CUR = [
   { t: 7.96, sel: '#b-prod .row2 .field', press: true },          // the price commits
   { t: 8.54, sel: '#b-prod .chip', fx: 0.92, fy: 0.86, press: true }, // the @VIP role, clear of its text
   { t: 9.30, sel: '#b-theme .th[data-k="midnight"]', fx: 0.5, fy: -0.6 },
-  { t: 9.72, sel: '#b-theme .th[data-k="ivory"]', press: true },
-  { t: 10.46, sel: '#b-theme .th[data-k="blurple"]', press: true },
+  { t: 9.72, sel: '#b-theme .th[data-k="blurple"]', press: true },
+  { t: 10.46, sel: '#b-theme .th[data-k="ivory"]', press: true },
   { t: 11.30, sel: '#b-theme .knob', fx: 0.5, fy: -2.4 },         // drops toward the slider
   { t: 11.42, sel: '#b-theme .knob', grab: true },                // grabs the knob
   { t: 12.02, sel: '#b-theme .knob', grab: true },                // rides it to 0 …
@@ -870,10 +953,19 @@ const byKey = (k) => THEMES.find((x) => x.key === k);
 //
 // It lands on Blurple on purpose: the burst is blurple, cream and near-black,
 // so the loudest 1.85 seconds of the film introduces no new colour at all.
+// MIDNIGHT -> BLURPLE -> IVORY, and it used to end on Blurple. The reasoning
+// for that was that the burst is blurple, so the loudest passage introduced no
+// new colour — true, and it cost more than it bought. Landing on a dark theme
+// meant the storefront in the next beat inherited a near-black page, and that
+// beat measured mean luma 124.6 against the reference's 194.9 at the same
+// second: the film's payoff shot, the one where the buyer actually pays, was
+// its second-darkest. Ending on Ivory makes it light, drops the film's overall
+// saturation, and gives the burst a white frame to explode out of rather than a
+// blue one. The arc is still dark, blue, white — and nothing else.
 const SEQ = [
   { at: 9.00, key: 'midnight' },
-  { at: 9.72, key: 'ivory' },
-  { at: 10.46, key: 'blurple' },
+  { at: 9.72, key: 'blurple' },
+  { at: 10.46, key: 'ivory' },
 ];
 const RAD_KEYS = [
   { t: 11.42, v: 16 }, { t: 12.02, v: 0 }, { t: 12.62, v: 24 }, { t: 13.60, v: 24 },
@@ -1008,7 +1100,10 @@ function build() {
   document.querySelectorAll('.dc-alerts').forEach((feed) => {
     feed.innerHTML = SALES.map((sale, i) => `
       <div class="dc-msg" data-alert="${i}">
-        <div class="dc-av" style="background:${'#5865f2'}"></div>
+        <!-- The bot posting these is Dues. Its avatar was a flat blurple
+             circle; it is now the mark, which is what the real bot's profile
+             picture is in a real server. -->
+        <div class="dc-av dc-bot" style="background:${'#5865f2'}"><img src="../assets/dues-glyph.png" alt="" /></div>
         <div class="dc-body">
           <div class="dc-who"><b style="color:#fff">Dues</b><span class="bot">BOT</span><u>Today at 18:${String(12 + i * 3).padStart(2, '0')}</u></div>
           <div class="dc-embed">
@@ -1040,46 +1135,110 @@ function build() {
 // Twelve beats on one 20.0s timeline. `show` is the window a beat is drawn in;
 // every beat's own apply() takes ABSOLUTE film time, so a cue can never drift
 // out of step with the cursor path above, which is also in film time.
+// NO TWO BEATS OVERLAP, and three pairs of them used to. b-stripe ran to 6.72
+// while b-prod started at 6.52; b-cta ran to 13.22 while b-live started at
+// 13.06; b-live ran to 14.02 while b-burst started at 14.00. For those spans
+// two entire compositions were on screen at once — the words 'Publish store'
+// were legible through the storefront's chrome, and at 6.5s the Stripe scene
+// and the product sheet overlapped for eight frames.
+//
+// A frame containing two beats is the one thing the reference never does:
+// measured across its six hundred frames there is not a single double exposure,
+// and there were five in ours. Every boundary below is now one instant where
+// one beat ends and the next begins.
+//
+// `exit` is the direction, distance and scale this beat's composition travels
+// through in its last few frames, AT FULL OPACITY. That is the other half of
+// the same fix: a hard cut only reads as a cut if the outgoing frame is moving
+// when it lands. Cutting on a standstill reads as a glitch; cutting on a
+// dissolve reads as mush.
 const BEATS = [
-  { el: 'b-title',  from: 0.00,  to: 1.16 },
-  { el: 'b-store',  from: 1.16,  to: 3.44 },
-  { el: 'b-stripe', from: 3.44,  to: 6.72 },
-  { el: 'b-prod',   from: 6.52,  to: 9.00 },
-  { el: 'b-theme',  from: 9.00,  to: 12.48 },
-  { el: 'b-cta',    from: 12.48, to: 13.22 },
-  { el: 'b-live',   from: 13.06, to: 14.02 },
-  { el: 'b-burst',  from: 14.00, to: 15.84 },
-  { el: 'b-alert',  from: 15.92, to: 18.16 },
-  { el: 'b-end',    from: 18.16, to: 20.00 },
+  // Every exit is sized against the reference's own hardest frame, which across
+  // its six hundred frames is a mean absolute per-pixel delta of 56.4. A cut
+  // SHOULD be a big number — that is what distinguishes it from a dissolve —
+  // but the first pass overshot: b-live's 1.26 scale filled the frame with the
+  // dark storefront one frame before the burst and measured 116.0, twice the
+  // reference's worst anywhere.
+  { el: 'b-title',  from: 0.00,  to: 1.16,  exit: [0, -300, 1.00] },
+  { el: 'b-store',  from: 1.16,  to: 3.44,  exit: [-210, 84, 0.92] },
+  { el: 'b-stripe', from: 3.44,  to: 6.52,  exit: [1180, 0, 1.06] },
+  { el: 'b-prod',   from: 6.52,  to: 9.00,  exit: [-760, -140, 0.95] },
+  { el: 'b-theme',  from: 9.00,  to: 12.48, exit: [0, 300, 1.08] },
+  { el: 'b-cta',    from: 12.48, to: 13.06, exit: [0, 0, 1.16] },
+  { el: 'b-live',   from: 13.06, to: 14.00, exit: [0, 0, 1.10] },
+  { el: 'b-burst',  from: 14.00, to: 15.84, exit: [0, 0, 1.00] },
+  { el: 'b-alert',  from: 15.92, to: 18.16, exit: [0, -150, 1.04] },
+  { el: 'b-end',    from: 18.16, to: 20.00, exit: [0, 0, 1.00] },
 ];
+// How long each beat spends leaving. The burst and the endcard do not leave —
+// the burst blooms to white by its own hand and the endcard is the last thing
+// in the film.
+const EXIT_DUR = 0.18;
 
 function applyTitle(t) {
   const h = document.querySelector('#b-title h1');
-  wipe(h, t, 0.12);
+  // THE FIRST SENTENCE WAS DELIVERED 5.6x TOO SLOWLY. At the frame where the
+  // reference already has seventeen of twenty-three characters solid, ours
+  // showed a single grey ghosted letter, and the sentence did not finish until
+  // 0.03s before the beat started to leave — legible for two frames out of
+  // thirty-five. wipe's defaults (0.028s per glyph, 0.10s soft edge) put 27
+  // glyphs x 0.028 = 0.756s of typing on screen. At 0.0035s per glyph with a
+  // 0.030s edge the line starts at 0.100 and is solid by 0.221, with about
+  // eight glyphs in flight at any moment — which is what the reference's own
+  // blurred trail measures. Only this call is re-timed; every other beat still
+  // uses the defaults.
+  wipe(h, t, 0.10, 0.0035, 0.030);
   const sub = document.querySelector('#b-title .sub');
-  sub.style.opacity = seg(t, 0.46, 0.24).toFixed(3);
+  sub.style.opacity = seg(t, 0.24, 0.16).toFixed(3);
   // The product RISES INTO FRAME from the bottom edge, critically damped, no
   // overshoot — the reference fits its own version to 1-e^(-0.478n) within a
   // pixel at every sample. The card that lies across it arrives after, on its
   // own clock, because nothing in this film shares a start frame.
   const mock = document.querySelector('#b-title .heromock .dc');
   const flo = document.querySelector('#b-title .heromock .float');
-  const rise = settle(t, 0.30, 0.155);
-  mock.style.opacity = clamp01(rise * 2.6).toFixed(3);
+  // 0.42 and not 0.30: the mock used to start climbing while the headline was
+  // still typing, so three things moved at once and none of them resolved. The
+  // reference starts its own only after the sentence is finished, gets 76% of
+  // the travel done in five frames, and is visually landed for fourteen still
+  // frames before the cut. Ours never stopped climbing — it was still
+  // accelerating when the beat died.
+  const rise = settle(t, 0.42, 0.100);
+  // NO FADE-UP. The reference's mock is fully opaque on its very first frame on
+  // screen and simply moves; ours ghosted in over three frames with the ground
+  // gradient reading through it, which is both the wrong read — a phantom, not
+  // a product — and expensive to encode.
+  mock.style.opacity = t < 0.42 ? '0' : '1';
   mock.style.transform =
     `translateY(${lerp(300, 0, rise).toFixed(1)}px) rotateY(${lerp(-17, -12, rise).toFixed(2)}deg)`
     + ` rotateX(${lerp(13, 9, rise).toFixed(2)}deg) scale(${lerp(0.94, 1, rise).toFixed(4)})`;
-  const fp = settle(t, 0.52, 0.10);
-  flo.style.opacity = clamp01(fp * 2.6).toFixed(3);
+  const fp = settle(t, 0.54, 0.075);
+  flo.style.opacity = t < 0.54 ? '0' : '1';
   flo.style.transform = `translateY(${lerp(120, 0, fp).toFixed(1)}px) rotate(-2.4deg)`;
   // THE ACCELERATING DRIFT INTO A WHIP. There is no separate exit animation
   // anywhere in this film: the scene's own slow drift simply keeps accelerating
   // until the composition leaves, and the cut lands while it is still speeding
   // up. Cutting on the deceleration is what makes a cut visible.
+  // A COMPOSITION THAT IS LEAVING FOR MOST OF ITS OWN BEAT IS NOT A
+  // COMPOSITION. This drift used to travel 300px — 18.7% of the frame height —
+  // accelerating from the moment the mock appeared, with a blur ramp on top, so
+  // six consecutive frames of our opening measured LESS detail than an empty
+  // ground frame. The reference's equivalent moves 5.6% of frame height across
+  // its entire settled span and never blurs.
+  //
+  // 58px is 5.4%. The beat now holds nearly still while it is being read, and
+  // the leaving is done by the shared exit vector on BEATS — quadratic, at full
+  // opacity, in the last 0.18s — which is where the reference puts its own.
   const g = document.getElementById('b-title');
-  const drift = Math.pow(clamp01((t - 0.30) / 0.86), 3.1);
-  g.style.transform = `translateY(${(-300 * drift).toFixed(1)}px) scale(${(1 + 0.05 * drift).toFixed(4)})`;
-  g.style.filter = drift > 0.45 ? `blur(${((drift - 0.45) * 46).toFixed(1)}px)` : 'none';
+  const drift = Math.pow(clamp01((t - 0.42) / 0.74), 2.2);
+  g.style.transform = `translateY(${(-58 * drift).toFixed(1)}px) scale(${(1 + 0.012 * drift).toFixed(4)})`;
+  g.style.filter = 'none';
+
+  // The badges grow up out of their own baseline, which is how the reference's
+  // cluster arrives: bottom-anchored, so they unfold rather than inflate.
+  const trio = document.querySelector('#b-title .trio');
+  const tp = settle(t, 0.26, 0.11);
+  trio.style.opacity = t < 0.26 ? '0' : '1';
+  trio.style.transform = `translateX(-50%) scaleY(${(0.16 + 0.84 * tp).toFixed(4)}) scale(${(0.93 + 0.07 * tp).toFixed(4)})`;
 }
 
 function applyStore(t) {
@@ -1180,7 +1339,7 @@ function applyProd(t) {
   const inn = settle(t, 6.52, 0.13);
   sheet.style.transform = `translateX(${lerp(-980, 0, inn).toFixed(1)}px)`;
   sheet.style.filter = inn < 0.9 ? `blur(${(30 * (1 - inn)).toFixed(1)}px)` : 'none';
-  sheet.style.opacity = clamp01(inn * 2.4).toFixed(3);
+  sheet.style.opacity = t < 6.52 ? '0' : '1';
 
   // Each field commits on its own beat, staggered — and the price turns indigo
   // on commit, the same indigo the rule ignited to 1.5 seconds ago on the other
@@ -1231,7 +1390,16 @@ function applyTheme(t) {
   prev.style.background = bg;
   prev.style.color = text;
   prev.querySelector('.pbar').style.background = panel;
-  prev.querySelector('.pav').style.background = accent;
+  const pav = prev.querySelector('.pav');
+  pav.style.background = accent;
+  // The mark is a near-white logotype (measured 245,245,244), so on Midnight's
+  // #ededed accent it would be white on white. Flip it to ink whenever the
+  // accent underneath it is brighter than mid — which is Midnight and Blurple,
+  // and not Ivory.
+  const ar = parseInt(accent.slice(1, 3), 16); const ag = parseInt(accent.slice(3, 5), 16);
+  const ab = parseInt(accent.slice(5, 7), 16);
+  const alum = 0.299 * ar + 0.587 * ag + 0.114 * ab;
+  pav.querySelector('img').style.filter = alum > 140 ? 'brightness(0)' : 'none';
 
   // THE RADIUS RESHAPES THE BIG BOXES, and that was the note: "it has to be the
   // big boxes corners that changes, not the small circle or square".
@@ -1315,7 +1483,11 @@ function applyLive(t) {
   const win = document.querySelector('#b-live .win');
   const inn = settle(t, 13.06, 0.115);
   win.style.transform = `scale(${lerp(1.16, 1, inn).toFixed(4)})`;
-  win.style.opacity = clamp01(inn * 2.4).toFixed(3);
+  // OPAQUE ON ITS FIRST FRAME. A large dark rectangle fading up over the ground
+  // reads as a phantom rather than as a window, and the reference's incoming
+  // surfaces are at full alpha the instant they exist — they arrive by moving,
+  // not by materialising.
+  win.style.opacity = t < 13.06 ? '0' : '1';
   const pay = document.querySelector('#b-live .lpay');
   const press = seg(t, 13.60, 0.08, inQuad) - seg(t, 13.72, 0.14);
   pay.style.transform = `scale(${(1 - 0.045 * press).toFixed(4)})`;
@@ -1424,16 +1596,16 @@ function applyEnd(t) {
   const lock = document.querySelector('#b-end .lock');
   const mock = document.querySelector('#b-end .endmock');
   const flo = document.querySelector('#b-end .endfloat');
-  lock.style.opacity = clamp01(s2 * 3).toFixed(3);
+  lock.style.opacity = '1';
   lock.style.transform = `scale(${lerp(1.09, 1, s2).toFixed(4)})`;
   // The mock is CROPPED BY THE FRAME on purpose. One that fits entirely inside
   // reads as a picture of a screen; one that runs off the bottom edge reads as
   // a screen, and that is where the reference gets its scale.
-  mock.style.opacity = clamp01(s2 * 3).toFixed(3);
+  mock.style.opacity = '1';
   mock.style.transform =
     `rotateY(${lerp(-16, -11, s2).toFixed(2)}deg) rotateX(${lerp(12, 8, s2).toFixed(2)}deg)`
     + ` scale(${lerp(1.09, 1, s2).toFixed(4)})`;
-  flo.style.opacity = clamp01(s2 * 3).toFixed(3);
+  flo.style.opacity = '1';
   flo.style.transform = `translateY(${lerp(52, 0, s2).toFixed(1)}px) rotate(-2.4deg) scale(${lerp(1.09, 1, s2).toFixed(4)})`;
 }
 
@@ -1489,19 +1661,56 @@ function seek(raw) {
     // a frozen one.
     // ...except the endcard after it settles. That freeze is deliberate, it
     // matches the reference's own 0.0000 delta, and a creep would undo it.
-    const life = (b.el === 'b-end') ? clamp01((Math.min(t, 18.80) - b.from) / 0.64)
-                                    : clamp01((t - b.from) / Math.max(0.001, b.to - b.from));
+    // THE ENDCARD TAKES NO PUSH. It has its own settle — 1.09 down to 1.00,
+    // which is the reference's own arrival — and stacking the beat push on top
+    // of it left the composition permanently 5.2% oversized about frame centre.
+    // Measured on the held frame, that ran the pricing card's box out to x=1905
+    // of 1920 and cut its bottom off entirely: the last thing anyone sees, and
+    // it was clipped by two edges.
+    const life = (b.el === 'b-end') ? 0
+      : clamp01((t - b.from) / Math.max(0.001, b.to - b.from));
     const own = el.style.transform && el.style.transform !== 'none' ? el.style.transform : '';
-    el.style.transform = `scale(${(1 + 0.032 * life).toFixed(4)}) ${own}`;
 
-    // ENTRANCES ARE NOT CROSSFADES. An incoming beat is fully opaque before the
-    // outgoing one starts to leave, because each beat's own exit has already
-    // emptied the frame. The only dissolve in this film is on the ground.
-    const inn = seg(t, b.from - 0.04, 0.08, (x) => x);
-    const out = seg(t, b.to - 0.02, 0.10, (x) => x);
-    const o = Math.max(0, inn - out);
-    // The endcard freeze must be absolute: no ramp may still be running.
-    el.style.opacity = (b.el === 'b-end' && t >= 18.30) ? '1' : o.toFixed(4);
+    // THE EXIT. The last EXIT_DUR of every beat accelerates the whole
+    // composition away along its own vector, quadratically, so the cut lands
+    // while the picture is still speeding up. Nothing fades and nothing blurs:
+    // an isotropic gaussian on a stationary layer reads as defocus rather than
+    // as movement, which is why the outgoing scenes looked broken instead of
+    // fast. Measured at the old 6.52 junction, the outgoing Stripe title was
+    // razor sharp and had not moved a pixel in two frames while the incoming
+    // sheet already covered a third of the frame.
+    const ex = b.exit || [0, 0, 1];
+    const k = Math.pow(clamp01((t - (b.to - EXIT_DUR)) / EXIT_DUR), 2.0);
+    const move = k > 0
+      ? ` translate(${(ex[0] * k).toFixed(1)}px, ${(ex[1] * k).toFixed(1)}px) scale(${(1 + (ex[2] - 1) * k).toFixed(4)})`
+      : '';
+    // 5.2% and not 3.2%. At 3.2% over a two-second beat the push moved 0.03 of
+    // a pixel per frame at the resolution the static-frame test measures on,
+    // which is why 66% of the shipped film registered as visually static
+    // against the reference's 50%: the creep that was supposed to keep held
+    // shots alive was below the floor of every instrument, including the eye.
+    el.style.transform = `scale(${(1 + 0.052 * life).toFixed(4)})${move} ${own}`;
+
+    // ENTRANCES ARE NOT CROSSFADES — and this code used to do the exact opposite
+    // of what the comment sitting here claimed.
+    //
+    // It read: inn = seg(t, b.from - 0.04, 0.08) and out = seg(t, b.to - 0.02,
+    // 0.10). The incoming beat therefore began fading up FOUR HUNDREDTHS OF A
+    // SECOND BEFORE its own start, while the outgoing beat was still at full
+    // opacity with another two hundredths to run. Every junction in the film
+    // spent about six frames with two compositions on screen at partial alpha.
+    //
+    // Measured on the shipped cut against the reference, frame for frame: five
+    // frames each carried two legible beats — f105 ('Name your store' at ~50%
+    // over the Stripe tile at ~50%), f271, f376, f393 (the words 'Publish
+    // store' reading through the storefront's chrome) and f547 (the same
+    // Discord UI legible twice, 119px apart). The reference has none.
+    //
+    // So: opacity is 1 inside the beat and 0 outside it. There is no ramp. The
+    // motion that makes the cut land is the `exit` vector on the beat, and it
+    // happens at full opacity where the eye can actually read it.
+    const inside = t >= b.from - 1e-6 && t < b.to - 1e-6;
+    el.style.opacity = (inside || (b.el === 'b-end' && t >= b.to - 1e-6)) ? '1' : '0';
   });
 
   drawCursor(t);

@@ -492,15 +492,15 @@ on(6.52, 13.50, BEAT / 2, (t) => {
 //    5.86  stripe   "Connect Stripe"    x=1081  the ignition
 //    7.96  product  the price commits   x= 693
 //    8.54  product  the @VIP role chip  x= 575
-//    9.72  theme    Ivory               x= 525  (Midnight -> Ivory -> Blurple:
-//   10.46  theme    Blurple             x= 718   blue, white and black, nothing else)
+//    9.72  theme    Blurple             x= 718  (Midnight -> Blurple -> Ivory:
+//   10.46  theme    Ivory               x= 525   dark, blue, white, nothing else)
 //   11.42  theme    the slider GRAB     x= 615  softer, a drag is not a click
 //   12.02  theme    mid-drag            x= 249  the far end of the travel
 //   12.62  theme    the RELEASE         x= 774  softer still
 //   13.60  live     "Pay with card"     x=1225  the press the burst is born from
 const CLICKS = [
   [2.30, 1.00, 0.261], [5.86, 1.00, 0.126], [7.96, 1.00, -0.278],
-  [8.54, 1.00, -0.401], [9.72, 1.00, -0.453], [10.46, 1.00, -0.252],
+  [8.54, 1.00, -0.401], [9.72, 1.00, -0.252], [10.46, 1.00, -0.453],
   [11.42, 0.50, -0.359], [12.62, 0.34, -0.194], [13.60, 1.00, 0.276],
 ];
 CLICKS.forEach(([t, g, p]) => click(t, g, p));
