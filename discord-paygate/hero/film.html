@@ -164,12 +164,18 @@
   }
 
   /* ── 1 title ────────────────────────────────────────────────────────────── */
-  #b-title h1 { top: 402px; font-size: 108px; }
+  #b-title h1 { top: 214px; font-size: 108px; }
   #b-title .sub {
-    position: absolute; left: 0; right: 0; top: 556px; text-align: center;
+    position: absolute; left: 0; right: 0; top: 368px; text-align: center;
     font-size: 32px; color: var(--dim);
   }
-  #b-title .trio { position: absolute; left: 50%; top: 636px; transform: translateX(-50%); display: flex; gap: 26px; align-items: flex-end; }
+  /* THE OPENING SHOWS THE PRODUCT. The reference's first beat is not type on a
+     background — a Discord desktop rises into the lower half from frame edge
+     while the headline sits above it, and that is what makes the first second
+     read as a product film rather than a title card. */
+  #b-title .heromock .dc { left: 300px; top: 700px; width: 1380px; height: 820px; }
+  #b-title .heromock .float { left: 1120px; top: 950px; }
+  #b-title .trio { position: absolute; left: 50%; top: 636px; transform: translateX(-50%); display: none; }
   #b-title .tile {
     width: 116px; height: 96px; border-radius: 20px; display: grid; place-items: center;
   }
@@ -298,37 +304,141 @@
     mix-blend-mode: screen; will-change: transform, opacity;
   }
 
-  /* ── 8 alerts ───────────────────────────────────────────────────────────── */
-  #b-alert .rail { position: absolute; left: 150px; top: 180px; width: 400px; height: 730px; border-radius: 20px; }
-  #b-alert .rail > .slab { background: var(--blurple); transform: translate(14px, 16px); }
-  #b-alert .rail > .face { background: #0D1017; border: 1.5px solid var(--ink); padding: 32px 28px; color: #d6d8e6; }
-  #b-alert .chan { font-family: var(--grotesk); font-weight: 700; font-size: 27px; color: #fff; margin-bottom: 26px; }
-  #b-alert .mem { display: flex; align-items: center; gap: 14px; font-size: 21px; margin-bottom: 18px; color: #9aa0b8; }
-  #b-alert .mem b { width: 34px; height: 34px; border-radius: 50%; background: #232838; display: block; }
-  #b-alert .mem.on b { background: var(--blurple); }
-  #b-alert .col { position: absolute; left: 620px; top: 180px; width: 1160px; }
-  #b-alert .msg { height: 152px; border-radius: 18px; margin-bottom: 28px; }
-  #b-alert .msg > .slab { background: var(--blurple); transform: translate(12px, 14px); }
-  #b-alert .msg > .face { background: #FDFBFF; border: 1.5px solid var(--ink); display: flex; }
-  #b-alert .msg .bar { width: 10px; background: #fff; }
-  #b-alert .msg .mbody { padding: 24px 30px; flex: 1; }
-  #b-alert .msg .who { font-family: var(--grotesk); font-weight: 700; font-size: 25px; }
-  #b-alert .msg .what { font-size: 24px; color: var(--dim); margin-top: 10px; }
-  #b-alert .msg .role { display: inline-flex; align-items: center; gap: 9px; margin-top: 12px; padding: 5px 16px; border-radius: 999px; background: #EEF0FF; color: var(--blurple); font-size: 20px; font-weight: 700; }
+  /* ── THE PRODUCT SURFACES ───────────────────────────────────────────────── */
+  /* THE NOTE THAT CAUSED THIS REWRITE. The founder put one of our frames beside
+     one of the reference's, and the gap was not a detail: theirs is a DENSE
+     PRODUCT SCREENSHOT IN PERSPECTIVE — a server rail, a channel tree, avatars,
+     coloured names, a card floating over it catching its own shadow — and ours
+     was four identical white rectangles and five dots. Every beat had the same
+     defect. A card with three fields on it is a wireframe, not a product.
+     
+     So every beat now stands on a REAL surface: the actual Dues dashboard, the
+     actual storefront, the actual Discord channel, each with the density a
+     screenshot has, tilted in 3D, with something overlapping it for depth. */
 
-  /* ── 9 endcard ──────────────────────────────────────────────────────────── */
-  #b-end .lock { position: absolute; left: 0; right: 0; top: 190px; text-align: center; }
-  #b-end .mark { display: inline-flex; align-items: center; gap: 26px; }
-  #b-end .mark img { height: 96px; display: block; }
-  #b-end .tag { font-size: 34px; color: var(--dim); margin-top: 26px; }
+  /* Perspective WITHOUT preserve-3d, deliberately. With preserve-3d the browser
+     depth-sorts these children in 3D space and ignores z-index entirely, which
+     put the tilted window in front of the card that is supposed to be lying
+     across it. Nothing here needs sibling depth sorting — only the tilt. */
+  .rig3 { position: absolute; inset: 0; perspective: 3200px; }
+
+  /* The Dues dashboard, as it actually looks: a sidebar of real sections, a
+     stat row, a chart, a table of members. */
+  .app { position: absolute; border-radius: 22px; overflow: hidden; display: flex;
+         background: #0E0F17; border: 1px solid #23253A; }
+  .app-side { width: 268px; background: #0A0B12; padding: 26px 18px; flex: none; }
+  .app-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
+  .app-brand img { height: 30px; }
+  .app-brand span { font-family: var(--grotesk); font-weight: 700; font-size: 24px; color: #fff; }
+  .app-nav { display: flex; align-items: center; gap: 13px; padding: 12px 14px; border-radius: 10px;
+             color: #7E82A0; font-size: 19px; margin-bottom: 4px; }
+  .app-nav.on { background: var(--blurple); color: #fff; font-weight: 700; }
+  .app-nav i { width: 20px; height: 20px; border-radius: 5px; background: currentColor; opacity: 0.55; display: block; flex: none; }
+  .app-main { flex: 1; padding: 30px 34px; min-width: 0; }
+  .app-h { font-family: var(--grotesk); font-weight: 700; font-size: 34px; color: #fff; }
+  .app-stats { display: flex; gap: 18px; margin-top: 26px; }
+  .app-stat { flex: 1; background: #151726; border: 1px solid #23253A; border-radius: 14px; padding: 20px 22px; }
+  .app-stat u { display: block; text-decoration: none; color: #7E82A0; font-size: 16px; }
+  .app-stat b { display: block; font-family: var(--grotesk); font-weight: 700; font-size: 34px; color: #fff; margin-top: 8px; }
+  .app-stat em { font-style: normal; font-size: 15px; color: #6FE3A5; }
+  .app-chart { height: 190px; background: #151726; border: 1px solid #23253A; border-radius: 14px;
+               margin-top: 20px; position: relative; overflow: hidden; }
+  .app-chart svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .app-tbl { margin-top: 20px; background: #151726; border: 1px solid #23253A; border-radius: 14px; overflow: hidden; }
+  .app-tr { display: flex; align-items: center; gap: 16px; padding: 15px 22px; border-top: 1px solid #1E2033; font-size: 18px; color: #B9BCD4; }
+  .app-tr:first-child { border-top: 0; color: #7E82A0; font-size: 15px; }
+  .app-tr i { width: 34px; height: 34px; border-radius: 50%; flex: none; }
+  .app-tr .g { flex: 1; }
+  .app-tr .p { color: #fff; font-family: var(--grotesk); font-weight: 700; }
+  .app-tr .r { padding: 3px 11px; border-radius: 999px; background: rgba(88,101,242,0.2); color: #A4ADFA; font-size: 15px; font-weight: 700; }
+
+  /* ── 8 alerts — A REAL DISCORD WINDOW, NOT FOUR RECTANGLES ──────────────── */
+  /* The founder put our frame beside the reference's and the difference was not
+     subtle: theirs is a dense product screenshot in perspective — server rail,
+     channel tree, avatars, coloured names, a card floating over it with real
+     depth — and ours was four identical white boxes and five dots. It read as a
+     wireframe because it WAS one. This is the actual product surface Dues
+     posts into. */
+  .dc { position: absolute; border-radius: 20px; overflow: hidden; display: flex;
+        background: #1e1f22; border: 1px solid #0d0e11; }
+  .dc-rail { width: 88px; background: #1e1f22; padding: 16px 0; display: flex;
+             flex-direction: column; align-items: center; gap: 14px; flex: none; }
+  .dc-rail i { width: 56px; height: 56px; border-radius: 20px; display: block; flex: none; }
+  .dc-rail i.on { border-radius: 18px; box-shadow: -14px 0 0 -22px #fff; }
+  .dc-side { width: 280px; background: #2b2d31; flex: none; }
+  .dc-name { height: 62px; display: flex; align-items: center; padding: 0 20px;
+             color: #f2f3f5; font-family: var(--grotesk); font-weight: 700; font-size: 21px;
+             border-bottom: 1px solid #1f2023; }
+  .dc-grp { color: #949ba4; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+            padding: 18px 20px 6px; text-transform: uppercase; }
+  .dc-ch { display: flex; align-items: center; gap: 9px; margin: 2px 10px; padding: 8px 10px;
+           border-radius: 8px; color: #949ba4; font-size: 18px; }
+  .dc-ch b { color: #6d6f78; font-weight: 400; font-size: 20px; }
+  .dc-ch.on { background: #404249; color: #f2f3f5; }
+  .dc-ch.on b { color: #f2f3f5; }
+  .dc-main { flex: 1; background: #313338; display: flex; flex-direction: column; min-width: 0; }
+  .dc-top { height: 62px; display: flex; align-items: center; gap: 10px; padding: 0 22px;
+            border-bottom: 1px solid #2b2d31; color: #f2f3f5;
+            font-family: var(--grotesk); font-weight: 700; font-size: 19px; }
+  .dc-top b { color: #82858e; font-weight: 400; font-size: 21px; }
+  .dc-feed { flex: 1; padding: 14px 22px 18px; overflow: hidden; }
+  .dc-msg { display: flex; gap: 16px; padding: 9px 0; }
+  .dc-av { width: 48px; height: 48px; border-radius: 50%; flex: none; }
+  .dc-body { flex: 1; min-width: 0; }
+  .dc-who { display: flex; align-items: baseline; gap: 10px; }
+  .dc-who b { font-family: var(--grotesk); font-weight: 700; font-size: 19px; }
+  .dc-who u { text-decoration: none; color: #6d6f78; font-size: 14px; }
+  .dc-line { height: 11px; border-radius: 6px; background: #3f4147; margin-top: 9px; }
+
+  /* The sale alert itself — a real Discord embed: a coloured left stripe, a bot
+     tag, the role that was granted. The stripe is #ffffff because that is the
+     colour src/services/stripe-events.js actually posts. */
+  .dc-embed { border-left: 5px solid #fff; background: #2b2d31; border-radius: 6px;
+              padding: 15px 20px; margin-top: 9px; }
+  .dc-embed .et { color: #fff; font-family: var(--grotesk); font-weight: 700; font-size: 19px; }
+  .dc-embed .ed { color: #b5bac1; font-size: 17px; margin-top: 7px; }
+  .dc-embed .er { display: inline-flex; align-items: center; gap: 7px; margin-top: 11px;
+                  padding: 4px 12px; border-radius: 6px; font-size: 15px; font-weight: 700;
+                  background: rgba(88,101,242,0.22); color: #a4adfa; }
+  .bot { background: var(--blurple); color: #fff; font-size: 12px; font-weight: 700;
+         padding: 2px 7px; border-radius: 4px; letter-spacing: 0.02em; }
+
+  #b-alert .rig { position: absolute; inset: 0; perspective: 3000px; }
+  #b-alert .dc { left: 250px; top: 130px; width: 1500px; height: 880px; }
+  /* The card that floats over the window, as the reference's does — overlapping
+     the mock, catching its own slab, giving the shot depth a flat panel cannot. */
+  /* The card OVERLAPS the window and sits above it. That overlap is the whole
+     source of depth in the reference's endcard — a card beside a screen is a
+     layout; a card lying across its corner is a photograph. */
+  .float { z-index: 4; }
+  .float { position: absolute; width: 660px; height: 268px; border-radius: 18px; }
+  #b-alert .float { left: 1090px; top: 660px; }
+  .float > .slab { background: var(--blurple); transform: translate(14px, 16px); }
+  .float > .face { background: #F7F6FB; border: 1.5px solid var(--ink); padding: 30px 32px; }
+  .float .fh { font-family: var(--grotesk); font-weight: 700; font-size: 30px; }
+  .float .fr { display: flex; justify-content: space-between; align-items: center;
+                        margin-top: 20px; font-size: 23px; }
+  .float .fp { display: inline-flex; align-items: center; gap: 9px; padding: 5px 14px;
+                        border-radius: 999px; background: #E7E9FD; color: var(--blurple);
+                        font-size: 18px; font-weight: 700; }
+
+  /* ── 9 endcard — the reference's own composition, in our palette ────────── */
+  /* Theirs: wordmark centred in the upper third, a Discord desktop tilted into
+     the lower two thirds and cropped by the frame edge, and a pricing card
+     floating over its corner. The crop is what gives it scale — a mock that
+     fits entirely inside the frame reads as a picture of a screen; one that
+     runs off the bottom reads as a screen. */
+  #b-end .lock { position: absolute; left: 0; right: 0; top: 132px; text-align: center; z-index: 3; }
+  #b-end .mark { display: inline-flex; align-items: center; gap: 24px; }
+  #b-end .mark img { height: 108px; display: block; filter: brightness(0); }
+  /* No wordmark span here: assets/dues-mark.png IS the logotype, glyph and word
+     together. Adding text beside it renders "Dues Dues". */
+  #b-end .tag { font-size: 34px; color: var(--dim); margin-top: 20px; }
   #b-end .tag b { color: var(--ink); font-weight: 700; }
-  #b-end .pair { position: absolute; left: 50%; top: 560px; transform: translateX(-50%); display: flex; gap: 46px; }
-  #b-end .mock { width: 620px; height: 400px; border-radius: 20px; }
-  #b-end .mock > .slab { background: var(--blurple); transform: translate(14px, 16px); }
-  #b-end .mock > .face { border: 1.5px solid var(--ink); padding: 28px; }
-  #b-end .mock.d > .face { background: #0D1017; color: #d6d8e6; }
-  #b-end .mock.l > .face { background: #FDFBFF; color: var(--ink); }
-</style>
+  #b-end .endmock { left: 320px; top: 500px; width: 1380px; height: 820px; }
+  #b-end .endfloat { left: 1120px; top: 748px; }
+
+</style></style>
 </head>
 <body>
 
@@ -341,6 +451,14 @@
   <div class="beat" id="b-title">
     <h1 class="title" data-text="Sell access to your Discord"></h1>
     <div class="sub">Your Stripe account. Your members. Zero platform fee.</div>
+    <div class="rig3 heromock">
+      <div class="dc"></div>
+      <div class="float solid"><div class="slab"></div><div class="face">
+        <div class="fh">Dues Membership</div>
+        <div class="fr"><span class="fp">@VIP</span><b>$49.99</b></div>
+        <div class="fr" style="font-size:20px;color:#6B6A80">VIP Access · one-time</div>
+      </div></div>
+    </div>
     <div class="trio">
       <div class="tile solid" style="transform:rotate(-9deg)"><div class="slab" style="background:var(--blurple-hi);transform:translate(6px,8px)"></div><div class="face" style="background:var(--blurple)">
         <svg width="58" height="44" viewBox="0 0 127 96" fill="#fff"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>
@@ -447,18 +565,14 @@
   </div>
 
   <div class="beat" id="b-alert">
-    <div class="rail solid">
-      <div class="slab"></div>
-      <div class="face">
-        <div class="chan"># sale-alerts</div>
-        <div class="mem on"><b></b>ONLINE — 7</div>
-        <div class="mem on"><b></b>@nova</div>
-        <div class="mem on"><b></b>@drift</div>
-        <div class="mem"><b></b>@kite</div>
-        <div class="mem"><b></b>@ember</div>
-      </div>
+    <div class="rig3">
+      <div class="dc"></div>
+      <div class="float solid"><div class="slab"></div><div class="face">
+        <div class="fh">Dues Membership</div>
+        <div class="fr"><span class="fp">@VIP</span><b>$49.99</b></div>
+        <div class="fr" style="font-size:20px;color:#6B6A80">VIP Access · one-time</div>
+      </div></div>
     </div>
-    <div class="col"></div>
   </div>
 
   <div class="beat" id="b-end">
@@ -466,15 +580,12 @@
       <div class="mark"><img src="../assets/dues-mark.png" alt="Dues" /></div>
       <div class="tag">Sell Discord roles. <b>Keep every dollar.</b></div>
     </div>
-    <div class="pair">
-      <div class="mock d solid"><div class="slab"></div><div class="face">
-        <div style="font-family:var(--grotesk);font-weight:700;font-size:24px;color:#fff"># sale-alerts</div>
-        <div style="margin-top:22px;font-size:20px;line-height:2">New Subscriber! @nova · $49.99<br/>New Subscriber! @drift · $14.99<br/>New Subscriber! @kite · $49.99</div>
-      </div></div>
-      <div class="mock l solid"><div class="slab"></div><div class="face">
-        <div style="font-family:var(--grotesk);font-weight:700;font-size:26px">Dues Membership</div>
-        <div style="margin-top:20px;font-size:21px;line-height:2.1;color:var(--dim)">VIP Access — $49.99<br/>Signals Monthly — $14.99 / mo</div>
-        <div style="margin-top:22px;height:56px;border-radius:12px;background:var(--blurple);color:#fff;display:grid;place-items:center;font-family:var(--grotesk);font-weight:700;font-size:22px">Pay with card</div>
+    <div class="rig3">
+      <div class="dc endmock"></div>
+      <div class="float solid endfloat"><div class="slab"></div><div class="face">
+        <div class="fh">Dues Membership</div>
+        <div class="fr"><span class="fp">@VIP</span><b>$49.99</b></div>
+        <div class="fr" style="font-size:20px;color:#6B6A80">VIP Access · one-time</div>
       </div></div>
     </div>
   </div>
@@ -756,6 +867,79 @@ const SALES = [
 // told entirely through the interval, with no copy at all.
 const SALE_AT = [16.20, 16.67, 17.07, 17.40];
 
+// ── the product surfaces, as real markup ─────────────────────────────────────
+// Density is the point. A screenshot of a product has dozens of elements in it;
+// a wireframe has four. Every string below is something Dues actually shows.
+
+const MEMBERS = [
+  ['@nova', 'VIP Access', '$49.99', '#5865f2'],
+  ['@drift', 'Signals Monthly', '$14.99', '#3BA55C'],
+  ['@kite', 'VIP Access', '$49.99', '#FAA61A'],
+  ['@ember', 'Inner Circle', '$79.99', '#ED4245'],
+  ['@lumen', 'VIP Access', '$49.99', '#9B59B6'],
+];
+
+function dashboard(active) {
+  // A revenue curve with a real shape — seeded and fixed, never random, because
+  // the same t must always render the same pixels.
+  const pts = [8, 14, 11, 22, 26, 21, 34, 41, 37, 52, 58, 54, 71, 84, 79, 96];
+  const d = pts.map((v, i) => `${i === 0 ? 'M' : 'L'}${(i / (pts.length - 1) * 100).toFixed(2)},${(100 - v * 0.86).toFixed(2)}`).join(' ');
+  return `
+  <div class="app-side">
+    <div class="app-brand"><img src="../assets/dues-mark.png" alt=""/><span>Dues</span></div>
+    ${['Overview', 'Products', 'Members', 'Store', 'Settings'].map((n) =>
+      `<div class="app-nav${n === active ? ' on' : ''}"><i></i>${n}</div>`).join('')}
+  </div>
+  <div class="app-main">
+    <div class="app-h">${active}</div>
+    <div class="app-stats">
+      <div class="app-stat"><u>Revenue · 30d</u><b>$4,281</b><em>+18.4%</em></div>
+      <div class="app-stat"><u>Members</u><b>147</b><em>+12</em></div>
+      <div class="app-stat"><u>Platform fee</u><b>$0</b><em>always</em></div>
+    </div>
+    <div class="app-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none">
+      <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#5865f2" stop-opacity="0.55"/>
+        <stop offset="1" stop-color="#5865f2" stop-opacity="0"/></linearGradient></defs>
+      <path d="${d} L100,100 L0,100 Z" fill="url(#cg)"/>
+      <path d="${d}" fill="none" stroke="#8B96F8" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+    </svg></div>
+    <div class="app-tbl">
+      <div class="app-tr"><i style="background:none"></i><span class="g">Member</span><span>Product</span><span style="width:110px;text-align:right">Amount</span></div>
+      ${MEMBERS.slice(0, 4).map(([who, prod, amt, col]) => `
+        <div class="app-tr"><i style="background:${col}"></i><span class="g">${who}</span>
+          <span class="r">@VIP</span><span class="g" style="text-align:right">${prod}</span>
+          <span class="p" style="width:110px;text-align:right">${amt}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function discord() {
+  const rail = ['#5865f2', '#3BA55C', '#ED4245', '#FAA61A', '#9B59B6'];
+  const chans = [['general', 0], ['introductions', 0], ['sale-alerts', 1], ['vip-lounge', 0], ['drops', 0]];
+  const msg = (who, col, lines) => `
+    <div class="dc-msg"><div class="dc-av" style="background:${col}"></div>
+      <div class="dc-body"><div class="dc-who"><b style="color:${col}">${who}</b><u>Today at 18:0${Math.abs(who.length % 6)}</u></div>
+      ${lines.map((w) => `<div class="dc-line" style="width:${w}%"></div>`).join('')}</div></div>`;
+  return `
+  <div class="dc-rail">${rail.map((c, i) => `<i class="${i === 0 ? 'on' : ''}" style="background:${c}"></i>`).join('')}</div>
+  <div class="dc-side">
+    <div class="dc-name">Dues Membership</div>
+    <div class="dc-grp">Text channels</div>
+    ${chans.map(([n, on]) => `<div class="dc-ch${on ? ' on' : ''}"><b>#</b>${n}</div>`).join('')}
+    <div class="dc-grp">Members — 147</div>
+    ${MEMBERS.slice(0, 3).map(([w, , , c]) => `<div class="dc-ch"><i style="width:26px;height:26px;border-radius:50%;background:${c};display:block"></i>${w}</div>`).join('')}
+  </div>
+  <div class="dc-main">
+    <div class="dc-top"><b>#</b>sale-alerts</div>
+    <div class="dc-feed">
+      ${msg('@nova', '#5865f2', [64, 38])}
+      ${msg('@drift', '#3BA55C', [52])}
+      <div class="dc-alerts"></div>
+    </div>
+  </div>`;
+}
+
 // ── build ────────────────────────────────────────────────────────────────────
 function build() {
   fillTitles();
@@ -765,15 +949,23 @@ function build() {
       <u style="background:${th.accent}"></u><em style="color:${th.text}">${th.name}</em>
     </div>`).join('');
 
-  document.querySelector('#b-alert .col').innerHTML = SALES.map(() => `
-    <div class="msg solid"><div class="slab"></div><div class="face">
-      <div class="bar"></div>
-      <div class="mbody"><div class="who"></div><div class="what"></div>
-      <span class="role">@VIP</span></div>
-    </div></div>`).join('');
-  document.querySelectorAll('#b-alert .msg').forEach((el, i) => {
-    el.querySelector('.who').textContent = 'New Subscriber!';
-    el.querySelector('.what').textContent = `${SALES[i].who} ${SALES[i].what} · ${SALES[i].amt}`;
+  document.querySelectorAll('.dc').forEach((el) => { el.innerHTML = discord(); });
+  // The sale alerts are real Discord embeds inside the channel, posted by the
+  // bot — not floating cards on a background. The left stripe is #ffffff
+  // because that is the colour src/services/stripe-events.js actually posts.
+  document.querySelectorAll('.dc-alerts').forEach((feed) => {
+    feed.innerHTML = SALES.map((sale, i) => `
+      <div class="dc-msg" data-alert="${i}">
+        <div class="dc-av" style="background:${'#5865f2'}"></div>
+        <div class="dc-body">
+          <div class="dc-who"><b style="color:#fff">Dues</b><span class="bot">BOT</span><u>Today at 18:0${i + 2}</u></div>
+          <div class="dc-embed">
+            <div class="et">New Subscriber!</div>
+            <div class="ed">${sale.who} ${sale.what} · ${sale.amt}</div>
+            <div class="er">@VIP granted</div>
+          </div>
+        </div>
+      </div>`).join('');
   });
 
   const stars = document.querySelector('#b-burst .stars');
@@ -814,13 +1006,20 @@ function applyTitle(t) {
   wipe(h, t, 0.12);
   const sub = document.querySelector('#b-title .sub');
   sub.style.opacity = seg(t, 0.46, 0.24).toFixed(3);
-  // The trio scales out of a sliver, each tile on its own clock — nothing in
-  // this film shares a start frame.
-  document.querySelectorAll('#b-title .tile').forEach((el, i) => {
-    const p = settle(t, 0.34 + i * 0.06, 0.10);
-    el.style.opacity = clamp01(p * 1.4).toFixed(3);
-    el.style.transform = `${el.dataset.rot || ''} scale(${lerp(0.4, 1, p).toFixed(4)})`;
-  });
+  // The product RISES INTO FRAME from the bottom edge, critically damped, no
+  // overshoot — the reference fits its own version to 1-e^(-0.478n) within a
+  // pixel at every sample. The card that lies across it arrives after, on its
+  // own clock, because nothing in this film shares a start frame.
+  const mock = document.querySelector('#b-title .heromock .dc');
+  const flo = document.querySelector('#b-title .heromock .float');
+  const rise = settle(t, 0.30, 0.155);
+  mock.style.opacity = clamp01(rise * 2.6).toFixed(3);
+  mock.style.transform =
+    `translateY(${lerp(300, 0, rise).toFixed(1)}px) rotateY(${lerp(-17, -12, rise).toFixed(2)}deg)`
+    + ` rotateX(${lerp(13, 9, rise).toFixed(2)}deg) scale(${lerp(0.94, 1, rise).toFixed(4)})`;
+  const fp = settle(t, 0.52, 0.10);
+  flo.style.opacity = clamp01(fp * 2.6).toFixed(3);
+  flo.style.transform = `translateY(${lerp(120, 0, fp).toFixed(1)}px) rotate(-2.4deg)`;
   // THE ACCELERATING DRIFT INTO A WHIP. There is no separate exit animation
   // anywhere in this film: the scene's own slow drift simply keeps accelerating
   // until the composition leaves, and the cut lands while it is still speeding
@@ -1102,20 +1301,32 @@ function applyBurst(t) {
 }
 
 function applyAlert(t) {
-  const rail = document.querySelector('#b-alert .rail');
-  const inn = settle(t, 15.88, 0.10);
-  rail.style.opacity = clamp01(inn * 2.4).toFixed(3);
-  rail.style.transform = `translateX(${lerp(-160, 0, inn).toFixed(1)}px)`;
+  const win = document.querySelector('#b-alert .dc');
+  const flo = document.querySelector('#b-alert .float');
+  // THE WINDOW IS A REAL SURFACE, TILTED. A flat panel reads as a diagram; the
+  // same content on a plane with perspective reads as a screen, which is the
+  // whole difference the founder was pointing at.
+  const inn = settle(t, 15.88, 0.11);
+  win.style.opacity = clamp01(inn * 2.4).toFixed(3);
+  win.style.transform =
+    `rotateY(${lerp(-13, -7, inn).toFixed(2)}deg) rotateX(${lerp(7, 3.2, inn).toFixed(2)}deg)`
+    + ` scale(${lerp(0.90, 1, inn).toFixed(4)})`;
 
-  document.querySelectorAll('#b-alert .msg').forEach((el, i) => {
-    const p = settle(t, SALE_AT[i], 0.075);
+  // Each alert lands INSIDE the channel, on an accelerating cadence — the
+  // reference's own intervals of 0.47s, 0.40s, 0.33s. Money arriving faster and
+  // faster is told entirely through the interval, with no copy.
+  document.querySelectorAll('#b-alert [data-alert]').forEach((el, i) => {
+    const p = settle(t, SALE_AT[i], 0.07);
     el.style.opacity = clamp01(p * 2.4).toFixed(3);
-    el.style.transform = `translateY(${lerp(120, 0, p).toFixed(1)}px) scale(${lerp(0.94, 1, p).toFixed(4)})`;
+    el.style.transform = `translateY(${lerp(46, 0, p).toFixed(1)}px)`;
   });
 
-  // THE FLIP-AWAY EXIT. The whole group tips as one rigid body about an axis
-  // above the frame and leaves. Frame luma RISES as it goes, because what is
-  // left behind is the plate.
+  // The card overlaps the window and catches its own slab. Depth, and the one
+  // thing a single flat plane can never give you.
+  const fp = settle(t, 16.95, 0.10);
+  flo.style.opacity = clamp01(fp * 2.4).toFixed(3);
+  flo.style.transform = `translateY(${lerp(70, 0, fp).toFixed(1)}px) rotate(${lerp(-4, -2.2, fp).toFixed(2)}deg)`;
+
   const out = clamp01((t - 17.94) / 0.22);
   const g = document.getElementById('b-alert');
   if (out > 0) {
@@ -1138,13 +1349,21 @@ function applyEnd(t) {
   // fifth of a second. Nothing here writes opacity except this function, and
   // after 18.80 nothing writes anything at all.
   const ts = Math.min(t, 18.80);
-  const s = settle(ts, 18.16, 0.145);
+  const s2 = settle(ts, 18.16, 0.145);
   const lock = document.querySelector('#b-end .lock');
-  const pair = document.querySelector('#b-end .pair');
-  lock.style.opacity = clamp01(s * 3).toFixed(3);
-  lock.style.transform = `scale(${lerp(1.09, 1, s).toFixed(4)})`;
-  pair.style.opacity = clamp01(s * 3).toFixed(3);
-  pair.style.transform = `translateX(-50%) scale(${lerp(1.09, 1, s).toFixed(4)})`;
+  const mock = document.querySelector('#b-end .endmock');
+  const flo = document.querySelector('#b-end .endfloat');
+  lock.style.opacity = clamp01(s2 * 3).toFixed(3);
+  lock.style.transform = `scale(${lerp(1.09, 1, s2).toFixed(4)})`;
+  // The mock is CROPPED BY THE FRAME on purpose. One that fits entirely inside
+  // reads as a picture of a screen; one that runs off the bottom edge reads as
+  // a screen, and that is where the reference gets its scale.
+  mock.style.opacity = clamp01(s2 * 3).toFixed(3);
+  mock.style.transform =
+    `rotateY(${lerp(-16, -11, s2).toFixed(2)}deg) rotateX(${lerp(12, 8, s2).toFixed(2)}deg)`
+    + ` scale(${lerp(1.09, 1, s2).toFixed(4)})`;
+  flo.style.opacity = clamp01(s2 * 3).toFixed(3);
+  flo.style.transform = `translateY(${lerp(52, 0, s2).toFixed(1)}px) rotate(-2.4deg) scale(${lerp(1.09, 1, s2).toFixed(4)})`;
 }
 
 // ── the film ─────────────────────────────────────────────────────────────────
