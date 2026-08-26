@@ -687,7 +687,8 @@ const CUR = [
   { t: 2.30, sel: '#b-store .cta', press: true },                 // "Create store"
   { t: 2.86, sel: '#b-store .cta', fx: 1.35, fy: -1.2 },
   { t: 3.30, at: [1560, 300] },                                   // leaves up-right as the card morphs
-  { t: 5.30, at: [1460, 980] },                                   // returns AHEAD of the pill, leading the beat in
+  { t: 4.80, at: [1620, 1010] },                                  // returns AHEAD of the pill, leading the beat in
+  { t: 5.30, at: [1330, 930] },
   { t: 5.86, sel: '#b-stripe .pill3', press: true },              // "Connect Stripe" — the ignition
   { t: 6.60, at: [700, 700] },
   { t: 7.40, sel: '#b-prod .field', fx: 0.22 },                   // the product name
@@ -704,7 +705,7 @@ const CUR = [
   { t: 13.60, sel: '#b-live .lpay', press: true },                // "Pay with card" — the burst's birth
   { t: 14.00, sel: '#b-live .lpay' },                             // and it becomes the burst
 ];
-const CUR_ON = [[1.16, 3.34], [5.24, 14.00]];
+const CUR_ON = [[1.16, 3.34], [4.80, 14.00]];
 
 // Resolve a waypoint to a point on screen. The DOM is read live, so during the
 // slider drag the three knob waypoints all resolve to wherever the knob
@@ -1394,7 +1395,35 @@ function seek(raw) {
       el.style.transform = 'none'; el.style.filter = 'none';
       return;
     }
+    // Cleared BEFORE apply so the creep below cannot compound frame on frame,
+    // and so a beat that does not write its own transform starts from nothing.
+    el.style.transform = 'none';
     APPLY[b.el](t);
+
+    // THE SLOW PUSH-IN, ON EVERY BEAT.
+    //
+    // This is the film's worst measured defect and the reference had the answer
+    // written down in the teardown: "use a two-stage push-in to keep a static
+    // shot alive — the second stage is slow enough to be subliminal and it is
+    // the only reason a 1.3s static shot never feels frozen." It was implemented
+    // on exactly one card and nowhere else.
+    //
+    // Measured on the rendered frames before this: 67% of our film was
+    // visually static against the reference's 48%, with SEVEN frozen runs, six
+    // of them not the endcard — 1.53s inside the Stripe beat, 1.50s on the
+    // product sheet, 1.47s in the theming beat. Nearly eight of twenty seconds
+    // in which the picture simply stopped.
+    //
+    // 3.2% over a beat's whole life is far too slow to read as a zoom and far
+    // too fast to read as nothing. It is the difference between a held shot and
+    // a frozen one.
+    // ...except the endcard after it settles. That freeze is deliberate, it
+    // matches the reference's own 0.0000 delta, and a creep would undo it.
+    const life = (b.el === 'b-end') ? clamp01((Math.min(t, 18.80) - b.from) / 0.64)
+                                    : clamp01((t - b.from) / Math.max(0.001, b.to - b.from));
+    const own = el.style.transform && el.style.transform !== 'none' ? el.style.transform : '';
+    el.style.transform = `scale(${(1 + 0.032 * life).toFixed(4)}) ${own}`;
+
     // ENTRANCES ARE NOT CROSSFADES. An incoming beat is fully opaque before the
     // outgoing one starts to leave, because each beat's own exit has already
     // emptied the frame. The only dissolve in this film is on the ground.
