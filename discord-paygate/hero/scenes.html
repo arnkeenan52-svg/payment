@@ -220,8 +220,33 @@
     font-family: var(--grotesk); font-weight: 700; text-align: center; overflow: hidden;
   }
   /* A designed prop, not an OS pointer — the reference's cursor is a large
-     stylised arrow that reads at a glance on a 1920 frame. */
-  .cursor { position: absolute; width: 54px; height: 74px; will-change: transform; z-index: 40; }
+     stylised arrow that reads at a glance on a 1920 frame.
+     The drop-shadow is what separates it from the surface it is over: without
+     one it reads as a shape PAINTED ON the UI rather than a pointer above it,
+     and on the white Stripe slab and the Ivory storefront it all but vanishes
+     into the panel it is supposed to be clicking. */
+  .cursor {
+    position: absolute; width: 54px; height: 74px; will-change: transform; z-index: 40;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45));
+  }
+
+  /* THE PRESS MARK. A cursor that dips while the surface says nothing back is
+     the single most "animated slideshow" thing a UI film can do — and the
+     soundtrack puts a tick on exactly these frames, so there has to be
+     something to see when you hear it. One ring per press, gone in 0.42s,
+     well before the next beat. */
+  .ring {
+    position: absolute; width: 128px; height: 128px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.9);
+    opacity: 0; z-index: 39; pointer-events: none; will-change: transform, opacity;
+  }
+  /* A press mark takes its contrast from THE TARGET IT OPENS ON, not from the
+     page: the store's Create button is near-white on a dark card and the shop's
+     Pay button is near-black on a white page, so the two rings are opposite
+     colours. Each is also scaled to stay INSIDE its own button — a ring that
+     spills off the target crosses a luminance boundary and half of it
+     disappears, which is exactly how the first version read as broken. */
+  .ring.dark { border-color: rgba(10,10,10,0.72); }
 
   /* ── 1 title ────────────────────────────────────────────────────────────── */
   /* Frame 0 is BARE GROUND. The spec opened on a dead-still logo to make the
@@ -446,6 +471,7 @@
       </div>
     </div>
   </div>
+  <i class="ring dark"></i>
   <svg class="cursor" viewBox="0 0 54 74"><path d="M4 2 48 40 28 42 38 66 28 70 18 46 4 58Z"
     fill="#f5f5f4" stroke="#0a0a0a" stroke-width="3" stroke-linejoin="round"/></svg>
 </div>
@@ -496,6 +522,7 @@
     <div class="pv-row"><b>Signals Monthly</b><span>$14.99 / mo</span></div>
     <div class="pv-pay">Pay with card</div>
   </div></div>
+  <i class="ring"></i>
   <svg class="cursor" viewBox="0 0 54 74"><path d="M4 2 48 40 28 42 38 66 28 70 18 46 4 58Z"
     fill="#f5f5f4" stroke="#0a0a0a" stroke-width="3" stroke-linejoin="round"/></svg>
 </div>
@@ -513,6 +540,7 @@
       <div class="pay">Pay with card</div>
     </div>
   </div></div>
+  <i class="ring"></i>
   <svg class="cursor" viewBox="0 0 54 74"><path d="M4 2 48 40 28 42 38 66 28 70 18 46 4 58Z"
     fill="#f5f5f4" stroke="#0a0a0a" stroke-width="3" stroke-linejoin="round"/></svg>
 </div>
@@ -568,6 +596,14 @@ const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
 // Progress of a segment that starts at `at` and runs for `dur`, eased.
 const seg = (t, at, dur, ease = outExpo) => ease(clamp01((t - at) / dur));
 const lerp = (a, b, p) => a + (b - a) * p;
+
+// THE IGNITION POINT. Three things have to agree on one pixel: where the shop
+// cursor presses, where its press-ring opens, and where the burst is born. They
+// were three separately typed numbers, and two of them said 954,726 — which is
+// seven pixels BELOW the pay button, so the film's biggest moment was ignited
+// by a click on empty storefront. This is the button's measured centre, and now
+// there is only one of it.
+const IGNITE = [960, 677];
 
 // ── scene: brand ──────────────────────────────────────────────────────────────
 // The title is the first thing anyone sees, so it cannot look like a slide. The
@@ -729,10 +765,13 @@ const BURST = {
     stars.style.transform = `rotate(${spin.toFixed(3)}deg) scale(${(1 + 0.06 * Math.sin(t * 7.5)).toFixed(4)})`;
 
     // IGNITION AT THE CURSOR, not at frame centre. The burst is born at the pay
-    // button (954,726) and the camera pulls it to centre over 0.30s. Motivation
-    // is what separates this from a stock transition.
+    // button and the camera pulls it to centre over 0.30s. Motivation is what
+    // separates this from a stock transition — so the birth point is IGNITE,
+    // the same constant the cursor presses, rather than a number that can drift
+    // away from the button it is supposed to be caused by.
     const pull = seg(t, 0, 0.30);
-    wrap.style.transform = `translate(${lerp(-6, 0, pull).toFixed(2)}px, ${lerp(186, 0, pull).toFixed(2)}px)`;
+    wrap.style.transform =
+      `translate(${lerp(IGNITE[0] - 960, 0, pull).toFixed(2)}px, ${lerp(IGNITE[1] - 540, 0, pull).toFixed(2)}px)`;
 
     // THE ONLY SPRING IN THE FILM. theta = A e^(-zwu) cos(wd u), z=0.27,
     // w=5.5 rad/s, A=27deg, starting 0.123s in. Its acceptance test is three
@@ -783,6 +822,54 @@ const inOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3)
 // into 0.13s (measured per-frame displacement 3,0,3,6,18,54,135,48,15,6,0).
 const expoInOut = (x) =>
   x === 0 ? 0 : x === 1 ? 1 : x < 0.5 ? Math.pow(2, 20 * x - 10) / 2 : (2 - Math.pow(2, -20 * x + 10)) / 2;
+
+// A softened outBack. The pointer arrives slightly PAST its target and settles
+// back, which is what a hand does; c1 is 0.85 rather than the textbook 1.70158
+// because a full back-ease on a 54px arrow reads as a bounce, not as a landing.
+const outBackSoft = (x) => (x >= 1 ? 1 : 1 + 1.85 * Math.pow(x - 1, 3) + 0.85 * Math.pow(x - 1, 2));
+
+// CURSOR TRAVEL. A quadratic Bezier whose control point is pushed along the
+// normal of the straight line, walked with ONE decelerating parameter.
+//
+// The version this replaces eased x on inQuad and y on outQuad. That does draw
+// an arc, but it leaves the pointer at MAXIMUM SPEED on the frame it arrives
+// and then stops it dead — no hand lands like that, and it is the detail that
+// made the moves read as keyframes rather than as movement. Here the path shape
+// and the speed curve are separate knobs: `bend` shapes the arc, the ease owns
+// the velocity, and because outBackSoft(1) is exactly 1 the pointer still lands
+// exactly on its target rather than near it.
+function arc(t, at, dur, from, to, bend = 0.12) {
+  const e = outBackSoft(clamp01((t - at) / dur));
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const cx = from[0] + dx * 0.5 - dy * bend;
+  const cy = from[1] + dy * 0.5 + dx * bend;
+  const m = 1 - e;
+  return [m * m * from[0] + 2 * m * e * cx + e * e * to[0],
+          m * m * from[1] + 2 * m * e * cy + e * e * to[1]];
+}
+
+// The centre of a live element, in stage coordinates. Waypoints are READ FROM
+// THE DOM rather than typed in, so the pointer cannot end up 30px off a button
+// because a padding changed six commits ago.
+function centre(sel, fx = 0.5, fy = 0.5) {
+  const r = document.querySelector(sel).getBoundingClientRect();
+  return [r.left + r.width * fx, r.top + r.height * fy];
+}
+
+// A press: down fast on ease-in, back up slower on ease-out. Returns 0..1.
+const dip = (t, at, down = 0.067, up = 0.133) => seg(t, at, down, inQuad) - seg(t, at + down, up);
+
+// The expanding mark under a press. Fades on a 1.6 power so it is mostly gone
+// by the halfway point — a ring that lingers turns into a bullseye.
+function ring(el, t, at, x, y, scale = 1) {
+  const p = clamp01((t - at) / 0.42);
+  if (p <= 0 || p >= 1) { el.style.opacity = '0'; return; }
+  el.style.left = `${x.toFixed(0)}px`;
+  el.style.top = `${y.toFixed(0)}px`;
+  el.style.opacity = (0.62 * Math.pow(1 - p, 1.6)).toFixed(3);
+  el.style.transform = `translate(-50%,-50%) scale(${(scale * lerp(0.22, 1, outExpo(p))).toFixed(3)})`;
+}
 
 // Split a line into per-glyph spans ONCE. The sweep then only writes opacity and
 // transform, never innerHTML.
@@ -866,19 +953,30 @@ const STORE = {
     iris(document.querySelector('#s-store .fieldrow'), 0.05, 0.60);
     iris(document.querySelector('#s-store .btn'), 0.18, 0.62);
 
-    // CURSOR on a genuine arc: x eases with inQuad, y with outQuad. Two curves on
-    // two axes is the whole trick — one eased translate along a straight line
-    // reads as wrong even when nobody can say why.
-    const fly = clamp01((t - 0.05) / 0.50);
-    const cx = lerp(-140, 1180, inQuad(fly));
-    const cy = lerp(1220, 812, outQuad(fly));
+    // CURSOR. Off-frame bottom-left to the button, on an arc that bows UPWARD
+    // (negative bend) — the pointer reaches over and comes down onto the
+    // target, which is the shape of the move a hand actually makes. It lands
+    // at 0.55 and waits, so the press is a separate event and not the tail of
+    // the travel.
+    //
+    // THE TARGET IS THE BUTTON'S MEASURED CENTRE, not a typed coordinate. The
+    // typed one was 1180,812 — about 110px low and right of the real button,
+    // so the pointer pressed empty card and the button answered anyway. The
+    // arrow's tip is its top-left corner, so the translate carries the tip
+    // inset and the POINT lands on the target rather than the box.
+    const bc0 = centre('#s-store .btn');
+    const [cx, cy] = arc(t, 0.05, 0.50, [-140, 1220], [bc0[0] - 4, bc0[1] - 2], -0.11);
     // PRESS at 1.30. The cursor's dip is measurably deeper than the button's —
     // keep the asymmetry, it is what sells the contact.
-    const down = seg(t, 1.30, 0.067, inQuad);
-    const up = seg(t, 1.367, 0.133);
-    const press = down - up;
+    const press = dip(t, 1.30);
     cur.style.transform = `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${(1 - 0.21 * press).toFixed(4)})`;
     btn.style.transform = `scale(${(1 - 0.146 * press).toFixed(4)})`;
+    // The button also LIGHTS as the pointer arrives. A target that does not
+    // acknowledge the cursor until it is struck reads as a still image with an
+    // arrow moving over it.
+    const hover = seg(t, 0.44, 0.18);
+    btn.style.filter = `brightness(${(1 - 0.08 * hover - 0.10 * press).toFixed(3)})`;
+    ring(document.querySelector('#s-store .ring'), t, 1.30, bc0[0], bc0[1], 1.15);
   },
 };
 
@@ -1087,14 +1185,51 @@ const THEME_SC = {
     document.getElementById('radval').textContent = `${Math.round(shown)}px`;
     document.querySelector('#s-theme .thumb').style.left = `${(shown / 24) * 100}%`;
 
-    // The cursor clicks each tile 0.10s BEFORE its colour moves — cause then
-    // effect, which is the film's tightest rhythmic rule.
+    // THE CURSOR ACTUALLY DOES THE WORK IN THIS SCENE.
+    //
+    // It used to be pinned to whichever tile was active, which meant it
+    // TELEPORTED across the grid on the two frames the preset changed — and
+    // then sat on a tile while the radius slider slid on its own. Two of the
+    // three things the pointer is supposed to be causing here it was not even
+    // touching. Now it travels between the tiles it clicks, then goes down to
+    // the slider, grabs the thumb and DRAGS it: every move in the beat has a
+    // hand on it.
+    //
+    // The clicks land 0.10s BEFORE each colour moves — cause then effect, the
+    // film's tightest rhythmic rule — and the soundtrack's ticks at 8.95,
+    // 10.10 and 10.75 are these three frames.
     const cur = document.querySelector('#s-theme .cursor');
-    const tile = document.querySelector(`#s-theme .th[data-k="${activeKey}"]`);
-    if (tile) {
-      const r = tile.getBoundingClientRect();
-      cur.style.transform = `translate(${(r.left + r.width * 0.62).toFixed(0)}px, ${(r.top + r.height * 0.66).toFixed(0)}px)`;
-    }
+    const pBlur = centre('#s-theme .th[data-k="blurple"]', 0.62, 0.66);
+    const pMid = centre('#s-theme .th[data-k="midnight"]', 0.62, 0.66);
+    const pIvo = centre('#s-theme .th[data-k="ivory"]', 0.62, 0.66);
+    // Read live, so once the drag starts the pointer rides the thumb for free.
+    const pThumb = centre('#s-theme .thumb');
+
+    // Each leg arrives ~0.03s before the press it belongs to. The last leg ends
+    // ON the thumb, and because the thumb's position is re-read every frame the
+    // pointer keeps tracking it all the way down the track.
+    let cp = pBlur;
+    if (t >= 2.35) cp = arc(t, 2.35, 0.47, pIvo, pThumb, -0.13);
+    else if (t >= 1.70) cp = arc(t, 1.70, 0.47, pMid, pIvo, 0.10);
+    else if (t >= 0.55) cp = arc(t, 0.55, 0.47, pBlur, pMid, 0.10);
+
+    // Two clicks, then a HELD grab. A dip-and-release on the slider would say
+    // "clicked it"; a drag is a button that stays down for the length of the
+    // move, and that is the difference between the pointer explaining the
+    // slider and merely being near it.
+    const grab = seg(t, RAD_AT, 0.06, inQuad) - seg(t, RAD_AT + RAD_DUR, 0.12);
+    const press = clamp01(dip(t, 1.05) + dip(t, 2.20) + grab);
+    cur.style.transform =
+      `translate(${cp[0].toFixed(1)}px, ${cp[1].toFixed(1)}px) scale(${(1 - 0.20 * press).toFixed(4)})`;
+
+    // One mark per discrete click. The drag does not ring — it is one continuous
+    // contact, not three hundred of them.
+    const rg = document.querySelector('#s-theme .ring');
+    // Midnight's tile is near-black and Ivory's is white, so the mark flips
+    // with the tile it opens on.
+    rg.classList.toggle('dark', t >= 1.70);
+    if (t < 1.70) ring(rg, t, 1.05, pMid[0], pMid[1], 0.52);
+    else ring(rg, t, 2.20, pIvo[0], pIvo[1], 0.52);
   },
 };
 
@@ -1122,14 +1257,23 @@ const SHOP = {
       el.style.transform = `translateY(${lerp(20, 0, p).toFixed(1)}px)`;
     });
 
-    // The cursor lands on the pay button and presses at 1.72 — the burst's
-    // ignition point (954, 726) is this button's centre, which is what makes
-    // the next beat read as caused rather than cut to.
-    const fly = clamp01((t - 0.70) / 0.55);
+    // The cursor lands on the pay button and presses at 1.72 — IGNITE is this
+    // button's centre and also where the burst is born, which is what makes the
+    // next beat read as caused rather than cut to. It arrives at 1.25 and holds
+    // for half a second: the loudest event in the film deserves a beat of
+    // stillness in front of it. The -4/-2 is the arrow's tip inset, so the
+    // POINT lands on IGNITE rather than the icon's top-left corner.
+    const [cx, cy] = arc(t, 0.70, 0.55, [1560, 1180], [IGNITE[0] - 4, IGNITE[1] - 2], -0.10);
+    const press = dip(t, 1.72, 0.07, 0.13);
+    const hover = seg(t, 1.20, 0.16);
     cur.style.transform =
-      `translate(${lerp(1560, 930, inQuad(fly)).toFixed(0)}px, ${lerp(1180, 700, outQuad(fly)).toFixed(0)}px)`;
-    const press = seg(t, 1.72, 0.07, inQuad) - seg(t, 1.79, 0.13);
+      `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${(1 - 0.19 * press).toFixed(4)})`;
     pay.style.scale = (1 - 0.05 * press).toFixed(4);
+    // Ivory's pay button is near-black on near-white, so it lightens on hover
+    // and darkens under the press — the opposite pair to the dark scenes, for
+    // the same reason: contrast has to come from what it is drawn on.
+    pay.style.filter = `brightness(${(1 + 0.16 * hover - 0.22 * press).toFixed(3)})`;
+    ring(document.querySelector('#s-shop .ring'), t, 1.72, IGNITE[0], IGNITE[1], 0.62);
   },
 };
 
@@ -1182,31 +1326,105 @@ const FILM = [
 // Each entry maps the outgoing scene's key element onto the incoming scene's key
 // element. Boxes are in the 1920x1080 layout space, centre and size, so the
 // transform is just the difference between two rectangles.
+// THE JUNCTIONS. Each entry names ONE object that visibly becomes another; the
+// geometry is deliberately absent, because typed geometry is what broke this.
+// The first version carried cx/cy/w for both ends and every one of them was a
+// guess about where an element would be at a moment its own scene was still
+// animating it — the alerts panel was landing 286px right and 487px low of
+// centre mid-carry, and the store card lost its 5.7deg tilt for the length of
+// the transition. The boxes are now MEASURED every frame instead.
 const CARRY = [
   {
     at: 3.40, dur: 0.42,
     // The store card collapses into the Stripe slab. Same object, same rotation
     // continuing — which is why scene 3 lands its slab with a rotateZ still
     // running down to zero rather than appearing square.
-    from: { sel: '#s-store .card', cx: 960, cy: 630, w: 1452 },
-    to: { sel: '#s-stripe .slab', cx: 960, cy: 596, w: 448 },
+    from: '#s-store .card', to: '#s-stripe .slab',
   },
   {
     at: 11.85, dur: 0.40,
     // The clearest carry in the film: the live store preview the seller has just
     // been theming IS the page the buyer lands on. It grows into the browser
     // window rather than being replaced by it.
-    from: { sel: '#s-theme .prev', cx: 1420, cy: 544, w: 700 },
-    to: { sel: '#s-shop .win', cx: 960, cy: 550, w: 1120 },
+    from: '#s-theme .prev', to: '#s-shop .win',
+  },
+  {
+    at: 15.85, dur: 0.40,
+    // The @VIP chip the burst was built around opens into the Discord channel
+    // the role was announced in. Without this the burst's full-frame wedges
+    // simply stopped and an empty panel appeared — measured as the film's
+    // worst undesigned junction at 0.249, and the only place the eye had
+    // nothing to follow.
+    from: '#burst .chip', to: '#alerts .panel',
   },
   {
     at: 18.85, dur: 0.38,
     // The #sale-alerts panel shrinks into its own place on the endcard, so the
     // last beat is assembled out of the film rather than cut to.
-    from: { sel: '#alerts .panel', cx: 960, cy: 540, w: 1080 },
-    to: { sel: '#s-end .mock.dark', cx: 560, cy: 750, w: 700 },
+    from: '#alerts .panel', to: '#s-end .mock.dark',
   },
 ];
+
+function baseT(el) {
+  if (el.style.transform) return el.style.transform;
+  const css = getComputedStyle(el).transform;
+  return css && css !== 'none' ? css : '';
+}
+
+// MEASURE THE PROJECTION, DO NOT MODEL IT.
+//
+// A carry has to move an element's VISUAL centre a known number of SCREEN
+// pixels, and two things get in the way of just writing that number down.
+//
+//   1. Perspective. The burst's @VIP chip sits at translateZ(300) under a
+//      2000px camera, so 100 local pixels of translate land as appreciably
+//      more than 100 on screen. A carry computed in screen pixels overshoots
+//      and keeps going — the chip flew to the top-left corner.
+//   2. Off-centre origins. Anything centred with translate(-50%,-50%) — the
+//      chip, the alerts panel — has its visual centre sitting on its layout
+//      box's TOP-LEFT corner, so a scale about 'center center' swings it
+//      hundreds of pixels across the frame.
+//
+// Both are solved by probing rather than by a table of special cases, and the
+// origin is deliberately NOT moved to fix (2): several carry elements have a
+// rotation in their own transform, and moving the origin would change how that
+// rotation renders. The offset is compensated for in the translate instead.
+//
+// Two probes: a unit translate gives the projection gain, and a scale of 2
+// gives (visual centre - origin) directly, since d = (s-1)(c-O). The film is
+// rendered by seeking and never in real time, so the extra layout reads are
+// free.
+function project(el, base) {
+  el.style.transformOrigin = 'center center';
+  const b0 = el.getBoundingClientRect();
+  const cx = b0.left + b0.width / 2;
+  const cy = b0.top + b0.height / 2;
+  el.style.transform = `translate(100px, 100px) ${base}`;
+  const b1 = el.getBoundingClientRect();
+  el.style.transform = `scale(2) ${base}`;
+  const b2 = el.getBoundingClientRect();
+  el.style.transform = base;
+  const gx = (b1.left + b1.width / 2 - cx) / 100;
+  const gy = (b1.top + b1.height / 2 - cy) / 100;
+  return {
+    // A hidden or degenerate element measures as zero; fall back to 1:1 rather
+    // than dividing by it.
+    gx: Math.abs(gx) > 0.01 ? gx : 1,
+    gy: Math.abs(gy) > 0.01 ? gy : 1,
+    ox: b2.left + b2.width / 2 - cx,
+    oy: b2.top + b2.height / 2 - cy,
+    cx,
+    cy,
+  };
+}
+
+// Place `el` so its visual centre lands (dx, dy) screen pixels from where it is
+// now, at scale s. Solved from  c' = O + M.T + s(c - O).
+function carryTo(el, base, P, dx, dy, s) {
+  el.style.transform =
+    `translate(${((dx + (1 - s) * P.ox) / P.gx).toFixed(2)}px, ${((dy + (1 - s) * P.oy) / P.gy).toFixed(2)}px)`
+    + ` scale(${s.toFixed(4)}) ${base}`;
+}
 
 const FILM_SCENE = {
   stage: null,
@@ -1232,10 +1450,28 @@ const FILM_SCENE = {
     const washDn = seg(t, 5.52, 0.33);
     wash.style.opacity = (0.88 * (washUp - washDn)).toFixed(4);
 
+    // Every carry element's transform is cleared BEFORE the scenes run, so that
+    // when the carry reads a base transform it reads either the value this
+    // frame's apply() just wrote or the element's CSS — never last frame's
+    // carry output, which would compound into a runaway every frame.
+    CARRY.forEach((c) => {
+      [c.from, c.to].forEach((sel) => {
+        const e = document.querySelector(sel);
+        if (!e) return;
+        e.style.transform = '';
+        // Opacity and z-index are cleared for the same reason, and for one more:
+        // this engine's entire promise is that the same t produces the same
+        // pixels. A carry that leaves opacity 0 behind on the alerts panel makes
+        // the frame depend on which t was rendered before it.
+        e.style.opacity = '';
+        e.style.zIndex = '';
+      });
+    });
+
     // Which beats are inside a carry, so the generic exit does not fight it.
     const carrying = new Set();
     CARRY.forEach((c) => {
-      if (t >= c.at - c.dur && t <= c.at + c.dur) { carrying.add(c.from.sel); carrying.add(c.to.sel); }
+      if (t >= c.at - c.dur && t <= c.at + c.dur) { carrying.add(c.from); carrying.add(c.to); }
     });
 
     FILM.forEach((b) => {
@@ -1251,21 +1487,44 @@ const FILM_SCENE = {
       // is already fully opaque by the time the outgoing one starts leaving, so
       // the two are never both half-visible — which is what a dissolve looks
       // like, and what the reference never does.
+      const inCarry = [...carrying].some((sel) => el.contains(document.querySelector(sel)));
+
+      // A beat whose junction is carried gets a LONGER exit, because it can
+      // afford one: the carried object has already arrived and is holding the
+      // eye, so whatever is left of the outgoing beat can leave slowly behind
+      // it. The burst is the case this exists for — its wedges cover the whole
+      // frame, and dropping them in 0.20s was the film's largest undesigned
+      // per-frame change even with the @VIP chip carrying perfectly.
       const inn = seg(t, b.at - 0.10, 0.18, (x) => x);
-      const out = seg(t, end - 0.06, 0.20, (x) => x);
+      const out = seg(t, end - 0.06, inCarry ? 0.34 : 0.20, (x) => x);
       el.style.opacity = Math.max(0, inn - out).toFixed(4);
 
       // A scene that freezes and fades reads as a slide; one that accelerates
       // out reads as a camera. Suppressed where a carry is doing the work.
-      const inCarry = [...carrying].some((sel) => el.contains(document.querySelector(sel)));
       el.style.transform = out > 0 && !inCarry ? `scale(${(1 + 0.055 * out).toFixed(4)})` : 'none';
       el.style.filter = out > 0 && !inCarry ? `blur(${(9 * out).toFixed(2)}px)` : 'none';
     });
 
-    // Run the carries last, so they overwrite whatever the generic pass wrote.
+    // THE CARRIES. Run last, so they compose on top of whatever the generic
+    // pass and each scene's own apply() have already written this frame.
+    //
+    // Two rules, and the first version of this code broke both.
+    //
+    // MEASURE, DO NOT TYPE. Both boxes are read from the live DOM every frame.
+    // The typed geometry it replaces was a guess about where an element would
+    // be at a moment its own scene was still moving it, and every guess was
+    // wrong by between 30 and 490 pixels.
+    //
+    // COMPOSE, DO NOT REPLACE. A carry element almost always carries a
+    // transform of its own — the store card's -5.7deg tilt, the shop window's
+    // rotateX, the alerts panel's centring translate — and writing over it
+    // DELETED that transform for the length of the junction, which is precisely
+    // when the eye is locked on the object. The carry's translate and scale go
+    // in FRONT of the element's own transform, so the object keeps being
+    // itself while it moves.
     CARRY.forEach((c) => {
-      const a = document.querySelector(c.from.sel);
-      const bEl = document.querySelector(c.to.sel);
+      const a = document.querySelector(c.from);
+      const bEl = document.querySelector(c.to);
       if (!a || !bEl) return;
       const p = seg(t, c.at - c.dur * 0.55, c.dur, inOutCubic);
       if (p <= 0 || p >= 1) return;
@@ -1274,20 +1533,27 @@ const FILM_SCENE = {
       bEl.style.zIndex = '60';
       a.style.zIndex = '59';
 
-      const k = c.to.w / c.from.w;
+      // Both elements are probed BEFORE either is written, so neither
+      // measurement can see the other's carry transform.
+      const ba = baseT(a);
+      const bb = baseT(bEl);
+      const PA = project(a, ba);
+      const PB = project(bEl, bb);
+      const ra = a.getBoundingClientRect();
+      const rb = bEl.getBoundingClientRect();
+      if (!ra.width || !rb.width) return;
+      const dx = PB.cx - PA.cx;
+      const dy = PB.cy - PA.cy;
+      const k = rb.width / ra.width;
+
       // Outgoing: travel all the way onto the incoming element's rectangle.
-      a.style.transformOrigin = 'center center';
-      a.style.transform =
-        `translate(${lerp(0, c.to.cx - c.from.cx, p).toFixed(1)}px, ${lerp(0, c.to.cy - c.from.cy, p).toFixed(1)}px) scale(${lerp(1, k, p).toFixed(4)})`;
+      carryTo(a, ba, PA, dx * p, dy * p, lerp(1, k, p));
       a.style.opacity = (1 - clamp01((p - 0.52) / 0.26)).toFixed(3);
       a.parentElement.style.opacity = '1';
 
       // Incoming: arrive FROM the outgoing element's rectangle, so for the frames
       // where both exist they occupy the same box and the swap is invisible.
-      const ik = c.from.w / c.to.w;
-      bEl.style.transformOrigin = 'center center';
-      bEl.style.transform =
-        `translate(${lerp(c.from.cx - c.to.cx, 0, p).toFixed(1)}px, ${lerp(c.from.cy - c.to.cy, 0, p).toFixed(1)}px) scale(${lerp(ik, 1, p).toFixed(4)})`;
+      carryTo(bEl, bb, PB, -dx * (1 - p), -dy * (1 - p), lerp(1 / k, 1, p));
       bEl.style.opacity = clamp01((p - 0.46) / 0.24).toFixed(3);
       bEl.parentElement.style.opacity = '1';
     });
