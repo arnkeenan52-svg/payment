@@ -265,7 +265,7 @@ pad(15.6, 4.4, 73.4, 0.10);
 //  13.50 - 14.00  NOTHING but the riser — the pre-drop
 //  14.00          impact, and the rhythm stops dead
 //  16.00 - 18.00  a bare pulse under the alerts
-on(1.50, 13.51, BAR / 2, (t) => kick(t, t < 3.5 ? 0.78 : 1.0));
+on(1.50, 13.51, BAR / 2, (t) => kick(t, t < 3.3 ? 0.78 : 1.0));
 on(4.00, 13.51, BAR / 2, (t) => kick(t + BEAT * 1.5, 0.40));   // the pickup kick
 on(3.50, 13.51, BAR, (t) => clap(t + BEAT, t < 5.6 ? 0.75 : 1.0));
 on(3.50, 13.51, BEAT / 2, (t) => hat(t, Math.abs((t / BEAT) % 1) < 0.01 ? 0.55 : 0.85));
@@ -276,34 +276,43 @@ on(5.60, 13.51, BAR, (t) => bass(t, 55, 1.1, t < 11.85 ? 0.9 : 1.0));
 
 // ── clicks ──────────────────────────────────────────────────────────────────
 // Each is the exact frame the cursor presses in the picture. These do NOT sit on
-// the grid and must not: they belong to the hand, not to the tempo.
-//    2.45  store   "Create store"
-//    4.82  stripe  the key slab
-//    8.95  theme   Midnight tile   (0.10s before the colour moves — cause, effect)
-//   10.10  theme   Ivory tile
-//   10.75  theme   the radius slider GRAB, softer because a drag is not a click
-//   11.30  theme   the RELEASE at the end of the drag, softer still
-//   13.57  shop    "Pay with card", the press that ignites the burst
-[2.45, 4.82, 8.95, 10.10, 13.57].forEach((t) => click(t));
-click(10.75, 0.5);
-click(11.30, 0.34);
+// the grid and must not: they belong to the hand, not to the tempo. Every value
+// below is read straight off the CUR waypoint table in hero/film.html — if a
+// click here disagrees with a waypoint there, the picture is right and this is
+// wrong.
+//    2.30  store    "Create store"          (the film's first press)
+//    5.86  stripe   "Connect Stripe"        (the ignition)
+//    7.96  product  the price commits
+//    8.54  product  the @VIP role chip
+//    9.62  theme    Emerald
+//   10.18  theme    Gold
+//   10.74  theme    Blurple
+//   11.42  theme    the slider GRAB, softer because a drag is not a click
+//   12.62  theme    the RELEASE at the end of the drag, softer still
+//   13.60  live     "Pay with card", the press the burst is born from
+[2.30, 5.86, 7.96, 8.54, 9.62, 10.18, 10.74, 13.60].forEach((t) => click(t));
+click(11.42, 0.5);
+click(12.62, 0.34);
 
 // ── the two big moments ─────────────────────────────────────────────────────
-// The white wash at 5.60 and the burst at 14.00 — the two junctions the picture
-// was measured to spend its energy on.
-impact(5.60, 0.62);
-riser(12.85, 1.15, 1.0);
+// The room change into the dark Stripe beat, and the burst.
+impact(3.30, 0.55);
+riser(12.90, 1.10, 1.0);
 impact(14.00, 1.0);
 
 // ── the alerts ──────────────────────────────────────────────────────────────
-// One bell per card, a fifth apart, rising. Bells are picture cues like the
-// clicks, so they land on the cards and not on the beat; the kick underneath
-// them is back on the grid.
-[16.30, 16.90, 17.50, 18.10].forEach((t, i) => chime(t, 587.33 * Math.pow(2, i / 12) * (i > 1 ? 1.5 : 1), 1));
-on(16.00, 18.51, BAR / 2, (t) => kick(t, 0.62));
+// One bell per card, a fifth apart, rising — and on an ACCELERATING cadence,
+// intervals of 0.47s, 0.40s and 0.33s. Money arriving faster and faster is told
+// entirely through the interval, with no copy at all. Bells are picture cues
+// like the clicks, so they land on the cards; the kick underneath is on the grid.
+[16.20, 16.67, 17.07, 17.40].forEach((t, i) => chime(t, 587.33 * Math.pow(2, i / 12) * (i > 1 ? 1.5 : 1), 1));
+on(16.00, 18.01, BAR / 2, (t) => kick(t, 0.62));
 bass(16.00, 73.4, 1.6, 0.7);
 
-impact(18.85, 0.48);
+// The endcard is a REAL FREEZE — 1.2s of picture with a per-frame delta of
+// exactly 0.0000. The score stops with it: one impact on the cut and nothing
+// after, so the silence is as deliberate as the stillness.
+impact(18.16, 0.48);
 
 // ── master ────────────────────────────────────────────────────────────────────
 // The mix before this stage measured -21.2 LUFS integrated with a true peak

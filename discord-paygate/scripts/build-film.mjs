@@ -54,7 +54,7 @@ const page = await (await browser.newContext({
 
 let failed = null;
 page.on('pageerror', (e) => { failed = e.message; });
-await page.goto(`file://${path.join(ROOT, 'hero', 'scenes.html')}?scene=film`);
+await page.goto(`file://${path.join(ROOT, 'hero', 'film.html')}?scene=film`);
 // Gates on fonts AND every image decode. A frame shot before either resolves
 // looks almost right, which is the kind of error nobody catches until it ships.
 await page.waitForFunction(() => window.__ready === true, { timeout: 30000 });
