@@ -1740,8 +1740,9 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 /* The film has a scored track; a hero loop must start muted to autoplay at all,
    so this is the opt-in. Bottom-right, inside the frame, over the film's own
    darkest corner. Sized 40x40 so it clears the 44px-ish touch floor with its
-   padding and is not a pixel-hunt on a phone. */
-.browser-frame { position: relative; }
+   padding and is not a pixel-hunt on a phone.
+   .browser-frame is already position:relative further up, so this anchors to
+   the frame and not to the page. */
 .hero-sound {
   position: absolute; right: 12px; bottom: 12px; z-index: 3;
   width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
