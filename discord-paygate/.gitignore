@@ -11,8 +11,11 @@ tmp-post-preview/
 # scripts/record-hero.mjs output — regenerated, never committed
 tmp-hero-frames/
 
-# scripts/build-film.mjs frame output — regenerated, never committed
-tmp-film-frames/
+# scripts/build-film.mjs frame output — regenerated, never committed.
+# The glob matters: FILM_CUT=dark writes tmp-film-frames-dark/, which the bare
+# `tmp-film-frames/` rule did not match, and 600 4K PNGs per render went into
+# three commits before anyone noticed.
+tmp-film-frames*/
 tmp-hero-frames/
 tmp-film-audio.wav
 remotion/node_modules/
