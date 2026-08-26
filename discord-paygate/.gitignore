@@ -18,9 +18,13 @@ tmp-hero-frames/
 tmp-film-frames*/
 
 # Scratch probes written by audit subagents while they measure the render.
-# These are throwaway by construction and a `git add -A` swept five of them
-# into a commit before the pattern existed.
+# Throwaway by construction. A `git add -A` swept five of them into a commit
+# before any pattern existed, and a sixth landed in hero/ rather than scripts/
+# and was mirrored to production before it was caught — hence the second rule,
+# which is deliberately not scoped to a directory.
 scripts/_*
+probe*.mjs
+**/probe*.mjs
 tmp-hero-frames/
 tmp-film-audio.wav
 remotion/node_modules/
