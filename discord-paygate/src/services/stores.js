@@ -82,12 +82,19 @@ export async function storeBySlug(slug) {
     // neutralizes foreign rows that predate it). Buyers of the brand link
     // reach the platform's real store, whichever of the two that is.
     const managed = hydrate(await db.getStoreBySlug(slug));
-    if (
-      managed &&
-      String(managed.guildId) === String(def.guildId) &&
-      (await sellablePlansOf(managed)).length > 0
-    ) {
-      return managed;
+    if (managed) {
+      // A managed row on ANOTHER guild is NOT an impostor: it is a real
+      // tenant that already holds this slug, created before this deployment
+      // configured a guild (isReservedSlug only blocks NEW foreign claims,
+      // and only once DISCORD_GUILD_ID is set). Shadowing it hands its
+      // buyers the platform's own catalog and silently kills a live store —
+      // which is exactly what happened the day a guild id was first set on
+      // a deployment whose BRAND still defaulted to a tenant's name. The
+      // row wins outright; squatting stays blocked at write time.
+      if (String(managed.guildId) !== String(def.guildId)) return managed;
+      // The built-in guild's OWN twin still wins only once it actually
+      // sells something, so a bare draft leaves the env checkout untouched.
+      if ((await sellablePlansOf(managed)).length > 0) return managed;
     }
     return def;
   }
@@ -139,7 +146,12 @@ export async function storesOwnedBy(discordId) {
     def &&
     config.ownerDiscordId &&
     discordId === config.ownerDiscordId &&
-    !(await managedStoreByGuild(def.guildId))
+    !(await managedStoreByGuild(def.guildId)) &&
+    // ...and never beside a real store that already holds its slug: two
+    // entries sharing one slug make the picker ambiguous, and the read-only
+    // twin wins the lookup — the owner then sees "this is the built-in
+    // store" where their own products and discounts used to be.
+    !(await db.getStoreBySlug(def.slug))
   ) {
     rows.unshift(def);
   }
@@ -149,7 +161,9 @@ export async function storesOwnedBy(discordId) {
 export async function everyStore() {
   const rows = (await db.allStores()).map(hydrate);
   const def = defaultStore();
-  if (!def || rows.some((r) => String(r.guildId) === String(def.guildId))) return rows;
+  // Same rule as storesOwnedBy: the virtual twin steps aside for a real row
+  // on its guild OR one already holding its slug.
+  if (!def || rows.some((r) => String(r.guildId) === String(def.guildId) || r.slug === def.slug)) return rows;
   return [def, ...rows];
 }
 

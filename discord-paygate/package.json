@@ -6,7 +6,8 @@
   "private": true,
   "scripts": {
     "start": "node scripts/dev-server.js",
-    "test": "node scripts/e2e-test.js",
+    "test": "node scripts/e2e-test.js && node scripts/test-store-slug-collision.mjs",
+    "test:slug": "node scripts/test-store-slug-collision.mjs",
     "migrate": "node scripts/migrate.js",
     "doctor": "node scripts/doctor.js",
     "presence": "node scripts/presence.js",
