@@ -5,7 +5,7 @@
 // platform agrees on (1.91:1); shooting at 2x means the card is still sharp on
 // the retina panels most links are opened on.
 //
-//   node scripts/build-og.mjs        # writes public/og-card.png
+//   node scripts/build-og.mjs        # writes public/og-card.jpg
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = path.join(ROOT, 'public', 'og-card.png');
+const OUT = path.join(ROOT, 'public', 'og-card.jpg');
 
 function chromiumPath() {
   try {
@@ -79,4 +79,4 @@ if (!shrunk) {
 if (!shrunk) process.stdout.write('[og] no quantiser available, shipping the full-depth PNG\n');
 
 const kb = (fs.statSync(OUT).size / 1024).toFixed(0);
-process.stdout.write(`[og] wrote public/og-card.png · 2400x1260 · ${kb}KB\n`);
+process.stdout.write(`[og] wrote public/og-card.jpg · 2400x1260 · ${kb}KB\n`);
