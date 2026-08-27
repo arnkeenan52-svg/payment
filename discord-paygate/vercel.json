@@ -104,8 +104,7 @@
       "maxDuration": 60
     },
     "api/cron/reconcile.js": {
-      "maxDuration": 60,
-      "includeFiles": "{content/*.txt,assets/cards/*.png,public/icon-512.png,public/dues-banner.png}"
+      "maxDuration": 60
     },
     "api/store-page.js": {
       "includeFiles": "public/store.html"

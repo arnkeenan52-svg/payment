@@ -5,25 +5,30 @@
 // changes, the live messages keep wearing the old design until someone with
 // the bot token re-runs scripts/post-message.mjs by hand. This service closes
 // that gap from the deployment that already holds the token: the hourly cron
-// calls it, an app_secrets flag short-circuits every run after the first
-// success, and on a brand bump (BRAND_VERSION below) it walks each standing
-// post, swaps its card for the pre-rendered PNG in assets/cards/, and leaves
-// the text exactly as posted. The bot's own avatar and profile banner get the
-// same treatment.
+// (and the public /api/brand-refresh trigger) calls it, an app_secrets flag
+// short-circuits every run after the first success, and on a brand bump
+// (BRAND_VERSION below) it walks each standing post, swaps its card, and
+// leaves the text exactly as posted. The bot's own avatar and profile banner
+// get the same treatment.
 //
-// Cards are PRE-RENDERED into the repo (the sky needs brand fonts that the
-// serverless image cannot guarantee) — this module only reads files and talks
-// to Discord. Everything is best-effort: a failure logs, skips the flag, and
-// the next cron run tries again.
-import fs from 'node:fs';
-import path from 'node:path';
+// Assets arrive over https from the site's own public/ (cards live at
+// /cards/<name>.png) — no filesystem bundling to trust — and the post
+// manifest is inlined from content/*.txt's [marker]/[channel] blocks, which
+// scripts/post-message.mjs still owns for full re-posts.
 import { config } from '../config.js';
 import { getAppSecret, setAppSecret } from '../db.js';
 
 // Bump when the shipped cards change — that is what re-arms the refresh.
-const BRAND_VERSION = 'sky-151';
+const BRAND_VERSION = 'sky-158';
 const API = (process.env.DISCORD_API_BASE ?? 'https://discord.com/api/v10').replace(/\/$/, '');
-const POSTS = ['rules', 'guide', 'official-links', 'announcement'];
+
+// Mirrors [marker] + [channel] in content/<name>.txt.
+const POSTS = [
+  { name: 'rules', channel: '1541819014643322900', marker: 'Dues · Server Rules' },
+  { name: 'guide', channel: '1541859167067971655', marker: 'Dues · How It Works' },
+  { name: 'official-links', channel: '1541819865625657384', marker: 'Dues · Official Links' },
+  { name: 'announcement', channel: '1541818939711955066', marker: 'Dues · Launch' },
+];
 
 const call = async (pathname, init = {}) => {
   const res = await fetch(`${API}${pathname}`, {
@@ -40,30 +45,14 @@ const call = async (pathname, init = {}) => {
   return res.status === 204 ? null : res.json();
 };
 
-// [name] blocks from a content/*.txt file — just the two single-line fields
-// this service needs; scripts/post-message.mjs owns the full format.
-const section = (src, name) => {
-  const m = src.match(new RegExp(`^\\[${name}\\]\\s*\\n([\\s\\S]*?)(?=\\n\\[|$)`, 'm'));
-  return m
-    ? m[1].split('\n').filter((l) => l.trim() && !/^\s*#/.test(l)).map((l) => l.trim()).join(' ').trim()
-    : '';
+const fetchAsset = async (path) => {
+  const res = await fetch(`${config.publicBaseUrl}${path}`, { signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`asset ${path} -> ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
 };
 
-const readIf = (p) => {
-  try {
-    return fs.readFileSync(p);
-  } catch {
-    return null;
-  }
-};
-
-async function refreshStandingPost(me, name) {
-  const src = readIf(path.join(config.root, 'content', `${name}.txt`));
-  const png = readIf(path.join(config.root, 'assets', 'cards', `${name}.png`));
-  if (!src || !png) return 'skipped';
-  const marker = section(String(src), 'marker');
-  const channel = section(String(src), 'channel');
-  if (!marker || !/^\d{5,25}$/.test(channel)) return 'skipped';
+async function refreshStandingPost(me, { name, channel, marker }) {
+  const png = await fetchAsset(`/cards/${name}.png`);
   const messages = await call(`/channels/${channel}/messages?limit=50`);
   const mine = messages.find((m) => m.author?.id === me.id && m.embeds?.some((e) => e.footer?.text === marker));
   if (!mine) return 'not found';
@@ -109,9 +98,8 @@ async function refreshWelcomePin(me) {
 }
 
 async function refreshBotProfile() {
-  const avatar = readIf(path.join(config.root, 'public', 'icon-512.png'));
-  const banner = readIf(path.join(config.root, 'public', 'dues-banner.png'));
-  if (!avatar) return 'skipped';
+  const avatar = await fetchAsset('/icon-512.png');
+  const banner = await fetchAsset('/dues-banner.png').catch(() => null);
   await call('/users/@me', {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
@@ -130,15 +118,26 @@ export async function refreshBrandAssets() {
   if (!process.env.VERCEL && process.env.BRAND_REFRESH !== '1') return null;
   const summary = {};
   try {
-    if ((await getAppSecret('brand:posts')) !== BRAND_VERSION) {
-      const me = await call('/users/@me');
+    // Both flags settled: the usual case, one cheap read per cron tick.
+    const postsDone = (await getAppSecret('brand:posts')) === BRAND_VERSION;
+    const profileDone = (await getAppSecret('brand:profile')) === BRAND_VERSION;
+    if (postsDone && profileDone) return null;
+    // Throttle real attempts: the public trigger must not be able to make
+    // the bot hammer Discord while something is failing.
+    const now = Math.floor(Date.now() / 1000);
+    const last = Number((await getAppSecret('brand:attempt')) ?? 0);
+    if (now - last < 120) return { throttled: true };
+    await setAppSecret('brand:attempt', String(now));
+
+    const me = await call('/users/@me');
+    if (!postsDone) {
       let allOk = true;
-      for (const name of POSTS) {
+      for (const post of POSTS) {
         try {
-          summary[name] = await refreshStandingPost(me, name);
+          summary[post.name] = await refreshStandingPost(me, post);
         } catch (err) {
           allOk = false;
-          summary[name] = `failed: ${err.message}`;
+          summary[post.name] = `failed: ${err.message}`;
         }
       }
       try {
@@ -149,7 +148,7 @@ export async function refreshBrandAssets() {
       }
       if (allOk) await setAppSecret('brand:posts', BRAND_VERSION);
     }
-    if ((await getAppSecret('brand:profile')) !== BRAND_VERSION) {
+    if (!profileDone) {
       try {
         summary.profile = await refreshBotProfile();
         await setAppSecret('brand:profile', BRAND_VERSION);
