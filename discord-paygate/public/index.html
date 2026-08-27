@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=130" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=130" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=131" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=131" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -113,7 +113,7 @@ html[data-theme="light"]{
 .crescendo .btn-ink,.final .btn-ink{background:#f5f5f4;color:#101010}
 .crescendo .btn-ink:hover,.final .btn-ink:hover{background:#fff}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
+html{scroll-behavior:auto} /* kit rule: smooth scroll fights the sheet-and-footer reveal */
 html{background:#0d1420;transition:background-color .45s ease}
 html[data-theme="light"]{background:#a9c6ea}
 body{
@@ -207,8 +207,10 @@ h3{font-weight:500}
 
 /* ============ nav ============ */
 .nav{
-  position:sticky;top:0;z-index:50;height:64px;
+  position:fixed;top:0;left:0;right:0;z-index:60;height:64px;
+  transition:opacity .18s cubic-bezier(.16,1,.3,1);
 }
+html[data-footer-revealed] .nav{opacity:0;pointer-events:none}
 .nav::before{
   content:"";position:absolute;inset:0 0 -28px 0;pointer-events:none;
   background:linear-gradient(to bottom,rgba(var(--scrim),.96) 0%,rgba(var(--scrim),.88) 62%,rgba(var(--scrim),0) 100%);
@@ -246,7 +248,7 @@ html[data-theme="light"] .theme-btn .i-moon{display:block}
 /* ============ hero ============ */
 .hero{
   position:relative;overflow:hidden;
-  margin-top:-64px;padding-top:64px;
+  padding-top:64px;
   display:flex;flex-direction:column;min-height:100svh;
 }
 /* the sky: CSS photographic fallback behind a transparent shader canvas */
@@ -320,7 +322,7 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=130') center/cover;
+  background:url('/hero-poster.webp?v=131') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1404,6 +1406,143 @@ html:not([data-theme="light"]) .calc{background:rgba(15,22,38,.55);border-color:
 html[data-theme="light"] .hero-foot{color:#0f1626}
 html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
 @media (max-width:600px){.hero-foot{gap:20px;padding-bottom:24px}}
+
+/* ═══════════ the theme-kit layer: sheet-and-footer reveal, pill, grain ═══════════ */
+/* grain over the whole sky — without it the gradient reads cheap */
+.sky-grain{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");background-size:300px 300px;
+  opacity:.1;mix-blend-mode:overlay;
+}
+/* the content sheet: rounded bottom corners + shadow; a soft lip at its base
+   so the lifting edge reads over the shared sky */
+.sheet{
+  position:relative;z-index:1;
+  border-bottom-left-radius:clamp(40px,4.6vw,62px);
+  border-bottom-right-radius:clamp(40px,4.6vw,62px);
+  box-shadow:0 36px 70px -30px rgba(10,20,50,.45);
+  background:linear-gradient(180deg,transparent 0%,transparent calc(100% - 300px),rgba(13,20,32,.9) 100%);
+  padding-bottom:64px;
+}
+html[data-theme="light"] .sheet{
+  background:linear-gradient(180deg,transparent 0%,transparent calc(100% - 300px),rgba(240,246,253,.92) 100%);
+  box-shadow:0 36px 70px -30px rgba(20,40,90,.32);
+}
+.footer-spacer{position:relative;z-index:0;height:0;pointer-events:none}
+
+/* the footer: a full-viewport panel on the SAME live sky, deepened by a wash */
+.footer{position:relative;z-index:0;min-height:100lvh;overflow:clip;background:transparent;margin-top:-40px}
+.footer::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(28,39,64,0) 0%,rgba(31,47,77,.28) 30%,rgba(36,58,100,.5) 58%,rgba(39,70,128,.66) 82%,rgba(42,79,147,.78) 100%);
+}
+html[data-theme="light"] .footer::before{
+  background:linear-gradient(180deg,rgba(188,213,240,0) 0%,rgba(142,180,230,.34) 44%,rgba(95,142,217,.6) 78%,rgba(47,99,191,.82) 100%);
+}
+.footer::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;z-index:2;pointer-events:none;
+  height:clamp(120px,18vh,210px);
+  background:linear-gradient(180deg,transparent 0%,rgba(17,25,40,.08) 54%,rgba(17,25,40,.18) 100%);
+}
+/* the reveal proper: pinned footer behind the sheet, on real pointers ≥640px */
+@media (hover:hover) and (pointer:fine) and (min-width:640px){
+  .footer{position:fixed;inset:auto 0 0 0;min-height:100vh;margin-top:0}
+  .footer-spacer{height:100vh}
+}
+.footer-stage{
+  position:relative;z-index:1;display:flex;flex-direction:column;box-sizing:border-box;
+  min-height:100lvh;padding:clamp(24px,5vh,104px) clamp(18px,3vw,32px) 0;
+}
+/* chrome gate lives only where the footer is pinned — mobile keeps its in-flow footer visible */
+@media (hover:hover) and (pointer:fine) and (min-width:640px){ html:not([data-footer-revealed]) .footer-stage,
+html:not([data-footer-revealed]) .footer::before,
+html:not([data-footer-revealed]) .footer::after{opacity:0}
+.footer-stage,.footer::before,.footer::after{transition:opacity .3s cubic-bezier(.16,1,.3,1)}
+.footer-stage{min-height:100vh} }
+.footer-title{
+  margin:auto 0 clamp(10px,2vh,28px);
+  color:#fff;font-family:var(--grotesk);
+  font-size:clamp(36px,min(6.2vw,9.5vh),84px);font-weight:500;line-height:1.02;
+  letter-spacing:-.025em;text-align:center;text-wrap:balance;
+}
+.footer-cta{display:flex;justify-content:center;align-items:center;margin-bottom:clamp(16px,5vh,64px)}
+.footer-directory{
+  display:grid;grid-template-columns:1.6fr repeat(4,minmax(0,1fr));
+  gap:clamp(12px,2.4vh,24px);width:min(100%,1080px);margin:clamp(16px,4vh,64px) auto auto;
+  padding-bottom:clamp(10px,2vh,32px);
+}
+.f-identity{align-self:start}
+.f-brand{display:inline-flex;align-items:center;gap:9px;min-height:32px;color:#fff;font-family:var(--grotesk);font-size:20px;font-weight:600;letter-spacing:-.02em}
+.f-brand .glyph{width:18px;height:18px;background:#fff}
+.f-copy{margin:12px 0 0;color:rgba(255,255,255,.72);font-size:13px}
+.f-socials{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.footer .soc-tile{
+  display:inline-flex;align-items:center;justify-content:center;position:relative;
+  width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;transition:background .15s;
+}
+.footer .soc-tile::after{content:"";position:absolute;inset:-4px}
+.footer .soc-tile:hover{background:rgba(255,255,255,.26)}
+.footer .soc-tile svg{width:15px;height:15px;fill:currentColor}
+.footer .fcol{display:flex;flex-direction:column;gap:11px;min-width:0}
+.footer .fcol b{
+  margin:0 0 3px;color:rgba(255,255,255,.64);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:10.5px;font-weight:500;line-height:1.25;letter-spacing:.08em;text-transform:uppercase;
+}
+.footer .fcol a{display:inline-flex;align-items:center;min-height:21px;padding:0;color:rgba(255,255,255,.82);font-size:14px;line-height:1.5;transition:color .15s}
+.footer .fcol a:hover{color:#fff}
+/* the giant masked wordmark, bleeding off both edges */
+.footer-watermark{
+  --wm-h:calc(100vw * .184);
+  position:relative;display:block;align-self:stretch;height:var(--wm-h);
+  margin:clamp(8px,1.5vh,16px) calc(-1 * clamp(18px,3vw,32px)) calc(var(--wm-h) / -5);
+  pointer-events:none;user-select:none;
+}
+.fw-base,.fw-grad{
+  position:absolute;inset:0;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 954.8 176'%3E%3Ctext x='-6' y='172' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='236' font-weight='700' letter-spacing='2' text-anchor='start' textLength='962' lengthAdjust='spacingAndGlyphs'%3EDues%3C/text%3E%3C/svg%3E") left bottom / contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 954.8 176'%3E%3Ctext x='-6' y='172' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='236' font-weight='700' letter-spacing='2' text-anchor='start' textLength='962' lengthAdjust='spacingAndGlyphs'%3EDues%3C/text%3E%3C/svg%3E") left bottom / contain no-repeat;
+}
+.fw-base{background:rgba(255,255,255,.12)}
+.fw-grad{background:linear-gradient(180deg,rgba(255,255,255,.3) 0%,rgba(255,255,255,.06) 64%,rgba(255,255,255,.16) 100%)}
+
+/* ── the kit pill: blurple ramp, three-layer inner shadow, resting glint ── */
+.btn-primary,.btn-gloss{
+  position:relative;overflow:hidden;
+  border:1px solid rgba(64,76,196,.55);border-radius:999px;
+  background:linear-gradient(180deg,#6673f6 0%,#5865f2 52%,#4550cf 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 6px rgba(20,26,110,.3),0 14px 30px -12px rgba(52,62,190,.5);
+  color:#fff;font-weight:700;
+  transition:box-shadow .18s cubic-bezier(.16,1,.3,1),transform .18s cubic-bezier(.16,1,.3,1);
+}
+.btn-primary::before,.btn-gloss::before{
+  content:"";position:absolute;top:0;bottom:0;left:0;width:55%;pointer-events:none;
+  transform:translateX(-190%) skew(-18deg);
+  background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.5) 50%,transparent 100%);
+  animation:duesSheen 6.5s ease-in-out infinite;
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 6px rgba(20,26,110,.3),0 20px 40px -12px rgba(52,62,190,.62)}
+.btn-gloss{display:inline-flex;justify-content:center;align-items:center;gap:12px;min-height:60px;padding:19px 38px;font-size:19px;letter-spacing:-.01em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 6px rgba(20,26,110,.3),0 14px 30px -12px rgba(28,42,170,.5)}
+.btn-gloss::before{width:48%;animation:duesFooterSheen 3.8s ease-in-out infinite}
+.btn-gloss:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 6px rgba(20,26,110,.3),0 22px 44px -12px rgba(28,42,170,.58)}
+@keyframes duesSheen{0%,86%{transform:translateX(-190%) skew(-18deg)}100%{transform:translateX(310%) skew(-18deg)}}
+@keyframes duesFooterSheen{0%,68%{transform:translateX(-190%) skew(-18deg)}100%{transform:translateX(360%) skew(-18deg)}}
+
+/* ── light huge headings: big type gets LIGHTER, small text stays heavy ── */
+.hero h1{font-weight:500;letter-spacing:-.025em}
+.hiw-head h2,.faq-head h2,.calc-head h2,.sec-head h2,.cres-head h2{font-weight:500}
+
+@media (prefers-reduced-motion:reduce){
+  .btn-primary::before,.btn-gloss::before{animation:none}
+}
+@media (max-width:639px){
+  .footer-title{font-size:clamp(34px,9vw,48px)}
+  .footer-directory{grid-template-columns:1fr 1fr}
+  .f-identity{grid-column:1 / -1}
+  .footer-watermark{--wm-h:calc(100vw * .2)}
+}
+
 </style>
 </head>
 <body>
@@ -1411,6 +1550,9 @@ html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
 <!-- 1 · announcement -->
 
 <!-- 2 · nav -->
+<div class="hero-sky" aria-hidden="true"><canvas data-dues-sky></canvas></div>
+<div class="sky-grain" aria-hidden="true"></div>
+<div class="sheet">
 <nav class="nav" id="nav">
   <div class="wrap nav-inner">
     <a class="logo" href="/" aria-label="Dues home">
@@ -1434,7 +1576,6 @@ html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
 
 <!-- 3 · hero -->
 <header class="hero">
-  <div class="hero-sky" aria-hidden="true"><canvas data-dues-sky></canvas></div>
   <div class="hero-core">
     <h1>Sell roles. <span class="h1-key">Keep every dollar.</span></h1>
     <p class="hero-sub">Dues connects your
@@ -1808,13 +1949,22 @@ html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
 </main>
 
 <!-- 13 · footer -->
+</div><!-- /sheet -->
+<div class="footer-spacer" aria-hidden="true"></div>
+
 <footer class="footer">
-  <div class="closer">
-    <h2>Open your store tonight.</h2>
-    <a class="btn-gloss" href="/dashboard">Start selling &#8594;</a>
-  </div>
-  <div class="wrap">
-    <div class="footer-cols">
+  <div class="footer-stage">
+    <h2 class="footer-title">Open your store tonight.</h2>
+    <div class="footer-cta"><a class="btn-gloss" href="/dashboard">Start selling &#8594;</a></div>
+    <div class="footer-directory">
+      <div class="f-identity">
+        <span class="f-brand"><span class="glyph" aria-hidden="true"></span>Dues</span>
+        <p class="f-copy">&#169; 2026 Dues. All rights reserved.</p>
+        <div class="f-socials">
+          <a class="soc-tile" href="/api/invite" aria-label="Join the Dues Discord"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></a>
+          <a class="soc-tile" href="https://x.com/duesgg" rel="noopener" aria-label="Dues on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zM17.083 19.77h1.833L7.084 4.126H5.117z"/></svg></a>
+        </div>
+      </div>
       <div class="fcol">
         <b>Product</b>
         <a href="#features">Features</a>
@@ -1843,25 +1993,13 @@ html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
         <a href="/privacy">Privacy</a>
       </div>
     </div>
-    <div class="legal">
-      <div class="legal-left">
-        <span class="glyph" aria-hidden="true"></span>
-        <span>&#169; 2026 Dues. All rights reserved.</span>
-      </div>
-      <div class="legal-soc">
-      <a class="soc-tile" href="/api/invite" aria-label="Join the Dues Discord">
-        <svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
-      </a>
-      <a class="soc-tile" href="https://x.com/duesgg" rel="noopener" aria-label="Dues on X">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zM17.083 19.77h1.833L7.084 4.126H5.117z"/></svg>
-      </a>
-      </div>
+    <div class="footer-watermark" aria-hidden="true">
+      <span class="fw-base"></span><span class="fw-grad"></span>
     </div>
   </div>
-  <div class="ghost-word" aria-hidden="true">Dues</div>
 </footer>
 
-<script src="/sky.js?v=130" defer></script>
+<script src="/sky.js?v=131" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2112,6 +2250,24 @@ html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
     if(moved){ e.preventDefault(); moved = false; }
   });
   }
+})();
+</script>
+<script>
+(function(){
+  var nav = document.querySelector('.nav');
+  var sheet = document.querySelector('.sheet');
+  if(!nav || !sheet) return;
+  var on = function(){
+    nav.classList.toggle('scrolled', window.scrollY > 8);
+    // the sheet is transparent over the sky except its last ~300px; reveal the
+    // footer chrome only once that opaque tail is all that's left on screen,
+    // so nothing bleeds through the glass above it
+    var revealed = sheet.getBoundingClientRect().bottom <= 340;
+    document.documentElement.toggleAttribute('data-footer-revealed', revealed);
+  };
+  addEventListener('scroll', on, { passive:true });
+  addEventListener('resize', on);
+  on();
 })();
 </script>
 </body>

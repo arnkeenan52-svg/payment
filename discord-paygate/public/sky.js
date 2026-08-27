@@ -138,7 +138,7 @@ void main(){
   };
 
   document.querySelectorAll('canvas[data-dues-sky]').forEach((cv) => {
-    const gl = cv.getContext('webgl', { antialias:false, alpha:false, depth:false, stencil:false })
+    const gl = cv.getContext('webgl', { antialias:false, alpha:false, depth:false, stencil:false, preserveDrawingBuffer:true })
              || cv.getContext('experimental-webgl');
     if (!gl) return;
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
