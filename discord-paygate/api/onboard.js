@@ -12,10 +12,15 @@ import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf, reb
 const ADMINISTRATOR = 1n << 3n;
 const MANAGE_GUILD = 1n << 5n;
 
-// Uploaded product photos arrive as data URLs, already downscaled by the
-// dashboard (~100KB typical). 2M chars ≈ 1.5MB decoded — a hard ceiling.
+// Uploaded product media arrives as data URLs. Stills are downscaled by the
+// dashboard (~100KB typical; 2M chars ≈ 1.5MB decoded is the hard ceiling).
+// GIFs and short MP4/WebM clips ride through un-recompressed — a canvas pass
+// would freeze them — with a 4M-char cap (~3MB decoded) so the JSON body
+// stays deliverable.
 const isImageDataUrl = (v) =>
-  typeof v === 'string' && v.length <= 2_000_000 && /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v);
+  typeof v === 'string' &&
+  ((v.length <= 2_000_000 && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) ||
+    (v.length <= 4_000_000 && /^data:(?:image\/gif|video\/(?:mp4|webm));base64,[A-Za-z0-9+/=]+$/.test(v)));
 
 async function callerManagesGuild(uid, guildId) {
   const user = await getUser(uid);

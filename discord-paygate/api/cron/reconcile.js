@@ -3,6 +3,7 @@ import { config } from '../../src/config.js';
 import { sendJson, sendText, guard } from '../../src/lib/http.js';
 import { sweepExpirations } from '../../src/services/entitlements.js';
 import { healStoreWebhooks } from '../../src/services/webhook-heal.js';
+import { refreshBrandAssets } from '../../src/services/brand-refresh.js';
 
 // Replaces the old setInterval sweep — there is no long-lived process on
 // Vercel. vercel.json schedules this; Vercel sends Authorization: Bearer
@@ -31,5 +32,11 @@ export default guard(async function handler(req, res) {
     console.warn(`[cron] webhook heal failed: ${err.message}`);
     return null;
   });
-  sendJson(res, 200, { ok: true, ...result, ...(webhooks ? { webhooks } : {}) });
+  // Keep the bot's already-posted cards and profile on the current brand —
+  // an app_secrets flag makes this a no-op on every run after the first.
+  const brand = await refreshBrandAssets().catch((err) => {
+    console.warn(`[cron] brand refresh failed: ${err.message}`);
+    return null;
+  });
+  sendJson(res, 200, { ok: true, ...result, ...(webhooks ? { webhooks } : {}), ...(brand ? { brand } : {}) });
 });

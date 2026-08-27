@@ -719,7 +719,7 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   const diagBody = await diagPage.text();
   assert.doesNotMatch(diagBody, /Setup diagnostics/, 'the diagnostics tool must be gone');
   assert.match(diagBody, /Confirm Order/, 'unclaimed slugs serve the storefront shell');
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
@@ -2679,6 +2679,27 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   );
   assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: null })).status, 200, 'photo removable');
   assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals&plan=${vip.planKey}`)).status, 404, 'removed photo no longer served');
+
+  // ── uploaded product VIDEO: a short MP4/GIF loop on a product link ────────
+  const MP4 = Buffer.from('AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDE=', 'base64').toString('base64');
+  assert.equal(
+    (await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: `data:video/mp4;base64,${MP4}` })).status,
+    200,
+    'a small MP4 upload saves',
+  );
+  const withVideo = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => p.id === vip.planKey);
+  assert.equal(withVideo.mediaKind, 'video', 'the payload says video so the storefront renders a <video>');
+  const servedVid = await fetch(`${appUrl}/api/img?store=vip-signals&plan=${vip.planKey}`);
+  assert.equal(servedVid.headers.get('content-type'), 'video/mp4');
+  // Safari plays <video> only from range-capable servers.
+  const ranged = await fetch(`${appUrl}/api/img?store=vip-signals&plan=${vip.planKey}`, { headers: { range: 'bytes=0-9' } });
+  assert.equal(ranged.status, 206, 'byte ranges answered');
+  assert.equal((await ranged.arrayBuffer()).byteLength, 10);
+  assert.match(ranged.headers.get('content-range'), /^bytes 0-9\/\d+$/);
+  // A video never becomes the link-preview image.
+  const sharedVid = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.ok(!/property="og:image" content="[^"]*\/api\/img\?store=vip-signals/.test(sharedVid), 'og:image skips video media');
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: vip.planKey, imageData: null })).status, 200);
   // Regression: the edit form echoes the stored imageUrl back on every save.
   // An ordinary edit (price + the echoed /api/img URL) must never wipe the
   // upload — the server once mistook its own URL for a replacement link.

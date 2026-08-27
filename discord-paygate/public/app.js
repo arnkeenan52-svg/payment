@@ -129,6 +129,11 @@ const groupFor = (plan) => {
   return [par, ...state.plans.filter((p) => p.variantOf === par.id)];
 };
 
+// A product's media is a video when the upload said so, or when a pasted
+// link plainly is one — either way the storefront shows a muted loop.
+const isVideoMedia = (plan) =>
+  plan?.mediaKind === 'video' || /\.(mp4|webm)([?#]|$)/i.test(plan?.imageUrl ?? '');
+
 function renderBrand() {
   const plan = selectedPlan();
   if (!plan) return;
@@ -139,10 +144,32 @@ function renderBrand() {
     // Tenant stores show their own product image or nothing; only the legacy
     // built-in store falls back to its shipped art. Never another store's.
     const art = STORE_SLUG ? plan.imageUrl : (plan.imageUrl ?? '/product.gif');
-    if (art) {
-      shot.src = art;
-      shot.hidden = false;
-    } else shot.hidden = true;
+    let vid = $('#product-shot-video');
+    if (art && isVideoMedia(plan)) {
+      shot.hidden = true;
+      if (!vid) {
+        vid = document.createElement('video');
+        vid.id = 'product-shot-video';
+        vid.className = shot.className;
+        vid.muted = true;
+        vid.autoplay = true;
+        vid.loop = true;
+        vid.playsInline = true;
+        vid.setAttribute('aria-hidden', 'true');
+        shot.after(vid);
+      }
+      if (vid.getAttribute('src') !== art) vid.src = art;
+      vid.hidden = false;
+    } else {
+      if (vid) {
+        vid.hidden = true;
+        vid.removeAttribute('src');
+      }
+      if (art) {
+        shot.src = art;
+        shot.hidden = false;
+      } else shot.hidden = true;
+    }
   }
   // ONLY the server's own Discord icon (animated GIF when the guild has
   // one) is ever shown — no stand-in logo. Hidden until Discord answers.
@@ -747,7 +774,9 @@ function renderShop() {
         : plan.lifetime ? 'lifetime' : `/ ${esc(plan.interval ?? 'month')}`;
     card.innerHTML =
       (plan.imageUrl
-        ? `<img class="prod-shot" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" />`
+        ? (isVideoMedia(plan)
+            ? `<video class="prod-shot" src="${esc(plan.imageUrl)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true" onerror="this.remove()"></video>`
+            : `<img class="prod-shot" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" />`)
         : `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`) +
       `<span class="prod-name">${esc(plan.name)}</span>` +
       ((plan.roleNames ?? []).length

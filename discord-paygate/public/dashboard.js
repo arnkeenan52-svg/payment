@@ -140,10 +140,22 @@ function parsePrice(v) {
 
 // Photo picker: read the chosen file, downscale on a canvas so uploads stay
 // around 100KB, hand back a data URL the API stores and serves via /api/img.
+// Animated media (GIF, MP4, WebM) rides through untouched — a canvas pass
+// would freeze the first frame — capped so the request stays deliverable.
 function readPhoto(file, ok, err) {
+  if (!file) return err('Pick an image file.');
+  const type = file.type || '';
+  if (type === 'image/gif' || type === 'video/mp4' || type === 'video/webm') {
+    if (file.size > 3_000_000) return err('Keep GIFs and videos under 3MB.');
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result));
+    r.onerror = () => err('Could not read that file.');
+    r.readAsDataURL(file);
+    return;
+  }
   // Some iOS pickers hand files with an empty MIME type — let the actual
   // decode below be the judge instead of refusing up front.
-  if (!file || (file.type && !file.type.startsWith('image/'))) return err('Pick an image file.');
+  if (type && !type.startsWith('image/')) return err('Pick an image, GIF, or MP4/WebM video.');
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
@@ -532,7 +544,7 @@ function renderSetupStep(g, step) {
           <img id="f-photo-prev" class="photo-prev" alt="" hidden />
           <button type="button" class="btn-secondary" id="f-photo-btn">Choose photo</button>
           <button type="button" class="btn-ghost" id="f-photo-clear" hidden>Remove</button>
-          <input id="f-photo" type="file" accept="image/*" hidden />
+          <input id="f-photo" type="file" accept="image/*,video/mp4,video/webm" hidden />
         </div>
         <span class="field-help">Shown on your store page and in Stripe checkout. Or paste a link:</span>
         <input id="f-img" type="url" placeholder="https://…  (optional)" spellcheck="false" />
@@ -548,8 +560,12 @@ function renderSetupStep(g, step) {
         (data) => {
           wizPhoto = data;
           const prev = $('#f-photo-prev');
-          prev.src = data;
-          prev.hidden = false;
+          if (data.startsWith('data:video/')) {
+            prev.hidden = true;
+          } else {
+            prev.src = data;
+            prev.hidden = false;
+          }
           $('#f-photo-clear').hidden = false;
         },
         (msg) => fieldErr('prod', msg),
@@ -1295,7 +1311,7 @@ function productEditorFields(p = {}) {
         <img class="pe-photo-prev photo-prev" alt="" hidden />
         <button type="button" class="btn-secondary pe-photo-btn">Choose photo</button>
         <button type="button" class="btn-ghost pe-photo-clear" hidden>Remove</button>
-        <input class="pe-photo-file" type="file" accept="image/*" hidden />
+        <input class="pe-photo-file" type="file" accept="image/*,video/mp4,video/webm" hidden />
       </div>
       <span class="field-help">Or paste a link:</span>
       <input class="pe-img" type="url" value="${esc(p.imageUrl ?? '')}" placeholder="https://…  (optional)" spellcheck="false" /></div>
@@ -2393,8 +2409,12 @@ function wireProducts(store, slug, products) {
       (data) => {
         photoPick = data;
         const prev = form.querySelector('.pe-photo-prev');
-        prev.src = data;
-        prev.hidden = false;
+        if (data.startsWith('data:video/')) {
+          prev.hidden = true;
+        } else {
+          prev.src = data;
+          prev.hidden = false;
+        }
         form.querySelector('.pe-photo-clear').hidden = false;
       },
       (msg) => fieldErr('prod', msg),

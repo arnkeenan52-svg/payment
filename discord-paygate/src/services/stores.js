@@ -174,6 +174,7 @@ export async function plansOf(store) {
     description: p.description ?? '',
     descriptionHighlight: null,
     imageUrl: rebaseImageUrl(p.imageUrl),
+    mediaKind: p.mediaKind ?? null,
     roleNames: p.roleNames,
     priceUsd: p.priceUsd,
     interval: p.lifetime ? 'lifetime' : 'month',
@@ -203,6 +204,7 @@ export async function plansOf(store) {
     v.description = parent.description;
     v.descriptionHighlight = parent.descriptionHighlight;
     v.imageUrl = parent.imageUrl;
+    v.mediaKind = parent.mediaKind ?? null;
     v.roleIds = parent.roleIds;
     v.roleNames = parent.roleNames;
     v.successUrl = v.successUrl ?? parent.successUrl;

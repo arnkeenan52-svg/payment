@@ -6,7 +6,7 @@ import { guard, sendText } from '../src/lib/http.js';
 import { adminStoreBySlug } from '../src/services/stores.js';
 import { getPlanImage } from '../src/db.js';
 
-const DATA_URL = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/;
+const DATA_URL = /^data:(image\/(?:png|jpeg|webp|gif)|video\/(?:mp4|webm));base64,([A-Za-z0-9+/=]+)$/;
 
 export default guard(async (req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -24,13 +24,32 @@ export default guard(async (req, res) => {
   const m = data ? DATA_URL.exec(data) : null;
   if (!m) return sendText(res, 404, 'not found');
   const body = Buffer.from(m[2], 'base64');
-  res.writeHead(200, {
+  const common = {
     'content-type': m[1],
-    'content-length': body.length,
     'cache-control': 'public, max-age=3600',
-    // The MIME is already whitelisted to four image types by DATA_URL; nosniff
-    // stops a browser from ever reinterpreting the bytes as anything else.
+    'accept-ranges': 'bytes',
+    // The MIME is already whitelisted by DATA_URL; nosniff stops a browser
+    // from ever reinterpreting the bytes as anything else.
     'x-content-type-options': 'nosniff',
-  });
+  };
+  // Range support: Safari refuses to play <video> from servers that answer a
+  // byte-range request with a plain 200, so honour single ranges.
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+  if (range && (range[1] || range[2])) {
+    const start = range[1] ? Number(range[1]) : Math.max(0, body.length - Number(range[2]));
+    const end = range[1] && range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
+    if (!Number.isFinite(start) || start >= body.length || start > end) {
+      res.writeHead(416, { 'content-range': `bytes */${body.length}` });
+      return res.end();
+    }
+    const chunk = body.subarray(start, end + 1);
+    res.writeHead(206, {
+      ...common,
+      'content-length': chunk.length,
+      'content-range': `bytes ${start}-${end}/${body.length}`,
+    });
+    return res.end(chunk);
+  }
+  res.writeHead(200, { ...common, 'content-length': body.length });
   res.end(body);
 });

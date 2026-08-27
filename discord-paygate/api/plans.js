@@ -64,6 +64,7 @@ export default guard(async function handler(req, res) {
       interval: p.interval,
       lifetime: Boolean(p.lifetime),
       imageUrl: p.imageUrl ?? null,
+      mediaKind: p.mediaKind ?? null,
       roleNames: (roleMap ? roleMap.get(p.id)?.roleNames : null) ?? p.roleNames ?? [],
       descriptionHighlight: p.descriptionHighlight ?? null,
       linkSlug: p.linkSlug ?? null,

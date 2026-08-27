@@ -625,6 +625,9 @@ const planRow = (r) =>
         requiredRoleId: r.required_role_id ?? null,
         requiredRoleName: r.required_role_name ?? null,
         hasImageData: Boolean(r.image_data), // the data URL itself never rides list payloads
+        // What the upload IS — storefronts need a <video> vs <img> decision
+        // without ever loading the data URL into a list payload.
+        mediaKind: r.image_data ? (String(r.image_data).startsWith('data:video/') ? 'video' : 'image') : null,
         createdAt: r.created_at === null || r.created_at === undefined ? null : Number(r.created_at),
       }
     : null;

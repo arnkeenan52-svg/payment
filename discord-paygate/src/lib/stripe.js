@@ -221,7 +221,7 @@ export async function ensureTenantPrice(store, plan) {
     form: {
       name: plan.name,
       ...(plan.description ? { description: plan.description } : {}),
-      ...(plan.imageUrl ? { images: [plan.imageUrl] } : {}),
+      ...(plan.imageUrl && plan.mediaKind !== 'video' ? { images: [plan.imageUrl] } : {}),
       default_price_data: {
         currency: 'usd',
         unit_amount: Math.round(plan.priceUsd * 100),

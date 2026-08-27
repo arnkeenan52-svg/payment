@@ -76,7 +76,9 @@ export default guard(async (req, res) => {
       const linkedPlan = matched?.variantOf ? plans.find((p) => p.id === matched.variantOf) ?? matched : matched;
       // The preview image is the product's own photo when there is one
       // (uploads serve from /api/img over https); the platform shot otherwise.
-      const productImg = (linkedPlan ? [linkedPlan.imageUrl] : plans.map((p) => p.imageUrl))
+      const productImg = (linkedPlan ? [linkedPlan] : plans)
+        .filter((p) => p?.mediaKind !== 'video' && !/\.(mp4|webm)([?#]|$)/i.test(p?.imageUrl ?? ''))
+        .map((p) => p.imageUrl)
         .find((u) => typeof u === 'string' && u.startsWith('https://'));
       const image = productImg ?? `${config.publicBaseUrl}/shot-store.png`;
       const title = linkedPlan ? `${linkedPlan.name} — ${store.name}` : `${store.name} — Membership`;
