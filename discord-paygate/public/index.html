@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=132" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=132" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=133" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=133" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=132') format('woff2');
+  src:url('/jakarta-latin.woff2?v=133') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -280,7 +280,7 @@ html[data-theme="light"] .hero-sky{
   text-align:center;position:relative;padding:72px 24px 40px;
 }
 .hero h1{
-  font-size:clamp(50px,6vw,84px);line-height:1.04;
+  font-size:clamp(50px,4.8vw,68px);line-height:1.06;
 }
 .hero h1 .h1-key{display:block;color:var(--blue)}
 .hero-sub{
@@ -333,7 +333,7 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=132') center/cover;
+  background:url('/hero-poster.webp?v=133') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1537,37 +1537,23 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 .fw-base{background:rgba(255,255,255,.12)}
 .fw-grad{background:linear-gradient(180deg,rgba(255,255,255,.3) 0%,rgba(255,255,255,.06) 64%,rgba(255,255,255,.16) 100%)}
 
-/* ── the kit pill: blurple ramp, three-layer inner shadow, resting glint ── */
+/* ── the pill: solid blurple ramp — no sheen, no wet rims ── */
 .btn-primary,.btn-gloss{
-  position:relative;overflow:hidden;
-  border:1px solid rgba(64,76,196,.55);border-radius:999px;
-  background:linear-gradient(180deg,#6673f6 0%,#5865f2 52%,#4550cf 100%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 6px rgba(20,26,110,.3),0 14px 30px -12px rgba(52,62,190,.5);
+  border:1px solid rgba(64,76,196,.5);border-radius:999px;
+  background:linear-gradient(180deg,#626ff5 0%,#5865f2 55%,#4c58e0 100%);
+  box-shadow:0 6px 16px -8px rgba(40,50,160,.45);
   color:#fff;font-weight:700;
-  transition:box-shadow .18s cubic-bezier(.16,1,.3,1),transform .18s cubic-bezier(.16,1,.3,1);
+  transition:box-shadow .18s cubic-bezier(.16,1,.3,1),transform .18s cubic-bezier(.16,1,.3,1),filter .18s cubic-bezier(.16,1,.3,1);
 }
-.btn-primary::before,.btn-gloss::before{
-  content:"";position:absolute;top:0;bottom:0;left:0;width:55%;pointer-events:none;
-  transform:translateX(-190%) skew(-18deg);
-  background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.5) 50%,transparent 100%);
-  animation:duesSheen 6.5s ease-in-out infinite;
-}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 6px rgba(20,26,110,.3),0 20px 40px -12px rgba(52,62,190,.62)}
-.btn-gloss{display:inline-flex;justify-content:center;align-items:center;gap:12px;min-height:60px;padding:19px 38px;font-size:19px;letter-spacing:-.01em;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 6px rgba(20,26,110,.3),0 14px 30px -12px rgba(28,42,170,.5)}
-.btn-gloss::before{width:48%;animation:duesFooterSheen 3.8s ease-in-out infinite}
-.btn-gloss:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 6px rgba(20,26,110,.3),0 22px 44px -12px rgba(28,42,170,.58)}
-@keyframes duesSheen{0%,86%{transform:translateX(-190%) skew(-18deg)}100%{transform:translateX(310%) skew(-18deg)}}
-@keyframes duesFooterSheen{0%,68%{transform:translateX(-190%) skew(-18deg)}100%{transform:translateX(360%) skew(-18deg)}}
+.btn-primary:hover{transform:translateY(-1px);filter:brightness(1.05);box-shadow:0 10px 22px -10px rgba(40,50,160,.5)}
+.btn-gloss{display:inline-flex;justify-content:center;align-items:center;gap:12px;min-height:60px;padding:19px 38px;font-size:19px;letter-spacing:-.01em}
+.btn-gloss:hover{transform:translateY(-2px);filter:brightness(1.05);box-shadow:0 12px 26px -10px rgba(40,50,160,.5)}
 
 /* ── the kit's display face + weight inversion: Plus Jakarta Sans for the
    big moments; headings get lighter as they grow, small text stays heavy ── */
 .hero h1{font-family:var(--jakarta);font-weight:600;letter-spacing:-.03em;word-spacing:.06em;line-height:1.06}
 .hiw-head h2,.faq-head h2,.calc-head h2,.sec-head h2,.cres-head h2{font-family:var(--jakarta);font-weight:500;letter-spacing:-.02em}
 
-@media (prefers-reduced-motion:reduce){
-  .btn-primary::before,.btn-gloss::before{animation:none}
-}
 @media (max-width:639px){
   .footer-title{font-size:clamp(34px,9vw,48px)}
   .footer-directory{grid-template-columns:1fr 1fr}
@@ -2031,7 +2017,7 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
   </div>
 </footer>
 
-<script src="/sky.js?v=132" defer></script>
+<script src="/sky.js?v=133" defer></script>
 <script>
 (function(){
   'use strict';
