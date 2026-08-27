@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=150" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=150" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=151" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=151" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=150') format('woff2');
+  src:url('/jakarta-latin.woff2?v=151') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -355,7 +355,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=150') center/cover;
+  background:url('/hero-poster.webp?v=151') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1624,7 +1624,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 /* payment methods: real brand marks on white chips, its own section */
 .pay{padding:8px 24px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
 .pay-cap{font:600 11px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--micro)}
-.pay-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:560px}
+.pay-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:800px}
 .pay-chip{
   display:inline-flex;align-items:center;justify-content:center;gap:4px;
   min-height:34px;min-width:64px;padding:5px 15px;border-radius:10px;
@@ -1658,7 +1658,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 }
 
 /* ── how it works ── */
-.how{padding:26px 24px 30px}
+.how{padding:56px 24px 30px}
 .how-head{text-align:center;margin-bottom:40px}
 .how-head .sec-display{margin-inline:auto}
 .how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
@@ -1802,32 +1802,6 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 </section>
 
 
-<!-- 4.5 · how it works -->
-<section class="how wrap" id="how">
-  <div class="how-head">
-    <p class="sec-eyebrow">HOW IT WORKS</p>
-    <h2 class="sec-display">Selling in three steps.</h2>
-  </div>
-  <div class="how-grid">
-    <div class="how-card reveal">
-      <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
-      <h3>Connect Stripe</h3>
-      <p>Link your own Stripe account in minutes. Every payment settles straight into it &#8212; Dues never holds your money.</p>
-    </div>
-    <div class="how-card reveal">
-      <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
-      <h3>Create a product</h3>
-      <p>Turn any role into a product &#8212; monthly, yearly, or one-time lifetime. Set the price, pick the role, done.</p>
-    </div>
-    <div class="how-card reveal">
-      <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-      <h3>Get paid</h3>
-      <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and you keep every dollar.</p>
-    </div>
-  </div>
-</section>
-
-
 <!-- 5 · calculate your savings -->
 <section class="save wrap" id="save">
   <div class="save-card reveal">
@@ -1872,6 +1846,31 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     <span class="pay-chip pm-linkchip" aria-label="Link"><b>link</b></span>
     <span class="pay-chip pm-klarnachip" aria-label="Klarna"><b>Klarna.</b></span>
     <span class="pay-chip pm-cashchip" aria-label="Cash App Pay"><svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff"><path d="M16.19 7.06c.67.46 1.28 1 1.83 1.6a.66.66 0 0 0 .95.03l1.26-1.26a.68.68 0 0 0 0-.97 11.6 11.6 0 0 0-2.32-1.94l.5-2.01a.67.67 0 0 0-.65-.83h-2.44a.67.67 0 0 0-.65.51l-.33 1.32c-2.98-.6-6.09.35-6.7 3.42-.5 2.5 1.26 3.77 3.32 4.52 1.9.71 3.36 1.13 3.13 2.32-.2 1.03-1.44 1.55-3.16 1.28a7.3 7.3 0 0 1-2.98-1.36.67.67 0 0 0-.9.06l-1.32 1.35a.68.68 0 0 0 .03.98 9.6 9.6 0 0 0 2.66 1.68l-.5 2.05a.67.67 0 0 0 .66.82l2.45-.02c.31 0 .58-.21.65-.51l.33-1.33c3.58.62 6.43-.68 6.98-3.55.46-2.44-1.2-3.7-3.5-4.51-1.62-.6-2.99-1.03-2.79-2.16.2-1.12 1.77-1.36 3.49-.99z"/></svg><b class="pm-cash-ink">Cash&#8202;App</b></span>
+  </div>
+</section>
+
+<!-- 4.5 · how it works -->
+<section class="how wrap" id="how">
+  <div class="how-head">
+    <p class="sec-eyebrow">HOW IT WORKS</p>
+    <h2 class="sec-display">Selling in three steps.</h2>
+  </div>
+  <div class="how-grid">
+    <div class="how-card reveal">
+      <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
+      <h3>Connect Stripe</h3>
+      <p>Link your own Stripe account in minutes. Every payment settles straight into it &#8212; Dues never holds your money.</p>
+    </div>
+    <div class="how-card reveal">
+      <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
+      <h3>Create a product</h3>
+      <p>Turn any role into a product &#8212; monthly, yearly, or one-time lifetime. Set the price, pick the role, done.</p>
+    </div>
+    <div class="how-card reveal">
+      <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+      <h3>Get paid</h3>
+      <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and you keep every dollar.</p>
+    </div>
   </div>
 </section>
 
@@ -1980,7 +1979,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=150" defer></script>
+<script src="/sky.js?v=151" defer></script>
 <script>
 (function(){
   'use strict';

@@ -9,9 +9,13 @@ export const DEMO_NAME = 'Dues Membership';
 
 // The Midnight preset, same tokens the dashboard offers — the platform's
 // own black look.
+// The demo wears the customization system's flagship look: navy tokens over
+// the aurora background with liquid-glass cards — the storefront equivalent
+// of a showroom floor.
 export const DEMO_THEME = {
-  bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4',
-  accent: '#ededed', pay: '#5865f2', radius: 16, font: 'default',
+  bg: '#101827', panel: '#182338', text: '#f2f5fa',
+  accent: '#8b96f8', pay: '#5865f2', radius: 16, font: 'default',
+  bgPreset: 'aurora', material: 'liquid',
 };
 
 export const demoPlans = () => [

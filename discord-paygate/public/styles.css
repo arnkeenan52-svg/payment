@@ -31,29 +31,30 @@
    white on black. Discord concepts (role chips, the open-server button)
    use Discord blurple; payment brand marks keep their own colors. */
 :root {
-  --bg: #0a0a0a;
-  --panel: #101010;
-  --panel-hover: #161616;
-  --edge: #232323;
-  --edge-selected: #ffffff;
-  --ink: #f5f5f4;
-  --dim: #9a9a94;
-  --accent: #ededed;
-  --accent-hot: #ffffff;
-  --accent-ink: #0a0a0a;
-  --well: #0c0c0c;
-  --raised: #141414;
-  --hairline: #161616;
-  --hairline-2: #1f1f1f;
-  --edge-hot: #3d3d3d;
-  --active-fill: #1d1d1d;
-  --faint: #4a4a4a;
-  --solid: #ffffff;
-  --solid-ink: #0a0a0a;
+  --bg: #101827;
+  --panel: #182338;
+  --panel-hover: #1e2b45;
+  --edge: rgba(148, 163, 190, 0.16);
+  --edge-selected: #5865f2;
+  --ink: #f2f5fa;
+  --dim: #b7c1d4;
+  --accent: #5865f2;
+  --accent-hot: #4752e8;
+  --accent-ink: #ffffff;
+  --well: #131b2d;
+  --raised: #1c2740;
+  --hairline: rgba(148, 163, 190, 0.10);
+  --hairline-2: rgba(148, 163, 190, 0.14);
+  --edge-hot: rgba(148, 163, 190, 0.32);
+  --active-fill: #223050;
+  --faint: #94a0b5;
+  --solid: #5865f2;
+  --solid-ink: #ffffff;
   --blurple: #5865f2;
   --blurple-text: #8b96f8;
   --stripe: #635bff;
-  --good: #ededed;
+  --good: #3ddc84;
+  --money: #3ddc84;
   --bad: #f87171;
   --font-head: 'Space Grotesk', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
@@ -67,27 +68,28 @@
    Product depictions (mini mocks, browser frames, the hero tour) stay dark
    in both themes — they are screenshots of the app, not site chrome. ── */
 html[data-theme='light'] {
-  --bg: #fafaf8;
+  --bg: #f4f8fd;
   --panel: #ffffff;
-  --panel-hover: #f1f1ee;
-  --edge: #dcdcd6;
-  --edge-selected: #0a0a0a;
-  --ink: #161616;
-  --dim: #6d6d66;
-  --accent: #1a1a1a;
-  --accent-hot: #000000;
+  --panel-hover: #eef4fc;
+  --edge: #d9e4f2;
+  --edge-selected: #5865f2;
+  --ink: #0f1626;
+  --dim: #46536e;
+  --accent: #5865f2;
+  --accent-hot: #4752e8;
   --accent-ink: #ffffff;
-  --good: #1a1a1a;
+  --good: #177245;
+  --money: #177245;
   --bad: #c43c3c;
   --blurple-text: #4753c9;
-  --well: #f4f4f1;
-  --raised: #ecece9;
-  --hairline: #e9e9e4;
-  --hairline-2: #dededa;
-  --edge-hot: #b6b6af;
-  --active-fill: #e7e7e2;
-  --faint: #a6a69e;
-  --solid: #0a0a0a;
+  --well: #e9f1fa;
+  --raised: #f1f6fc;
+  --hairline: #e3ecf7;
+  --hairline-2: #d7e3f2;
+  --edge-hot: #b9cbe4;
+  --active-fill: #e4edf9;
+  --faint: #9fb0c8;
+  --solid: #5865f2;
   --solid-ink: #ffffff;
 }
 html[data-theme='light'] body { background: var(--bg); color: var(--ink); }
@@ -3219,3 +3221,221 @@ html[data-theme='light'] body.home .browser-frame .hero-video { background: #faf
   .dcx-back, .dcx, .dcx-grant, .dcx-out, .dcx-brandmark { transition: none; }
   .dcx-f.on .caret, .dcx-spin { animation: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Store backgrounds + materials.
+
+   A storefront can wear one of ~34 built-in grounds (photos, painted scenes,
+   animated CSS, quiet gradients, the live cloud shader) or an owner-imported
+   GIF/MP4. The layer is rendered server-side by api/store-page.js from
+   VALIDATED tokens only — these classes are the entire vocabulary. Thumbnails
+   in the dashboard reuse the same selectors via .sbg-thumb.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.store-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--bg); }
+.store-bg img, .store-bg video, .store-bg canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.store-bg .sbg-a, .store-bg .sbg-b, .store-bg .sbg-c { position: absolute; inset: -12%; will-change: transform; }
+/* readability scrim — soft on top, weightier at the fold */
+.store-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(9, 14, 28, 0.08), rgba(9, 14, 28, 0.34)); }
+html[data-theme='light'] .store-bg::after { background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(16, 25, 45, 0.14)); }
+/* content stacks above the fixed ground */
+body.has-bg .top, body.has-bg .checkout, body.has-bg > footer { position: relative; z-index: 1; }
+body.has-bg .top { background: transparent; border-bottom-color: transparent; }
+
+/* ── materials ─────────────────────────────────────────────────────────────
+   glass (default with a background), liquid (heavier, specular), solid. */
+body.has-bg .panel, body.has-bg .prod-card, body.has-bg .shop-about {
+  background: color-mix(in srgb, var(--panel) 74%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px -28px rgba(4, 8, 18, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+html[data-theme='light'] body.has-bg .panel,
+html[data-theme='light'] body.has-bg .prod-card,
+html[data-theme='light'] body.has-bg .shop-about {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 24px 60px -30px rgba(20, 40, 90, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+body[data-material='liquid'] .panel, body[data-material='liquid'] .prod-card, body[data-material='liquid'] .shop-about {
+  background: color-mix(in srgb, var(--panel) 56%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+  backdrop-filter: blur(28px) saturate(1.8);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 30px 80px -30px rgba(4, 8, 18, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+html[data-theme='light'] body[data-material='liquid'] .panel,
+html[data-theme='light'] body[data-material='liquid'] .prod-card,
+html[data-theme='light'] body[data-material='liquid'] .shop-about {
+  background: rgba(255, 255, 255, 0.44);
+  border-color: rgba(255, 255, 255, 0.9);
+}
+body[data-material='solid'] .panel, body[data-material='solid'] .prod-card, body[data-material='solid'] .shop-about {
+  background: var(--panel);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: var(--edge);
+}
+
+/* ── thumbnails: the dashboard picker reuses every preset selector ── */
+.sbg-thumb { position: relative; inset: auto; z-index: 0; width: 100%; height: 100%; border-radius: 9px; display: block; }
+.sbg-thumb::after { content: none; }
+.sbg-thumb .sbg-a, .sbg-thumb .sbg-b, .sbg-thumb .sbg-c { inset: -20%; }
+
+/* ── quiet gradients ── */
+.store-bg[data-bg='midnight'] { background: linear-gradient(180deg, #0b1026, #1b2a52 55%, #2b3a67); }
+.store-bg[data-bg='denim'] { background: linear-gradient(180deg, #16233f, #3a6ab4 60%, #6d9edd); }
+.store-bg[data-bg='royal'] { background: linear-gradient(180deg, #150d33, #3b2a8c 55%, #6650d8); }
+.store-bg[data-bg='emerald'] { background: linear-gradient(180deg, #04150f, #0c3d2c 55%, #1f7a52); }
+.store-bg[data-bg='rose'] { background: linear-gradient(180deg, #2b0f1d, #7a2447 55%, #c95f7f); }
+.store-bg[data-bg='gold'] { background: linear-gradient(180deg, #241505, #7a4a12 55%, #d29b3d); }
+.store-bg[data-bg='slate'] { background: linear-gradient(180deg, #10141c, #2a3242 55%, #4a5568); }
+.store-bg[data-bg='lavender'] { background: linear-gradient(180deg, #cbb8ec, #e6dcf7 55%, #f4effc); }
+.store-bg[data-bg='mint'] { background: linear-gradient(180deg, #bfe8d8, #e2f6ec 55%, #f2fbf7); }
+.store-bg[data-bg='ember'] { background: linear-gradient(180deg, #1c0b08, #57200f 55%, #a84a1b); }
+
+/* ── animated scenes ── */
+/* aurora: drifting curtains over a near-black arctic sky */
+.store-bg[data-bg='aurora'] { background: linear-gradient(180deg, #060a18, #0b1430 70%, #12203f); }
+.store-bg[data-bg='aurora'] .sbg-a, .store-bg[data-bg='aurora'] .sbg-b {
+  filter: blur(46px); opacity: 0.55; border-radius: 40%;
+  background: radial-gradient(60% 40% at 30% 40%, #2fd67c 0%, transparent 70%),
+              radial-gradient(50% 35% at 70% 30%, #7a5cff 0%, transparent 70%);
+  animation: sbg-drift 26s ease-in-out infinite alternate;
+}
+.store-bg[data-bg='aurora'] .sbg-b { opacity: 0.35; animation-duration: 37s; animation-delay: -12s; transform: scaleX(-1); }
+.store-bg[data-bg='aurora'] .sbg-c, .store-bg[data-bg='starfield'] .sbg-c, .store-bg[data-bg='nebula'] .sbg-c {
+  background-image: radial-gradient(1.5px 1.5px at 20% 30%, rgba(255,255,255,0.9) 49%, transparent 51%),
+    radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.7) 49%, transparent 51%),
+    radial-gradient(1px 1px at 80% 20%, rgba(255,255,255,0.8) 49%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 40% 80%, rgba(255,255,255,0.6) 49%, transparent 51%),
+    radial-gradient(1px 1px at 90% 55%, rgba(255,255,255,0.75) 49%, transparent 51%),
+    radial-gradient(1px 1px at 10% 65%, rgba(255,255,255,0.6) 49%, transparent 51%);
+  background-size: 340px 340px, 260px 260px, 300px 300px, 420px 420px, 380px 380px, 240px 240px;
+}
+/* starfield: still sky, twinkle by opacity */
+.store-bg[data-bg='starfield'] { background: linear-gradient(180deg, #05070f, #0b1226 70%, #131c36); }
+.store-bg[data-bg='starfield'] .sbg-a {
+  background-image: radial-gradient(1px 1px at 25% 25%, #fff 49%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 75% 45%, #fff 49%, transparent 51%),
+    radial-gradient(1px 1px at 45% 85%, #fff 49%, transparent 51%);
+  background-size: 280px 280px, 360px 360px, 310px 310px;
+  animation: sbg-twinkle 5s ease-in-out infinite alternate;
+}
+/* fireflies: warm dots pulsing over a night meadow */
+.store-bg[data-bg='fireflies'] { background: linear-gradient(180deg, #06120c, #0b2013 65%, #123420); }
+.store-bg[data-bg='fireflies'] .sbg-a, .store-bg[data-bg='fireflies'] .sbg-b {
+  filter: blur(1.5px);
+  background-image: radial-gradient(3px 3px at 22% 40%, #ffe89a 45%, transparent 55%),
+    radial-gradient(2.5px 2.5px at 66% 66%, #ffd76e 45%, transparent 55%),
+    radial-gradient(2px 2px at 84% 30%, #fff3b8 45%, transparent 55%),
+    radial-gradient(2.5px 2.5px at 40% 78%, #ffe89a 45%, transparent 55%);
+  background-size: 420px 420px, 380px 380px, 300px 300px, 460px 460px;
+  animation: sbg-twinkle 4s ease-in-out infinite alternate, sbg-drift 33s ease-in-out infinite alternate;
+}
+.store-bg[data-bg='fireflies'] .sbg-b { animation-delay: -2s, -17s; opacity: 0.7; }
+/* rain: streaks falling over slate */
+.store-bg[data-bg='rain'] { background: linear-gradient(180deg, #1a2130, #232c3f 60%, #2b3547); }
+.store-bg[data-bg='rain'] .sbg-a, .store-bg[data-bg='rain'] .sbg-b {
+  inset: -110% -12% -12%;
+  background: repeating-linear-gradient(16deg, transparent 0 14px, rgba(190, 205, 230, 0.14) 14px 15px, transparent 15px 26px);
+  animation: sbg-fall 1.1s linear infinite;
+}
+.store-bg[data-bg='rain'] .sbg-b { animation-duration: 1.7s; opacity: 0.5; transform: translateX(30px); }
+/* snow: two depths of flakes */
+.store-bg[data-bg='snow'] { background: linear-gradient(180deg, #17233c, #23324f 60%, #31425f); }
+.store-bg[data-bg='snow'] .sbg-a, .store-bg[data-bg='snow'] .sbg-b {
+  inset: -110% -12% -12%;
+  background-image: radial-gradient(3px 3px at 20% 20%, rgba(255,255,255,0.9) 45%, transparent 55%),
+    radial-gradient(2px 2px at 60% 50%, rgba(255,255,255,0.7) 45%, transparent 55%),
+    radial-gradient(2.5px 2.5px at 85% 80%, rgba(255,255,255,0.8) 45%, transparent 55%),
+    radial-gradient(2px 2px at 40% 90%, rgba(255,255,255,0.6) 45%, transparent 55%);
+  background-size: 260px 260px, 320px 320px, 300px 300px, 380px 380px;
+  animation: sbg-fall 11s linear infinite;
+}
+.store-bg[data-bg='snow'] .sbg-b { animation-duration: 19s; opacity: 0.55; filter: blur(1px); transform: translateX(40px); }
+/* deep ocean: caustic light wells rising through blue */
+.store-bg[data-bg='ocean'] { background: linear-gradient(180deg, #03182b, #06304f 55%, #0a4a6e); }
+.store-bg[data-bg='ocean'] .sbg-a, .store-bg[data-bg='ocean'] .sbg-b {
+  filter: blur(50px); opacity: 0.5; border-radius: 40%;
+  background: radial-gradient(45% 35% at 30% 30%, #2699c9 0%, transparent 70%),
+              radial-gradient(40% 30% at 75% 60%, #35b3d9 0%, transparent 70%);
+  animation: sbg-drift 24s ease-in-out infinite alternate;
+}
+.store-bg[data-bg='ocean'] .sbg-b { animation-duration: 35s; animation-delay: -14s; transform: scale(-1); }
+/* lava: slow rising blobs */
+.store-bg[data-bg='lava'] { background: linear-gradient(180deg, #170705, #3c130a 55%, #6e2410); }
+.store-bg[data-bg='lava'] .sbg-a, .store-bg[data-bg='lava'] .sbg-b {
+  filter: blur(34px); opacity: 0.6; border-radius: 45%;
+  background: radial-gradient(24% 30% at 30% 80%, #ff7a2f 0%, transparent 70%),
+              radial-gradient(20% 26% at 70% 90%, #ffb13d 0%, transparent 70%),
+              radial-gradient(16% 20% at 50% 70%, #ff5714 0%, transparent 70%);
+  animation: sbg-rise 18s ease-in-out infinite alternate;
+}
+.store-bg[data-bg='lava'] .sbg-b { animation-duration: 27s; animation-delay: -9s; transform: scaleX(-1); }
+/* nebula: rotating dust over stars */
+.store-bg[data-bg='nebula'] { background: linear-gradient(180deg, #0a0618, #1b1038 60%, #2a1a52); }
+.store-bg[data-bg='nebula'] .sbg-a, .store-bg[data-bg='nebula'] .sbg-b {
+  filter: blur(56px); opacity: 0.55; border-radius: 50%;
+  background: radial-gradient(40% 34% at 40% 45%, #8b4fd8 0%, transparent 70%),
+              radial-gradient(30% 26% at 65% 55%, #d84f9e 0%, transparent 70%),
+              radial-gradient(26% 22% at 55% 30%, #4f74d8 0%, transparent 70%);
+  animation: sbg-spin 60s linear infinite;
+}
+.store-bg[data-bg='nebula'] .sbg-b { animation-duration: 90s; animation-direction: reverse; opacity: 0.35; }
+/* synthwave: horizon sun over a sliding grid */
+.store-bg[data-bg='synthwave'] { background: linear-gradient(180deg, #12052e 0%, #3c0f63 46%, #c9366e 62%, #1a0b3d 62.2%, #12052e 100%); }
+.store-bg[data-bg='synthwave'] .sbg-a {
+  inset: auto -10% -4% -10%; height: 40%;
+  background: repeating-linear-gradient(90deg, rgba(255, 92, 168, 0.5) 0 2px, transparent 2px 90px),
+              repeating-linear-gradient(0deg, rgba(255, 92, 168, 0.5) 0 2px, transparent 2px 44px);
+  transform: perspective(300px) rotateX(58deg);
+  transform-origin: 50% 0;
+  animation: sbg-grid 3.4s linear infinite;
+}
+.store-bg[data-bg='synthwave'] .sbg-b {
+  inset: 26% auto auto 50%; width: 300px; height: 300px; margin-left: -150px; border-radius: 50%;
+  background: linear-gradient(180deg, #ffd76e, #ff5c8f 70%);
+  filter: blur(2px); opacity: 0.9;
+  -webkit-mask: repeating-linear-gradient(0deg, #000 0 24px, transparent 24px 32px);
+  mask: repeating-linear-gradient(0deg, #000 0 24px, transparent 24px 32px);
+}
+/* color flow: one slow oversized gradient */
+.store-bg[data-bg='flow'] { background: #131b2d; }
+.store-bg[data-bg='flow'] .sbg-a {
+  inset: -60%;
+  background: conic-gradient(from 0deg, #5865f2, #9a5cd8, #d85c9a, #d89a5c, #5cd8b3, #5865f2);
+  filter: blur(90px) saturate(1.2); opacity: 0.65;
+  animation: sbg-spin 36s linear infinite;
+}
+
+@keyframes sbg-drift { from { transform: translate3d(-4%, -2%, 0) rotate(-3deg); } to { transform: translate3d(4%, 2%, 0) rotate(3deg); } }
+@keyframes sbg-twinkle { from { opacity: 0.35; } to { opacity: 0.95; } }
+@keyframes sbg-fall { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-18px, 49%, 0); } }
+@keyframes sbg-rise { from { transform: translate3d(0, 6%, 0) scale(1); } to { transform: translate3d(0, -8%, 0) scale(1.08); } }
+@keyframes sbg-spin { to { transform: rotate(360deg); } }
+@keyframes sbg-grid { from { background-position: 0 0, 0 0; } to { background-position: 0 0, 0 44px; } }
+@media (prefers-reduced-motion: reduce) {
+  .store-bg .sbg-a, .store-bg .sbg-b, .store-bg .sbg-c { animation: none !important; }
+}
+
+/* ── dashboard: background picker ── */
+.bgp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.bgp { display: flex; flex-direction: column; gap: 5px; padding: 0; background: none; border: 0; cursor: pointer; text-align: left; }
+.bgp-thumb {
+  position: relative; display: block; height: 56px; border-radius: 10px; overflow: hidden;
+  border: 2px solid var(--hairline-2); background: var(--well); transition: border-color 0.15s;
+}
+.bgp-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bgp:hover .bgp-thumb { border-color: var(--edge-hot); }
+.bgp.active .bgp-thumb { border-color: var(--blurple); box-shadow: 0 0 0 1px var(--blurple); }
+.bgp-none { display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 18px; }
+.bgp-live {
+  position: absolute; top: 4px; right: 4px; padding: 1px 5px; border-radius: 5px;
+  background: rgba(10, 16, 30, 0.65); color: #fff; font-size: 8.5px; font-weight: 700; letter-spacing: 0.08em;
+}
+.bgp-name { font-size: 11px; color: var(--dim); line-height: 1.2; }
+.bgp.active .bgp-name { color: var(--ink); }
+.bgp-url-row { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.bgp-url-row input { width: 100%; }
+.bgp-mat-note { margin-top: 8px; }

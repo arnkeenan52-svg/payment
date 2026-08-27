@@ -9,7 +9,7 @@ import { guard, sendText } from '../src/lib/http.js';
 import { config } from '../src/config.js';
 import { storeBySlug, sellablePlansOf } from '../src/services/stores.js';
 import { DEMO_SLUG, DEMO_NAME, DEMO_THEME, demoPlans } from '../src/services/demo-store.js';
-import { validateTheme, themeCss } from '../src/lib/theme.js';
+import { validateTheme, themeCss, bgLayer } from '../src/lib/theme.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -27,10 +27,13 @@ export default guard(async (req, res) => {
   const productSeg = (url.searchParams.get('product') ?? '').toLowerCase() || null;
   let head = null;
   let themeStyle = '';
+  let bg = null;
   if (slug === DEMO_SLUG) {
     // The hosted demo store: fixed head and the Emerald theme, no DB behind it.
     try {
-      themeStyle = `\n  <style id="store-theme">${themeCss(validateTheme(DEMO_THEME))}</style>`;
+      const theme = validateTheme(DEMO_THEME);
+      themeStyle = `\n  <style id="store-theme">${themeCss(theme)}</style>`;
+      bg = bgLayer(theme);
     } catch { /* the default look, then */ }
     const demoPlan = productSeg ? matchPlan(demoPlans(), productSeg) : null;
     const title = demoPlan ? `${demoPlan.name} — ${DEMO_NAME}` : `${DEMO_NAME} — Demo Store`;
@@ -58,7 +61,10 @@ export default guard(async (req, res) => {
       // whatever ended up in the database.
       try {
         const theme = validateTheme(store.theme);
-        if (theme) themeStyle = `\n  <style id="store-theme">${themeCss(theme)}</style>`;
+        if (theme) {
+          themeStyle = `\n  <style id="store-theme">${themeCss(theme)}</style>`;
+          bg = bgLayer(theme);
+        }
       } catch {
         /* an unusable stored theme renders the default look */
       }
@@ -103,6 +109,14 @@ export default guard(async (req, res) => {
   // a description like "Win $$$ daily" must not corrupt the served head.
   if (head) html = html.replace(/<!-- og:begin[\s\S]*?<!-- og:end -->/, () => head);
   if (themeStyle) html = html.replace('</head>', `${themeStyle}\n</head>`);
+  // The owner's background: a layer just inside <body>, material attributes
+  // on the body tag, the light token set for bright grounds, and the cloud
+  // shader for the live presets. All of it built from validated tokens.
+  if (bg) {
+    html = html.replace('<body>', () => `<body${bg.bodyAttrs}>\n  ${bg.markup}`);
+    if (bg.lightTone) html = html.replace('<html lang="en">', '<html lang="en" data-theme="light">');
+    if (bg.needsSky) html = html.replace('</body>', () => `  <script src="/sky.js" defer></script>\n</body>`);
+  }
   res.writeHead(200, {
     'content-type': 'text/html; charset=utf-8',
     // Short shared cache: link unfurlers and buyers get fresh store data

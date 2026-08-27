@@ -1453,7 +1453,45 @@ const STORE_CATS = [
   ['content', 'Content'], ['community', 'Community'], ['other', 'Other'],
 ];
 
-const THEME_DEFAULTS = { bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4', accent: '#ededed', pay: '#5865f2', radius: 16, font: 'default' };
+const THEME_DEFAULTS = { bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4', accent: '#ededed', pay: '#5865f2', radius: 16, font: 'default', bgPreset: '', bgUrl: '', material: 'glass' };
+
+// Mirror of BG_PRESETS in src/lib/theme.js — ids, tones and how each one
+// paints its picker thumbnail. `thumb` (an image) covers photo presets and
+// stands in for the live cloud shader; css presets thumbnail themselves.
+const BG_CATALOG = [
+  { id: 'clouds-day', label: 'Clouds · day', tone: 'light', thumb: '/sky-day-tall.jpg', live: true },
+  { id: 'clouds-night', label: 'Clouds · night', tone: 'dark', thumb: '/sky-night-tall.jpg', live: true },
+  { id: 'sky-day', label: 'Sky · day', tone: 'light', thumb: '/sky-day-tall.jpg' },
+  { id: 'sky-night', label: 'Sky · night', tone: 'dark', thumb: '/sky-night-tall.jpg' },
+  { id: 'mountains', label: 'Mountains', tone: 'dark', thumb: '/bg/mountains.jpg' },
+  { id: 'forest', label: 'Forest', tone: 'dark', thumb: '/bg/forest.jpg' },
+  { id: 'dunes', label: 'Dunes', tone: 'dark', thumb: '/bg/dunes.jpg' },
+  { id: 'lake', label: 'Lake', tone: 'dark', thumb: '/bg/lake.jpg' },
+  { id: 'coast', label: 'Coast', tone: 'dark', thumb: '/bg/coast.jpg' },
+  { id: 'meadow', label: 'Meadow', tone: 'light', thumb: '/bg/meadow.jpg' },
+  { id: 'canyon', label: 'Canyon', tone: 'dark', thumb: '/bg/canyon.jpg' },
+  { id: 'blossom', label: 'Blossom', tone: 'light', thumb: '/bg/blossom.jpg' },
+  { id: 'aurora', label: 'Aurora', tone: 'dark' },
+  { id: 'starfield', label: 'Starfield', tone: 'dark' },
+  { id: 'fireflies', label: 'Fireflies', tone: 'dark' },
+  { id: 'rain', label: 'Rain', tone: 'dark' },
+  { id: 'snow', label: 'Snowfall', tone: 'dark' },
+  { id: 'ocean', label: 'Deep ocean', tone: 'dark' },
+  { id: 'lava', label: 'Lava', tone: 'dark' },
+  { id: 'nebula', label: 'Nebula', tone: 'dark' },
+  { id: 'synthwave', label: 'Synthwave', tone: 'dark' },
+  { id: 'flow', label: 'Color flow', tone: 'dark' },
+  { id: 'midnight', label: 'Midnight', tone: 'dark' },
+  { id: 'denim', label: 'Denim', tone: 'dark' },
+  { id: 'royal', label: 'Royal', tone: 'dark' },
+  { id: 'emerald', label: 'Emerald', tone: 'dark' },
+  { id: 'rose', label: 'Rose', tone: 'dark' },
+  { id: 'gold', label: 'Gold', tone: 'dark' },
+  { id: 'slate', label: 'Slate', tone: 'dark' },
+  { id: 'lavender', label: 'Lavender', tone: 'light' },
+  { id: 'mint', label: 'Mint', tone: 'light' },
+  { id: 'ember', label: 'Ember', tone: 'dark' },
+];
 const THEME_PRESETS = [
   ['Midnight', THEME_DEFAULTS],
   ['Ivory', { bg: '#faf9f7', panel: '#ffffff', text: '#161616', accent: '#161616', pay: '#5865f2', radius: 16, font: 'default' }],
@@ -1536,6 +1574,34 @@ function appearanceBody(store) {
       <div class="th-block">
         <span class="th-block-lab">Theme</span>
         <div class="th-tiles" role="group" aria-label="Theme presets">${THEME_PRESETS.map(tile).join('')}</div>
+      </div>
+      <div class="th-block">
+        <span class="th-block-lab">Background</span>
+        <div class="bgp-grid" role="group" aria-label="Store background">
+          <button type="button" class="bgp" data-bgp=""><span class="bgp-thumb bgp-none">&times;</span><span class="bgp-name">None</span></button>
+          ${BG_CATALOG.map((b) =>
+            `<button type="button" class="bgp" data-bgp="${b.id}">
+               <span class="bgp-thumb">${
+                 b.thumb
+                   ? `<img src="${b.thumb}" alt="" loading="lazy" />${b.live ? '<span class="bgp-live">LIVE</span>' : ''}`
+                   : `<span class="store-bg sbg-thumb" data-bg="${b.id}"><span class="sbg-a"></span><span class="sbg-b"></span><span class="sbg-c"></span></span>`
+               }</span>
+               <span class="bgp-name">${b.label}</span>
+             </button>`).join('')}
+        </div>
+        <label class="bgp-url-row">
+          <span class="th-sw-name">Or import your own — a GIF, image, or MP4/WebM video URL</span>
+          <input type="url" id="th-bgurl" placeholder="https://…/background.gif" value="${esc(t.bgUrl ?? '')}" spellcheck="false" />
+        </label>
+      </div>
+      <div class="th-block">
+        <span class="th-block-lab">Material</span>
+        <div class="th-seg" id="th-material-seg" role="group" aria-label="Card material" data-value="${esc(t.material ?? 'glass')}">
+          <button type="button" class="th-seg-btn${(t.material ?? 'glass') === 'glass' ? ' active' : ''}" data-material="glass">Glass</button>
+          <button type="button" class="th-seg-btn${t.material === 'liquid' ? ' active' : ''}" data-material="liquid">Liquid glass</button>
+          <button type="button" class="th-seg-btn${t.material === 'solid' ? ' active' : ''}" data-material="solid">Solid</button>
+        </div>
+        <p class="note-help bgp-mat-note">Material shapes the cards over a background — glassy blur or solid panels. Corners at 0 make the store square.</p>
       </div>
       <div class="th-block">
         <span class="th-block-lab">Colors <span class="th-badge-warn" id="th-contrast" hidden>Low contrast</span></span>
@@ -2594,7 +2660,68 @@ function wireAppearance(store, slug) {
     pay: $('#th-pay').value,
     radius: Number($('#th-radius').value),
     font: $('#th-font-seg')?.dataset.value ?? 'default',
+    bgPreset: draftBg,
+    bgUrl: ($('#th-bgurl')?.value ?? '').trim(),
+    material: $('#th-material-seg')?.dataset.value ?? 'glass',
   });
+  // The background the picker currently has selected ('' = none). Seeded from
+  // the saved theme; clicks update it.
+  let draftBg = store.theme?.bgPreset ?? '';
+  // Paint the draft background into the same-origin preview frame. Media
+  // elements are built with createElement — an owner-typed URL never becomes
+  // markup. Live cloud presets preview as their still (no shader in a frame).
+  const applyPreviewBg = (doc, t) => {
+    doc.getElementById('store-bg-preview')?.remove();
+    doc.querySelector('.store-bg')?.remove(); // the saved layer must not fight the draft
+    const body = doc.body;
+    const custom = t.bgUrl;
+    const preset = !custom && t.bgPreset ? t.bgPreset : null;
+    body.classList.remove('has-bg');
+    delete body.dataset.bg;
+    delete body.dataset.material;
+    if (!custom && !preset) {
+      doc.documentElement.removeAttribute('data-theme');
+      return;
+    }
+    const def = BG_CATALOG.find((b) => b.id === preset);
+    const id = preset ?? 'custom';
+    const el = doc.createElement('div');
+    el.id = 'store-bg-preview';
+    el.className = 'store-bg';
+    el.dataset.bg = id;
+    el.setAttribute('aria-hidden', 'true');
+    if (custom) {
+      const isVideo = /\.(mp4|webm)(\?|#|$)/i.test(custom);
+      const media = doc.createElement(isVideo ? 'video' : 'img');
+      media.src = custom;
+      if (isVideo) {
+        media.muted = true;
+        media.autoplay = true;
+        media.loop = true;
+        media.playsInline = true;
+      } else {
+        media.alt = '';
+      }
+      el.appendChild(media);
+    } else if (def?.thumb) {
+      const img = doc.createElement('img');
+      img.src = def.thumb;
+      img.alt = '';
+      el.appendChild(img);
+    } else {
+      for (const cls of ['sbg-a', 'sbg-b', 'sbg-c']) {
+        const span = doc.createElement('span');
+        span.className = cls;
+        el.appendChild(span);
+      }
+    }
+    body.prepend(el);
+    body.classList.add('has-bg');
+    body.dataset.bg = id;
+    body.dataset.material = t.material || 'glass';
+    if (def?.tone === 'light') doc.documentElement.setAttribute('data-theme', 'light');
+    else doc.documentElement.removeAttribute('data-theme');
+  };
   const paint = () => {
     const t = read();
     for (const k of ['bg', 'panel', 'text', 'accent', 'pay']) $(`#th-${k}-hex`).textContent = t[k];
@@ -2619,8 +2746,12 @@ function wireAppearance(store, slug) {
         }
         el.textContent = previewThemeCss(t);
         doc.getElementById('store-theme')?.remove(); // the saved theme must not fight the draft
+        applyPreviewBg(doc, t);
       }
     } catch { /* frame not ready yet */ }
+    document.querySelectorAll('.bgp').forEach((b) => {
+      b.classList.toggle('active', t.bgUrl ? false : (b.dataset.bgp ?? '') === (t.bgPreset ?? ''));
+    });
   };
   for (const id of ['th-bg', 'th-panel', 'th-text', 'th-accent', 'th-pay', 'th-radius']) {
     $(`#${id}`)?.addEventListener('input', paint);
@@ -2662,10 +2793,10 @@ function wireAppearance(store, slug) {
     new ResizeObserver(() => fit()).observe($('#th-viewport'));
     fit();
   }
-  document.querySelectorAll('.th-seg-btn').forEach((b) => {
+  document.querySelectorAll('#th-font-seg .th-seg-btn').forEach((b) => {
     b.onclick = () => {
       $('#th-font-seg').dataset.value = b.dataset.font;
-      document.querySelectorAll('.th-seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+      document.querySelectorAll('#th-font-seg .th-seg-btn').forEach((x) => x.classList.toggle('active', x === b));
       paint();
     };
   });
@@ -2676,7 +2807,25 @@ function wireAppearance(store, slug) {
       for (const k of ['bg', 'panel', 'text', 'accent', 'pay']) $(`#th-${k}`).value = p[k];
       $('#th-radius').value = p.radius;
       $('#th-font-seg').dataset.value = p.font;
-      document.querySelectorAll('.th-seg-btn').forEach((x) => x.classList.toggle('active', x.dataset.font === p.font));
+      document.querySelectorAll('#th-font-seg .th-seg-btn').forEach((x) => x.classList.toggle('active', x.dataset.font === p.font));
+      paint();
+    };
+  });
+  document.querySelectorAll('.bgp').forEach((b) => {
+    b.onclick = () => {
+      draftBg = b.dataset.bgp ?? '';
+      if (draftBg && $('#th-bgurl')) $('#th-bgurl').value = ''; // a preset replaces a custom import
+      paint();
+    };
+  });
+  $('#th-bgurl')?.addEventListener('input', () => {
+    if (($('#th-bgurl').value ?? '').trim()) draftBg = '';
+    paint();
+  });
+  document.querySelectorAll('#th-material-seg .th-seg-btn').forEach((b) => {
+    b.onclick = () => {
+      $('#th-material-seg').dataset.value = b.dataset.material;
+      document.querySelectorAll('#th-material-seg .th-seg-btn').forEach((x) => x.classList.toggle('active', x === b));
       paint();
     };
   });

@@ -2513,12 +2513,35 @@ test('store themes: validated tokens in, server-rendered CSS out', async () => {
   assert.match(page, /border-radius: 20px/, 'radius rendered');
   assert.ok(!page.includes('evil'), 'junk keys never reach the page');
 
+  // Backgrounds + materials: enum/URL-validated tokens, rendered as a layer
+  // (attributes and media elements), never as CSS url().
+  assert.equal((await setTheme({ bgPreset: 'not-a-real-bg' })).status, 400, 'unknown preset refused');
+  assert.equal((await setTheme({ bgUrl: 'javascript:alert(1)' })).status, 400, 'non-https bgUrl refused');
+  assert.equal((await setTheme({ bgUrl: 'https://cdn.example.com/loop' })).status, 400, 'extension-less bgUrl refused');
+  assert.equal((await setTheme({ material: 'velvet' })).status, 400, 'unknown material refused');
+  assert.equal((await setTheme({ bgPreset: 'aurora', material: 'liquid' })).status, 200);
+  const bgPage = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.match(bgPage, /<div class="store-bg" data-bg="aurora"/, 'the background layer is rendered');
+  assert.match(bgPage, /<body class="has-bg" data-bg="aurora" data-material="liquid">/, 'body carries bg + material');
+  assert.equal((await setTheme({ bgPreset: 'clouds-day' })).status, 200);
+  const cloudPage = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.match(cloudPage, /<canvas data-dues-sky>/, 'live cloud preset mounts the shader canvas');
+  assert.match(cloudPage, /<html lang="en" data-theme="light">/, 'light-tone preset flips the token set');
+  const gifUrl = 'https://cdn.example.com/party.gif';
+  assert.equal((await setTheme({ bgUrl: gifUrl, material: 'glass' })).status, 200);
+  const gifPage = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.match(gifPage, /<div class="store-bg" data-bg="custom"[^>]*><img src="https:\/\/cdn\.example\.com\/party\.gif"/, 'an imported GIF renders as an img element');
+  assert.equal((await setTheme({ bgUrl: 'https://cdn.example.com/loop.mp4' })).status, 200);
+  const mp4Page = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.match(mp4Page, /<video src="https:\/\/cdn\.example\.com\/loop\.mp4" autoplay muted loop playsinline/, 'an imported MP4 renders as a muted looping video');
+
   // Reset: null clears the row and the page goes back to the platform look.
   assert.equal((await setTheme(null)).status, 200);
   const cleared = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
   assert.equal(cleared.store.theme, null);
   const plain = await (await fetch(`${appUrl}/vip-signals`)).text();
   assert.ok(!plain.includes('store-theme'), 'no theme style once cleared');
+  assert.ok(!plain.includes('store-bg'), 'no background layer once cleared');
 });
 
 test('discover: opt-in directory of live stores, real numbers only', async () => {
@@ -3034,7 +3057,9 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   assert.equal(plans.capabilities.demo, true, 'the client needs the demo flag to disarm pay');
   assert.equal(plans.capabilities.stripe, true, 'the checkout still renders fully');
   assert.deepEqual(plans.plans.map((p) => p.priceUsd), [49.99, 14.99, 79.99]);
-  assert.equal(plans.store.theme.bg, '#0a0a0a', 'the demo store is the black Midnight look');
+  assert.equal(plans.store.theme.bg, '#101827', 'the demo store wears the navy showroom look');
+  assert.equal(plans.store.theme.bgPreset, 'aurora', 'the demo shows off the background system');
+  assert.equal(plans.store.theme.material, 'liquid', 'liquid glass cards on the demo');
   assert.equal(plans.store.links.website, 'https://dues.gg');
   assert.equal(plans.store.memberCount, 134);
   assert.match(plans.store.about, /invite Dues/i);

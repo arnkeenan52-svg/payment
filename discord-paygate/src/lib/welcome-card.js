@@ -14,6 +14,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 
 const GROTESK = 'Dues Grotesk'; // headline / wordmark
 const SANS = 'Dues Sans'; // supporting text
@@ -64,10 +65,34 @@ async function fontsPresent() {
   return fontsChecked;
 }
 
+// Both faces of the brand sky: dark rides the night clouds, light the day
+// ones. Text is white on either — the same treatment as the og-card and the
+// site banner — with the bg hex as the paint-before-the-image fallback.
 const THEMES = {
-  dark: { bg: '#0a0a0a', text: '#f5f5f4', sub: '#8a8a84', ring: '#f5f5f4', watermark: '#151515', mark: '#f5f5f4' },
-  light: { bg: '#fafaf8', text: '#0a0a0a', sub: '#6b6b66', ring: '#0a0a0a', watermark: '#ecebe6', mark: '#0a0a0a' },
+  dark: { bg: '#131b2d', text: '#ffffff', sub: '#c6d0e2', ring: '#ffffff', watermark: 'rgba(255,255,255,0.08)', mark: '#ffffff', sky: 'sky-night-card.jpg' },
+  light: { bg: '#70a3e6', text: '#ffffff', sub: 'rgba(255,255,255,0.9)', ring: '#ffffff', watermark: 'rgba(255,255,255,0.12)', mark: '#ffffff', sky: 'sky-day-card.jpg' },
 };
+
+// The cloud ground, embedded as a data URI so librsvg needs no file access.
+// Cached per theme; sliced to cover whatever card size asks for it. A soft
+// navy gradient sits on top so white text stays readable over bright clouds.
+const skyCache = new Map();
+function skyLayer(t, w, h) {
+  if (!skyCache.has(t.sky)) {
+    const bytes = readFileSync(fileURLToPath(new URL(`../../assets/${t.sky}`, import.meta.url)));
+    skyCache.set(t.sky, `data:image/jpeg;base64,${bytes.toString('base64')}`);
+  }
+  return (
+    `<image x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" href="${skyCache.get(t.sky)}" />` +
+    `<rect width="${w}" height="${h}" fill="url(#duesScrim)" />`
+  );
+}
+const SCRIM_DEF =
+  '<defs><linearGradient id="duesScrim" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0" stop-color="#10192d" stop-opacity="0.18"/>' +
+  '<stop offset="0.55" stop-color="#10192d" stop-opacity="0.30"/>' +
+  '<stop offset="1" stop-color="#10192d" stop-opacity="0.44"/>' +
+  '</linearGradient></defs>';
 
 // The faint repeating wordmark behind everything, like a pressed watermark.
 // Alternate rows are offset so the grid reads as a weave, not a table.
@@ -155,7 +180,9 @@ export async function renderWelcomeCard({ username, avatarPng = null, memberNumb
   }
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  ${SCRIM_DEF}
   <rect width="${W}" height="${H}" fill="${t.bg}" />
+  ${skyLayer(t, W, H)}
   ${watermark('DUES', t)}
   ${logo}
   ${avatarLayer}
@@ -207,7 +234,9 @@ export async function renderBannerCard({ title, subtitle = '', theme = 'dark' })
   const subSize = fitTitle(sub, 30, 20, 0.5);
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${BANNER_H}" viewBox="0 0 ${W} ${BANNER_H}">
+  ${SCRIM_DEF}
   <rect width="${W}" height="${BANNER_H}" fill="${t.bg}" />
+  ${skyLayer(t, W, BANNER_H)}
   ${watermark('DUES', t, BANNER_H)}
   ${logo}
   <text x="${W / 2}" y="${sub ? 258 : 282}" text-anchor="middle" font-family="${GROTESK}" font-size="${headSize}" font-weight="700" fill="${t.text}" letter-spacing="-2">${esc(head)}</text>

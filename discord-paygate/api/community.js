@@ -6,5 +6,5 @@ import { guard, redirect } from '../src/lib/http.js';
 
 export default guard(async (req, res) => {
   const invite = process.env.DISCORD_COMMUNITY_INVITE;
-  redirect(res, invite || '/api/invite');
+  redirect(res, invite || 'https://discord.gg/G6yjsX5qbB');
 });
