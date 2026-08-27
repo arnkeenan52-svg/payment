@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=141" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=141" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=142" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=142" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=141') format('woff2');
+  src:url('/jakarta-latin.woff2?v=142') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -353,7 +353,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=141') center/cover;
+  background:url('/hero-poster.webp?v=142') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1578,17 +1578,6 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 @media (max-width:600px){.steps{padding-block:4px 72px}}
 .bcard{background:var(--glass);border-color:var(--glass-brd);border-radius:22px;box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
 .bcard:hover{border-color:var(--blue)}
-.fee-compare{margin-top:34px}
-.fee-cap{font:600 12px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--micro);margin-bottom:14px}
-.fee-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.fee-row::-webkit-scrollbar{display:none}
-.fee-card{flex:0 0 auto;min-width:172px;padding:16px 18px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-brd);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
-.fee-card b{display:block;font-size:14px;color:var(--ink)}
-.fee-take{display:block;margin-top:6px;font-family:var(--grotesk);font-weight:700;font-size:24px;letter-spacing:-.01em;color:#ff8585}
-html[data-theme="light"] .fee-take{color:#bb3535}
-.fee-dues .fee-take{color:#3ddc84}
-html[data-theme="light"] .fee-dues .fee-take{color:#177245}
-.fee-card small{display:block;margin-top:4px;font-size:12px;color:var(--micro)}
 .fee-note{margin-top:10px;font-size:12px;line-height:18px;color:var(--micro)}
 
 /* ── the savings box: Subscord's calculator, on our glass ── */
@@ -1609,7 +1598,7 @@ html[data-theme="light"] .fee-dues .fee-take{color:#177245}
 .save-field input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--blue);border:2.5px solid #fff;box-shadow:0 1px 6px rgba(20,30,80,.35)}
 .save-field input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:rgba(127,140,170,.32)}
 .save-field input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--blue);border:2.5px solid #fff}
-.save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.32)}
+.save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(88,101,242,.1);border:1px solid rgba(88,101,242,.28)}
 .save-cap{display:block;font:600 11.5px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
 .save-hero b{display:block;margin-top:6px;font-family:var(--grotesk);font-weight:700;font-size:clamp(36px,5vw,46px);letter-spacing:-.02em;color:#3ddc84}
 html[data-theme="light"] .save-hero b{color:#177245}
@@ -1618,11 +1607,9 @@ html[data-theme="light"] .save-hero b{color:#177245}
 .save-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}
 .sv-name{font-size:14.5px;font-weight:600;color:var(--ink)}
 .sv-name em{font-style:normal;font-weight:400;font-size:12px;color:var(--micro);margin-left:7px}
-.sv-cost{font-family:var(--grotesk);font-weight:700;font-size:15.5px;color:#ff8585}
-html[data-theme="light"] .sv-cost{color:#bb3535}
+.sv-cost{font-family:var(--grotesk);font-weight:700;font-size:15.5px;color:var(--ink)}
 .sv-bar{grid-column:1 / -1;height:6px;border-radius:99px;background:rgba(127,140,170,.22);overflow:hidden}
-.sv-bar i{display:block;height:100%;border-radius:99px;background:rgba(226,92,92,.7);transition:width .25s ease}
-html[data-theme="light"] .sv-bar i{background:rgba(192,53,53,.6)}
+.sv-bar i{display:block;height:100%;border-radius:99px;background:rgba(127,140,170,.55);transition:width .25s ease}
 .save-dues .sv-bar i{background:#3ddc84}
 html[data-theme="light"] .save-dues .sv-bar i{background:#1f9d5b}
 .save-dues .sv-cost{color:#3ddc84}
@@ -1864,7 +1851,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   </div>
 </footer>
 
-<script src="/sky.js?v=141" defer></script>
+<script src="/sky.js?v=142" defer></script>
 <script>
 (function(){
   'use strict';
