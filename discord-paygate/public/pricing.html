@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Pricing — Dues" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.png?v=167" />
+  <meta property="og:image" content="https://dues.gg/og-card.png?v=168" />
   <meta property="og:image:width" content="2400" />
   <meta property="og:image:height" content="1260" />
   <meta property="og:url" content="https://dues.gg/pricing" />
@@ -28,11 +28,11 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Pricing — Dues" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.png?v=167" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.png?v=168" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=167" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=167" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=168" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=168" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=167') format('woff2');
+  src:url('/jakarta-latin.woff2?v=168') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -339,7 +339,7 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=167') center/cover;
+  background:url('/hero-poster.webp?v=168') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1604,13 +1604,15 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
    height never changes. The fixed sky is clipped at the sheet's lip so the
    pinned footer shows beneath it. ── */
 @media (hover:none),(pointer:coarse),(max-width:639px){
-  html[data-blind] .footer{position:fixed;inset:auto 0 0 0;z-index:0;margin-top:0}
-  html[data-blind] .footer-spacer{height:var(--footH,0px)}
-  /* the pinned footer may only paint near the reveal — after an iOS toolbar
-     collapse/expand the sky clip can go momentarily stale, and an always-on
-     footer then shows as a solid bar at the screen bottom mid-page */
-  html[data-blind] .footer{visibility:hidden}
-  html[data-blind][data-footer-near] .footer{visibility:visible}
+  /* the footer is pinned ONLY while the reveal is near. Everywhere else it
+     is an ordinary in-flow footer at the end of the document, so there is
+     simply nothing at the viewport bottom to peek through when an iOS
+     toolbar resize or a laggy fling leaves the sky clip stale — the bar
+     this used to paint mid-page cannot exist. The swap happens while the
+     footer is at least 160px below the fold (near fires before its in-flow
+     top edge could enter the viewport), so it is never visible. */
+  html[data-blind][data-footer-near] .footer{position:fixed;inset:auto 0 0 0;z-index:0;margin-top:0}
+  html[data-blind][data-footer-near] .footer-spacer{height:var(--footH,0px)}
   /* compact stage so the whole footer fits a phone viewport */
   .footer-stage{padding-top:30px}
   .footer-title{font-size:clamp(27px,7.6vw,38px);margin-bottom:10px}
@@ -1799,7 +1801,7 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=167" defer></script>
+<script src="/sky.js?v=168" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2074,18 +2076,27 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   var sky = document.querySelector('.hero-sky');
   var footer = document.querySelector('.footer');
   var phoneMq = window.matchMedia('(hover:none),(pointer:coarse),(max-width:639px)');
-  var lastClip = -1;
-  // phone blind: engage only when the whole footer fits the viewport, and
-  // keep flow height identical (spacer = measured footer px height)
+  // the LARGE viewport height (toolbar collapsed), read from a 100lvh probe.
+  // The fit decision must not flap as iOS shows and hides its toolbar — and
+  // window.innerHeight does exactly that, with the footer sized close enough
+  // to the viewport that the old innerHeight-based check could flip mid-
+  // gesture and reflow the footer under the visitor's thumb. Falls back to
+  // innerHeight where lvh is unsupported (the probe measures 0).
+  var lvhProbe = document.createElement('div');
+  lvhProbe.style.cssText = 'position:fixed;left:-9px;top:0;width:1px;height:100lvh;pointer-events:none;visibility:hidden';
+  (document.body || html).appendChild(lvhProbe);
+  var largeVh = function(){ var h = lvhProbe.getBoundingClientRect().height; return h > 0 ? h : window.innerHeight; };
+  // phone blind: engage only when the whole footer fits the large viewport,
+  // and keep flow height identical (spacer = measured footer px height)
   var fit = function(){
     if(!footer){ return; }
-    if(phoneMq.matches && footer.offsetHeight <= window.innerHeight - 24){
+    if(phoneMq.matches && footer.offsetHeight <= largeVh() - 24){
       html.setAttribute('data-blind','');
       html.style.setProperty('--footH', footer.offsetHeight + 'px');
     } else {
       html.removeAttribute('data-blind');
+      html.removeAttribute('data-footer-near');
       if(sky){ sky.style.clipPath = ''; }
-      lastClip = -1;
     }
   };
   var on = function(){
@@ -2096,21 +2107,21 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
     html.toggleAttribute('data-footer-revealed', revealed);
     // the pinned footer may only paint near the reveal (see the CSS gate)
     html.toggleAttribute('data-footer-near', bottom <= window.innerHeight + 160);
-    if(sky && html.hasAttribute('data-blind')){
+    if(sky){
       // clip the fixed sky at the sheet's lip (canvas overshoots 160px below
-      // the viewport, and the lip's 40px bottom radius carries into the clip)
-      var v = Math.max(0, Math.round(window.innerHeight - bottom));
-      if(v !== lastClip){
-        lastClip = v;
-        sky.style.clipPath = v > 0 ? 'inset(0 0 ' + (v + 160) + 'px 0 round 0 0 40px 40px)' : '';
-      }
+      // the viewport, and the lip's 40px bottom radius carries into the clip).
+      // Written unconditionally from the live geometry — no cached last-value
+      // guard — so no sequence of missed, coalesced or reordered events can
+      // leave a stale clip standing.
+      var v = html.hasAttribute('data-blind') ? Math.max(0, Math.round(window.innerHeight - bottom)) : 0;
+      sky.style.clipPath = v > 0 ? 'inset(0 0 ' + (v + 160) + 'px 0 round 0 0 40px 40px)' : '';
     }
   };
   // momentum scrolling and toolbar animations can swallow the final scroll
   // event — always recompute once more after everything settles
   var settle;
   var onScroll = function(){ on(); clearTimeout(settle); settle = setTimeout(on, 160); };
-  var refresh = function(){ lastClip = -1; fit(); on(); };
+  var refresh = function(){ fit(); on(); };
   addEventListener('scroll', onScroll, { passive:true });
   addEventListener('resize', refresh);
   addEventListener('load', refresh);
