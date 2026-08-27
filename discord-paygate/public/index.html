@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f4efe9" />
+  <meta name="theme-color" content="#0a0a0a" />
   <title>Dues — The Discord payment platform with 0% platform fees</title>
   <meta name="description" content="Monetize your Discord server and receive payments straight to your own Stripe account. 0% platform fees, instant role delivery, free for your first 10 members." />
   <meta property="og:type" content="website" />
@@ -20,8 +20,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=126" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=126" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=127" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=127" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -29,11 +29,6 @@
 <link rel="icon" href="/dues-glyph.png">
 <style>
 /* ============ fonts ============ */
-@font-face{
-  font-family:'Newsreader';
-  src:url('/newsreader-latin.woff2') format('woff2');
-  font-weight:400;font-style:normal;font-display:block;
-}
 @font-face{
   font-family:'DM Sans';
   src:url('/dmsans-latin.woff2') format('woff2');
@@ -52,19 +47,19 @@
 
 /* ============ tokens & reset ============ */
 :root{
-  --paper:#f4efe9;
-  --cream:#fdfcfa;
-  --slab:#e4dadd;
-  --hair:rgba(190,180,200,.4);
-  --ink:#1b1a1f;
-  --sec:#55504b;
-  --micro:#8d8a86;
+  --paper:#0a0a0a;
+  --cream:#141414;
+  --slab:#101010;
+  --hair:rgba(255,255,255,.09);
+  --ink:#f5f5f4;
+  --sec:#b5b2ac;
+  --micro:#8a8a8a;
   --accent:#5865f2;
-  --shadow:0 2px 8px rgba(70,75,140,.06);
-  --r-slab:24px;
+  --shadow:0 2px 10px rgba(0,0,0,.45);
+  --r-slab:16px;
   --r-card:12px;
   --r-btn:8px;
-  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --serif:'Space Grotesk',Arial,sans-serif;
   --sans:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
   --grotesk:'Space Grotesk',Arial,sans-serif;
   --glyph:url('data:image/png;base64,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');
@@ -115,7 +110,7 @@ h3{font-weight:500}
 .btn-ink:hover{background:#33313a}
 .btn-white{background:var(--cream);color:var(--ink)}
 .btn-white:hover{background:#f3ede5}
-.btn-accent{background:var(--accent);color:var(--cream)}
+.btn-accent{background:var(--accent);color:#fff}
 .btn-accent:hover{background:#4854e8}
 .btn-outline{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .btn-outline:hover{background:rgba(27,26,31,.06)}
@@ -144,11 +139,11 @@ h3{font-weight:500}
 
 /* ============ announcement bar ============ */
 .announce{
-  min-height:37px;background:var(--accent);color:var(--cream);
+  min-height:37px;background:var(--accent);color:#fff;
   display:flex;align-items:center;justify-content:center;gap:9px;
   font-size:14px;padding:6px 16px;text-align:center;
 }
-.announce .glyph{background:var(--cream);width:11px;height:11px;flex:none}
+.announce .glyph{background:#fff;width:11px;height:11px;flex:none}
 
 /* ============ nav ============ */
 .nav{
@@ -156,7 +151,7 @@ h3{font-weight:500}
 }
 .nav::before{
   content:"";position:absolute;inset:0 0 -28px 0;pointer-events:none;
-  background:linear-gradient(to bottom,rgba(244,239,233,.97) 0%,rgba(244,239,233,.9) 62%,rgba(244,239,233,0) 100%);
+  background:linear-gradient(to bottom,rgba(10,10,10,.97) 0%,rgba(10,10,10,.9) 62%,rgba(10,10,10,0) 100%);
   opacity:0;transition:opacity .25s ease;
 }
 .nav.scrolled::before{opacity:1}
@@ -171,29 +166,21 @@ h3{font-weight:500}
 .nav-right .btn{height:40px;padding:0 20px;font-size:14px}
 
 /* ============ hero ============ */
+.store-icon{width:84px;height:84px;border-radius:20px;background:#ededed;display:grid;place-items:center;margin:0 auto 26px}
+.store-icon .glyph{width:44px;height:44px;background:#14162E}
+.trust-chips{display:flex;gap:10px;justify-content:center;margin-top:26px;flex-wrap:wrap}
+.tchip{padding:8px 16px;border-radius:999px;background:var(--slab);border:1px solid var(--hair);font-size:14px;color:var(--sec)}
+.btn-pay{background:var(--accent);color:#fff}
+.btn-pay:hover{background:#4752C4}
+
 .hero{
   position:relative;overflow:hidden;
   margin-top:-64px;padding-top:64px;
-  min-height:calc(100vh - 37px);
+  min-height:calc(86vh - 37px);
   display:flex;flex-direction:column;
-  background:
-    linear-gradient(to bottom,rgba(244,239,233,0) 78%,var(--paper) 100%),
-    radial-gradient(72% 54% at 50% 30%,#fdf9f4 0%,rgba(253,249,244,0) 68%),
-    radial-gradient(56% 44% at 4% 4%,#d9d4ef 0%,rgba(217,212,239,0) 62%),
-    radial-gradient(64% 52% at 98% 10%,#e6d9e8 0%,rgba(230,217,232,0) 58%),
-    radial-gradient(88% 66% at 88% 96%,#cfd0ee 0%,rgba(207,208,238,0) 62%),
-    radial-gradient(80% 60% at 8% 92%,#e8dcd8 0%,rgba(232,220,216,0) 58%),
-    linear-gradient(160deg,#f0e9ec,#e7e2f1);
+  background:radial-gradient(52% 40% at 50% 0%,rgba(88,101,242,.12),rgba(88,101,242,0) 72%),var(--paper);
 }
-.hero-grain{
-  position:absolute;inset:0;pointer-events:none;opacity:.5;
-  background-image:url('/land-grain.png');background-size:140px;
-  mix-blend-mode:overlay;
-}
-.hero-ghost{
-  position:absolute;width:1040px;height:1040px;right:-320px;top:-6%;
-  opacity:.05;pointer-events:none;transform:rotate(8deg);
-}
+
 .hero-core{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   text-align:center;position:relative;padding:72px 24px 96px;
@@ -229,7 +216,7 @@ h3{font-weight:500}
   background:#14122b;
   box-shadow:0 25px 50px -12px rgba(20,18,43,.35);
 }
-.film-frame video{width:100%;aspect-ratio:16/9;object-fit:cover;background:url('/hero-poster.webp?v=126') center/cover}
+.film-frame video{width:100%;aspect-ratio:16/9;object-fit:cover;background:url('/hero-poster.webp?v=127') center/cover}
 
 /* ============ how-it-works strip ============ */
 .steps{padding-block:56px 96px}
@@ -398,7 +385,7 @@ h3{font-weight:500}
   padding:22px;box-shadow:var(--shadow);
   transition:background-color .2s ease;display:block;
 }
-.store:hover{background:#fffefd}
+.store:hover{background:#181818}
 .store-tile{
   width:44px;height:44px;border-radius:11px;
   display:flex;align-items:center;justify-content:center;margin-bottom:16px;
@@ -503,7 +490,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 
 /* ============ pricing crescendo ============ */
 .crescendo{
-  margin-block:80px;color:var(--cream);
+  margin-block:80px;color:#fff;
   background:linear-gradient(158deg,#14122b 6%,#3d3f9e 44%,#7d86f5 74%,#c9cdf7 102%);
   padding:96px 64px 104px;
 }
@@ -514,7 +501,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   background-size:140px 140px;
 }
 .crescendo > *{position:relative;z-index:1}
-.crescendo .section-mark{background:var(--cream)}
+.crescendo .section-mark{background:#fff}
 .cres-head{text-align:center}
 .cres-head h2{font-size:48px;line-height:56px}
 .cres-head p{margin-top:14px;font-size:16px;color:rgba(253,252,250,.82)}
@@ -526,11 +513,11 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   padding:9px 20px;border-radius:7px;font-size:14px;font-weight:500;
   color:rgba(253,252,250,.72);transition:background-color .2s ease,color .2s ease;
 }
-.billing-toggle button.on{background:var(--cream);color:var(--ink)}
-.billing-toggle button:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+.billing-toggle button.on{background:#f5f5f4;color:#101010}
+.billing-toggle button:focus-visible{outline:2px solid #f5f5f4;outline-offset:2px}
 .fee-chip{
   background:rgba(20,18,43,.55);border-radius:8px;padding:9px 18px;
-  font-size:14px;color:var(--cream);
+  font-size:14px;color:rgba(253,252,250,.8);
 }
 .plans{
   display:grid;grid-template-columns:repeat(2,minmax(0,400px));gap:28px;
@@ -573,25 +560,6 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;
 }
 
-/* ============ photography ============ */
-.photo{border-radius:14px;overflow:hidden;position:relative;box-shadow:var(--shadow)}
-.photo img{width:100%;height:100%;object-fit:cover;display:block}
-.photo-half{position:relative;min-height:480px}
-.photo-half .photo{position:absolute;inset:0}
-.photo-chip{
-  position:absolute;display:flex;align-items:center;gap:9px;color:var(--ink);
-  background:#fff;border-radius:12px;padding:12px 16px;
-  box-shadow:0 10px 28px rgba(70,75,140,.16);
-  font-size:14px;line-height:1.35;
-}
-.photo-chip .glyph{width:14px;height:14px;flex:none}
-.photo-chip b{display:block;font-weight:500}
-.photo-chip small{color:var(--micro);font-size:12.5px}
-.collage{position:relative;margin-top:34px;height:360px}
-.collage .photo{position:absolute}
-.collage .c1{width:74%;height:300px;left:0;top:0}
-.collage .c2{width:44%;height:210px;right:0;bottom:0;box-shadow:0 16px 40px rgba(70,75,140,.2)}
-
 /* ============ faq ============ */
 .faq{padding-block:100px}
 .faq-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:80px;align-items:start}
@@ -604,7 +572,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   padding:22px 2px;font-size:20px;font-weight:500;text-align:left;
   transition:color .2s ease;
 }
-.acc-q:hover{color:#3d3a44}
+.acc-q:hover{color:var(--sec)}
 .acc-q:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .acc-icon{position:relative;width:14px;height:14px;flex:none}
 .acc-icon::before,.acc-icon::after{
@@ -619,12 +587,12 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 
 /* ============ final cta ============ */
 .final{
-  margin-block:80px;background:var(--accent);color:var(--cream);
-  text-align:center;padding:104px 48px 0;
+  margin-block:80px;background:var(--accent);color:#fff;
+  text-align:center;padding:104px 48px 96px;
 }
 .final-ghost{
   position:absolute;width:640px;height:640px;left:-150px;bottom:-190px;
-  background:var(--cream);opacity:.08;pointer-events:none;
+  background:#fff;opacity:.08;pointer-events:none;
 }
 .final > :not(.final-ghost){position:relative;z-index:1}
 .final h2{font-size:48px;line-height:56px}
@@ -650,9 +618,9 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   display:grid;grid-template-columns:repeat(4,1fr);gap:40px;
   padding:72px 0 64px;
 }
-.fcol b{display:block;font-size:14px;font-weight:500;color:var(--cream);margin-bottom:18px}
+.fcol b{display:block;font-size:14px;font-weight:500;color:var(--ink);margin-bottom:18px}
 .fcol a{display:block;font-size:14px;line-height:20px;padding:6px 0;transition:color .2s ease}
-.fcol a:hover{color:var(--cream)}
+.fcol a:hover{color:var(--ink)}
 .legal{
   border-top:1px solid #35333c;padding:26px 0 34px;
   display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
@@ -695,7 +663,6 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .hero h1{font-size:40px;line-height:46px}
   .hero-sub{font-size:16.5px;line-height:26px}
   .hero-cta{flex-direction:column;align-items:stretch;width:100%;max-width:360px}
-  .hero-ghost{width:420px;height:420px;right:-120px;top:10%}
   .film-sec{padding:10px 8px 64px}
   .film-frame{border-radius:12px}
   .film-frame video{aspect-ratio:4/3}
@@ -738,6 +705,13 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .mrr .area{opacity:.1}
   .mrr .marker{opacity:1}
 }
+
+/* the display voice is the product's: Space Grotesk, bold, tight */
+h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:-.02em}
+.browser-bar{background:#161616}
+.browser{border-color:#232323}
+.footer{background:#060606}
+.ghost-word{color:#151515}
 </style>
 </head>
 <body>
@@ -768,20 +742,23 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 
 <!-- 3 · hero -->
 <header class="hero">
-  <div class="hero-grain" aria-hidden="true"></div>
-  <div class="glyph hero-ghost" aria-hidden="true"></div>
   <div class="hero-core">
+    <div class="store-icon" aria-hidden="true"><span class="glyph"></span></div>
     <h1>Sell roles. Keep every dollar.</h1>
     <p class="hero-sub">Dues connects your
-      <span class="inline-mark"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="#1b1a1f" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Discord</span>
+      <span class="inline-mark"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="#f5f5f4" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Discord</span>
       server to your own
       <span class="inline-mark"><span class="mark-s">S</span>Stripe</span>
       account. Buyers pay, roles deliver themselves.</p>
+    <div class="trust-chips">
+      <span class="tchip">0% platform fee</span>
+      <span class="tchip">Secured by Stripe</span>
+      <span class="tchip">Instant role delivery</span>
+    </div>
     <div class="hero-cta">
-      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <a class="btn btn-pay" href="/dashboard">Start selling</a>
       <a class="btn btn-white" href="/dashboard"><svg viewBox="0 0 127.14 96.36" width="19" height="15" aria-hidden="true"><path fill="#1b1a1f" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Sign in with Discord</a>
     </div>
-    <p class="microcopy">Free to start. Your Stripe, your money.</p>
   </div>
 </header>
 
@@ -792,7 +769,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   <div class="film reveal reveal-scale">
     <div class="film-glow" aria-hidden="true"></div>
     <div class="film-frame">
-      <video src="/hero-tour.mp4?v=126" poster="/hero-poster.webp?v=126" muted loop playsinline autoplay></video>
+      <video src="/hero-tour.mp4?v=127" poster="/hero-poster.webp?v=127" muted loop playsinline autoplay></video>
     </div>
   </div>
 </section>
@@ -973,35 +950,35 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
       <div class="store-price">from $19.99</div>
     </a>
     <a class="store reveal" href="/discover">
-      <div class="store-tile" style="background:rgba(20,18,43,.08);color:#14122b">G</div>
+      <div class="store-tile" style="background:rgba(255,255,255,.08);color:#e8e6e1">G</div>
       <div class="store-name">GrindHouse</div>
       <span class="store-cat">Fitness</span>
       <div class="store-members">862 members</div>
       <div class="store-price">from $9.99</div>
     </a>
     <a class="store reveal" href="/discover">
-      <div class="store-tile" style="background:rgba(27,26,31,.08)"><span class="glyph" style="background:#1b1a1f"></span></div>
+      <div class="store-tile" style="background:rgba(255,255,255,.08)"><span class="glyph" style="background:#c9c7c1"></span></div>
       <div class="store-name">Study Vault</div>
       <span class="store-cat">Study</span>
       <div class="store-members">2,041 members</div>
       <div class="store-price">from $4.99</div>
     </a>
     <a class="store reveal" href="/discover">
-      <div class="store-tile" style="background:rgba(61,63,158,.12)"><span class="glyph" style="background:#3d3f9e"></span></div>
+      <div class="store-tile" style="background:rgba(125,134,245,.14)"><span class="glyph" style="background:#7d86f5"></span></div>
       <div class="store-name">Clutch Academy</div>
       <span class="store-cat">Esports</span>
       <div class="store-members">530 members</div>
       <div class="store-price">from $14.99</div>
     </a>
     <a class="store reveal" href="/discover">
-      <div class="store-tile" style="background:rgba(85,80,75,.1);color:#55504b">P</div>
+      <div class="store-tile" style="background:rgba(255,255,255,.07);color:#d8d4cf">P</div>
       <div class="store-name">The Print Shop</div>
       <span class="store-cat">Trading</span>
       <div class="store-members">1,109 members</div>
       <div class="store-price">from $24.99</div>
     </a>
     <a class="store reveal" href="/discover">
-      <div class="store-tile" style="background:rgba(125,134,245,.16);color:#3d3f9e">N</div>
+      <div class="store-tile" style="background:rgba(125,134,245,.16);color:#969df6">N</div>
       <div class="store-name">Nightshift</div>
       <span class="store-cat">Music</span>
       <div class="store-members">743 members</div>
@@ -1113,26 +1090,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 </section>
 
 <!-- 9 · calculator -->
-<!-- community photo split -->
-<section class="slab split">
-  <div class="wrap split-grid">
-    <div class="photo-half">
-      <div class="photo"><img src="/ph-couch.jpg" alt="Three friends laughing on a couch while gaming"></div>
-      <div class="photo-chip" style="left:18px;bottom:56px"><span class="glyph" aria-hidden="true"></span><span><b>@VIP unlocked</b><small>just now</small></span></div>
-      <div class="photo-chip" style="right:-12px;top:34px"><span class="glyph" aria-hidden="true"></span><span><b>mia_moves joined</b><small>#sale-alerts</small></span></div>
-    </div>
-    <div>
-      <h2>Your community, paid.</h2>
-      <p class="split-body">Members support the server they already live in. The role arrives the moment the payment clears, and nobody waits on you.</p>
-      <ul class="bullets">
-        <li>Works in any server, from ten members to fifty thousand.</li>
-        <li>Buyers stay in Discord; the store lives on one link.</li>
-      </ul>
-      <a class="btn btn-ink" href="/dashboard">Start selling</a>
-      <p class="microcopy">Free to start. Your Stripe, your money.</p>
-    </div>
-  </div>
-</section>
+
 
 <section class="calc-sec wrap">
   <div class="calc-head">
@@ -1233,10 +1191,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
     <div class="faq-left">
       <h2>Questions?<br>Answers.</h2>
       <span class="glyph" aria-hidden="true"></span>
-      <div class="collage" aria-hidden="true">
-        <div class="photo c1"><img src="/ph-streamer.jpg" alt=""></div>
-        <div class="photo c2"><img src="/ph-phone.jpg" alt=""></div>
-      </div>
+      
     </div>
     <div class="acc" id="faq">
       <div class="acc-item open">
@@ -1274,10 +1229,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   <p>Connect Discord, connect Stripe, and share your link. The bot handles everything after that.</p>
   <a class="btn btn-ink" href="/dashboard">Start selling</a>
   <p class="microcopy">Free to start. Your Stripe, your money.</p>
-  <div class="final-frame frame-wrap">
-    <div class="photo" style="aspect-ratio:4/3"><img src="/ph-cheer.jpg" alt="Friends celebrating around a laptop at night"></div>
-    <div class="photo-chip" style="right:-14px;top:26px"><span class="glyph" aria-hidden="true"></span><span><b>New sale</b><small>VIP Access · $49.99</small></span></div>
-  </div>
+  
 </section>
 
 </main>
