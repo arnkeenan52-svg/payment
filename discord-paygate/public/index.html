@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#101827" />
+  <meta name="theme-color" content="#131b2d" />
   <script>
   (function(){
     var d = document.documentElement, t = null;
@@ -11,7 +11,7 @@
     if(t !== 'dark'){
       d.setAttribute('data-theme','light');
       var m = document.querySelector('meta[name="theme-color"]');
-      if(m){ m.setAttribute('content','#a9c6ef'); }
+      if(m){ m.setAttribute('content','#70a3e6'); }
     }
   })();
   </script>
@@ -85,7 +85,7 @@
   --cta-bg-hover:#4854e8;
   --cta-ink:#fff;
   --scrim:13,20,32;
-  --sky-fallback:#0d1420;
+  --sky-fallback:#131b2d;
   --r-glass:22px;
   --shadow:0 2px 10px rgba(4,8,18,.45);
   --r-slab:16px;
@@ -117,7 +117,7 @@ html[data-theme="light"]{
   --cta-bg-hover:#1c2740;
   --cta-ink:#fff;
   --scrim:244,247,253;
-  --sky-fallback:#a9c6ef;
+  --sky-fallback:#70a3e6;
   --shadow:0 2px 10px rgba(31,51,86,.12);
 }
 /* theme-invariant guard: the approved blurple pricing slab keeps its light pill in both themes */
@@ -125,8 +125,8 @@ html[data-theme="light"]{
 .crescendo .btn-ink:hover,.final .btn-ink:hover{background:#fff}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:auto} /* kit rule: smooth scroll fights the sheet-and-footer reveal */
-html{background:#0d1420}
-html[data-theme="light"]{background:#a9c6ea}
+html{background:#131b2d}
+html[data-theme="light"]{background:#70a3e6}
 body{
   font-family:var(--sans);
   font-size:16px;line-height:24px;
@@ -1866,7 +1866,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   function syncThemeMeta(){
     if(!themeMeta){ return; }
     var light = document.documentElement.getAttribute('data-theme') === 'light';
-    themeMeta.setAttribute('content', light ? '#a9c6ef' : '#101827');
+    themeMeta.setAttribute('content', light ? '#70a3e6' : '#131b2d');
   }
   syncThemeMeta();
   window.addEventListener('pageshow', function(e){
