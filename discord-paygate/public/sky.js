@@ -43,6 +43,9 @@ uniform vec3  HOR;       // sky horizon colour
 uniform vec3  CLD;       // cloud body colour
 uniform vec3  SHD;       // cloud shadow colour
 uniform float STARS;     // 1 at night
+uniform float TOPFADE;   // 1 on phones: clear the canvas top so the browser's
+                         // status strip (painted flat in the sky colour)
+                         // continues the sky seamlessly to the physical top
 
 float hash(vec2 v){
   v = fract(v * vec2(233.34, 851.73));
@@ -98,6 +101,8 @@ void main(){
   for(int i=0;i<6;i++){ c+=w*noise(q); q=M*q; w*=.6; }
 
   float amt = smoothstep(COV, COV+max(.05,SOFT), f*r);
+  float tf = 1. - TOPFADE*smoothstep(.78, .97, uv.y);
+  amt *= tf;
 
   vec3 sky = mix(HOR, TOP, pow(clamp(uv.y,0.,1.),.9));
 
@@ -123,7 +128,7 @@ void main(){
 
   if(STARS>.5){
     float s = twinkle(vec2(uv.x*aspect, uv.y));
-    col += vec3(.86,.9,1.)*s*(1.-amt)*smoothstep(.12,.55,uv.y);
+    col += vec3(.86,.9,1.)*s*(1.-amt)*smoothstep(.12,.55,uv.y)*tf;
   }
   gl_FragColor = vec4(col, 1.);
 }`;
@@ -167,9 +172,10 @@ void main(){
     const loc = gl.getAttribLocation(prog, 'p');
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const U = {}; ['T','R','COV','SOFT','DRIFT','TOP','HOR','CLD','SHD','STARS']
+    const U = {}; ['T','R','COV','SOFT','DRIFT','TOP','HOR','CLD','SHD','STARS','TOPFADE']
       .forEach(n => U[n] = gl.getUniformLocation(prog, n));
     gl.uniform1f(U.COV, COVERAGE); gl.uniform1f(U.SOFT, SOFTNESS); gl.uniform1f(U.DRIFT, DRIFT);
+    gl.uniform1f(U.TOPFADE, COARSE ? 1 : 0);
 
     let cur = themeName(), from = cur, tw = 1, twAt = 0;  // palette tween (1 = settled)
     let visible = true, last = 0;
