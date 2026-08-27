@@ -1041,6 +1041,8 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 }
 @media (max-width:900px){
   .nav-links{display:none}
+  .nav-right .btn{display:none}
+  .hero-sub{display:none}
   .hero-core{padding-top:64px}
   .hero-stage{padding:56px 16px 84px}
   .chip-film-embed{display:none}
@@ -1057,7 +1059,6 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 @media (max-width:600px){
   .wrap{padding-inline:20px}
   .announce{font-size:13px;line-height:18px}
-  .nav-login{display:none}
   .slab{width:calc(100% - 32px)}
   .hero-core{padding:64px 16px 0}
   .hero-sub{font-size:16.5px;line-height:26px}
@@ -1396,10 +1397,6 @@ html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
 <body>
 
 <!-- 1 · announcement -->
-<div class="announce">
-  <span class="glyph" aria-hidden="true"></span>
-  <span>0% platform fee. Every dollar lands in your own Stripe.</span>
-</div>
 
 <!-- 2 · nav -->
 <nav class="nav" id="nav">
