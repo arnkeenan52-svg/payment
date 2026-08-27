@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=135" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=135" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=136" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=136" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=135') format('woff2');
+  src:url('/jakarta-latin.woff2?v=136') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -266,7 +266,7 @@ html[data-theme="light"] .theme-btn .i-moon{display:block}
    clipped to the sheet and lift away with it — the fixed footer underneath is
    revealed like a window blind. CSS photo fallback behind the shader canvas. */
 .hero-sky{
-  position:sticky;top:0;height:100lvh;margin-bottom:-100lvh;
+  position:sticky;top:0;height:100vh;margin-bottom:-100vh;height:100lvh;margin-bottom:-100lvh;
   z-index:-1;overflow:hidden;pointer-events:none;
   background:var(--sky-fallback) url('/sky-night.jpg') center/cover no-repeat;
 }
@@ -351,7 +351,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=135') center/cover;
+  background:url('/hero-poster.webp?v=136') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1456,7 +1456,7 @@ html[data-theme="light"] .sheet{
 
 /* the footer: the kit's own solid ground — the clouds stop at the sheet's lip */
 .footer{
-  position:relative;z-index:0;min-height:100lvh;overflow:clip;margin-top:-40px;
+  position:relative;z-index:0;min-height:100vh;min-height:100lvh;overflow:clip;margin-top:-40px;
   background:linear-gradient(180deg,#1c2740 0%,#1f2f4d 30%,#243a64 58%,#274680 82%,#2a4f93 100%);
 }
 html[data-theme="light"] .footer{
@@ -1476,7 +1476,7 @@ html[data-theme="light"] .footer{
 }
 .footer-stage{
   position:relative;z-index:1;display:flex;flex-direction:column;box-sizing:border-box;
-  min-height:100lvh;padding:clamp(24px,5vh,104px) clamp(18px,3vw,32px) 0;
+  min-height:100vh;min-height:100lvh;padding:clamp(24px,5vh,104px) clamp(18px,3vw,32px) 0;
 }
 @media (hover:hover) and (pointer:fine) and (min-width:640px){ .footer-stage{min-height:100vh} }
 .footer-title{
@@ -1929,7 +1929,7 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
   </div>
 </footer>
 
-<script src="/sky.js?v=135" defer></script>
+<script src="/sky.js?v=136" defer></script>
 <script>
 (function(){
   'use strict';
@@ -1944,6 +1944,14 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
     themeMeta.setAttribute('content', light ? '#a9c6ef' : '#101827');
   }
   syncThemeMeta();
+  window.addEventListener('pageshow', function(e){
+    if(!e.persisted){ return; }
+    var t = null; try{ t = sessionStorage.getItem('ripley-theme'); }catch(err){}
+    var d = document.documentElement;
+    if(t === 'dark'){ d.removeAttribute('data-theme'); }
+    else{ d.setAttribute('data-theme','light'); }
+    syncThemeMeta();
+  });
   if(themeBtn){
     themeBtn.addEventListener('click', function(){
       var d = document.documentElement;
