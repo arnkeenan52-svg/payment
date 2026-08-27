@@ -787,6 +787,52 @@ const T = {
   freeze: 18.80,
 };
 
+
+/* ── THE RETIME ─────────────────────────────────────────────────────────────
+   The 20s master plays at ~30s by stretching only what is already still:
+   the plate breath, the dwells before every press, the dark room's two
+   holds, the pre-drain hold and the endcard freeze. Every press, whip,
+   cut, typing run and the verbatim swirl play at their original speed.
+   All windows and additions sit on the 0.04s authored grid so the warp
+   never lands between frames. Audio applies the identical table.        */
+const PAUSES = [
+  [0.00, 0.16, 0.36],   // the opening plate breathes
+  [1.44, 1.64, 0.44],   // the caret blinks in the empty field
+  [2.12, 2.28, 0.40],   // dwell before Create store
+  [3.52, 4.16, 1.40],   // the keycap tableau
+  [4.92, 5.52, 1.40],   // the lit room holds
+  [6.88, 7.12, 0.44],   // between name and price
+  [7.48, 7.92, 0.56],   // dwell before Billing
+  [8.08, 8.52, 0.48],   // dwell before Create product
+  [9.40, 9.68, 0.56],   // dwell before the preset
+  [10.04, 10.44, 0.48], // dwell before the type segment
+  [10.72, 11.40, 0.80], // the settled preview holds
+  [12.84, 13.00, 0.36], // dwell before Publish
+  [13.40, 13.56, 0.48], // dwell before Pay
+  [17.16, 17.48, 0.80], // the four receipts hold before the drain
+  [19.00, 20.00, 0.60], // the endcard freeze runs longer
+];
+const newT = (o) => {
+  let n = o;
+  for (const [a, b, add] of PAUSES) {
+    if (o >= b) n += add; else if (o > a) n += add * (o - a) / (b - a);
+  }
+  return n;
+};
+const NEW_END = newT(20.0);
+const BK = [[0, 0]];
+for (const [a, b] of PAUSES) BK.push([newT(a), a], [newT(b), b]);
+BK.push([NEW_END, 20.0]);
+const oldT = (nw) => {
+  for (let i = 1; i < BK.length; i++) {
+    if (nw <= BK[i][0] + 1e-9) {
+      const [n0, o0] = BK[i - 1], [n1, o1] = BK[i];
+      return n1 === n0 ? o0 : o0 + (o1 - o0) * (nw - n0) / (n1 - n0);
+    }
+  }
+  return 20.0;
+};
+
 // ── DOM handles (filled by build) ──────────────────────────────────────────
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -1362,7 +1408,7 @@ const BEATS = [
 ];
 
 function seek(t) {
-  const tq = q(Math.max(0, Math.min(19.999, t)));
+  const tq = q(oldT(Math.max(0, Math.min(NEW_END - 0.001, t))));
   drawRoom(tq);
   for (const b of BEATS) {
     const inside = tq >= b.from - 1e-6 && tq < b.to - 1e-6;
@@ -1436,7 +1482,7 @@ function build() {
   simCursor();
 }
 
-window.__duration = 20.0;
+window.__duration = 29.56;
 
 // Gate on fonts and any late images. The glyph mask is a data URI in the
 // stylesheet, so there is nothing cross-origin left to wait for.

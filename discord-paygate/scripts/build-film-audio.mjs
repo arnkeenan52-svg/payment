@@ -22,7 +22,25 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = process.env.FILM_AUDIO || path.join(ROOT, 'tmp-film-audio.wav');
 const SR = 48000;
-const DUR = 20.0;
+const DUR = 29.56;
+// ── THE RETIME ──────────────────────────────────────────────────────────────
+// The identical pause table to hero/film.html: picture-synced cues and chord
+// turns remap through newT(); the pulse keeps its 120 BPM on the real clock.
+const PAUSES = [
+  [0.00, 0.16, 0.36], [1.44, 1.64, 0.44], [2.12, 2.28, 0.40],
+  [3.52, 4.16, 1.40], [4.92, 5.52, 1.40], [6.88, 7.12, 0.44],
+  [7.48, 7.92, 0.56], [8.08, 8.52, 0.48], [9.40, 9.68, 0.56],
+  [10.04, 10.44, 0.48], [10.72, 11.40, 0.80], [12.84, 13.00, 0.36],
+  [13.40, 13.56, 0.48], [17.16, 17.48, 0.80], [19.00, 20.00, 0.60],
+];
+const newT = (o) => {
+  let n = o;
+  for (const [a, b, add] of PAUSES) {
+    if (o >= b) n += add; else if (o > a) n += add * (o - a) / (b - a);
+  }
+  return n;
+};
+
 const N = Math.round(SR * DUR);
 
 // ── deterministic noise ───────────────────────────────────────────────────────
@@ -389,6 +407,7 @@ const CHORDS = [
   { at: 15.92, to: 18.16, root: 65.41, tri: [261.63, 329.63, 392.00] }, // C
   { at: 18.16, to: 20.00, root: 55.00, tri: [220.00, 277.18, 329.63] }, // A major
 ];
+CHORDS.forEach((c) => { c.at = newT(c.at); c.to = newT(c.to); });
 const chordAt = (t) => CHORDS[Math.max(0, CHORDS.findIndex((c) => t < c.to - 1e-6))] || CHORDS[CHORDS.length - 1];
 
 // ── the cue sheet ─────────────────────────────────────────────────────────────
@@ -421,10 +440,10 @@ CHORDS.forEach((c, i) => {
 // stating two notes over the title, and a swell that empties into the cut to the
 // store card at 1.16.
 sweepSub(0.00, 0.95, 88, 38, 0.52);
-pluck(0.34, 220.00, 0.85, -0.30, 0.80);
-pluck(0.74, 329.63, 0.75, 0.32, 0.70);
+pluck(newT(0.34), 220.00, 0.85, -0.30, 0.80);
+pluck(newT(0.74), 329.63, 0.75, 0.32, 0.70);
 swell(0.30, 0.86, 1.0);
-impact(1.16, 0.26, 0.62);          // the cut lands, softly — a settle, not a bang
+impact(newT(1.16), 0.26, 0.62);          // the cut lands, softly — a settle, not a bang
 
 // ── drums ───────────────────────────────────────────────────────────────────
 // Built in stages so the arrangement grows with the film rather than running
@@ -438,12 +457,12 @@ impact(1.16, 0.26, 0.62);          // the cut lands, softly — a settle, not a 
 //  13.50 - 14.00  NOTHING but the riser — the pre-drop
 //  14.00          impact, and the rhythm stops dead
 //  16.00 - 18.00  a bare pulse under the alerts
-on(1.50, 13.51, BAR / 2, (t) => kick(t, t < 3.3 ? 0.78 : 1.0));
-on(4.00, 13.51, BAR / 2, (t) => kick(t + BEAT * 1.5, 0.40));   // the pickup kick
-on(3.50, 13.51, BAR, (t) => clap(t + BEAT, t < 5.6 ? 0.75 : 1.0));
+on(newT(1.50), newT(13.51), BAR / 2, (t) => kick(t, t < newT(3.3) ? 0.78 : 1.0));
+on(newT(4.00), newT(13.51), BAR / 2, (t) => kick(t + BEAT * 1.5, 0.40));   // the pickup kick
+on(newT(3.50), newT(13.51), BAR, (t) => clap(t + BEAT, t < newT(5.6) ? 0.75 : 1.0));
 // Eighths alternate either side of centre; the pattern's own position in the bar
 // picks the side, so it is the same every render.
-on(3.50, 13.51, BEAT / 2, (t) => {
+on(newT(3.50), newT(13.51), BEAT / 2, (t) => {
   const n = Math.round(t / (BEAT / 2));
   const downbeat = Math.abs((t / BEAT) % 1) < 0.01;
   hat(t, downbeat ? 0.55 : 0.85, 0.030, (n % 2 ? 0.26 : -0.24));
@@ -451,12 +470,12 @@ on(3.50, 13.51, BEAT / 2, (t) => {
 // Sixteenth accents once the theming beat starts, which is where the picture
 // gets busiest — the ear follows density. Wider than the eighths, and swung 9ms
 // late on the off-sixteenths so the pattern breathes instead of ticking.
-on(7.90, 11.90, BEAT / 4, (t) => {
+on(newT(7.90), newT(11.90), BEAT / 4, (t) => {
   const n = Math.round(t / (BEAT / 4));
   const off = n % 2 ? 0.009 : 0;
   hat(t + off, n % 2 ? 0.30 : 0.38, 0.018, (n % 4 < 2 ? -0.46 : 0.44));
 });
-on(5.60, 13.51, BAR, (t) => bass(t, chordAt(t).root, 1.1, t < 11.85 ? 0.9 : 1.0));
+on(newT(5.60), newT(13.51), BAR, (t) => bass(t, chordAt(t).root, 1.1, t < newT(11.85) ? 0.9 : 1.0));
 
 // ── the motif ───────────────────────────────────────────────────────────────
 // Eighth-note arpeggio on whatever chord is in force, alternating across the
@@ -464,7 +483,7 @@ on(5.60, 13.51, BAR, (t) => bass(t, chordAt(t).root, 1.1, t < 11.85 ? 0.9 : 1.0)
 // the product sheet and the theming — and drops out for the pre-drop so the
 // riser has the whole mix.
 const FIGURE = [0, 2, 1, 2, 0, 3, 1, 2];
-on(6.52, 13.50, BEAT / 2, (t) => {
+on(newT(6.52), newT(13.50), BEAT / 2, (t) => {
   const c = chordAt(t);
   const step = Math.round((t - 6.52) / (BEAT / 2)) % FIGURE.length;
   const k = FIGURE[step];
@@ -506,7 +525,7 @@ const CLICKS = [
   [11.42, 0.50, -0.349], [12.62, 0.34, -0.619], [13.02, 1.00, 0.023],
   [13.28, 0.45, 0.194], [13.60, 1.00, 0.0],
 ];
-CLICKS.forEach(([t, g, p]) => click(t, g, p));
+CLICKS.forEach(([t, g, p]) => click(newT(t), g, p));
 
 // ── scene changes ───────────────────────────────────────────────────────────
 // The rebuilt film's junctions: the dark room's exit whip starts at 5.56 and
@@ -514,22 +533,22 @@ CLICKS.forEach(([t, g, p]) => click(t, g, p));
 // under the theme's rise; the theme whips out at 12.68 handing to the carried
 // CTA; the burst washes into the receipts at 15.66. Each sweep runs ACROSS the
 // image in the direction the world is actually moving on those frames.
-whoosh(5.60, 0.40, 0.66, 0.60, -0.60);
-whoosh(8.86, 0.42, 0.68, -0.55, 0.55);
-whoosh(12.68, 0.38, 0.58, 0.55, -0.55);
-whoosh(15.66, 0.44, 0.72, -0.60, 0.60);
+whoosh(newT(5.60), 0.40, 0.66, 0.60, -0.60);
+whoosh(newT(8.86), 0.42, 0.68, -0.55, 0.55);
+whoosh(newT(12.68), 0.38, 0.58, 0.55, -0.55);
+whoosh(newT(15.66), 0.44, 0.72, -0.60, 0.60);
 
 // ── the two big moments ─────────────────────────────────────────────────────
 // The room change into the dark Stripe beat, and the burst.
-impact(3.30, 0.55, 0.55);          // the keycap drops out of the rising dark
-impact(4.56, 0.50, 0.65);          // ignition: the pulse reaches the keycap
-impact(5.92, 0.40, 0.45);          // the worksheet lands out of the exit whip
-riser(12.90, 1.10, 1.0);
-impact(14.00, 1.0, 0.85);
+impact(newT(3.30), 0.55, 0.55);          // the keycap drops out of the rising dark
+impact(newT(4.56), 0.50, 0.65);          // ignition: the pulse reaches the keycap
+impact(newT(5.92), 0.40, 0.45);          // the worksheet lands out of the exit whip
+riser(newT(12.90), 1.10, 1.0);
+impact(newT(14.00), 1.0, 0.85);
 // After the burst the rhythm stops dead and only the room is left ringing. A
 // sub swelling out of that silence is what carries 1.9 seconds of held picture
 // without putting a beat back under it.
-sweepSub(15.10, 0.86, 30, 62, 0.60);
+sweepSub(newT(15.10), 0.86, 30, 62, 0.60);
 
 // ── the alerts ──────────────────────────────────────────────────────────────
 // One bell per card, a fifth apart, rising — and on an ACCELERATING cadence,
@@ -542,9 +561,9 @@ sweepSub(15.10, 0.86, 30, 62, 0.60);
 // Bells are picture cues like the clicks; each of these three has a card
 // landing under it on the exact frame.
 const SALE_AT = [16.20, 16.67, 17.07];
-SALE_AT.forEach((t, i) => chime(t, 587.33 * Math.pow(2, i / 12) * (i > 1 ? 1.5 : 1), 1, 0.20 + i * 0.07));
-on(16.00, 18.01, BAR / 2, (t) => kick(t, 0.62));
-bass(16.00, 65.41, 1.6, 0.7);
+SALE_AT.forEach((t, i) => chime(newT(t), 587.33 * Math.pow(2, i / 12) * (i > 1 ? 1.5 : 1), 1, 0.20 + i * 0.07));
+on(newT(16.00), newT(18.01), BAR / 2, (t) => kick(t, 0.62));
+bass(newT(16.00), 65.41, 1.6, 0.7);
 
 // ── the endcard ─────────────────────────────────────────────────────────────
 // The endcard is a REAL FREEZE — 1.2s of picture with a per-frame delta of
@@ -557,13 +576,13 @@ bass(16.00, 65.41, 1.6, 0.7);
 // the tonic triad one last time — the same string that opened over the title,
 // closing on the chord the whole film has been avoiding. The last thing that
 // happens is a room decaying, which is what an ending sounds like.
-impact(18.16, 0.52, 1.0);
-pluck(18.16, 220.00, 1.0, -0.34, 1.40);
-pluck(18.40, 277.18, 0.86, 0.30, 1.30);
-pluck(18.66, 329.63, 0.74, -0.22, 1.20);
-pluck(18.98, 440.00, 0.58, 0.26, 1.10);
-chime(18.16, 880.00, 0.55, 0.0);
-bass(18.16, 55.00, 1.7, 0.85);
+impact(newT(18.16), 0.52, 1.0);
+pluck(newT(18.16), 220.00, 1.0, -0.34, 1.40);
+pluck(newT(18.40), 277.18, 0.86, 0.30, 1.30);
+pluck(newT(18.66), 329.63, 0.74, -0.22, 1.20);
+pluck(newT(18.98), 440.00, 0.58, 0.26, 1.10);
+chime(newT(18.16), 880.00, 0.55, 0.0);
+bass(newT(18.16), 55.00, 1.7, 0.85);
 
 // ── the room ──────────────────────────────────────────────────────────────────
 // Everything above is dry. A dry synthetic mix is the single loudest tell that
