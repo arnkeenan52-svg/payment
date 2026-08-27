@@ -2269,19 +2269,20 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.equal((await fetch(`${appUrl}/api/plans?store=guides`)).status, 404);
   assert.equal((await fetch(`${appUrl}/api/plans?store=alternatives`)).status, 404);
 
-  // The homepage carries a copy of the generated footer. It drifted once —
-  // /vs/subscord existed and was linked from every generated page except the
-  // one visitors actually land on — so assert the two are byte-identical
-  // rather than assert a list of links somebody has to remember to update.
-  const footerOf = (html) => {
-    const i = html.indexOf('<footer class="site-footer cols seo-footer">');
-    return i === -1 ? null : html.slice(i, html.indexOf('</footer>', i));
-  };
+  // The homepage used to carry a byte-identical copy of the generated footer;
+  // the redesigned landing owns its own footer markup, so the anti-drift
+  // guarantee is now LINK PARITY: every comparison page the generator links
+  // must be linked from the homepage too (gen-seo-pages enforces the same at
+  // build time). The original bug this guards: /vs/subscord shipped and was
+  // linked everywhere except the one page visitors actually land on.
   const home = await get('/');
-  const homeFooter = footerOf(home.body);
-  assert.ok(homeFooter, 'the landing page has the shared footer');
-  assert.equal(homeFooter, footerOf(sub.body), 'the landing footer matches the generated one');
-  assert.match(homeFooter, /href="\/vs\/subscord"/, 'the homepage links the Subscord comparison');
+  const genFooter = sub.body.slice(sub.body.indexOf('<footer class="site-footer'), sub.body.indexOf('</footer>'));
+  const vsLinks = [...genFooter.matchAll(/href="(\/vs\/[a-z-]+)"/g)].map((m) => m[1]);
+  assert.ok(vsLinks.length >= 5, 'the generated footer lists the comparison pages');
+  for (const href of vsLinks) {
+    assert.ok(home.body.includes(`href="${href}"`), `the homepage links ${href}`);
+  }
+  assert.match(home.body, /href="\/vs\/subscord"/, 'the homepage links the Subscord comparison');
 
 
   // The homepage's "Invite Dues" button: a stable hop to Discord's

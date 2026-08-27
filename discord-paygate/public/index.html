@@ -3,12 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Tints the iOS status-bar / browser chrome to match the page; theme.js keeps
-       it in sync with the active theme so the top strip is never a stray grey. -->
-  <!-- Matches the page's own --bg in each theme, so the mobile browser chrome
-       does not sit a different black next to the page. -->
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafaf8" />
+  <meta name="theme-color" content="#f4efe9" />
   <title>Dues — The Discord payment platform with 0% platform fees</title>
   <meta name="description" content="Monetize your Discord server and receive payments straight to your own Stripe account. 0% platform fees, instant role delivery, free for your first 10 members." />
   <meta property="og:type" content="website" />
@@ -23,434 +18,1447 @@
   <meta name="twitter:title" content="Dues — Sell Discord access" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
-  <!-- Icons. favicon.ico stays at a stable, UNVERSIONED url on purpose: Google
-       caches the search-result favicon by URL, and a moving ?v= resets it.
-       The .ico carries 16/32/48/64, which clears Google's "multiple of 48px"
-       floor; the 96px PNG is what it actually prefers to serve. -->
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=125" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=125" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=126" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=126" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=125" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
-  <script src="/theme.js?v=125"></script>
+
+<meta name="description" content="Sell Discord roles through your own Stripe account. 0% platform fee.">
+<link rel="icon" href="/dues-glyph.png">
+<style>
+/* ============ fonts ============ */
+@font-face{
+  font-family:'Newsreader';
+  src:url('/newsreader-latin.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:block;
+}
+@font-face{
+  font-family:'DM Sans';
+  src:url('/dmsans-latin.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:block;
+}
+@font-face{
+  font-family:'DM Sans';
+  src:url('/dmsans-500-latin.woff2') format('woff2');
+  font-weight:500;font-style:normal;font-display:block;
+}
+@font-face{
+  font-family:'Space Grotesk';
+  src:url('/spacegrotesk-latin.woff2') format('woff2');
+  font-weight:300 700;font-style:normal;font-display:block;
+}
+
+/* ============ tokens & reset ============ */
+:root{
+  --paper:#f4efe9;
+  --cream:#fdfcfa;
+  --slab:#e4dadd;
+  --hair:rgba(190,180,200,.4);
+  --ink:#1b1a1f;
+  --sec:#55504b;
+  --micro:#8d8a86;
+  --accent:#5865f2;
+  --shadow:0 2px 8px rgba(70,75,140,.06);
+  --r-slab:24px;
+  --r-card:12px;
+  --r-btn:8px;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+  --grotesk:'Space Grotesk',Arial,sans-serif;
+  --glyph:url('data:image/png;base64,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');
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);
+  font-size:16px;line-height:24px;
+  color:var(--ink);
+  background:var(--paper);
+  -webkit-font-smoothing:antialiased;
+  font-synthesis-weight:none;
+}
+img,svg,video{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+h1,h2,.serif{font-family:var(--serif);font-weight:400;letter-spacing:normal;font-synthesis:none}
+h3{font-weight:500}
+::selection{background:rgba(88,101,242,.22)}
+
+.wrap{max-width:1496px;margin-inline:auto;padding-inline:48px}
+.slab{
+  width:min(1400px,100% - 96px);
+  margin-inline:auto;
+  border-radius:var(--r-slab);
+  background:var(--slab);
+  position:relative;
+  overflow:hidden;
+}
+.glyph{
+  display:inline-block;
+  background:var(--ink);
+  -webkit-mask:var(--glyph) no-repeat center / contain;
+  mask:var(--glyph) no-repeat center / contain;
+}
+.section-mark{width:16px;height:16px;margin:0 auto 20px}
+
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  height:52px;padding:0 28px;border-radius:var(--r-btn);
+  font-size:15px;font-weight:500;letter-spacing:.01em;line-height:1;
+  transition:background-color .2s ease,color .2s ease,opacity .2s ease;
+  white-space:nowrap;
+}
+.btn-ink{background:var(--ink);color:var(--cream)}
+.btn-ink:hover{background:#33313a}
+.btn-white{background:var(--cream);color:var(--ink)}
+.btn-white:hover{background:#f3ede5}
+.btn-accent{background:var(--accent);color:var(--cream)}
+.btn-accent:hover{background:#4854e8}
+.btn-outline{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.btn-outline:hover{background:rgba(27,26,31,.06)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.demo-link{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.microcopy{font-size:13px;line-height:20px;color:var(--micro);margin-top:14px}
+
+/* glyph bullets */
+.bullets{list-style:none;display:grid;gap:14px;margin:28px 0 32px}
+.bullets li{
+  position:relative;padding-left:26px;
+  font-size:14px;line-height:24px;color:var(--sec);
+}
+.bullets li::before{
+  content:"";position:absolute;left:0;top:6px;width:12px;height:12px;
+  background:var(--ink);
+  -webkit-mask:var(--glyph) no-repeat center / contain;
+  mask:var(--glyph) no-repeat center / contain;
+}
+
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity 1s cubic-bezier(.16,1,.3,1),transform 1s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+.reveal-scale{transform:translateY(40px) scale(.95)}
+.reveal-scale.in{transform:none}
+
+/* ============ announcement bar ============ */
+.announce{
+  min-height:37px;background:var(--accent);color:var(--cream);
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:14px;padding:6px 16px;text-align:center;
+}
+.announce .glyph{background:var(--cream);width:11px;height:11px;flex:none}
+
+/* ============ nav ============ */
+.nav{
+  position:sticky;top:0;z-index:50;height:64px;
+}
+.nav::before{
+  content:"";position:absolute;inset:0 0 -28px 0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(244,239,233,.97) 0%,rgba(244,239,233,.9) 62%,rgba(244,239,233,0) 100%);
+  opacity:0;transition:opacity .25s ease;
+}
+.nav.scrolled::before{opacity:1}
+.nav-inner{height:64px;display:flex;align-items:center;gap:36px;position:relative}
+.logo{display:flex;align-items:center;gap:9px}
+.logo .glyph{width:21px;height:21px}
+.logo span{font-family:var(--grotesk);font-weight:700;font-size:21px;letter-spacing:-.01em}
+.nav-links{display:flex;gap:28px;font-size:15px;color:var(--sec)}
+.nav-links a{transition:color .2s ease}
+.nav-links a:hover{color:var(--ink)}
+.nav-right{margin-left:auto;display:flex;gap:10px}
+.nav-right .btn{height:40px;padding:0 20px;font-size:14px}
+
+/* ============ hero ============ */
+.hero{
+  position:relative;overflow:hidden;
+  margin-top:-64px;padding-top:64px;
+  min-height:calc(100vh - 37px);
+  display:flex;flex-direction:column;
+  background:
+    linear-gradient(to bottom,rgba(244,239,233,0) 78%,var(--paper) 100%),
+    radial-gradient(72% 54% at 50% 30%,#fdf9f4 0%,rgba(253,249,244,0) 68%),
+    radial-gradient(56% 44% at 4% 4%,#d9d4ef 0%,rgba(217,212,239,0) 62%),
+    radial-gradient(64% 52% at 98% 10%,#e6d9e8 0%,rgba(230,217,232,0) 58%),
+    radial-gradient(88% 66% at 88% 96%,#cfd0ee 0%,rgba(207,208,238,0) 62%),
+    radial-gradient(80% 60% at 8% 92%,#e8dcd8 0%,rgba(232,220,216,0) 58%),
+    linear-gradient(160deg,#f0e9ec,#e7e2f1);
+}
+.hero-grain{
+  position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:url('/land-grain.png');background-size:140px;
+  mix-blend-mode:overlay;
+}
+.hero-ghost{
+  position:absolute;width:1040px;height:1040px;right:-320px;top:-6%;
+  opacity:.05;pointer-events:none;transform:rotate(8deg);
+}
+.hero-core{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;position:relative;padding:72px 24px 96px;
+}
+.hero h1{
+  font-size:72px;line-height:76px;max-width:820px;
+}
+.hero-sub{
+  margin-top:26px;max-width:600px;
+  font-size:18px;line-height:28px;color:var(--sec);
+}
+.inline-mark{font-weight:500;color:var(--ink);white-space:nowrap}
+.inline-mark svg{display:inline-block;width:18px;height:18px;vertical-align:-3.5px;margin-right:3px}
+.mark-s{
+  width:17px;height:17px;border-radius:4.5px;background:var(--ink);
+  color:var(--cream);font-size:11.5px;font-weight:500;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+  vertical-align:-3px;margin-right:3px;
+}
+.hero-cta{margin-top:38px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.hero .microcopy{margin-top:18px}
+
+/* ============ video slab ============ */
+.film-sec{padding:26px 24px 90px;position:relative}
+.film{position:relative;width:min(960px,100%);margin-inline:auto}
+.film-glow{
+  position:absolute;inset:12% 7%;z-index:0;
+  background:linear-gradient(52deg,#14122b 22%,var(--accent) 76%);
+  filter:blur(150px);opacity:.5;
+}
+.film-frame{
+  position:relative;z-index:1;border-radius:16px;overflow:hidden;
+  background:#14122b;
+  box-shadow:0 25px 50px -12px rgba(20,18,43,.35);
+}
+.film-frame video{width:100%;aspect-ratio:16/9;object-fit:cover;background:url('/hero-poster.webp?v=126') center/cover}
+
+/* ============ how-it-works strip ============ */
+.steps{padding-block:56px 96px}
+.steps-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:44px}
+.step{border-top:1px solid var(--ink);padding-top:22px}
+.step h2{font-size:30px;line-height:32px}
+.step p{margin-top:10px;font-size:14px;line-height:21px;color:var(--micro)}
+
+/* ============ feature splits ============ */
+.split{margin-block:80px}
+.split-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:72px;align-items:center;
+  padding:88px 80px;
+}
+.split h2{font-size:48px;line-height:56px}
+.split-body{margin-top:20px;font-size:16px;line-height:25px;color:var(--sec);max-width:46ch}
+.split .microcopy{margin-top:12px}
+
+/* discord chips (split A) */
+.chips-stage{position:relative;min-height:460px}
+.chip-card{
+  position:absolute;background:var(--cream);border-radius:14px;
+  padding:10px 10px 12px;box-shadow:0 14px 34px -14px rgba(20,18,43,.28),var(--shadow);
+  border:1px solid var(--hair);
+}
+.chip-card-1{width:min(440px,100%);top:26px;left:0;transform:rotate(-1.6deg)}
+.chip-card-2{width:min(340px,86%);bottom:10px;right:-6px;transform:rotate(1.8deg);z-index:2}
+.dcord{background:#313338;border-radius:9px;padding:14px 16px 16px;font-size:14px;line-height:20px}
+.dc-msg{display:flex;gap:12px}
+.dc-avatar{
+  width:38px;height:38px;border-radius:50%;background:var(--accent);flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.dc-avatar .glyph{width:17px;height:17px;background:#fdfcfa}
+.dc-head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.dc-name{color:#f2f3f5;font-weight:500;font-size:14.5px}
+.dc-app{
+  background:var(--accent);color:#fdfcfa;font-size:9.5px;font-weight:500;
+  border-radius:4px;padding:1.5px 5px;letter-spacing:.02em;position:relative;top:-1.5px;
+}
+.dc-time{color:#949ba4;font-size:11.5px}
+.dc-text{color:#dbdee1;margin-top:3px}
+.dc-mention{color:#c9cdfb;background:rgba(88,101,242,.3);border-radius:3px;padding:0 2px;font-weight:500}
+.dc-embed{
+  margin-top:8px;background:#2b2d31;border-left:4px solid var(--accent);
+  border-radius:4px;padding:11px 14px 12px;max-width:340px;
+}
+.dc-embed-title{color:#f2f3f5;font-weight:500;font-size:14.5px}
+.dc-embed-desc{color:#dbdee1;margin-top:5px}
+.dc-embed-field{color:#dbdee1;margin-top:9px}
+.dc-embed-field b{color:#f2f3f5;font-weight:500}
+
+/* ============ 3-up toys ============ */
+.toys{padding-block:16px 100px}
+.toys-head{text-align:center;margin-bottom:64px}
+.toys-head h2{font-size:36px;line-height:44px}
+.toys-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:56px;align-items:start}
+.toy{min-width:0}
+.marq,.toy-widget{max-width:100%}
+.toy-icon{
+  width:48px;height:48px;border-radius:12px;background:var(--slab);
+  display:flex;align-items:center;justify-content:center;margin-bottom:20px;
+}
+.toy-icon svg{width:22px;height:22px;stroke:var(--ink);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.toy h3{font-size:24px;line-height:32px;font-weight:500}
+.toy > p{margin-top:10px;font-size:15px;line-height:23px;color:var(--sec);min-height:69px}
+.toy-widget{margin-top:24px}
+
+/* toy a: marquees */
+.marq{
+  overflow:hidden;margin-bottom:12px;
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 10%,#000 90%,transparent);
+  mask-image:linear-gradient(to right,transparent,#000 10%,#000 90%,transparent);
+}
+.marq-track{display:flex;gap:10px;width:max-content;animation:marq-l 30s linear infinite}
+.marq-rev .marq-track{animation:marq-r 35s linear infinite}
+.marq-slow .marq-track{animation:marq-l 40s linear infinite}
+@keyframes marq-l{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes marq-r{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+.pill{
+  background:var(--cream);border:1px solid var(--hair);border-radius:999px;
+  padding:8px 16px;font-size:13.5px;white-space:nowrap;color:var(--ink);
+  box-shadow:var(--shadow);
+}
+
+/* toy b: appearance panel */
+.panel{
+  background:var(--cream);border:1px solid var(--hair);border-radius:var(--r-card);
+  padding:18px;box-shadow:var(--shadow);display:grid;gap:16px;
+}
+.panel-label{font-size:12px;color:var(--micro);margin-bottom:7px}
+.seg{display:inline-flex;background:#eee9ef;border-radius:999px;padding:3px;gap:2px}
+.seg span{padding:6px 15px;border-radius:999px;font-size:13px;color:var(--sec)}
+.seg .on{background:var(--ink);color:var(--cream)}
+.panel-row{display:flex;gap:20px;justify-content:space-between;align-items:flex-start}
+.dots{display:flex;gap:9px;align-items:center}
+.dot{width:22px;height:22px;border-radius:50%;position:relative}
+.dot-check{box-shadow:0 0 0 2px var(--cream),0 0 0 3.5px var(--accent)}
+.dot-check svg{position:absolute;inset:0;margin:auto;width:11px;height:11px;stroke:#fdfcfa;stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.upload{
+  width:44px;height:44px;border:1.5px dashed #b9b0c4;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;color:var(--micro);
+  font-size:18px;line-height:1;
+}
+.mini-slider{position:relative;height:14px;display:flex;align-items:center}
+.mini-slider::before{
+  content:"";position:absolute;left:0;right:0;height:4px;border-radius:999px;
+  background:linear-gradient(to right,var(--accent) 55%,#e5dfe8 55%);
+}
+.mini-thumb{
+  position:absolute;left:55%;width:14px;height:14px;border-radius:50%;
+  background:var(--accent);border:3px solid var(--cream);
+  box-shadow:0 0 0 1px var(--hair);transform:translateX(-50%);
+}
+.typeseg{display:flex;gap:8px}
+.typeseg span{
+  flex:1;text-align:center;border:1px solid var(--hair);border-radius:8px;
+  padding:8px 0;font-size:14px;color:var(--sec);
+}
+.typeseg .on{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.typeseg .serif{font-size:15px}
+
+/* toy c: mrr chart */
+.mrr{position:relative;padding-top:26px}
+.mrr-stat{
+  position:absolute;top:0;left:10px;z-index:2;
+  background:var(--cream);border:1px solid var(--hair);border-radius:10px;
+  padding:12px 16px;box-shadow:var(--shadow);
+}
+.mrr-stat b{display:block;font-size:20px;font-weight:500;letter-spacing:-.01em}
+.mrr-stat span{font-size:12px;color:var(--micro)}
+.mrr svg{width:100%;height:auto}
+.mrr .line{
+  stroke:var(--accent);stroke-width:2.5;fill:none;stroke-linecap:round;
+  stroke-dasharray:1;stroke-dashoffset:1;
+  transition:stroke-dashoffset 2.4s cubic-bezier(.4,0,.2,1);
+}
+.mrr .area{fill:var(--accent);opacity:0;transition:opacity .8s ease 1.7s}
+.mrr .dash{stroke:#cfc6d6;stroke-width:1;stroke-dasharray:4 5}
+.mrr .marker{opacity:0;transition:opacity .5s ease 2.2s}
+.mrr.drawn .line{stroke-dashoffset:0}
+.mrr.drawn .area{opacity:.1}
+.mrr.drawn .marker{opacity:1}
+
+/* ============ discover ============ */
+.discover{padding:16px 0 100px}
+.discover-head{text-align:center}
+.discover-head h2{font-size:36px;line-height:44px}
+.cats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+.cat{
+  background:var(--cream);border:1px solid var(--hair);border-radius:999px;
+  padding:7px 16px;font-size:13px;color:var(--sec);
+}
+.stores{
+  display:flex;gap:16px;margin-top:44px;overflow-x:auto;
+  scroll-snap-type:x mandatory;padding:8px 8%;
+  scrollbar-width:none;cursor:grab;
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 7%,#000 93%,transparent);
+  mask-image:linear-gradient(to right,transparent,#000 7%,#000 93%,transparent);
+}
+.stores::-webkit-scrollbar{display:none}
+.stores.dragging{cursor:grabbing;scroll-snap-type:none}
+.store{
+  flex:none;width:256px;scroll-snap-align:center;
+  background:var(--cream);border:1px solid var(--hair);border-radius:var(--r-card);
+  padding:22px;box-shadow:var(--shadow);
+  transition:background-color .2s ease;display:block;
+}
+.store:hover{background:#fffefd}
+.store-tile{
+  width:44px;height:44px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:16px;
+  font-size:17px;font-weight:500;
+}
+.store-tile .glyph{width:18px;height:18px}
+.store-name{font-size:16px;font-weight:500}
+.store-cat{
+  display:inline-block;margin-top:8px;font-size:11.5px;color:var(--sec);
+  border:1px solid var(--hair);border-radius:999px;padding:2.5px 10px;
+}
+.store-members{margin-top:12px;font-size:13px;color:var(--micro)}
+.store-price{margin-top:3px;font-size:15px;font-weight:500}
+.discover-link{
+  display:block;width:max-content;margin:36px auto 0;
+  font-size:15px;font-weight:500;
+  border-bottom:1px solid transparent;transition:border-color .2s ease;
+}
+.discover-link:hover{border-color:var(--ink)}
+
+/* split B diagram */
+.diagram{width:100%;height:auto}
+.diagram text{font-family:var(--sans)}
+
+/* split C browser frames */
+.ui-stage{position:relative;min-height:540px}
+.browser{
+  background:var(--cream);border:1px solid var(--hair);border-radius:var(--r-card);
+  overflow:hidden;box-shadow:0 14px 34px -14px rgba(20,18,43,.28),var(--shadow);
+}
+.browser-bar{
+  height:34px;display:flex;align-items:center;justify-content:center;
+  background:#f2ede7;border-bottom:1px solid var(--hair);
+}
+.browser-url{
+  font-size:10.5px;color:var(--micro);background:var(--cream);
+  border:1px solid var(--hair);border-radius:999px;padding:2.5px 14px;line-height:1.4;
+}
+.shot{overflow:hidden;position:relative}
+.shot img{max-width:none;display:block}
+.frame-store{width:min(470px,88%);position:absolute;top:0;right:-48px}
+.frame-store .shot{aspect-ratio:680/700}
+.frame-store img{width:282.35%;margin-left:-91.18%;transform:translateY(-6.48%)}
+.frame-checkout{width:min(310px,62%);position:absolute;left:0;bottom:0;z-index:2}
+.frame-checkout .shot{aspect-ratio:620/580}
+.frame-checkout img{width:309.68%;margin-left:-104.84%;transform:translateY(-12.04%)}
+.frame-wrap{position:relative}
+.float-chip{
+  position:absolute;display:flex;align-items:center;gap:8px;
+  background:var(--cream);border:1px solid var(--hair);border-radius:999px;
+  padding:9px 16px;font-size:13px;font-weight:500;color:var(--ink);
+  box-shadow:0 8px 22px -8px rgba(20,18,43,.25);z-index:3;white-space:nowrap;
+}
+.float-chip .glyph{width:11px;height:11px;background:var(--accent)}
+.chip-checkout{left:-14px;bottom:-16px}
+
+/* ============ calculator ============ */
+.calc-sec{padding-block:20px 100px}
+.calc-head{text-align:center;margin-bottom:48px}
+.calc-head h2{font-size:36px;line-height:44px}
+.calc-head p{margin-top:12px;font-size:15px;color:var(--micro)}
+.calc{
+  width:min(760px,100%);margin-inline:auto;
+  background:var(--cream);border-radius:24px;border:1px solid var(--hair);
+  box-shadow:var(--shadow);padding:56px 64px 48px;
+}
+.calc-figure{font-size:76px;line-height:1;display:flex;align-items:baseline;gap:6px}
+.calc-figure small{font-family:var(--sans);font-size:15px;color:var(--micro)}
+.calc-fields{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px}
+.field label{display:block;font-size:14px;font-weight:500;margin-bottom:9px}
+.field input,.field select{
+  width:100%;height:48px;border:1px solid var(--hair);border-radius:8px;
+  background:var(--cream);padding:0 16px;font:inherit;font-size:15px;color:var(--ink);
+  appearance:none;-webkit-appearance:none;
+}
+.field select{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%2355504b' stroke-width='1.6' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 16px center;
+}
+.field input:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.calc-slider{margin-top:34px}
+.calc-slider label{display:block;font-size:14px;font-weight:500;margin-bottom:14px}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;
+  background:linear-gradient(to right,var(--accent) 22%,#e5dfe8 22%);outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;
+  background:var(--accent);border:3.5px solid var(--cream);
+  box-shadow:0 0 0 1px var(--hair);cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{
+  width:15px;height:15px;border-radius:50%;background:var(--accent);
+  border:3.5px solid var(--cream);box-shadow:0 0 0 1px var(--hair);cursor:pointer;
+}
+input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.ticks{position:relative;height:18px;margin-top:10px;font-size:12px;color:var(--micro)}
+.ticks span{position:absolute;transform:translateX(-50%)}
+.ticks span:first-child{transform:none}
+.ticks span:last-child{transform:translateX(-100%)}
+.calc-cta{text-align:center;margin-top:40px}
+
+/* ============ pricing crescendo ============ */
+.crescendo{
+  margin-block:80px;color:var(--cream);
+  background:linear-gradient(158deg,#14122b 6%,#3d3f9e 44%,#7d86f5 74%,#c9cdf7 102%);
+  padding:96px 64px 104px;
+}
+.crescendo::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.3;
+  mix-blend-mode:overlay;
+  background:url("data:image/png;base64,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") repeat;
+  background-size:140px 140px;
+}
+.crescendo > *{position:relative;z-index:1}
+.crescendo .section-mark{background:var(--cream)}
+.cres-head{text-align:center}
+.cres-head h2{font-size:48px;line-height:56px}
+.cres-head p{margin-top:14px;font-size:16px;color:rgba(253,252,250,.82)}
+.cres-controls{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:36px}
+.billing-toggle{
+  display:inline-flex;background:rgba(20,18,43,.55);border-radius:10px;padding:4px;gap:2px;
+}
+.billing-toggle button{
+  padding:9px 20px;border-radius:7px;font-size:14px;font-weight:500;
+  color:rgba(253,252,250,.72);transition:background-color .2s ease,color .2s ease;
+}
+.billing-toggle button.on{background:var(--cream);color:var(--ink)}
+.billing-toggle button:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+.fee-chip{
+  background:rgba(20,18,43,.55);border-radius:8px;padding:9px 18px;
+  font-size:14px;color:var(--cream);
+}
+.plans{
+  display:grid;grid-template-columns:repeat(2,minmax(0,400px));gap:28px;
+  justify-content:center;margin-top:56px;align-items:start;
+}
+.plan{
+  background:var(--cream);color:var(--ink);border-radius:var(--r-card);
+  padding:34px 32px 28px;position:relative;
+}
+.plan-pro{transform:translateY(-18px);box-shadow:0 22px 44px -18px rgba(20,18,43,.5)}
+.pop-tab{
+  position:absolute;top:0;left:50%;transform:translate(-50%,-100%);
+  background:var(--accent);color:var(--cream);font-size:12.5px;font-weight:500;
+  padding:6px 18px 5px;border-radius:8px 8px 0 0;letter-spacing:.01em;
+}
+.plan-name{display:flex;align-items:baseline;gap:10px}
+.plan-name b{font-size:18px;font-weight:500}
+.plan-name i{font-size:13px;color:var(--micro)}
+.plan-price{margin-top:18px;display:flex;align-items:baseline;gap:6px}
+.plan-price .serif{font-size:56px;line-height:1}
+.plan-price small{font-size:14px;color:var(--micro)}
+.plan-note{font-size:12px;color:var(--micro);margin-top:6px;min-height:18px}
+.plan .btn{width:100%;margin-top:20px}
+.plan .microcopy{text-align:center;margin-top:12px}
+.plan-specs{list-style:none;margin-top:22px}
+.plan-specs li{
+  display:flex;justify-content:space-between;gap:12px;
+  padding:13px 2px;border-top:1px solid var(--hair);
+  font-size:14px;
+}
+.plan-specs li span{color:var(--sec)}
+.plan-specs li b{font-weight:500}
+.plan-foot{
+  border-top:1px solid var(--hair);margin-top:2px;padding-top:18px;
+  display:flex;justify-content:center;gap:18px;align-items:center;
+}
+.plan-foot svg{height:16px;width:auto;fill:var(--ink)}
+.plan-foot .foot-s{
+  width:18px;height:18px;border-radius:5px;background:var(--ink);color:var(--cream);
+  font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;
+}
+
+/* ============ photography ============ */
+.photo{border-radius:14px;overflow:hidden;position:relative;box-shadow:var(--shadow)}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-half{position:relative;min-height:480px}
+.photo-half .photo{position:absolute;inset:0}
+.photo-chip{
+  position:absolute;display:flex;align-items:center;gap:9px;color:var(--ink);
+  background:#fff;border-radius:12px;padding:12px 16px;
+  box-shadow:0 10px 28px rgba(70,75,140,.16);
+  font-size:14px;line-height:1.35;
+}
+.photo-chip .glyph{width:14px;height:14px;flex:none}
+.photo-chip b{display:block;font-weight:500}
+.photo-chip small{color:var(--micro);font-size:12.5px}
+.collage{position:relative;margin-top:34px;height:360px}
+.collage .photo{position:absolute}
+.collage .c1{width:74%;height:300px;left:0;top:0}
+.collage .c2{width:44%;height:210px;right:0;bottom:0;box-shadow:0 16px 40px rgba(70,75,140,.2)}
+
+/* ============ faq ============ */
+.faq{padding-block:100px}
+.faq-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:80px;align-items:start}
+.faq h2{font-size:48px;line-height:56px}
+.faq-left .glyph{width:18px;height:18px;margin-top:28px}
+.acc-item{border-bottom:1px solid var(--hair)}
+.acc-item:first-child{border-top:1px solid var(--hair)}
+.acc-q{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding:22px 2px;font-size:20px;font-weight:500;text-align:left;
+  transition:color .2s ease;
+}
+.acc-q:hover{color:#3d3a44}
+.acc-q:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.acc-icon{position:relative;width:14px;height:14px;flex:none}
+.acc-icon::before,.acc-icon::after{
+  content:"";position:absolute;background:var(--ink);border-radius:2px;
+  transition:transform .2s cubic-bezier(.4,0,.2,1);
+}
+.acc-icon::before{left:0;right:0;top:6px;height:1.5px}
+.acc-icon::after{top:0;bottom:0;left:6.25px;width:1.5px}
+.acc-item.open .acc-icon::after{transform:scaleY(0)}
+.acc-a{height:0;overflow:hidden;transition:height .2s cubic-bezier(.4,0,.2,1)}
+.acc-a p{padding:0 40px 24px 2px;font-size:15px;line-height:24px;color:var(--sec)}
+
+/* ============ final cta ============ */
+.final{
+  margin-block:80px;background:var(--accent);color:var(--cream);
+  text-align:center;padding:104px 48px 0;
+}
+.final-ghost{
+  position:absolute;width:640px;height:640px;left:-150px;bottom:-190px;
+  background:var(--cream);opacity:.08;pointer-events:none;
+}
+.final > :not(.final-ghost){position:relative;z-index:1}
+.final h2{font-size:48px;line-height:56px}
+.final p{margin-top:16px;font-size:16px;color:rgba(253,252,250,.85);max-width:52ch;margin-inline:auto}
+.final .btn{margin-top:32px}
+.final .microcopy{color:rgba(253,252,250,.66)}
+.final-frame{
+  width:min(880px,94%);margin:64px auto -64px;text-align:left;position:relative;
+}
+.final-frame .shot{aspect-ratio:1200/640}
+.final-frame img{width:160%;margin-left:-39.17%;transform:translateY(-7.22%)}
+.chip-dash{top:-16px;right:-12px}
+.chip-dash .glyph{background:var(--accent)}
+
+/* ============ footer ============ */
+.footer{background:var(--ink);color:var(--micro);margin-top:96px}
+.ghost-word{
+  font-family:var(--grotesk);font-weight:700;color:#2c2b33;
+  font-size:min(24vw,345px);line-height:.96;text-align:center;
+  height:.78em;overflow:hidden;user-select:none;
+}
+.footer-cols{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:40px;
+  padding:72px 0 64px;
+}
+.fcol b{display:block;font-size:14px;font-weight:500;color:var(--cream);margin-bottom:18px}
+.fcol a{display:block;font-size:14px;line-height:20px;padding:6px 0;transition:color .2s ease}
+.fcol a:hover{color:var(--cream)}
+.legal{
+  border-top:1px solid #35333c;padding:26px 0 34px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  font-size:13px;
+}
+.legal-left{display:flex;align-items:center;gap:11px}
+.legal .glyph{width:13px;height:13px;background:#6b6875}
+
+/* ============ responsive ============ */
+@media (max-width:1120px){
+  .split-grid{gap:48px;padding:64px 56px}
+  .split h2{font-size:40px;line-height:48px}
+  .toys-grid{gap:36px}
+  .frame-store{right:-56px}
+}
+@media (max-width:900px){
+  .nav-links{display:none}
+  .steps-grid{grid-template-columns:1fr;gap:0}
+  .step{padding:26px 0 30px}
+  .step p{margin-top:8px}
+  .toys-grid{grid-template-columns:1fr;gap:64px}
+  .toy > p{min-height:0}
+  .split-grid{grid-template-columns:1fr;gap:52px;padding:48px 32px}
+  .chips-stage{min-height:0;height:auto;display:grid;gap:16px}
+  .chip-card{position:static;width:100%}
+  .chip-card-2{width:88%;justify-self:end}
+  .ui-stage{min-height:0;display:grid;gap:20px}
+  .frame-store{position:static;width:100%;right:auto}
+  .frame-checkout{position:relative;width:76%;left:auto;bottom:auto;margin-top:-64px;margin-left:0}
+  .faq-grid{grid-template-columns:1fr;gap:44px}
+  .plans{grid-template-columns:minmax(0,420px)}
+  .plan-pro{transform:none}
+  .crescendo{padding:72px 32px 80px}
+}
+@media (max-width:600px){
+  .wrap{padding-inline:20px}
+  .announce{font-size:13px;line-height:18px}
+  .nav-login{display:none}
+  .slab{width:calc(100% - 32px)}
+  .hero h1{font-size:40px;line-height:46px}
+  .hero-sub{font-size:16.5px;line-height:26px}
+  .hero-cta{flex-direction:column;align-items:stretch;width:100%;max-width:360px}
+  .hero-ghost{width:420px;height:420px;right:-120px;top:10%}
+  .film-sec{padding:10px 8px 64px}
+  .film-frame{border-radius:12px}
+  .film-frame video{aspect-ratio:4/3}
+  .steps{padding-block:40px 72px}
+  .split{margin-block:48px}
+  .split-grid{padding:36px 22px;gap:40px}
+  .split h2{font-size:33px;line-height:40px}
+  .toys{padding-block:8px 72px}
+  .toys-head{margin-bottom:44px}
+  .toys-head h2,.discover-head h2,.calc-head h2{font-size:30px;line-height:38px}
+  .discover{padding:8px 0 72px}
+  .stores{padding:8px 20px}
+  .calc{padding:36px 24px 32px}
+  .calc-figure{font-size:54px}
+  .calc-fields{grid-template-columns:1fr;gap:20px;margin-top:30px}
+  .crescendo{margin-block:48px;padding:56px 20px 64px}
+  .cres-head h2{font-size:36px;line-height:44px}
+  .plans{margin-top:44px}
+  .plan{padding:28px 22px 24px}
+  .faq{padding-block:64px}
+  .faq h2{font-size:36px;line-height:44px}
+  .acc-q{font-size:17px;padding:18px 2px}
+  .final{margin-block:48px;padding:64px 24px 0}
+  .final h2{font-size:34px;line-height:42px}
+  .final-frame{margin:44px auto -36px}
+  .final-frame img{height:240px}
+  .chip-dash{right:6px}
+  .footer-cols{grid-template-columns:1fr;gap:36px;padding:48px 0 40px}
+  .legal{justify-content:center;text-align:center}
+  .footer{margin-top:64px}
+  .ghost-word{font-size:33vw}
+}
+
+/* ============ reduced motion ============ */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  .reveal,.reveal-scale{opacity:1;transform:none}
+  .mrr .line{stroke-dashoffset:0}
+  .mrr .area{opacity:.1}
+  .mrr .marker{opacity:1}
+}
+</style>
 </head>
-<body class="home">
-  <header class="top xoe-nav">
-    <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=125" alt="Dues" height="20" /></a>
+<body>
+
+<!-- 1 · announcement -->
+<div class="announce">
+  <span class="glyph" aria-hidden="true"></span>
+  <span>0% platform fee. Every dollar lands in your own Stripe.</span>
+</div>
+
+<!-- 2 · nav -->
+<nav class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="/" aria-label="Dues home">
+      <span class="glyph" aria-hidden="true"></span><span>Dues</span>
+    </a>
+    <div class="nav-links">
+      <a href="#pricing">Pricing</a>
+      <a href="/discover">Discover</a>
+      <a href="/api/invite">Invite Dues &#8599;</a>
     </div>
-    <nav class="top-center" aria-label="Main">
-      <a class="nav-link" href="/discover">Discover</a>
-      <a class="nav-link" href="#features">Features</a>
-      <a class="nav-link" href="#pricing">Pricing</a>
-      <a class="nav-link" href="/vs">Compare</a>
-      <a class="nav-link" href="#faq">FAQ</a>
-      <a class="nav-link nav-discord" href="https://discord.gg/G6yjsX5qbB" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.3 5.3A16.7 16.7 0 0 0 15.1 4l-.2.4a12.6 12.6 0 0 1 3.7 1.9 11.7 11.7 0 0 0-4.4-1.4 12.6 12.6 0 0 0-4.4 0A11.7 11.7 0 0 0 5.4 6.3 12.6 12.6 0 0 1 9.1 4.4L8.9 4a16.7 16.7 0 0 0-4.2 1.3C2.1 9.2 1.4 13 1.7 16.7a16.8 16.8 0 0 0 5.1 2.6l.4-.6a11 11 0 0 1-1.7-.8l.4-.3a12 12 0 0 0 10.2 0l.4.3a11 11 0 0 1-1.7.8l.4.6a16.8 16.8 0 0 0 5.1-2.6c.4-4.3-.7-8.1-3-11.4zM8.5 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm7 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z"/></svg>Discord</a>
-    </nav>
-    <div class="top-right">
-      <div id="account" class="account"></div>
-      <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
-      <button class="menu-btn" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
-      <span class="mb-bar" aria-hidden="true"></span>
-      <span class="mb-bar" aria-hidden="true"></span>
-    </button>
+    <div class="nav-right">
+      <a class="btn btn-white nav-login" href="/dashboard">Log in</a>
+      <a class="btn btn-accent" href="/dashboard">Sign up</a>
     </div>
-  </header>
-  <div class="menu-scrim" id="menu-scrim" hidden aria-hidden="true"></div>
-  <nav class="mobile-menu" id="mobile-menu" hidden aria-label="Menu">
-    <a href="/discover">Discover</a>
-    <a href="#features">Features</a>
-    <a href="#pricing">Pricing</a>
-    <a href="/vs">Compare</a>
-    <a href="#faq">FAQ</a>
-    <a href="/help">Help</a>
-    <a href="https://discord.gg/G6yjsX5qbB" rel="noopener">Discord community</a>
-    <div class="mobile-menu-account" id="menu-account"></div>
-  </nav>
+  </div>
+</nav>
 
-  <main class="landing">
-    <section class="xhero">
-      <div class="hero-inner">
-        <h1>Monetize your Discord.<br /><span class="hl-dim">Keep every dollar.</span></h1>
-        <p class="hero-sub">Dues turns your server into a store. Stripe checkout, payments straight to your own account, roles delivered in seconds.</p>
-        <div class="hero-ctas">
-          <a class="btn-fill btn-hero" href="/api/invite">Invite Dues <span aria-hidden="true">→</span></a>
-          <a class="btn-secondary btn-hero hero-alt" href="/dashboard">Open dashboard</a>
-        </div>
-        <p class="hero-trust">Free for your first 10 paying members. No card required.</p>
-        <div class="hero-compat" aria-label="Works with">
-          <span class="hc-label">Works with</span>
-          <span class="hc-item hc-discord"><svg width="16" height="13" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>Discord</span>
-          <span class="hc-item hc-stripe">stripe</span>
-        </div>
-      </div>
-      <div class="shot-frame hero-shot browser-frame">
-        <div class="bf-bar" aria-hidden="true">
-          <span class="bf-dots"><i></i><i></i><i></i></span>
-          <span class="bf-url"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> dues.gg/dashboard</span>
-        </div>
-        <!-- The product tour. ONE FILE FOR BOTH THEMES: it used to ship a dark
-             cut and a light cut and swap them on the theme toggle, which doubled
-             the asset count to serve a film that now carries its own light beat
-             (the Ivory storefront) inside it. One file also halves what has to
-             be built, tested and cache-busted.
-             No autoplay and preload="none" ON PURPOSE — home.js attaches the
-             source once the page has finished its critical work. Autoplay plus
-             preload="auto" made every visitor pull the whole file while the page
-             was still painting, which is what "laggy" meant. -->
-        <video class="hero-video" id="hero-media" muted loop playsinline preload="none"
-          poster="/hero-poster-dark.webp?v=125"
-          aria-label="Dues product tour: name your store, connect your own Stripe key, create a product, theme your store, and a sale landing in Discord">
-        </video>
-        <!-- The film carries a scored soundtrack — a beat, and a click on every
-             frame the cursor presses. A hero loop has to start muted or the
-             browser refuses to autoplay it at all, so the sound is opt-in and
-             this button is the opt-in. It is a real <button>, keyboard-reachable
-             and aria-pressed, not a decorative overlay. home.js unhides it only
-             once the file is attached; with JS off there is nothing to unmute. -->
-        <div class="hero-ctl">
-          <!-- The film ships in two grades. They are the same cut frame for
-               frame — same engine, same timings, same cursor path, same
-               soundtrack — so swapping between them keeps the playhead exactly
-               where it was and the switch reads as a relight rather than as a
-               reload. Dark is the default; the choice is remembered. -->
-          <button class="hero-cut" id="hero-cut" type="button" hidden
-            aria-pressed="false" aria-label="Switch the tour to the light version">
-            <svg class="hc-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-            <svg class="hc-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-          </button>
-          <button class="hero-sound" id="hero-sound" type="button" hidden
-            aria-pressed="false" aria-label="Turn tour sound on">
-            <svg class="hs-off" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg>
-            <svg class="hs-on" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.7 5.3a9 9 0 0 1 0 13.4"/></svg>
-          </button>
-        </div>
-      </div>
-    </section>
+<!-- 3 · hero -->
+<header class="hero">
+  <div class="hero-grain" aria-hidden="true"></div>
+  <div class="glyph hero-ghost" aria-hidden="true"></div>
+  <div class="hero-core">
+    <h1>Sell roles. Keep every dollar.</h1>
+    <p class="hero-sub">Dues connects your
+      <span class="inline-mark"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="#1b1a1f" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Discord</span>
+      server to your own
+      <span class="inline-mark"><span class="mark-s">S</span>Stripe</span>
+      account. Buyers pay, roles deliver themselves.</p>
+    <div class="hero-cta">
+      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <a class="btn btn-white" href="/dashboard"><svg viewBox="0 0 127.14 96.36" width="19" height="15" aria-hidden="true"><path fill="#1b1a1f" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Sign in with Discord</a>
+    </div>
+    <p class="microcopy">Free to start. Your Stripe, your money.</p>
+  </div>
+</header>
 
+<main>
 
+<!-- 4 · video slab -->
+<section class="film-sec">
+  <div class="film reveal reveal-scale">
+    <div class="film-glow" aria-hidden="true"></div>
+    <div class="film-frame">
+      <video src="/hero-tour.mp4?v=126" poster="/hero-poster.webp?v=126" muted loop playsinline autoplay></video>
+    </div>
+  </div>
+</section>
 
-    <section class="xinset" id="compare">
-      <div class="wrap">
-            <div class="panel calc" aria-label="Savings calculator">
-              <div class="calc-head">
-                <h3>What the same store costs elsewhere</h3>
-                <p class="card-sub">Drag to your size. Competitor pricing as publicly listed*.</p>
+<!-- 5 · how it works -->
+<section class="steps wrap">
+  <span class="glyph section-mark" aria-hidden="true"></span>
+  <div class="steps-grid">
+    <div class="step">
+      <h2>Create</h2>
+      <p>Set up your roles and prices in minutes</p>
+    </div>
+    <div class="step">
+      <h2>Connect</h2>
+      <p>Invite Dues and link your Stripe</p>
+    </div>
+    <div class="step">
+      <h2>Customize</h2>
+      <p>Make the storefront look like your server</p>
+    </div>
+    <div class="step">
+      <h2>Get paid</h2>
+      <p>Money lands in your own Stripe account</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 · feature split A: roles deliver themselves -->
+<section class="slab split reveal">
+  <div class="split-grid">
+    <div>
+      <h2>Roles that deliver themselves.</h2>
+      <p class="split-body">Dues watches your checkout around the clock. The second a payment clears, the bot grants the buyer their role, and when a subscription lapses it quietly takes the role back.</p>
+      <ul class="bullets">
+        <li>Roles land seconds after checkout.</li>
+        <li>Lapsed subscriptions lose access automatically.</li>
+      </ul>
+      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <p class="microcopy">Free to start. Your Stripe, your money.</p>
+    </div>
+    <div class="chips-stage">
+      <div class="chip-card chip-card-1">
+        <div class="dcord">
+          <div class="dc-msg">
+            <div class="dc-avatar"><span class="glyph" aria-hidden="true"></span></div>
+            <div>
+              <div class="dc-head">
+                <span class="dc-name">Dues</span><span class="dc-app">APP</span><span class="dc-time">today at 9:41 PM</span>
               </div>
-              <div class="calc-grid">
-                <div class="calc-inputs">
-                  <label class="calc-field">
-                    <span class="calc-label">Paying members <output id="c-subs-out">100</output></span>
-                    <input id="c-subs" type="range" min="5" max="1000" step="5" value="100" />
-                  </label>
-                  <label class="calc-field">
-                    <span class="calc-label">Average monthly price <output id="c-price-out">$50</output></span>
-                    <input id="c-price" type="range" min="5" max="200" step="5" value="50" />
-                  </label>
-                  <div class="calc-result">
-                    <span class="calc-result-label">Estimated annual savings</span>
-                    <span class="calc-result-num" id="c-save">$0</span>
-                    <span class="calc-result-sub">compared to the highest competitor fees</span>
-                  </div>
-                </div>
-                <div class="calc-bars">
-                  <span class="calc-bars-label">Monthly platform cost</span>
-                  <div class="calc-bar-row" id="c-row-ripley">
-                    <div class="calc-bar-meta"><span class="calc-bar-name">Dues</span><span class="calc-bar-amt" id="c-ripley">$0</span></div>
-                    <div class="calc-bar mine"><span id="c-bar-ripley"></span></div>
-                    <span class="calc-bar-sub" id="c-ripley-plan">Free plan · 0% of sales</span>
-                  </div>
-                  <div class="calc-bar-row">
-                    <div class="calc-bar-meta"><span class="calc-bar-name">Whop</span><span class="calc-bar-amt" id="c-whop">$0</span></div>
-                    <div class="calc-bar"><span id="c-bar-whop"></span></div>
-                    <span class="calc-bar-sub">3% of sales + payout fees*</span>
-                  </div>
-                  <div class="calc-bar-row">
-                    <div class="calc-bar-meta"><span class="calc-bar-name">LaunchPass</span><span class="calc-bar-amt" id="c-lp">$0</span></div>
-                    <div class="calc-bar"><span id="c-bar-lp"></span></div>
-                    <span class="calc-bar-sub">$29/mo + 3.5% of sales*</span>
-                  </div>
-                  <div class="calc-bar-row">
-                    <div class="calc-bar-meta"><span class="calc-bar-name">Upgrade.chat <span class="calc-bar-from">from</span></span><span class="calc-bar-amt" id="c-uc">$0</span></div>
-                    <div class="calc-bar"><span id="c-bar-uc"></span></div>
-                    <span class="calc-bar-sub">from $49/mo + from 2.9% of sales*</span>
-                  </div>
-                  <p class="calc-note">* Competitor pricing as publicly listed — check their sites for current numbers. Stripe’s standard card-processing fees apply on every platform and are excluded from the comparison.</p>
-                </div>
+              <div class="dc-embed">
+                <div class="dc-embed-title">&#127881; New Subscriber!</div>
+                <div class="dc-embed-desc"><span class="dc-mention">@mia_moves</span> just subscribed to VIP Access (lifetime).</div>
+                <div class="dc-embed-field">Payment received: <b>$49.99</b></div>
               </div>
             </div>
+          </div>
+        </div>
       </div>
-    </section>
-
-    <section class="xsection" id="features">
-      <div class="wrap narrow center">
-        <span class="kicker">Features</span>
-        <h2 class="section-title">A complete Discord payment processor</h2>
-        <p class="section-sub">Role delivery, verified payments and receipts — handled for you on every sale.</p>
-      </div>
-      <div class="wrap">
-        <div class="fgrid">
-          <article class="panel feat-cell">
-            <div class="feat-head">
-              <span class="feat-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg></span>
-              <h3>Roles delivered</h3>
-              <span class="feat-chip">~2s</span>
+      <div class="chip-card chip-card-2">
+        <div class="dcord">
+          <div class="dc-msg">
+            <div class="dc-avatar"><span class="glyph" aria-hidden="true"></span></div>
+            <div>
+              <div class="dc-head">
+                <span class="dc-name">Dues</span><span class="dc-app">APP</span><span class="dc-time">today at 9:41 PM</span>
+              </div>
+              <div class="dc-text">Granted <span class="dc-mention">@VIP</span> to <span class="dc-mention">@mia_moves</span>.</div>
             </div>
-            <p>Payment clears and the role lands. Lapsed subscriptions lose it on their own.</p>
-            <div class="feat-viz" aria-hidden="true"><div class="vz-center">
-              <div class="vz-member"><span class="vz-av">J</span><span class="vz-name">@jordan</span><span class="vz-chip">@VIP<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span></div>
-              <span class="vz-sub">payment cleared &rarr; role delivered &middot; 1.8s</span>
-            </div></div>
-          </article>
-          <article class="panel feat-cell">
-            <div class="feat-head">
-              <span class="feat-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/><path d="M8.5 12l2.5 2.5L16 9.5"/></svg></span>
-              <h3>Verified payments</h3>
-            </div>
-            <p>Every payment is checked against Stripe&rsquo;s signatures before anything is granted.</p>
-            <div class="feat-viz" aria-hidden="true"><div class="vz-center vz-code">
-              <code>stripe-signature&nbsp; t=1723&hellip;</code>
-              <code>v1=9f2ab4c81d&hellip;</code>
-              <span class="vz-ok"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"/></svg>signature verified</span>
-            </div></div>
-          </article>
-          <article class="panel feat-cell">
-            <div class="feat-head">
-              <span class="feat-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg></span>
-              <h3>Email receipts</h3>
-              <span class="feat-chip">Every sale</span>
-            </div>
-            <p>Buyers get a clean membership confirmation the moment their access turns on.</p>
-            <div class="feat-viz" aria-hidden="true"><div class="vz-mail">
-              <span class="vz-mail-tag">Membership activated</span>
-              <strong>Your VIP Access is active</strong>
-              <span class="vz-sub">Receipt &middot; $49.99 &middot; lifetime</span>
-            </div></div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="xsection pm-sect" id="payment-methods" aria-label="Supported payment methods">
-      <div class="wrap">
-        <div class="pm-strip">
-          <div class="pm-chips" aria-label="Supported payment methods">
-            <span class="pm-tile pm-visa" role="img" aria-label="Visa">VISA</span>
-            <span class="pm-tile pm-mc" role="img" aria-label="Mastercard"><svg width="37" height="24" viewBox="0 0 36 24" aria-hidden="true"><circle cx="13" cy="12" r="10" fill="#eb001b"/><circle cx="23" cy="12" r="10" fill="#f79e1b"/><path d="M18 3.34a10 10 0 0 1 0 17.32 10 10 0 0 1 0-17.32z" fill="#ff5f00"/></svg></span>
-            <span class="pm-tile pm-amex" role="img" aria-label="American Express">AMEX</span>
-            <span class="pm-tile pm-apple" role="img" aria-label="Apple Pay"><svg width="15" height="18" viewBox="0 0 17 21" aria-hidden="true"><path fill="currentColor" d="M14.06 11.07c-.02-2.4 1.96-3.55 2.05-3.6-1.12-1.63-2.86-1.86-3.47-1.88-1.47-.15-2.88.87-3.63.87-.75 0-1.9-.85-3.13-.83-1.61.02-3.1.94-3.92 2.38-1.68 2.9-.43 7.2 1.2 9.55.8 1.15 1.75 2.44 3 2.4 1.2-.05 1.66-.78 3.11-.78 1.45 0 1.86.78 3.13.75 1.3-.02 2.12-1.17 2.9-2.33.92-1.33 1.3-2.62 1.32-2.69-.03-.01-2.53-.97-2.56-3.84zM11.68 3.99c.66-.8 1.11-1.92.99-3.03-.96.04-2.11.64-2.8 1.44-.61.71-1.15 1.84-1.01 2.93 1.07.08 2.16-.54 2.82-1.34z"/></svg>Pay</span>
-            <span class="pm-tile pm-gpay" role="img" aria-label="Google Pay"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285f4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34a853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"/><path fill="#fbbc04" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"/><path fill="#ea4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>Pay</span>
-            <span class="pm-tile pm-link" role="img" aria-label="Link">link</span>
-          </div>
-          <p class="pm-note">Buyers pay by card, Apple Pay, Google Pay or Link — on Stripe Checkout, connected to your own account.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="xsection" id="pricing">
-      <div class="wrap narrow center">
-        <span class="kicker">Pricing</span>
-        <h2 class="section-title">Flat pricing. <span class="dim-line">0% of sales.</span></h2>
-        <p class="section-sub">No sales fees on any plan — 100% of your revenue is yours. Pay a flat monthly rate sized by how many paying members you have.</p>
-      </div>
-      <div class="wrap">
-        <div class="bill-toggle" role="group" aria-label="Billing interval">
-          <button type="button" class="seg-btn bt-m active" aria-pressed="true">Monthly</button>
-          <span class="bill-switch" aria-hidden="true"></span>
-          <button type="button" class="seg-btn bt-y" aria-pressed="false">Yearly</button>
-          <span class="bt-free">2 months free</span>
-        </div>
-        <div class="price-grid">
-          <div class="panel price-card">
-            <span class="price-name">Free</span>
-            <p class="price-desc">For trying Dues out.</p>
-            <span class="price-amt" data-m="0" data-y="0"><span class="pa-num">$0</span><span class="price-per">/month</span></span>
-            <span class="price-bill" hidden></span>
-            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
-            <div class="price-divider"></div>
-            <ul class="price-list">
-              <li>Up to 10 active members</li>
-              <li>0% platform fees</li>
-              <li>Stripe card payments</li>
-              <li>Automatic Discord roles</li>
-              <li>Hosted store page</li>
-              <li>Email receipts</li>
-              <li>Member management</li>
-            </ul>
-          </div>
-          <div class="panel price-card">
-            <span class="price-name">Pro</span>
-            <p class="price-desc">For your first paying members.</p>
-            <span class="price-amt" data-m="14.99" data-y="149.90"><span class="pa-num">$14.99</span><span class="price-per">/month</span></span>
-            <span class="price-bill" hidden></span>
-            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
-            <div class="price-divider"></div>
-            <ul class="price-list">
-              <li>Up to 50 active members</li>
-              <li>0% platform fees</li>
-              <li>Stripe card payments</li>
-              <li>Automatic Discord roles</li>
-              <li>Hosted store page</li>
-              <li>Email receipts</li>
-              <li>Member management</li>
-            </ul>
-          </div>
-          <div class="panel price-card popular">
-            <span class="price-badge">Most popular</span>
-            <span class="price-name">Max</span>
-            <p class="price-desc">For growing communities.</p>
-            <span class="price-amt" data-m="44.99" data-y="449.90"><span class="pa-num">$44.99</span><span class="price-per">/month</span></span>
-            <span class="price-bill" hidden></span>
-            <a class="btn-fill price-cta" href="/dashboard">Get started</a>
-            <div class="price-divider"></div>
-            <ul class="price-list">
-              <li>Up to 500 active members</li>
-              <li>0% platform fees</li>
-              <li>Stripe card payments</li>
-              <li>Automatic Discord roles</li>
-              <li>Hosted store page</li>
-              <li>Email receipts</li>
-              <li>Member management</li>
-            </ul>
-          </div>
-          <div class="panel price-card">
-            <span class="price-name">Unlimited</span>
-            <p class="price-desc">For big operations.</p>
-            <span class="price-amt" data-m="134.99" data-y="1349.90"><span class="pa-num">$134.99</span><span class="price-per">/month</span></span>
-            <span class="price-bill" hidden></span>
-            <a class="btn-secondary price-cta" href="/dashboard">Get started</a>
-            <div class="price-divider"></div>
-            <ul class="price-list">
-              <li>Unlimited active members</li>
-              <li>0% platform fees</li>
-              <li>Stripe card payments</li>
-              <li>Automatic Discord roles</li>
-              <li>Hosted store page</li>
-              <li>Email receipts</li>
-              <li>Member management</li>
-            </ul>
           </div>
         </div>
-        <p class="price-note">Every feature is on every plan — only the member limit changes. Start free and upgrade from your dashboard when your community grows.</p>
       </div>
-    </section>
-
-
-    <section class="xsection" id="how">
-      <div class="wrap narrow center">
-        <span class="kicker">How it works</span>
-        <h2 class="section-title">Live in four steps</h2>
-      </div>
-      <div class="wrap">
-        <div class="hiw">
-          <div class="hiw-step"><span class="hiw-n">1</span><span class="hiw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8"/><path d="M9 14h.01M15 14h.01"/></svg></span><strong>Invite</strong><p>Add Dues to your server and pick a name for your store.</p><div class="hiw-viz" aria-hidden="true"><div class="vz-member">
-              <span class="vz-av vz-av-sq"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8"/><path d="M9 14h.01M15 14h.01"/></svg></span>
-              <span class="vz-name">Dues <span class="vz-bot">BOT</span></span>
-              <span class="vz-chip vz-chip-ok vz-pop">Added<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
-            </div></div></div>
-          <div class="hiw-step"><span class="hiw-n">2</span><span class="hiw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span><strong>Connect</strong><p>Paste your Stripe key, set a price, pick the role it unlocks.</p><div class="hiw-viz" aria-hidden="true"><div class="vz-keyrow">
-              <code>sk_live_&bull;&bull;&bull;&bull;7f2a</code>
-              <span class="vz-ok vz-pop"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"/></svg>connected</span>
-            </div></div></div>
-          <div class="hiw-step"><span class="hiw-n">3</span><span class="hiw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg></span><strong>Access</strong><p>Members pay on your store page and their role lands in seconds.</p><div class="hiw-viz" aria-hidden="true"><div class="vz-member">
-              <span class="vz-av">L</span>
-              <span class="vz-name">@luna <span class="vz-paid">$14.99</span></span>
-              <span class="vz-chip vz-pop">@VIP<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
-            </div></div></div>
-          <div class="hiw-step"><span class="hiw-n">4</span><span class="hiw-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><strong>Payouts</strong><p>Money settles in your own Stripe account. Dues never holds it.</p><div class="hiw-viz" aria-hidden="true"><div class="vz-payout">
-              <span class="vz-sub">Payout &middot; your Stripe account</span>
-              <span class="vz-amt vz-pop">+$2,449.16</span>
-            </div></div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="xsection" id="faq">
-      <div class="wrap narrow">
-        <span class="kicker">FAQ</span>
-        <h2 class="section-title">Frequently Asked Questions</h2>
-        <div class="faq" style="margin-top:26px">
-          <details class="panel faq-item">
-            <summary>How do I get paid?</summary>
-            <p>Directly. Buyers pay on Stripe checkout connected to your own Stripe account — money never passes through Dues, and there is no fee on sales.</p>
-          </details>
-          <details class="panel faq-item">
-            <summary>How much does Dues cost?</summary>
-            <p>Free for your first 10 paying members. Past that it’s a flat monthly plan — $14.99 up to 50 members, $44.99 up to 500, $134.99 unlimited. Never a percentage of your sales.</p>
-          </details>
-          <details class="panel faq-item">
-            <summary>Do buyers have to be in my server before purchasing?</summary>
-            <p>No. If they’re not in the server yet, they’re added automatically the moment payment completes — with the role already attached.</p>
-          </details>
-          <details class="panel faq-item">
-            <summary>Can I sell one-time lifetime access?</summary>
-            <p>Yes. Sell one-time lifetime access, monthly subscriptions, or both. Lifetime access never expires.</p>
-          </details>
-          <details class="panel faq-item">
-            <summary>Can I remove a member or add one manually?</summary>
-            <p>Yes. The dashboard’s Members tab lets you revoke a membership (the role comes off immediately), grant access by hand, or re-sync anyone.</p>
-          </details>
-          <details class="panel faq-item">
-            <summary>Is card data safe?</summary>
-            <p>Card details go straight to Stripe on their hosted checkout page. This site never sees, stores, or transmits them.</p>
-          </details>
-          <details class="panel faq-item">
-            <summary>A buyer’s role disappeared — now what?</summary>
-            <p>They press "Re-sync my access" on their <a href="/account">account page</a> and it’s restored instantly. An hourly sweep does the same automatically.</p>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <section class="xcta">
-      <h2>Ready to make money with<br />your Discord server?</h2>
-      <p class="section-sub">Start selling access in minutes. Free for your first 10 members.</p>
-      <div class="hero-ctas center">
-        <a class="btn-fill" href="/dashboard">Start free <span aria-hidden="true">→</span></a>
-        <a class="btn-secondary hero-alt" id="hero-store" href="/demo?plan=vip-access">View the demo store</a>
-      </div>
-    </section>
-  </main>
-
-  <!-- footer:begin — stamped by scripts/gen-seo-pages.mjs; edit footerHtml there -->
-<footer class="site-footer cols seo-footer">
-    <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=125" alt="Dues" height="16" />
-      <span class="footer-copy">© Dues</span>
     </div>
-    <nav class="footer-col"><span class="footer-head">Product</span>
-      <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
-      <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a>
-      <a href="https://discord.gg/G6yjsX5qbB" rel="noopener">Community Discord</a></nav>
-    <nav class="footer-col"><span class="footer-head">Compare</span>
-      <a href="/vs/whop">Dues vs Whop</a><a href="/vs/launchpass">Dues vs LaunchPass</a>
-      <a href="/vs/subscord">Dues vs Subscord</a><a href="/vs/doorfee">Dues vs DoorFee</a>
-      <a href="/vs/xoe">Dues vs XOE</a><a href="/vs/patreon">Dues vs Patreon</a>
-      <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
-      <a href="/alternatives/whop-alternatives">Whop alternatives</a></nav>
-    <nav class="footer-col"><span class="footer-head">Guides</span>
-      <a href="/guides/best-discord-monetization-platform">Best platform to use</a>
-      <a href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
-      <a href="/guides/how-to-sell-discord-roles">Sell Discord roles</a>
-      <a href="/guides/discord-paywall">Paywall a Discord</a>
-      <a href="/guides/discord-membership-bot">Discord membership bots</a></nav>
-    <nav class="footer-col"><span class="footer-head">Tools</span>
-      <a href="/tools/discord-fee-calculator">Discord fee calculator</a>
-      <a href="/tools/whop-fee-calculator">Whop fee calculator</a>
-      <a href="/tools/launchpass-fee-calculator">LaunchPass fee calculator</a>
-      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a></nav>
-    <nav class="footer-col"><span class="footer-head">Use cases</span>
-      <a href="/use-cases/trading">Trading signals</a><a href="/use-cases/sports-betting">Sports picks</a>
-      <a href="/use-cases/fitness">Fitness coaching</a><a href="/use-cases/reselling">Cook groups</a>
-      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a></nav>
-    <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
-    <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
-  </footer>
-  <!-- footer:end -->
+  </div>
+</section>
 
-  <script src="/menu.js?v=125"></script>
-  <script src="/home.js?v=125"></script>
+<!-- 7 · 3-up toys -->
+<section id="features" class="toys wrap">
+  <div class="toys-head">
+    <span class="glyph section-mark" aria-hidden="true"></span>
+    <h2>Build, sell, and grow in one place.</h2>
+  </div>
+  <div class="toys-grid">
+
+    <div class="toy reveal">
+      <div class="toy-icon"><svg viewBox="0 0 24 24"><path d="M3.5 12.6 12 4.1h7.9V12l-8.5 8.5a1.6 1.6 0 0 1-2.3 0l-5.6-5.6a1.6 1.6 0 0 1 0-2.3Z"/><circle cx="15.6" cy="8.4" r="1.3"/></svg></div>
+      <h3>Sell any role</h3>
+      <p>Subscriptions or lifetime, one role or a whole ladder. Price each one however you like.</p>
+      <div class="toy-widget">
+        <div class="marq"><div class="marq-track">
+          <span class="pill">@VIP</span><span class="pill">@Signals</span><span class="pill">@Founder</span><span class="pill">@Inner Circle</span><span class="pill">@Premium</span><span class="pill">@Early</span>
+          <span class="pill">@VIP</span><span class="pill">@Signals</span><span class="pill">@Founder</span><span class="pill">@Inner Circle</span><span class="pill">@Premium</span><span class="pill">@Early</span>
+        </div></div>
+        <div class="marq marq-rev"><div class="marq-track">
+          <span class="pill">@Trader</span><span class="pill">@Members</span><span class="pill">@Alumni</span><span class="pill">@Backstage</span><span class="pill">@Signals</span><span class="pill">@VIP</span>
+          <span class="pill">@Trader</span><span class="pill">@Members</span><span class="pill">@Alumni</span><span class="pill">@Backstage</span><span class="pill">@Signals</span><span class="pill">@VIP</span>
+        </div></div>
+        <div class="marq marq-slow"><div class="marq-track">
+          <span class="pill">@Coaching</span><span class="pill">@Supporter</span><span class="pill">@Premium</span><span class="pill">@Founder</span><span class="pill">@Early</span><span class="pill">@Inner Circle</span>
+          <span class="pill">@Coaching</span><span class="pill">@Supporter</span><span class="pill">@Premium</span><span class="pill">@Founder</span><span class="pill">@Early</span><span class="pill">@Inner Circle</span>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="toy reveal">
+      <div class="toy-icon"><svg viewBox="0 0 24 24"><path d="M4 7.5h10M18 7.5h2M4 16.5h2M10 16.5h10"/><circle cx="16" cy="7.5" r="2.1"/><circle cx="8" cy="16.5" r="2.1"/></svg></div>
+      <h3>Make it yours</h3>
+      <p>Your storefront, your colors, your type. Hosted for you and ready to share anywhere.</p>
+      <div class="toy-widget panel">
+        <div>
+          <div class="panel-label">Appearance</div>
+          <div class="seg"><span class="on">Light</span><span>Dark</span></div>
+        </div>
+        <div class="panel-row">
+          <div>
+            <div class="panel-label">Accent</div>
+            <div class="dots">
+              <span class="dot" style="background:#0a0a0a"></span>
+              <span class="dot" style="background:#f5f5f4;box-shadow:inset 0 0 0 1px var(--hair)"></span>
+              <span class="dot dot-check" style="background:#5865f2"><svg viewBox="0 0 12 12"><path d="M2.2 6.4 4.8 9l5-6"/></svg></span>
+              <span class="dot" style="background:#22c55e"></span>
+            </div>
+          </div>
+          <div>
+            <div class="panel-label">Your logo</div>
+            <div class="upload">+</div>
+          </div>
+        </div>
+        <div>
+          <div class="panel-label">Corners</div>
+          <div class="mini-slider"><span class="mini-thumb"></span></div>
+        </div>
+        <div>
+          <div class="panel-label">Type</div>
+          <div class="typeseg"><span class="on">Grotesk</span><span class="serif">Serif</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toy reveal">
+      <div class="toy-icon"><svg viewBox="0 0 24 24"><path d="M4 19.5V4.5M4 19.5h16M7.5 15l3.6-4 2.9 2.4 4.5-5.9"/></svg></div>
+      <h3>Watch it grow</h3>
+      <p>Live revenue, sales, and member counts, straight from your own Stripe account.</p>
+      <div class="toy-widget mrr" id="mrr">
+        <div class="mrr-stat"><b>$4,583.55</b><span>All-time, one store</span></div>
+        <svg viewBox="0 0 340 168" aria-hidden="true">
+          <line class="dash" x1="0" y1="52" x2="340" y2="52"/>
+          <line class="dash" x1="0" y1="96" x2="340" y2="96"/>
+          <line class="dash" x1="0" y1="140" x2="340" y2="140"/>
+          <line class="dash" x1="308" y1="46" x2="308" y2="160"/>
+          <path class="area" d="M4 146 C 36 140,58 128,86 120 C 120 110,142 116,166 104 C 194 90,214 92,240 74 C 264 58,286 56,308 46 L 330 40 L 330 162 L 4 162 Z"/>
+          <path class="line" pathLength="1" d="M4 146 C 36 140,58 128,86 120 C 120 110,142 116,166 104 C 194 90,214 92,240 74 C 264 58,286 56,308 46 L 330 40"/>
+          <g class="marker">
+            <circle cx="308" cy="46" r="7" fill="#fdfcfa"/>
+            <circle cx="308" cy="46" r="4.5" fill="#5865f2"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 7.5 · discover -->
+<section class="discover">
+  <div class="wrap discover-head">
+    <span class="glyph section-mark" aria-hidden="true"></span>
+    <h2>Find your next community.</h2>
+    <div class="cats">
+      <span class="cat">Trading</span><span class="cat">Esports</span><span class="cat">Fitness</span><span class="cat">Study</span><span class="cat">Signals</span><span class="cat">Music</span>
+    </div>
+  </div>
+  <div class="stores" id="stores">
+    <a class="store reveal" href="/discover">
+      <div class="store-tile" style="background:rgba(88,101,242,.12)"><span class="glyph" style="background:#5865f2"></span></div>
+      <div class="store-name">Apex Signals</div>
+      <span class="store-cat">Signals</span>
+      <div class="store-members">1,284 members</div>
+      <div class="store-price">from $19.99</div>
+    </a>
+    <a class="store reveal" href="/discover">
+      <div class="store-tile" style="background:rgba(20,18,43,.08);color:#14122b">G</div>
+      <div class="store-name">GrindHouse</div>
+      <span class="store-cat">Fitness</span>
+      <div class="store-members">862 members</div>
+      <div class="store-price">from $9.99</div>
+    </a>
+    <a class="store reveal" href="/discover">
+      <div class="store-tile" style="background:rgba(27,26,31,.08)"><span class="glyph" style="background:#1b1a1f"></span></div>
+      <div class="store-name">Study Vault</div>
+      <span class="store-cat">Study</span>
+      <div class="store-members">2,041 members</div>
+      <div class="store-price">from $4.99</div>
+    </a>
+    <a class="store reveal" href="/discover">
+      <div class="store-tile" style="background:rgba(61,63,158,.12)"><span class="glyph" style="background:#3d3f9e"></span></div>
+      <div class="store-name">Clutch Academy</div>
+      <span class="store-cat">Esports</span>
+      <div class="store-members">530 members</div>
+      <div class="store-price">from $14.99</div>
+    </a>
+    <a class="store reveal" href="/discover">
+      <div class="store-tile" style="background:rgba(85,80,75,.1);color:#55504b">P</div>
+      <div class="store-name">The Print Shop</div>
+      <span class="store-cat">Trading</span>
+      <div class="store-members">1,109 members</div>
+      <div class="store-price">from $24.99</div>
+    </a>
+    <a class="store reveal" href="/discover">
+      <div class="store-tile" style="background:rgba(125,134,245,.16);color:#3d3f9e">N</div>
+      <div class="store-name">Nightshift</div>
+      <span class="store-cat">Music</span>
+      <div class="store-members">743 members</div>
+      <div class="store-price">from $7.99</div>
+    </a>
+  </div>
+  <a class="discover-link" href="/discover">Browse all stores on Discover &#8599;</a>
+</section>
+
+<!-- 8 · feature split B: straight to your stripe -->
+<section class="slab split reveal">
+  <div class="split-grid">
+    <div>
+      <svg class="diagram" viewBox="0 0 560 400" role="img" aria-label="Members pay through a role gate into your Stripe account, and you get paid">
+        <g stroke="#1b1a1f" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" fill="none">
+          <!-- crowd of member dots, wobbly -->
+          <g fill="#1b1a1f" stroke="none">
+            <path d="M52 236 c 6 -8 17 -7 20 1 c 3 9 -5 16 -13 14 c -8 -2 -11 -8 -7 -15 Z"/>
+            <path d="M84 218 c 7 -7 18 -4 19 4 c 2 9 -7 15 -14 12 c -7 -3 -9 -10 -5 -16 Z"/>
+            <path d="M116 238 c 6 -8 17 -6 19 2 c 2 9 -6 15 -13 13 c -8 -2 -10 -8 -6 -15 Z"/>
+          </g>
+          <path d="M66 262 c 7 -7 16 -5 18 2 c 2 8 -6 13 -12 11 c -7 -2 -9 -8 -6 -13 Z"/>
+          <path d="M100 266 c 6 -7 16 -5 18 2 c 2 8 -6 14 -13 11 c -6 -2 -8 -8 -5 -13 Z"/>
+          <path d="M132 210 c 5 -6 14 -4 15 2 c 2 7 -5 12 -11 10 c -6 -2 -8 -7 -4 -12 Z"/>
+          <!-- short solid arrows crowd -> gate -->
+          <path d="M158 244 c 18 3 34 2 52 -6"/>
+          <path d="M203 235 l 9 2 M 205 245 l 7 -8"/>
+          <!-- role gate: wobbly doorway -->
+          <path d="M240 282 c -3 -38 -2 -66 3 -92 c 8 -14 42 -16 52 -3 c 6 28 7 58 5 93"/>
+          <path d="M231 284 c 25 -4 50 -4 77 1"/>
+          <!-- hanging @VIP tag -->
+          <path d="M268 190 c 1 8 0 14 -2 20"/>
+          <path d="M247 210 c 2 -5 33 -6 37 1 c 2 6 1 12 -2 16 c -9 4 -26 3 -33 -1 c -3 -5 -3 -11 -2 -16 Z" fill="#fdfcfa"/>
+          <!-- gate -> stripe pill arrow -->
+          <path d="M306 248 c 16 5 30 7 46 7"/>
+          <path d="M345 249 l 9 6 M 345 261 l 9 -6"/>
+          <!-- your Stripe pill, ink on white -->
+          <path d="M370 228 c 36 -5 100 -5 132 1 c 6 2 9 8 8 17 c 0 9 -4 15 -10 16 c -36 4 -96 4 -128 -1 c -6 -1 -9 -8 -9 -16 c 0 -8 3 -15 7 -17 Z" fill="#fdfcfa" stroke-width="2.5"/>
+          <!-- pill -> owner arrow -->
+          <path d="M496 222 c 6 -11 11 -19 17 -28"/>
+          <path d="M506 194 l 10 -5 M 512 202 l 4 -12"/>
+          <!-- owner dot + crown -->
+          <path d="M500 148 c 9 -10 24 -8 27 3 c 4 12 -8 22 -19 18 c -10 -4 -13 -13 -8 -21 Z" fill="#1b1a1f"/>
+          <path d="M502 136 c 2 -7 3 -12 4 -17 c 4 4 7 7 10 8 c 3 -4 5 -8 7 -13 c 2 5 4 9 6 12 c 4 -2 7 -5 10 -9 c 0 6 -1 12 -3 18" stroke-width="2.5"/>
+          <!-- circled dues badge -->
+          <path d="M282 62 c 12 -14 36 -12 44 3 c 9 16 -2 35 -20 36 c -17 1 -32 -13 -29 -30 c 1 -4 2 -7 5 -9 Z" fill="#fdfcfa" stroke-width="2.5"/>
+          <g fill="#1b1a1f" stroke="none">
+            <path d="M303 71 l 10 0 l -3 7 l -10 0 Z"/>
+            <path d="M300 81 l 10 0 l -3 7 l -10 0 Z"/>
+            <path d="M297 91 l 10 0 l -3 7 l -10 0 Z"/>
+          </g>
+          <!-- long dashed arc badge -> owner -->
+          <path d="M334 74 c 62 -10 132 8 168 52" stroke-dasharray="11 13" stroke-width="2.6"/>
+          <path d="M496 116 l 8 12 M 508 120 l -12 8" stroke-width="2.6"/>
+        </g>
+        <g font-size="13" fill="#55504b">
+          <text x="60" y="302">members</text>
+          <text x="253" y="222" font-size="12" font-weight="500" fill="#1b1a1f">@VIP</text>
+          <text x="530" y="167">you</text>
+        </g>
+        <g font-size="14" font-weight="500" fill="#1b1a1f">
+          <rect x="380" y="237" width="16" height="16" rx="4.5" fill="#1b1a1f"/>
+          <text x="384.4" y="249.5" font-size="11" fill="#fdfcfa">S</text>
+          <text x="403" y="250">your Stripe</text>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <h2>Straight to your Stripe.</h2>
+      <ul class="bullets">
+        <li>Buyers pay into your Stripe account, not ours.</li>
+        <li>Payouts follow your own Stripe schedule.</li>
+        <li>Dues never holds or routes your money.</li>
+        <li>Refunds stay under your control.</li>
+      </ul>
+      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <p class="microcopy">Free to start. Your Stripe, your money.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8.5 · feature split C: storefront -->
+<section class="slab split reveal">
+  <div class="split-grid">
+    <div>
+      <h2>A storefront on your link.</h2>
+      <p class="split-body">Every store ships with a hosted page and a Stripe checkout. Share one link in your bio, your server, or your pinned post, and let it sell while you sleep.</p>
+      <ul class="bullets">
+        <li>Hosted for you, no code, live in minutes.</li>
+        <li>Checkout runs on Stripe from start to finish.</li>
+      </ul>
+      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <p class="microcopy">Free to start. Your Stripe, your money. <a class="demo-link" href="/demo?plan=vip-access">See a live demo store</a></p>
+    </div>
+    <div class="ui-stage">
+      <div class="browser frame-store">
+        <div class="browser-bar"><span class="browser-url">dues.gg/duesmembership</span></div>
+        <div class="shot"><img src="/land-storefront.png" alt="A live Dues storefront with three role products"></div>
+      </div>
+      <div class="frame-checkout frame-wrap">
+        <div class="browser">
+          <div class="browser-bar"><span class="browser-url">dues.gg/checkout</span></div>
+          <div class="shot"><img src="/land-checkout.png" alt="A Dues checkout confirming a VIP Access order"></div>
+        </div>
+        <div class="float-chip chip-checkout"><span class="glyph" aria-hidden="true"></span>$49.99 &#183; @VIP delivered</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 · calculator -->
+<!-- community photo split -->
+<section class="slab split">
+  <div class="wrap split-grid">
+    <div class="photo-half">
+      <div class="photo"><img src="/ph-couch.jpg" alt="Three friends laughing on a couch while gaming"></div>
+      <div class="photo-chip" style="left:18px;bottom:56px"><span class="glyph" aria-hidden="true"></span><span><b>@VIP unlocked</b><small>just now</small></span></div>
+      <div class="photo-chip" style="right:-12px;top:34px"><span class="glyph" aria-hidden="true"></span><span><b>mia_moves joined</b><small>#sale-alerts</small></span></div>
+    </div>
+    <div>
+      <h2>Your community, paid.</h2>
+      <p class="split-body">Members support the server they already live in. The role arrives the moment the payment clears, and nobody waits on you.</p>
+      <ul class="bullets">
+        <li>Works in any server, from ten members to fifty thousand.</li>
+        <li>Buyers stay in Discord; the store lives on one link.</li>
+      </ul>
+      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <p class="microcopy">Free to start. Your Stripe, your money.</p>
+    </div>
+  </div>
+</section>
+
+<section class="calc-sec wrap">
+  <div class="calc-head">
+    <span class="glyph section-mark" aria-hidden="true"></span>
+    <h2>See what your server could make.</h2>
+    <p>Price times subscribers. There are no fees to subtract.</p>
+  </div>
+  <div class="calc reveal">
+    <div class="calc-figure"><span class="serif" id="calcTotal">$1,500</span><small id="calcSuffix">/month</small></div>
+    <div class="calc-fields">
+      <div class="field">
+        <label for="calcPrice">Price per subscription</label>
+        <input id="calcPrice" type="number" inputmode="decimal" min="1" max="999" step="0.01" value="9.99">
+      </div>
+      <div class="field">
+        <label for="calcBilling">Billing frequency</label>
+        <select id="calcBilling">
+          <option value="monthly" selected>Monthly</option>
+          <option value="yearly">Yearly</option>
+        </select>
+      </div>
+    </div>
+    <div class="calc-slider">
+      <label for="calcSubs" id="calcSubsLabel">150 subscribers</label>
+      <input id="calcSubs" type="range" min="50" max="500" step="10" value="150">
+      <div class="ticks">
+        <span style="left:0">50</span>
+        <span style="left:11.1%">100</span>
+        <span style="left:33.3%">200</span>
+        <span style="left:55.6%">300</span>
+        <span style="left:77.8%">400</span>
+        <span style="left:100%">500</span>
+      </div>
+    </div>
+    <div class="calc-cta">
+      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <p class="microcopy">Free to start. Your Stripe, your money.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · pricing crescendo -->
+<section id="pricing" class="slab crescendo reveal">
+  <div class="cres-head">
+    <span class="glyph section-mark" aria-hidden="true"></span>
+    <h2>Free while you grow.</h2>
+    <p>Start at $0 and keep every sale. Upgrade when you want more reach.</p>
+  </div>
+  <div class="cres-controls">
+    <div class="billing-toggle" role="group" aria-label="Billing period">
+      <button type="button" class="on" id="togMonthly">Monthly</button>
+      <button type="button" id="togYearly">Yearly</button>
+    </div>
+    <div class="fee-chip">0% platform fee on every plan</div>
+  </div>
+  <div class="plans">
+    <div class="plan">
+      <div class="plan-name"><b>Starter</b><i>For new stores</i></div>
+      <div class="plan-price"><span class="serif">$0</span><small>/month</small></div>
+      <div class="plan-note">forever</div>
+      <a class="btn btn-outline" href="/dashboard">Start selling</a>
+      <p class="microcopy">Free to start. Your Stripe, your money.</p>
+      <ul class="plan-specs">
+        <li><span>Platform fee</span><b>0%</b></li>
+        <li><span>Products</span><b>Unlimited</b></li>
+        <li><span>Members</span><b>Unlimited</b></li>
+        <li><span>Payouts</span><b>Your Stripe</b></li>
+      </ul>
+      <div class="plan-foot">
+        <span class="foot-s">S</span>
+        <svg viewBox="0 0 127.14 96.36" width="21" height="16" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      </div>
+    </div>
+    <div class="plan plan-pro">
+      <div class="pop-tab">Popular</div>
+      <div class="plan-name"><b>Pro</b><i>For growing stores</i></div>
+      <div class="plan-price"><span class="serif" id="proPrice">$29</span><small>/month</small></div>
+      <div class="plan-note" id="proNote"></div>
+      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <p class="microcopy">Free to start. Your Stripe, your money.</p>
+      <ul class="plan-specs">
+        <li><span>Platform fee</span><b>0%</b></li>
+        <li><span>Custom domain</span><b>Included</b></li>
+        <li><span>Discover listing</span><b>Included</b></li>
+        <li><span>Support</span><b>Priority</b></li>
+      </ul>
+      <div class="plan-foot">
+        <span class="foot-s">S</span>
+        <svg viewBox="0 0 127.14 96.36" width="21" height="16" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 · faq -->
+<section id="faq" class="faq wrap">
+  <div class="faq-grid">
+    <div class="faq-left">
+      <h2>Questions?<br>Answers.</h2>
+      <span class="glyph" aria-hidden="true"></span>
+      <div class="collage" aria-hidden="true">
+        <div class="photo c1"><img src="/ph-streamer.jpg" alt=""></div>
+        <div class="photo c2"><img src="/ph-phone.jpg" alt=""></div>
+      </div>
+    </div>
+    <div class="acc" id="faq">
+      <div class="acc-item open">
+        <button class="acc-q" aria-expanded="true">How do payouts work?<span class="acc-icon" aria-hidden="true"></span></button>
+        <div class="acc-a"><p>Buyers check out on your own Stripe account, so the money is yours from the first second. Stripe pays out to your bank on its normal schedule. Dues never holds, routes, or delays a payment.</p></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-q" aria-expanded="false">Do I need a Stripe account?<span class="acc-icon" aria-hidden="true"></span></button>
+        <div class="acc-a"><p>Yes. Dues is built on Stripe, and connecting an account takes a few minutes during setup. If you already have one, you can use it as it is.</p></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-q" aria-expanded="false">What does Dues cost?<span class="acc-icon" aria-hidden="true"></span></button>
+        <div class="acc-a"><p>Starter is free with a 0% platform fee, so you only pay Stripe's standard processing fees. Pro is $29 per month when you want a custom domain and a Discover listing.</p></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-q" aria-expanded="false">Can buyers pay monthly?<span class="acc-icon" aria-hidden="true"></span></button>
+        <div class="acc-a"><p>They can. Every role can be sold as a monthly subscription, a yearly one, or a one-time lifetime purchase. You set the prices and can offer several options side by side.</p></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-q" aria-expanded="false">How fast do roles deliver?<span class="acc-icon" aria-hidden="true"></span></button>
+        <div class="acc-a"><p>The moment payment clears. The bot grants the role automatically, usually within seconds of checkout. There are no invites, approvals, or manual steps.</p></div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-q" aria-expanded="false">What about refunds?<span class="acc-icon" aria-hidden="true"></span></button>
+        <div class="acc-a"><p>Refund a buyer from your Stripe dashboard whenever you choose. Dues sees the refund and removes the role automatically. Lapsed and disputed subscriptions are handled the same way.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 · final cta -->
+<section class="slab final reveal">
+  <div class="glyph final-ghost" aria-hidden="true"></div>
+  <h2>Open your store tonight.</h2>
+  <p>Connect Discord, connect Stripe, and share your link. The bot handles everything after that.</p>
+  <a class="btn btn-ink" href="/dashboard">Start selling</a>
+  <p class="microcopy">Free to start. Your Stripe, your money.</p>
+  <div class="final-frame frame-wrap">
+    <div class="photo" style="aspect-ratio:4/3"><img src="/ph-cheer.jpg" alt="Friends celebrating around a laptop at night"></div>
+    <div class="photo-chip" style="right:-14px;top:26px"><span class="glyph" aria-hidden="true"></span><span><b>New sale</b><small>VIP Access · $49.99</small></span></div>
+  </div>
+</section>
+
+</main>
+
+<!-- 13 · footer -->
+<footer class="footer">
+  <div class="ghost-word" aria-hidden="true">Dues</div>
+  <div class="wrap">
+    <div class="footer-cols">
+      <div class="fcol">
+        <b>Product</b>
+        <a href="#pricing">Pricing</a>
+        <a href="/discover">Discover stores</a>
+        <a href="#features">Features</a>
+        <a href="/api/invite">Invite Dues</a>
+      </div>
+      <div class="fcol">
+        <b>Compare</b>
+        <a href="/vs/whop">Dues vs Whop</a>
+        <a href="/vs/launchpass">Dues vs LaunchPass</a>
+        <a href="/vs/subscord">Dues vs Subscord</a>
+        <a href="/vs/patreon">Dues vs Patreon</a>
+        <a href="/vs/doorfee">Dues vs DoorFee</a>
+        <a href="/vs/xoe">Dues vs XOE</a>
+      </div>
+      <div class="fcol">
+        <b>Resources</b>
+        <a href="/help">Help</a>
+        <a href="/account">Your account</a>
+        <a href="/dashboard">Dashboard</a>
+      </div>
+      <div class="fcol">
+        <b>Legal</b>
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </div>
+    <div class="legal">
+      <div class="legal-left">
+        <span class="glyph" aria-hidden="true"></span>
+        <span>&#169; 2026 Dues. All rights reserved.</span>
+      </div>
+      <span>Built for Discord communities.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  var prm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* nav scrim */
+  var nav = document.getElementById('nav');
+  function onScroll(){
+    if(window.scrollY > 10){ nav.classList.add('scrolled'); }
+    else{ nav.classList.remove('scrolled'); }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  /* scroll reveal + chart draw */
+  var mrr = document.getElementById('mrr');
+  if(prm || !('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
+    if(mrr){ mrr.classList.add('drawn'); }
+  }else{
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    },{threshold:.15,rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+    var ioChart = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          mrr.classList.add('drawn');
+          ioChart.unobserve(mrr);
+        }
+      });
+    },{threshold:.4});
+    if(mrr){ ioChart.observe(mrr); }
+  }
+
+  /* calculator */
+  var price = document.getElementById('calcPrice');
+  var subs = document.getElementById('calcSubs');
+  var billing = document.getElementById('calcBilling');
+  var total = document.getElementById('calcTotal');
+  var suffix = document.getElementById('calcSuffix');
+  var subsLabel = document.getElementById('calcSubsLabel');
+  function paintTrack(){
+    var pct = (subs.value - subs.min) / (subs.max - subs.min) * 100;
+    subs.style.background = 'linear-gradient(to right, #5865f2 ' + pct + '%, #e5dfe8 ' + pct + '%)';
+  }
+  function calc(){
+    var p = parseFloat(price.value);
+    if(!isFinite(p) || p < 0){ p = 0; }
+    var s = parseInt(subs.value, 10);
+    var yearly = billing.value === 'yearly';
+    var value = p * s * (yearly ? 12 : 1);
+    var rounded = Math.round(value / 10) * 10;
+    total.textContent = '$' + rounded.toLocaleString('en-US');
+    suffix.textContent = yearly ? '/year' : '/month';
+    subsLabel.textContent = s + ' subscribers';
+    paintTrack();
+  }
+  ['input','change'].forEach(function(ev){
+    price.addEventListener(ev, calc);
+    subs.addEventListener(ev, calc);
+    billing.addEventListener(ev, calc);
+  });
+  calc();
+
+  /* pricing billing toggle */
+  var togM = document.getElementById('togMonthly');
+  var togY = document.getElementById('togYearly');
+  var proPrice = document.getElementById('proPrice');
+  var proNote = document.getElementById('proNote');
+  function setBilling(yearly){
+    togM.classList.toggle('on', !yearly);
+    togY.classList.toggle('on', yearly);
+    proPrice.textContent = yearly ? '$24' : '$29';
+    proNote.textContent = yearly ? 'billed yearly' : '';
+  }
+  togM.addEventListener('click', function(){ setBilling(false); });
+  togY.addEventListener('click', function(){ setBilling(true); });
+
+  /* accordion */
+  document.querySelectorAll('.acc-item').forEach(function(item){
+    var q = item.querySelector('.acc-q');
+    var a = item.querySelector('.acc-a');
+    if(item.classList.contains('open')){ a.style.height = 'auto'; }
+    q.addEventListener('click', function(){
+      var open = item.classList.contains('open');
+      if(open){
+        a.style.height = a.scrollHeight + 'px';
+        requestAnimationFrame(function(){ a.style.height = '0px'; });
+        item.classList.remove('open');
+        q.setAttribute('aria-expanded','false');
+      }else{
+        item.classList.add('open');
+        q.setAttribute('aria-expanded','true');
+        a.style.height = a.scrollHeight + 'px';
+        a.addEventListener('transitionend', function h(e){
+          if(e.propertyName === 'height' && item.classList.contains('open')){ a.style.height = 'auto'; }
+          a.removeEventListener('transitionend', h);
+        });
+        if(prm){ a.style.height = 'auto'; }
+      }
+    });
+  });
+
+  /* discover drag-scroll */
+  var stores = document.getElementById('stores');
+  var isDown = false, startX = 0, startLeft = 0, moved = false;
+  stores.addEventListener('pointerdown', function(e){
+    if(e.pointerType !== 'mouse'){ return; }
+    isDown = true; moved = false;
+    startX = e.clientX; startLeft = stores.scrollLeft;
+  });
+  window.addEventListener('pointermove', function(e){
+    if(!isDown){ return; }
+    var dx = e.clientX - startX;
+    if(Math.abs(dx) > 4){
+      moved = true;
+      stores.classList.add('dragging');
+      stores.scrollLeft = startLeft - dx;
+    }
+  });
+  window.addEventListener('pointerup', function(){
+    isDown = false;
+    stores.classList.remove('dragging');
+  });
+  stores.addEventListener('click', function(e){
+    if(moved){ e.preventDefault(); moved = false; }
+  });
+})();
+</script>
 </body>
 </html>

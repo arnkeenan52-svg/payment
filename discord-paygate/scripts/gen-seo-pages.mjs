@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://dues.gg';
-const V = '125'; // keep in step with the ?v= asset version on index.html
+const V = '126'; // keep in step with the ?v= asset version on index.html
 
 // Dues plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -246,7 +246,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=125" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=126" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/#features">Features</a>
@@ -263,7 +263,7 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=125" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=126" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -334,7 +334,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
-  <script src="/theme.js?v=125"></script>
+  <script src="/theme.js?v=126"></script>
 </head>
 <body class="home seo-page">
 ${nav}
@@ -1336,15 +1336,17 @@ emit(
 // drifted once already: /vs/subscord shipped and was linked everywhere except
 // the homepage, which is the one page most visitors ever see.
 {
+  // The redesigned landing page owns its footer markup outright, so the sync
+  // is now a PARITY CHECK rather than an overwrite: every comparison page the
+  // generator knows about must be linked somewhere on the homepage. That is
+  // the guarantee the old marker-replacement existed for (the /vs/subscord
+  // drift), kept without forcing the generated markup into the new design.
   const landing = path.join(PUB, 'index.html');
   const html = fs.readFileSync(landing, 'utf8');
-  const B = '<!-- footer:begin', E = '<!-- footer:end -->';
-  const i = html.indexOf(B);
-  const j = html.indexOf(E);
-  if (i === -1 || j === -1) throw new Error('index.html has lost its footer markers');
-  const openTagEnd = html.indexOf('-->', i) + 3;
-  fs.writeFileSync(landing, `${html.slice(0, openTagEnd)}\n${footerHtml.trim()}\n  ${html.slice(j)}`);
-  out.push('index.html (footer)');
+  const vsLinks = [...footerHtml.matchAll(/href="(\/vs\/[a-z-]+)"/g)].map((m) => m[1]);
+  const missing = vsLinks.filter((href) => !html.includes(`href="${href}"`));
+  if (missing.length) throw new Error(`index.html footer is missing comparison links: ${missing.join(', ')}`);
+  out.push(`index.html (footer parity: ${vsLinks.length} links verified)`);
 }
 
 console.log(`generated ${out.length} files:\n  ${out.join('\n  ')}`);
