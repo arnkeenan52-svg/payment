@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=137" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=137" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=138" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=138" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=137') format('woff2');
+  src:url('/jakarta-latin.woff2?v=138') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -351,7 +351,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=137') center/cover;
+  background:url('/hero-poster.webp?v=138') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1456,7 +1456,7 @@ html[data-theme="light"] .sheet{
 
 /* the footer: the kit's own solid ground — the clouds stop at the sheet's lip */
 .footer{
-  position:relative;z-index:0;min-height:100vh;min-height:100lvh;overflow:clip;margin-top:-40px;
+  position:relative;z-index:0;overflow:clip;margin-top:-40px;
   background:linear-gradient(180deg,#1c2740 0%,#1f2f4d 30%,#243a64 58%,#274680 82%,#2a4f93 100%);
 }
 html[data-theme="light"] .footer{
@@ -1476,16 +1476,21 @@ html[data-theme="light"] .footer{
 }
 .footer-stage{
   position:relative;z-index:1;display:flex;flex-direction:column;box-sizing:border-box;
-  min-height:100vh;min-height:100lvh;padding:clamp(24px,5vh,104px) clamp(18px,3vw,32px) 0;
+  padding:64px 20px 0;
 }
-@media (hover:hover) and (pointer:fine) and (min-width:640px){ .footer-stage{min-height:100vh} }
+@media (hover:hover) and (pointer:fine) and (min-width:640px){
+  .footer-stage{min-height:100vh;padding:clamp(24px,5vh,104px) clamp(18px,3vw,32px) 0}
+  .footer-title{margin:auto 0 clamp(10px,2vh,28px)}
+  .footer-cta{margin-bottom:clamp(16px,5vh,64px)}
+  .footer-directory{margin:36px auto 0}
+}
 .footer-title{
-  margin:auto 0 clamp(10px,2vh,28px);
+  margin:0 0 20px;
   color:#fff;font-family:var(--jakarta);
   font-size:clamp(36px,min(6.2vw,9.5vh),84px);font-weight:500;line-height:1.02;
   letter-spacing:-.025em;text-align:center;text-wrap:balance;
 }
-.footer-cta{display:flex;justify-content:center;align-items:center;margin-bottom:clamp(16px,5vh,64px)}
+.footer-cta{display:flex;justify-content:center;align-items:center;margin-bottom:32px}
 .footer-directory{
   display:grid;grid-template-columns:1.6fr repeat(4,minmax(0,1fr));
   gap:clamp(12px,2.4vh,24px);width:min(100%,1080px);margin:clamp(16px,4vh,64px) auto auto;
@@ -1583,6 +1588,63 @@ html[data-theme="light"] .fee-take{color:#bb3535}
 html[data-theme="light"] .fee-dues .fee-take{color:#177245}
 .fee-card small{display:block;margin-top:4px;font-size:12px;color:var(--micro)}
 .fee-note{margin-top:10px;font-size:12px;line-height:18px;color:var(--micro)}
+
+/* ── the savings box: Subscord's calculator, on our glass ── */
+.save{padding:8px 24px 96px}
+.save-card{
+  width:min(640px,100%);margin:0 auto;padding:34px clamp(20px,4vw,40px) 28px;border-radius:26px;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+}
+.save-card h2{font-family:var(--jakarta);font-weight:500;font-size:clamp(26px,3vw,34px);letter-spacing:-.02em;text-align:center}
+.save-sub{margin:10px 0 26px;text-align:center;font-size:15px;line-height:23px;color:var(--sec)}
+.save-field{margin-top:18px}
+.save-lab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.save-lab label{font-size:14.5px;font-weight:500;color:var(--ink)}
+.save-lab output{font-family:var(--grotesk);font-weight:700;font-size:16px;color:var(--ink)}
+.save-field input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;border:0;padding:0}
+.save-field input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:rgba(127,140,170,.32)}
+.save-field input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--blue);border:2.5px solid #fff;box-shadow:0 1px 6px rgba(20,30,80,.35)}
+.save-field input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:rgba(127,140,170,.32)}
+.save-field input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--blue);border:2.5px solid #fff}
+.save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(88,101,242,.1);border:1px solid rgba(88,101,242,.28)}
+.save-cap{display:block;font:600 11.5px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
+.save-hero b{display:block;margin-top:6px;font-family:var(--grotesk);font-weight:700;font-size:clamp(36px,5vw,46px);letter-spacing:-.02em;color:#3ddc84}
+html[data-theme="light"] .save-hero b{color:#177245}
+.save-hero small{display:block;margin-top:4px;font-size:12.5px;color:var(--micro)}
+.save-rows{display:flex;flex-direction:column;gap:13px}
+.save-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}
+.sv-name{font-size:14.5px;font-weight:600;color:var(--ink)}
+.sv-name em{font-style:normal;font-weight:400;font-size:12px;color:var(--micro);margin-left:7px}
+.sv-cost{font-family:var(--grotesk);font-weight:700;font-size:15.5px;color:var(--ink)}
+.sv-bar{grid-column:1 / -1;height:6px;border-radius:99px;background:rgba(127,140,170,.22);overflow:hidden}
+.sv-bar i{display:block;height:100%;border-radius:99px;background:rgba(127,140,170,.55);transition:width .25s ease}
+.save-dues .sv-bar i{background:#3ddc84}
+html[data-theme="light"] .save-dues .sv-bar i{background:#1f9d5b}
+.save-dues .sv-cost{color:#3ddc84}
+html[data-theme="light"] .save-dues .sv-cost{color:#177245}
+.save-cta{margin-top:24px;display:flex;justify-content:center}
+.save-demo{margin-top:14px;text-align:center}
+.save-cta .btn{min-height:48px;padding:13px 26px;font-size:15.5px}
+/* payment methods, muted */
+.pay-row{margin:26px auto 0;width:min(640px,100%);display:flex;flex-direction:column;align-items:center;gap:12px}
+.pay-cap{font:600 11px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--micro)}
+.pay-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.pay-chip{
+  display:inline-flex;align-items:center;gap:4px;min-height:30px;padding:4px 13px;border-radius:9px;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  color:var(--sec);font-weight:800;font-size:12.5px;letter-spacing:.02em;
+}
+.pay-chip svg{display:block;height:13px;width:auto}
+.pay-chip b{font-weight:700;font-size:13px}
+.pay-visa{font-style:italic;letter-spacing:.06em}
+.pay-amex{letter-spacing:.08em}
+.pay-link{font-weight:800;text-transform:lowercase;font-size:14px}
+.gp-g{font-weight:800}
+@media (max-width:600px){
+  .sky-grain{display:none}
+  .save{padding:0 16px 72px}
+}
 </style>
 </head>
 <body>
@@ -1616,7 +1678,7 @@ html[data-theme="light"] .fee-dues .fee-take{color:#177245}
 <!-- 3 · hero -->
 <header class="hero">
   <div class="hero-core">
-    <h1>Sell roles. Keep every dollar.</h1>
+    <h1>Monetize your community.</h1>
     <p class="hero-sub">Dues sells the roles, delivers them, and gets you paid.</p>
     <form class="capture" id="captureForm" action="/dashboard" method="get">
       <label class="capture-line" for="captureInput">
@@ -1660,356 +1722,48 @@ html[data-theme="light"] .fee-dues .fee-take{color:#177245}
 </section>
 
 
-<!-- 6 · bento: everything a paid community needs -->
-<section id="features" class="bento wrap">
-  <div class="bento-head">
-    <span class="glyph section-mark" aria-hidden="true"></span>
-    <h2>Everything a paid community needs.</h2>
+
+<!-- 5 · calculate your savings -->
+<section class="save wrap" id="save">
+  <div class="save-card reveal">
+    <h2>Calculate your savings</h2>
+    <p class="save-sub">See what platform fees would cost at your size &#8212; and what Dues keeps flat.</p>
+    <div class="save-field">
+      <div class="save-lab"><label for="svSubs">Paying members</label><output id="svSubsVal">100</output></div>
+      <input type="range" id="svSubs" min="10" max="1000" step="10" value="100">
+    </div>
+    <div class="save-field">
+      <div class="save-lab"><label for="svPrice">Average monthly price</label><output id="svPriceVal">$19.99</output></div>
+      <input type="range" id="svPrice" min="1" max="100" step="1" value="20">
+    </div>
+    <div class="save-hero">
+      <span class="save-cap">Estimated annual savings</span>
+      <b id="svAnnual">$1,860</b>
+      <small>vs the priciest platform at your numbers</small>
+    </div>
+    <div class="save-rows" aria-live="polite">
+      <div class="save-row save-dues"><span class="sv-name">Dues <em id="svDuesPlan">Max plan</em></span><b class="sv-cost" id="svDues">$44.99</b><span class="sv-bar"><i id="svBarDues" style="width:22%"></i></span></div>
+      <div class="save-row"><span class="sv-name">Whop <em>3% of sales</em></span><b class="sv-cost" id="svWhop">$60</b><span class="sv-bar"><i id="svBarWhop" style="width:30%"></i></span></div>
+      <div class="save-row"><span class="sv-name">LaunchPass <em>$29/mo + 3.5%</em></span><b class="sv-cost" id="svLp">$99</b><span class="sv-bar"><i id="svBarLp" style="width:50%"></i></span></div>
+      <div class="save-row"><span class="sv-name">Patreon <em>8% of sales</em></span><b class="sv-cost" id="svPatreon">$160</b><span class="sv-bar"><i id="svBarPatreon" style="width:80%"></i></span></div>
+      <div class="save-row"><span class="sv-name">DoorFee <em>10% of sales</em></span><b class="sv-cost" id="svDoorfee">$200</b><span class="sv-bar"><i id="svBarDoorfee" style="width:100%"></i></span></div>
+    </div>
+    <p class="fee-note">Monthly platform cost. Publicly listed pricing at time of writing &#8212; verify on each platform&rsquo;s site. Stripe processing applies everywhere, so it cancels out.</p>
+    <div class="save-cta"><a class="btn btn-primary" href="/dashboard">Start selling &#8594;</a></div>
+    <p class="save-demo microcopy">Free to start. Your Stripe, your money. <a class="demo-link" href="/demo?plan=vip-access">See a live demo store</a></p>
   </div>
-  <div class="bento-grid reveal">
-
-    <div class="bcard bcard-lg">
-      <span class="blabel">Automatic delivery</span>
-      <h3>Roles that deliver themselves</h3>
-      <p class="bbody">The second a payment clears, the bot grants the buyer their role. When a subscription lapses, it quietly takes it back.</p>
-      <ul class="bullets">
-        <li>Roles land seconds after checkout.</li>
-        <li>Lapsed subscriptions lose access automatically.</li>
-      </ul>
-      <div class="bwidget">
-        <div class="dcord">
-          <div class="dc-msg">
-            <div class="dc-avatar"><span class="glyph" aria-hidden="true"></span></div>
-            <div>
-              <div class="dc-head">
-                <span class="dc-name">Dues</span><span class="dc-app">APP</span><span class="dc-time">today at 9:41 PM</span>
-              </div>
-              <div class="dc-embed">
-                <div class="dc-embed-title">&#127881; New Subscriber!</div>
-                <div class="dc-embed-desc"><span class="dc-mention">@mia_moves</span> just subscribed to VIP Access (lifetime).</div>
-                <div class="dc-embed-field">Payment received: <b>$49.99</b></div>
-              </div>
-            </div>
-          </div>
-          <div class="dc-text dc-cont">Granted <span class="dc-mention">@VIP</span> to <span class="dc-mention">@mia_moves</span>.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="bcard bcard-lg" id="apptoy" style="--pv-bg:#0a0a0a;--pv-panel:#101010;--pv-text:#f5f5f4;--pv-pay:#5865f2;--pv-payink:#fff;--pv-r:16px;--pv-font:var(--grotesk)">
-      <span class="blabel">Appearance</span>
-      <h3>Make it yours</h3>
-      <p class="bbody">Colors, corners and type &#8212; buyers see your storefront, not ours. Everything here previews live.</p>
-      <div class="bwidget applayout">
-        <div class="appctrl">
-          <div>
-            <div class="panel-label">Theme</div>
-            <div class="theme-tiles">
-              <button type="button" class="ttile on" data-bg="#0a0a0a" data-panel="#101010" data-text="#f5f5f4" data-pay="#5865f2" style="--tb:#0a0a0a;--tp:#1c1c1c;--ta:#5865f2" aria-label="Midnight theme"></button>
-              <button type="button" class="ttile" data-bg="#faf9f7" data-panel="#ffffff" data-text="#161616" data-pay="#5865f2" style="--tb:#faf9f7;--tp:#e7e5e0;--ta:#5865f2" aria-label="Ivory theme"></button>
-              <button type="button" class="ttile" data-bg="#0b0d1f" data-panel="#131735" data-text="#eceefc" data-pay="#5865f2" style="--tb:#0b0d1f;--tp:#1e2450;--ta:#5865f2" aria-label="Blurple theme"></button>
-              <button type="button" class="ttile" data-bg="#071209" data-panel="#0d2012" data-text="#e9f6ec" data-pay="#22c55e" style="--tb:#071209;--tp:#143019;--ta:#22c55e" aria-label="Emerald theme"></button>
-            </div>
-          </div>
-          <div>
-            <div class="panel-label">Accent</div>
-            <div class="dots" id="appDots">
-              <button type="button" class="dot on" data-pay="#5865f2" style="background:#5865f2" aria-label="Blurple pay button"></button>
-              <button type="button" class="dot" data-pay="#22c55e" style="background:#22c55e" aria-label="Green pay button"></button>
-              <button type="button" class="dot" data-pay="#f2b03c" style="background:#f2b03c" aria-label="Amber pay button"></button>
-              <button type="button" class="dot" data-pay="#ef4466" style="background:#ef4466" aria-label="Crimson pay button"></button>
-              <button type="button" class="dot" data-pay="#ededed" style="background:#ededed" aria-label="Mono pay button"></button>
-            </div>
-          </div>
-          <div>
-            <div class="panel-label">Corners</div>
-            <div class="appr">
-              <input id="appRadius" type="range" min="0" max="24" step="1" value="16" aria-label="Corner radius">
-              <span class="appr-val" id="appRadiusVal">16px</span>
-            </div>
-          </div>
-          <div>
-            <div class="panel-label">Type</div>
-            <div class="typeseg" id="appType">
-              <button type="button" class="on" data-font="grotesk">Grotesk</button>
-              <button type="button" class="t-serif" data-font="serif">Serif</button>
-              <button type="button" class="t-mono" data-font="mono">Mono</button>
-            </div>
-          </div>
-        </div>
-        <div class="appview" aria-hidden="true">
-          <div class="appcard">
-            <span class="ac-name">VIP Access</span>
-            <span class="ac-role">@VIP</span>
-            <span class="ac-line"></span>
-            <span class="ac-line short"></span>
-            <span class="ac-pay">Pay $49.99</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="bcard">
-      <span class="blabel">Payouts</span>
-      <h3>Straight to your Stripe</h3>
-      <p class="bbody">Buyers pay into your Stripe account, not ours. Dues never holds the money.</p>
-      <div class="bwidget payout">
-        <span class="payout-pill"><span class="mark-s">S</span>Your Stripe</span>
-        <span class="paid-chip"><i aria-hidden="true"></i>Paid out &#183; $49.99</span>
-      </div>
-    </div>
-
-    <div class="bcard">
-      <span class="blabel">Analytics</span>
-      <h3>Watch it grow</h3>
-      <p class="bbody">Revenue, sales and members, live from your own store.</p>
-      <div class="bwidget mrr" id="mrr">
-        <div class="mrr-stat"><b>$4,583.55</b><span>Simulated preview &#183; not live numbers</span></div>
-        <svg viewBox="0 0 340 168" aria-hidden="true">
-          <line class="dash" x1="0" y1="52" x2="340" y2="52"/>
-          <line class="dash" x1="0" y1="96" x2="340" y2="96"/>
-          <line class="dash" x1="0" y1="140" x2="340" y2="140"/>
-          <line class="dash" x1="308" y1="46" x2="308" y2="160"/>
-          <path class="area" d="M4 146 C 36 140,58 128,86 120 C 120 110,142 116,166 104 C 194 90,214 92,240 74 C 264 58,286 56,308 46 L 330 40 L 330 162 L 4 162 Z"/>
-          <path class="line" pathLength="1" d="M4 146 C 36 140,58 128,86 120 C 120 110,142 116,166 104 C 194 90,214 92,240 74 C 264 58,286 56,308 46 L 330 40"/>
-          <g class="marker">
-            <circle cx="308" cy="46" r="7" fill="#101010"/>
-            <circle cx="308" cy="46" r="4.5" fill="#5865f2"/>
-          </g>
-        </svg>
-      </div>
-    </div>
-
-    <div class="bcard">
-      <span class="blabel">Pricing</span>
-      <h3>Price it your way</h3>
-      <p class="bbody">Lifetime, monthly, or both side by side &#8212; buyers pick one at checkout.</p>
-      <div class="bwidget opts" aria-hidden="true">
-        <div class="panel-label">Select option</div>
-        <div class="opt on"><span>Lifetime<em>lifetime</em></span><b>$49.99</b></div>
-        <div class="opt"><span>Monthly<em>/ month</em></span><b>$9.99</b></div>
-      </div>
-    </div>
-
-    <div class="bcard">
-      <span class="blabel">Discounts</span>
-      <h3>Discounts that convert</h3>
-      <p class="bbody">Codes for launches and win-backs, applied right on your checkout.</p>
-      <div class="bwidget disc" aria-hidden="true">
-        <div class="disc-row"><span class="disc-code">LAUNCH20<i></i></span><span class="disc-apply">Apply</span></div>
-        <div class="disc-msg">LAUNCH20 applied &#8212; you save $10.00.</div>
-      </div>
-    </div>
-
+  <div class="pay-row" aria-label="Supported payment methods">
+    <span class="pay-cap">Payments run on Stripe</span>
+    <span class="pay-chips">
+      <span class="pay-chip pay-visa" aria-label="Visa">VISA</span>
+      <span class="pay-chip" aria-label="Mastercard"><svg viewBox="0 0 36 22" aria-hidden="true"><circle cx="13" cy="11" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="23" cy="11" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></span>
+      <span class="pay-chip pay-amex" aria-label="American Express">AMEX</span>
+      <span class="pay-chip" aria-label="Apple Pay"><svg viewBox="0 0 15 18" aria-hidden="true" fill="currentColor"><path d="M12.3 9.6c0-2.1 1.7-3.1 1.8-3.15-1-1.4-2.5-1.6-3-1.65-1.3-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.45 2.52-.37 6.25 1.04 8.29.69 1 1.52 2.12 2.6 2.08 1.04-.04 1.44-.67 2.7-.67 1.26 0 1.62.67 2.72.65 1.12-.02 1.83-1.02 2.52-2.02.79-1.16 1.12-2.28 1.14-2.34-.03-.01-2.19-.84-2.22-3.29zM10.24 3.3c.57-.7.96-1.66.85-2.63-.83.03-1.83.55-2.42 1.24-.53.62-1 1.6-.87 2.55.92.07 1.86-.47 2.44-1.16z"/></svg><b>Pay</b></span>
+      <span class="pay-chip" aria-label="Google Pay"><b class="gp-g">G</b><b>Pay</b></span>
+      <span class="pay-chip pay-link" aria-label="Link">link</span>
+    </span>
   </div>
 </section>
-
-<!-- 6.5 · how it works, compact -->
-<section class="steps wrap">
-  <div class="steps-grid reveal">
-    <div class="step"><span class="step-num">01</span><h3>Create</h3><p>Set up your roles and prices in minutes</p></div>
-    <div class="step"><span class="step-num">02</span><h3>Connect</h3><p>Invite Dues and link your Stripe</p></div>
-    <div class="step"><span class="step-num">03</span><h3>Customize</h3><p>Make the storefront look like your server</p></div>
-    <div class="step"><span class="step-num">04</span><h3>Get paid</h3><p>Money lands in your own Stripe account</p></div>
-  </div>
-</section>
-
-
-<!-- 7.5 · discover -->
-<section class="discover">
-  <div class="wrap discover-head">
-    <span class="glyph section-mark" aria-hidden="true"></span>
-    <h2>Find your next community.</h2>
-    <div class="cats">
-      <span class="cat">Trading</span><span class="cat">Esports</span><span class="cat">Fitness</span><span class="cat">Study</span><span class="cat">Signals</span><span class="cat">Music</span>
-    </div>
-  </div>
-  <div class="stores reveal" id="stores">
-    <a class="store" href="/discover">
-      <div class="store-banner" style="background:linear-gradient(135deg,rgba(88,101,242,.36),rgba(88,101,242,.03) 82%)"></div>
-      <div class="store-body">
-        <div class="store-tile" style="background:#1d2145"><span class="glyph" style="background:#7d86f5"></span></div>
-        <div class="store-name">Apex Signals</div>
-        <span class="store-cat">Signals</span>
-        <div class="store-members">1,284 members</div>
-        <div class="store-price">from $19.99</div>
-      </div>
-    </a>
-    <a class="store" href="/discover">
-      <div class="store-banner" style="background:linear-gradient(135deg,rgba(34,197,94,.3),rgba(34,197,94,.03) 82%)"></div>
-      <div class="store-body">
-        <div class="store-tile" style="background:#16281b;color:#4ade80">G</div>
-        <div class="store-name">GrindHouse</div>
-        <span class="store-cat">Fitness</span>
-        <div class="store-members">862 members</div>
-        <div class="store-price">from $9.99</div>
-      </div>
-    </a>
-    <a class="store" href="/discover">
-      <div class="store-banner" style="background:linear-gradient(135deg,rgba(242,176,60,.28),rgba(242,176,60,.03) 82%)"></div>
-      <div class="store-body">
-        <div class="store-tile" style="background:#2b2416"><span class="glyph" style="background:#f2b03c"></span></div>
-        <div class="store-name">Study Vault</div>
-        <span class="store-cat">Study</span>
-        <div class="store-members">2,041 members</div>
-        <div class="store-price">from $4.99</div>
-      </div>
-    </a>
-    <a class="store" href="/discover">
-      <div class="store-banner" style="background:linear-gradient(135deg,rgba(125,134,245,.34),rgba(125,134,245,.03) 82%)"></div>
-      <div class="store-body">
-        <div class="store-tile" style="background:#23264a"><span class="glyph" style="background:#969df6"></span></div>
-        <div class="store-name">Clutch Academy</div>
-        <span class="store-cat">Esports</span>
-        <div class="store-members">530 members</div>
-        <div class="store-price">from $14.99</div>
-      </div>
-    </a>
-    <a class="store" href="/discover">
-      <div class="store-banner" style="background:linear-gradient(135deg,rgba(6,182,212,.28),rgba(6,182,212,.03) 82%)"></div>
-      <div class="store-body">
-        <div class="store-tile" style="background:#10282e;color:#22d3ee">P</div>
-        <div class="store-name">The Print Shop</div>
-        <span class="store-cat">Trading</span>
-        <div class="store-members">1,109 members</div>
-        <div class="store-price">from $24.99</div>
-      </div>
-    </a>
-    <a class="store" href="/discover">
-      <div class="store-banner" style="background:linear-gradient(135deg,rgba(236,72,153,.28),rgba(236,72,153,.03) 82%)"></div>
-      <div class="store-body">
-        <div class="store-tile" style="background:#2b1722;color:#f472b6">N</div>
-        <div class="store-name">Nightshift</div>
-        <span class="store-cat">Music</span>
-        <div class="store-members">743 members</div>
-        <div class="store-price">from $7.99</div>
-      </div>
-    </a>
-  </div>
-  <a class="discover-link" href="/discover">Browse all stores on Discover &#8599;</a>
-</section>
-
-
-
-<!-- 8.5 · feature split C: storefront -->
-
-
-<!-- 9 · calculator -->
-
-
-<section class="calc-sec wrap">
-  <div class="calc-head">
-    <p class="sec-eyebrow">The math</p>
-    <h2 class="sec-display">See what your server <span class="t2">could make.</span></h2>
-    <p>Price times members. There are no fees to subtract.</p>
-  </div>
-  <div class="calc reveal">
-    <div class="calc-row-top">
-      <label for="calcSubs" id="calcSubsLabel">Paying members</label>
-      <output class="calc-count" id="calcCount" for="calcSubs">150</output>
-    </div>
-    <input id="calcSubs" type="range" min="10" max="500" step="5" value="150">
-    <div class="ticks">
-      <span style="left:0">10</span>
-      <span style="left:8.2%">50</span>
-      <span style="left:28.6%">150</span>
-      <span style="left:59.2%">300</span>
-      <span style="left:100%">500</span>
-    </div>
-    <div class="presets" id="calcPresets" role="group" aria-label="Preset member counts">
-      <button type="button" data-subs="10">10 members</button>
-      <button type="button" data-subs="50">50 members</button>
-      <button type="button" class="on" data-subs="150">150 members</button>
-      <button type="button" data-subs="500">500 members</button>
-    </div>
-    <div class="calc-fields">
-      <div class="field">
-        <label for="calcPrice">Price per subscription</label>
-        <input id="calcPrice" type="number" inputmode="decimal" min="1" max="999" step="0.01" value="9.99">
-      </div>
-      <div class="field">
-        <label for="calcBilling">Show total per</label>
-        <select id="calcBilling">
-          <option value="monthly" selected>Month</option>
-          <option value="yearly">Year</option>
-        </select>
-      </div>
-    </div>
-    <div class="calc-net">
-      <div class="net-top">
-        <span class="net-label">Your server makes</span>
-        <span class="net-chip">0% platform fee</span>
-      </div>
-      <div class="calc-figure"><span class="serif" id="calcTotal">$1,500</span><small id="calcSuffix">/month</small></div>
-      <p class="net-cap" id="calcCaption">150 members &#215; $9.99/month</p>
-    </div>
-    <div class="proj">
-      <span class="kicker">Projections</span>
-      <div class="proj-rows">
-        <div class="proj-row"><span>One month</span><b id="projMonth">$1,499</b></div>
-        <div class="proj-row"><span>Half a year</span><b id="projHalf">$8,991</b></div>
-        <div class="proj-row gold"><span>A year</span><b id="projYear">$17,982</b></div>
-      </div>
-      <p class="proj-cap">Straight multiplication at your prices. Dues takes 0% of it.</p>
-    </div>
-    <div class="calc-cta">
-      <a class="btn btn-ink" href="/dashboard">Start selling</a>
-      <p class="microcopy">Free to start. Your Stripe, your money. <a class="demo-link" href="/demo?plan=vip-access">See a live demo store</a></p>
-    </div>
-  </div>
-
-  <div class="fee-compare reveal">
-    <p class="fee-cap">At your numbers &#183; what each platform would keep per month</p>
-    <div class="fee-row" id="feeRow">
-      <div class="fee-card fee-dues"><b>Dues</b><span class="fee-take" id="feeDues">$0</span><small>0% of sales, flat plans</small></div>
-      <div class="fee-card"><b>Whop</b><span class="fee-take" id="feeWhop">&#8722;$45</span><small>3% of sales</small></div>
-      <div class="fee-card"><b>LaunchPass</b><span class="fee-take" id="feeLp">&#8722;$81</span><small>$29/mo + 3.5% of sales</small></div>
-      <div class="fee-card"><b>Patreon</b><span class="fee-take" id="feePatreon">&#8722;$120</span><small>8% of sales</small></div>
-      <div class="fee-card"><b>DoorFee</b><span class="fee-take" id="feeDoorfee">&#8722;$150</span><small>10% of sales</small></div>
-    </div>
-    <p class="fee-note">Publicly listed pricing at time of writing &#8212; verify on each platform&rsquo;s site. Stripe processing applies everywhere, so it cancels out.</p>
-  </div>
-</section>
-
-<!-- 11 · faq -->
-<section id="faq" class="faq wrap">
-  <div class="faq-head">
-    <p class="sec-eyebrow">FAQ</p>
-    <h2 class="sec-display">Questions, answered.</h2>
-  </div>
-  <div class="acc">
-    <div class="acc-item open">
-      <button class="acc-q" aria-expanded="true">How do payouts work?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>Buyers check out on your own Stripe account, so the money is yours from the first second. Stripe pays out to your bank on its normal schedule. Dues never holds, routes, or delays a payment.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">Do I need a Stripe account?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>Yes. Dues is built on Stripe, and connecting an account takes a few minutes during setup. If you already have one, you can use it as it is.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">What does Dues cost?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>The Free plan is $0 with a 0% platform fee for up to 10 paying members, so you only ever pay Stripe's processing fees. Paid plans raise the member cap: Pro is $14.99 per month for up to 50, Max is $44.99 for up to 500, and Unlimited is $134.99 with no cap. Yearly billing gives you two months free.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">Can buyers pay monthly?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>They can. Every role can be sold as a monthly subscription, a yearly one, or a one-time lifetime purchase. You set the prices and can offer several options side by side.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">How fast do roles deliver?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>The moment payment clears. The bot grants the role automatically, usually within seconds of checkout. There are no invites, approvals, or manual steps.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">What about refunds?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>Refund a buyer from your Stripe dashboard whenever you choose. Dues sees the refund and removes the role automatically. Lapsed and disputed subscriptions are handled the same way.</p></div>
-    </div>
-  </div>
-  <div class="faq-card">
-    <p>The fastest answer is your own store. Connecting Discord and Stripe takes minutes.</p>
-    <a href="/dashboard">Open the dashboard &#8594;</a>
-  </div>
-</section>
-
-</main>
 
 <!-- 13 · footer -->
 </div><!-- /sheet -->
@@ -2030,7 +1784,7 @@ html[data-theme="light"] .fee-dues .fee-take{color:#177245}
       </div>
       <div class="fcol">
         <b>Product</b>
-        <a href="#features">Features</a>
+        <a href="/pricing">Plans</a>
         <a href="/pricing">Pricing</a>
         <a href="/discover">Discover stores</a>
         <a href="/api/invite">Invite Dues</a>
@@ -2062,7 +1816,7 @@ html[data-theme="light"] .fee-dues .fee-take{color:#177245}
   </div>
 </footer>
 
-<script src="/sky.js?v=137" defer></script>
+<script src="/sky.js?v=138" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2351,6 +2105,42 @@ html[data-theme="light"] .fee-dues .fee-take{color:#177245}
   addEventListener('scroll', on, { passive:true });
   addEventListener('resize', on);
   on();
+})();
+</script>
+<script>
+(function(){
+  var subs = document.getElementById('svSubs');
+  var price = document.getElementById('svPrice');
+  if(!subs || !price){ return; }
+  var money = function(v){ return '$' + Math.round(v).toLocaleString('en-US'); };
+  var plan = function(m){
+    if(m <= 10){ return {name:'Free plan', cost:0}; }
+    if(m <= 50){ return {name:'Pro plan', cost:14.99}; }
+    if(m <= 500){ return {name:'Max plan', cost:44.99}; }
+    return {name:'Unlimited plan', cost:134.99};
+  };
+  var set = function(id, txt){ document.getElementById(id).textContent = txt; };
+  var bar = function(id, v, max){ document.getElementById(id).style.width = Math.max(4, v / max * 100) + '%'; };
+  var paint = function(){
+    var m = parseInt(subs.value, 10);
+    var p = parseInt(price.value, 10);
+    var rev = m * p;
+    var d = plan(m);
+    var rows = { svWhop: rev * 0.03, svLp: 29 + rev * 0.035, svPatreon: rev * 0.08, svDoorfee: rev * 0.10 };
+    set('svSubsVal', m.toLocaleString('en-US'));
+    set('svPriceVal', '$' + p.toFixed(2));
+    set('svDuesPlan', d.name);
+    set('svDues', d.cost ? '$' + d.cost.toFixed(2) : '$0');
+    var max = Math.max(rows.svWhop, rows.svLp, rows.svPatreon, rows.svDoorfee, d.cost, 1);
+    Object.keys(rows).forEach(function(k){ set(k, money(rows[k])); });
+    bar('svBarDues', d.cost, max);
+    bar('svBarWhop', rows.svWhop, max); bar('svBarLp', rows.svLp, max);
+    bar('svBarPatreon', rows.svPatreon, max); bar('svBarDoorfee', rows.svDoorfee, max);
+    var best = Math.max(rows.svWhop, rows.svLp, rows.svPatreon, rows.svDoorfee);
+    set('svAnnual', money(Math.max(0, (best - d.cost) * 12)));
+  };
+  ['input','change'].forEach(function(ev){ subs.addEventListener(ev, paint); price.addEventListener(ev, paint); });
+  paint();
 })();
 </script>
 </body>

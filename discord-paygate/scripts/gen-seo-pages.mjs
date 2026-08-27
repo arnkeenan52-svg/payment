@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://dues.gg';
-const V = '137'; // keep in step with the ?v= asset version on index.html
+const V = '138'; // keep in step with the ?v= asset version on index.html
 
 // Dues plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -246,10 +246,10 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=137" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=138" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
-      <a class="nav-link" href="/#features">Features</a>
+      <a class="nav-link" href="/pricing">Pricing</a>
       <a class="nav-link" href="/pricing">Pricing</a>
       <a class="nav-link" href="/vs">Compare</a>
       <a class="nav-link" href="/tools">Tools</a>
@@ -263,11 +263,11 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=137" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=138" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
-      <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/pricing">Pricing</a><a href="/#faq">FAQ</a>
+      <a href="/discover">Discover stores</a><a href="/pricing">Plans</a><a href="/pricing">Pricing</a><a href="/help">FAQ</a>
       <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a>
       <a href="https://discord.gg/G6yjsX5qbB" rel="noopener">Community Discord</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
@@ -334,7 +334,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
-  <script src="/theme.js?v=137"></script>
+  <script src="/theme.js?v=138"></script>
 </head>
 <body class="home seo-page">
 ${nav}
