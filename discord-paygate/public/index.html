@@ -3,7 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="theme-color" content="#101827" />
+  <script>
+  (function(){
+    var d = document.documentElement, t = null;
+    try{ t = sessionStorage.getItem('ripley-theme'); }catch(e){}
+    if(t !== 'dark'){
+      d.setAttribute('data-theme','light');
+      var m = document.querySelector('meta[name="theme-color"]');
+      if(m){ m.setAttribute('content','#a9c6ef'); }
+    }
+  })();
+  </script>
   <title>Dues — The Discord payment platform with 0% platform fees</title>
   <meta name="description" content="Monetize your Discord server and receive payments straight to your own Stripe account. 0% platform fees, instant role delivery, free for your first 10 members." />
   <meta property="og:type" content="website" />
@@ -25,8 +36,6 @@
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
-<meta name="description" content="Sell Discord roles through your own Stripe account. 0% platform fee.">
-<link rel="icon" href="/dues-glyph.png">
 <style>
 /* ============ fonts ============ */
 @font-face{
@@ -47,15 +56,28 @@
 
 /* ============ tokens & reset ============ */
 :root{
-  --paper:#0a0a0a;
-  --cream:#141414;
-  --slab:#101010;
+  --paper:#101827;
+  --cream:#182338;
+  --slab:#141d30;
   --hair:rgba(255,255,255,.09);
-  --ink:#f5f5f4;
-  --sec:#b5b2ac;
-  --micro:#8a8a8a;
+  --ink:#f6f8fd;
+  --sec:#aebacc;
+  --micro:#8fa0b8;
   --accent:#5865f2;
-  --shadow:0 2px 10px rgba(0,0,0,.45);
+  --blue:#7ea2ff;
+  --money:#4ade80;
+  --gold:#f0c46a;
+  --glass:rgba(255,255,255,.06);
+  --glass-brd:rgba(255,255,255,.10);
+  --glass-hi:rgba(255,255,255,.06);
+  --glass-shadow:0 24px 60px -24px rgba(4,8,18,.55);
+  --cta-bg:#5865f2;
+  --cta-bg-hover:#4854e8;
+  --cta-ink:#fff;
+  --scrim:13,20,32;
+  --sky-fallback:#0d1420;
+  --r-glass:22px;
+  --shadow:0 2px 10px rgba(4,8,18,.45);
   --r-slab:16px;
   --r-card:12px;
   --r-btn:8px;
@@ -64,6 +86,32 @@
   --grotesk:'Space Grotesk',Arial,sans-serif;
   --glyph:url('data:image/png;base64,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');
 }
+/* ---- day face (foundable.com): html[data-theme="light"] ---- */
+html[data-theme="light"]{
+  --paper:#f4f7fd;
+  --cream:#ffffff;
+  --slab:#ffffff;
+  --hair:rgba(15,22,38,.10);
+  --ink:#0f1626;
+  --sec:#46536e;
+  --micro:#67748f;
+  --blue:#5865f2;
+  --money:#15803d;
+  --gold:#a16207;
+  --glass:rgba(255,255,255,.55);
+  --glass-brd:rgba(255,255,255,.75);
+  --glass-hi:rgba(255,255,255,.65);
+  --glass-shadow:0 24px 60px -28px rgba(31,51,86,.28);
+  --cta-bg:#0f1626;
+  --cta-bg-hover:#1c2740;
+  --cta-ink:#fff;
+  --scrim:244,247,253;
+  --sky-fallback:#a9c6ef;
+  --shadow:0 2px 10px rgba(31,51,86,.12);
+}
+/* theme-invariant guard: the approved blurple pricing slab keeps its light pill in both themes */
+.crescendo .btn-ink,.final .btn-ink{background:#f5f5f4;color:#101010}
+.crescendo .btn-ink:hover,.final .btn-ink:hover{background:#fff}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{
@@ -72,6 +120,7 @@ body{
   color:var(--ink);
   background:var(--paper);
   -webkit-font-smoothing:antialiased;
+  transition:background-color .45s ease,color .45s ease;
   font-synthesis-weight:none;
 }
 img,svg,video{display:block;max-width:100%}
@@ -101,15 +150,24 @@ h3{font-weight:500}
 /* buttons */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:10px;
-  height:52px;padding:0 28px;border-radius:var(--r-btn);
+  height:52px;padding:0 28px;border-radius:999px;
   font-size:15px;font-weight:500;letter-spacing:.01em;line-height:1;
   transition:background-color .2s ease,color .2s ease,opacity .2s ease;
   white-space:nowrap;
 }
-.btn-ink{background:var(--ink);color:#101010}
-.btn-ink:hover{background:#fff}
-.btn-white{background:var(--cream);color:var(--ink)}
-.btn-white:hover{background:#1d1d1d}
+.btn-ink{background:var(--cta-bg);color:var(--cta-ink)}
+.btn-ink:hover{background:var(--cta-bg-hover)}
+.btn-primary{background:var(--cta-bg);color:var(--cta-ink)}
+.btn-primary:hover{background:var(--cta-bg-hover)}
+.btn-primary:active{transform:scale(.98)}
+.btn-white{background:var(--glass);color:var(--ink);border:1px solid var(--glass-brd)}
+.btn-white:hover{border-color:var(--blue)}
+.btn-glass{background:var(--glass);color:var(--ink);border:1px solid var(--glass-brd);box-shadow:inset 0 1px 0 var(--glass-hi)}
+.btn-glass:hover{border-color:var(--blue)}
+@supports ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))){
+  .btn-glass,.btn-white{backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2)}
+}
+.btn{transition:background-color .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform 160ms cubic-bezier(.23,1,.32,1)}
 .btn-accent{background:var(--accent);color:#fff}
 .btn-accent:hover{background:#4854e8}
 .btn-outline{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
@@ -151,7 +209,7 @@ h3{font-weight:500}
 }
 .nav::before{
   content:"";position:absolute;inset:0 0 -28px 0;pointer-events:none;
-  background:linear-gradient(to bottom,rgba(10,10,10,.97) 0%,rgba(10,10,10,.9) 62%,rgba(10,10,10,0) 100%);
+  background:linear-gradient(to bottom,rgba(var(--scrim),.96) 0%,rgba(var(--scrim),.88) 62%,rgba(var(--scrim),0) 100%);
   opacity:0;transition:opacity .25s ease;
 }
 .nav.scrolled::before{opacity:1}
@@ -159,96 +217,147 @@ h3{font-weight:500}
 .logo{display:flex;align-items:center;gap:9px}
 .logo .glyph{width:21px;height:21px}
 .logo span{font-family:var(--grotesk);font-weight:700;font-size:21px;letter-spacing:-.01em}
-.nav-links{display:flex;gap:28px;font-size:15px;color:var(--sec)}
+.nav-links{display:flex;gap:28px;font-size:15px;font-weight:500;color:var(--sec)}
 .nav-links a{transition:color .2s ease}
 .nav-links a:hover{color:var(--ink)}
-.nav-right{margin-left:auto;display:flex;gap:10px}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.nav-login{font-size:14.5px;font-weight:500;color:var(--ink);opacity:.85;transition:opacity .2s ease}
+.nav-login:hover{opacity:1}
+.theme-btn{
+  width:38px;height:38px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;color:var(--ink);
+  background:var(--glass);border:1px solid var(--glass-brd);
+  transition:transform 160ms cubic-bezier(.23,1,.32,1),border-color .2s ease;
+}
+.theme-btn:hover{border-color:var(--blue)}
+.theme-btn:active{transform:scale(.94)}
+.theme-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.theme-btn svg{width:17px;height:17px}
+.theme-btn .i-moon{display:none}
+html[data-theme="light"] .theme-btn .i-sun{display:none}
+html[data-theme="light"] .theme-btn .i-moon{display:block}
+@supports ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))){
+  .theme-btn{backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2)}
+}
 .nav-right .btn{height:40px;padding:0 20px;font-size:14px}
 
 /* ============ hero ============ */
-.trust-chips{display:flex;gap:10px;justify-content:center;margin-top:26px;flex-wrap:wrap}
-.tchip{padding:8px 16px;border-radius:999px;background:var(--slab);border:1px solid var(--hair);font-size:14px;color:var(--sec)}
-.btn-pay{background:var(--accent);color:#fff}
-.btn-pay:hover{background:#4752C4}
-
 .hero{
   position:relative;overflow:hidden;
   margin-top:-64px;padding-top:64px;
-  background:radial-gradient(52% 34% at 50% 0%,rgba(88,101,242,.1),rgba(88,101,242,0) 72%),var(--paper);
 }
-
+/* the sky: CSS photographic fallback behind a transparent shader canvas */
+.hero-sky{
+  position:absolute;inset:0;overflow:hidden;
+  background:var(--sky-fallback) url('/sky-night.jpg') center/cover no-repeat;
+}
+html[data-theme="light"] .hero-sky{
+  background:var(--sky-fallback) url('/sky-day.jpg') center/cover no-repeat;
+}
+.hero-sky canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero-fade{
+  position:absolute;left:0;right:0;bottom:0;height:140px;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(var(--scrim),0),var(--paper));
+}
 .hero-core{
   display:flex;flex-direction:column;align-items:center;
-  text-align:center;position:relative;padding:72px 24px 0;
+  text-align:center;position:relative;padding:88px 24px 0;
 }
-.eyebrow{
-  display:inline-flex;align-items:center;gap:9px;
-  padding:8px 18px;border-radius:999px;
-  background:var(--slab);border:1px solid #232323;
-  font-size:13px;font-weight:500;color:var(--sec);
-}
-.eyebrow > svg{width:16px;height:12px;fill:var(--ink)}
-.eyebrow .mark-s{width:15px;height:15px;font-size:10px;margin-right:0;vertical-align:0}
-.eyebrow i{width:3px;height:3px;border-radius:50%;background:#3d3d3d;font-style:normal}
 .hero h1{
-  margin-top:24px;
-  font-size:clamp(56px,6.6vw,92px);line-height:1.02;max-width:11ch;
+  font-size:clamp(50px,6vw,84px);line-height:1.04;
 }
+.hero h1 .h1-key{display:block;color:var(--blue)}
 .hero-sub{
-  margin-top:24px;max-width:600px;
+  margin-top:22px;max-width:600px;
   font-size:18px;line-height:28px;color:var(--sec);
 }
+html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 .inline-mark{font-weight:500;color:var(--ink);white-space:nowrap}
 .inline-mark svg{display:inline-block;width:18px;height:18px;vertical-align:-3.5px;margin-right:3px}
 .mark-s{
-  width:17px;height:17px;border-radius:4.5px;background:var(--ink);
-  color:var(--cream);font-size:11.5px;font-weight:500;line-height:1;
+  width:17px;height:17px;border-radius:4.5px;background:#635bff;
+  color:#fff;font-size:11.5px;font-weight:500;line-height:1;
   display:inline-flex;align-items:center;justify-content:center;
   vertical-align:-3px;margin-right:3px;
 }
-.hero-cta{margin-top:38px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
-.hero .microcopy{margin-top:18px}
 
-/* the film, inside the hero */
-.hero-stage{position:relative;padding:64px 24px 28px}
-.hero-stage::before{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(48% 54% at 50% 56%,rgba(88,101,242,.17),rgba(88,101,242,0) 70%),
-    radial-gradient(rgba(255,255,255,.06) 1px,transparent 1.4px);
-  background-size:auto,26px 26px;
-  -webkit-mask-image:radial-gradient(72% 84% at 50% 52%,#000 36%,transparent 78%);
-  mask-image:radial-gradient(72% 84% at 50% 52%,#000 36%,transparent 78%);
+/* glass capture bar (foundable 9f819305 anatomy) */
+.capture{
+  margin-top:36px;width:min(620px,100%);
+  display:flex;align-items:center;gap:10px;
+  padding:6px 6px 6px 22px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+  transition:border-color .2s ease;
 }
+.capture:focus-within{border-color:var(--blue)}
+.capture-prefix{font-size:16px;font-weight:500;color:var(--micro);flex:none}
+.capture input{
+  flex:1;min-width:0;height:52px;background:none;border:0;outline:none;
+  font:inherit;font-size:16px;color:var(--ink);
+}
+.capture input::placeholder{color:var(--micro);opacity:.85}
+.capture .btn{flex:none}
+.hero .microcopy{margin-top:16px;font-size:13.5px;color:var(--sec)}
+.stripe-wordmark{
+  display:inline-block;height:15px;width:auto;
+  vertical-align:-3px;margin-left:3px;color:var(--ink);opacity:.85;
+}
+
+/* the film: glass browser frame floating on the live sky */
+.hero-stage{position:relative;padding:76px 24px 110px}
 .film{position:relative;width:min(1060px,94%);margin-inline:auto}
-.film-glow{
-  position:absolute;inset:16% 9%;z-index:0;
-  background:linear-gradient(52deg,#14122b 22%,var(--accent) 76%);
-  filter:blur(150px);opacity:.42;
-}
 .film-frame{
-  position:relative;z-index:1;border-radius:16px;overflow:hidden;
-  background:var(--slab);border:1px solid #2a2a2a;
-  box-shadow:0 30px 70px -26px rgba(0,0,0,.65);
+  position:relative;z-index:1;border-radius:20px;padding:8px;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
 }
-.film-frame video{width:100%;aspect-ratio:16/9;object-fit:cover;background:url('/hero-poster.webp?v=129') center/cover}
+.film-frame video{
+  width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
+  background:url('/hero-poster.webp?v=129') center/cover;
+}
 .browser-bar{
-  position:relative;height:36px;display:flex;align-items:center;justify-content:center;
-  background:#161616;border-bottom:1px solid #232323;
+  position:relative;height:34px;
+  display:flex;align-items:center;justify-content:center;
 }
-.win-dots{position:absolute;left:14px;display:flex;gap:5px}
-.win-dots i{width:8px;height:8px;border-radius:50%;background:#2b2b2b}
+.win-dots{position:absolute;left:12px;display:flex;gap:5px}
+.win-dots i{width:8px;height:8px;border-radius:50%;background:rgba(127,140,170,.45)}
 .browser-url{
-  font-size:11px;color:var(--micro);background:#101010;
-  border:1px solid #232323;border-radius:999px;padding:3px 16px;line-height:1.4;
+  font-size:11px;color:var(--micro);
+  border:1px solid var(--glass-brd);border-radius:999px;padding:3px 16px;line-height:1.4;
 }
-.chip-film-pay{left:-16px;bottom:-16px}
-.chip-film-paid{right:-14px;bottom:-16px;color:#22c55e}
-.chip-film-paid i{width:7px;height:7px;border-radius:50%;background:#22c55e;font-style:normal}
+/* dark product chrome preserved inside .browser screenshot frames (both themes) */
+.browser .browser-bar{background:#161616;border-bottom:1px solid #232323}
+.browser .browser-url{background:#101010;border-color:#232323}
+.browser .win-dots i{background:#2b2b2b}
+
+/* floating glass corner cards (5dd547db grammar: green disc + green money) */
+.sky-card{
+  position:absolute;z-index:3;display:flex;align-items:center;gap:10px;
+  padding:12px 16px;border-radius:16px;white-space:nowrap;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+  font-size:13px;font-weight:500;color:var(--ink);text-align:left;
+}
+.sky-card .ok{
+  width:22px;height:22px;flex:none;border-radius:50%;
+  background:rgba(74,222,128,.16);color:var(--money);
+  display:flex;align-items:center;justify-content:center;
+}
+.sky-card .ok svg{width:11px;height:11px;stroke:currentColor;stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+html:not([data-theme="light"]) .sky-card{background:rgba(13,20,32,.6)}
+.sky-card b{font-weight:700;color:var(--money)}
+.sky-card small{display:block;font-size:11.5px;font-weight:400;color:var(--micro);margin-top:1px}
+.card-sale{left:-18px;bottom:-20px}
+.card-paid{right:-16px;bottom:-20px}
+@supports ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))){
+  .capture,.film-frame,.sky-card{backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2)}
+}
 .chip-film-embed{
   top:-30px;right:-34px;width:min(320px,64%);z-index:3;
   transform:rotate(1.6deg);
 }
+html[data-theme="light"] .chip-film-embed{border-color:rgba(15,22,38,.12)}
 
 /* ============ role marquee strip ============ */
 .rolemarq{padding:60px 0 0;overflow:hidden}
@@ -257,16 +366,151 @@ h3{font-weight:500}
   text-transform:uppercase;color:var(--micro);margin-bottom:20px;
 }
 
-/* ============ how-it-works strip ============ */
-.steps{padding-block:8px 104px}
-.steps-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:44px}
-.step{border-top:1px solid var(--hair);padding-top:24px}
-.step-num{
-  display:block;font-family:var(--grotesk);font-weight:700;
-  font-size:56px;line-height:1;letter-spacing:-.02em;color:#202020;
+/* ============ how it works · ugc.foundable four-step ============ */
+.steps{
+  /* night (default, attribute absent) — ugc.foundable navy glass */
+  --hiw-blue:#7ea2ff;
+  --hiw-ink:#fff;
+  --hiw-body:#aebacc;
+  --hiw-micro:#8fa0b8;
+  --hiw-green:#4ade80;
+  --hiw-green-dim:rgba(74,222,128,.15);
+  --hiw-glass:rgba(255,255,255,.05);
+  --hiw-glass-2:rgba(255,255,255,.06);
+  --hiw-line:rgba(255,255,255,.09);
+  --hiw-field:rgba(9,14,24,.45);
+  --hiw-track:rgba(255,255,255,.12);
+  --hiw-role-bg:rgba(88,101,242,.28);
+  --hiw-role-ink:#c9cdfb;
+  --hiw-shadow:0 24px 60px -30px rgba(0,0,0,.55);
+  padding-block:72px 116px;
 }
-.step h3{font-size:24px;line-height:30px;margin-top:14px}
-.step p{margin-top:8px;font-size:14px;line-height:21px;color:var(--micro)}
+html[data-theme="light"] .steps{
+  /* day — foundable light glass on the pale ground */
+  --hiw-blue:#5865f2;
+  --hiw-ink:#0f1626;
+  --hiw-body:#4c5a72;
+  --hiw-micro:#69788f;
+  --hiw-green:#15803d;
+  --hiw-green-dim:rgba(21,128,61,.13);
+  --hiw-glass:rgba(255,255,255,.55);
+  --hiw-glass-2:rgba(255,255,255,.72);
+  --hiw-line:rgba(15,22,38,.09);
+  --hiw-field:rgba(255,255,255,.85);
+  --hiw-track:rgba(15,22,38,.12);
+  --hiw-role-bg:rgba(88,101,242,.12);
+  --hiw-role-ink:#4854e8;
+  --hiw-shadow:0 24px 50px -32px rgba(31,52,88,.28);
+}
+.hiw-inner{max-width:1200px;margin-inline:auto}
+.hiw-eyebrow{font-size:16px;line-height:1.4;color:var(--hiw-blue)}
+.steps h2{
+  margin-top:14px;max-width:15ch;
+  font-family:var(--grotesk);font-weight:700;letter-spacing:-.02em;
+  font-size:clamp(34px,4.5vw,54px);line-height:1.08;color:var(--hiw-ink);
+}
+.hiw-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:76px 48px;margin-top:64px;
+}
+.hiw-step{display:flex;flex-direction:column;min-width:0}
+.hiw-n{font-family:var(--grotesk);font-size:18px;color:var(--hiw-blue)}
+.hiw-step h3{
+  margin-top:10px;font-family:var(--grotesk);font-weight:700;
+  font-size:28px;line-height:34px;letter-spacing:-.01em;color:var(--hiw-ink);
+}
+.hiw-body{margin:10px 0 28px;font-size:16px;line-height:26px;color:var(--hiw-body);max-width:52ch}
+.hiw-panel{
+  margin-top:auto;
+  background:var(--hiw-glass);border:1px solid var(--hiw-line);
+  border-radius:24px;box-shadow:var(--hiw-shadow);
+  padding:clamp(18px,2.6vw,34px);
+}
+/* inner glass card (steps 1 & 2) */
+.hiw-card{
+  background:var(--hiw-glass-2);border:1px solid var(--hiw-line);
+  border-radius:18px;padding:22px;max-width:440px;margin-inline:auto;
+}
+.hiw-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hiw-card-title{font-size:16.5px;font-weight:500;color:var(--hiw-ink)}
+.hiw-live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--hiw-micro)}
+.hiw-live i{width:7px;height:7px;border-radius:50%;background:var(--hiw-green);font-style:normal;flex:none}
+.hiw-progress{display:flex;gap:6px;margin-top:14px}
+.hiw-progress i{height:3px;border-radius:999px;flex:1;background:var(--hiw-track);font-style:normal}
+.hiw-progress i.on{background:linear-gradient(90deg,#5f7cf9,var(--hiw-blue))}
+.hiw-label{
+  font-size:11px;font-weight:500;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--hiw-micro);margin:18px 0 7px;
+}
+.hiw-field{
+  display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;
+  background:var(--hiw-field);border:1px solid var(--hiw-line);border-radius:12px;
+  font-size:14.5px;color:var(--hiw-ink);
+}
+.hiw-field em{font-style:normal;font-size:12.5px;color:var(--hiw-micro)}
+.hiw-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hiw-2col .hiw-label{margin-top:18px}
+.hiw-role{
+  background:var(--hiw-role-bg);color:var(--hiw-role-ink);
+  border-radius:5px;padding:1px 7px;font-weight:500;font-size:14px;
+}
+.hiw-row{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;
+  background:var(--hiw-field);border:1px solid var(--hiw-line);border-radius:12px;
+}
+.hiw-tile{
+  width:38px;height:38px;border-radius:10px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.hiw-tile-d{background:rgba(88,101,242,.18)}
+.hiw-tile-d svg{width:19px;height:15px;fill:#7d86f5}
+.hiw-tile-s{background:#635bff;color:#fff;font-size:16px;font-weight:500}
+.hiw-row-main{display:flex;flex-direction:column;min-width:0;font-size:14.5px;font-weight:500;color:var(--hiw-ink)}
+.hiw-row-main em{font-style:normal;font-size:12.5px;font-weight:400;color:var(--hiw-micro)}
+.hiw-row-ok{margin-left:auto;color:var(--hiw-green);flex:none;display:flex}
+.hiw-submit{
+  margin-top:20px;height:46px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--accent);color:#fff;font-size:15px;font-weight:500;
+}
+.hiw-cardmicro{margin-top:14px;text-align:center;font-size:13px;line-height:19px;color:var(--hiw-micro)}
+/* step 3 · share */
+.hiw-linkpill{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  max-width:440px;margin-inline:auto;min-width:0;
+  background:var(--hiw-field);border:1px solid var(--hiw-line);border-radius:999px;
+  padding:12px 20px;
+}
+.hiw-linkurl{
+  font-family:var(--grotesk);font-size:15.5px;color:var(--hiw-micro);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.hiw-linkurl b{font-weight:500;color:var(--hiw-blue)}
+.hiw-mini-browser{width:min(420px,100%);margin:16px auto 0;background:#141414}
+.hiw-mini-browser .browser-url{color:#8fa0b8}
+.hiw-shot{aspect-ratio:16/9}
+.hiw-shot img{width:100%}
+/* step 4 · simulated timeline */
+.hiw-simlabel{
+  font-size:11.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--hiw-micro);margin-bottom:16px;
+}
+.hiw-timeline{list-style:none;display:grid;gap:12px;margin:0;padding:0}
+.hiw-ev{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:start;
+  background:var(--hiw-glass-2);border:1px solid var(--hiw-line);
+  border-radius:16px;padding:15px 16px;
+}
+.hiw-ev-icon{
+  width:34px;height:34px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.hiw-ev-check{background:var(--hiw-green-dim);color:var(--hiw-green)}
+.hiw-ev-card{border-radius:10px;background:var(--accent);color:#fff}
+.hiw-ev-title{display:block;font-size:15px;font-weight:500;line-height:21px;color:var(--hiw-ink)}
+.hiw-money{font-weight:500;color:var(--hiw-green)}
+.hiw-ev-sub{display:block;margin-top:3px;font-size:13px;line-height:19px;color:var(--hiw-micro)}
+.hiw-ev-time{font-size:13px;color:var(--hiw-micro);padding-top:2px}
 
 /* ============ feature splits ============ */
 .split{margin-block:80px}
@@ -606,6 +850,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   margin-block:80px;color:#fff;
   background:linear-gradient(158deg,#14122b 6%,#3d3f9e 44%,#7d86f5 74%,#c9cdf7 102%);
   padding:96px 64px 104px;
+  box-shadow:0 0 0 1px rgba(20,18,43,.08),0 36px 80px -44px rgba(20,18,43,.5);
 }
 .crescendo::after{
   content:"";position:absolute;inset:0;pointer-events:none;opacity:.3;
@@ -620,57 +865,89 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 .cres-head p{margin-top:14px;font-size:16px;color:rgba(253,252,250,.82)}
 .cres-controls{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:36px}
 .billing-toggle{
-  display:inline-flex;background:rgba(20,18,43,.55);border-radius:10px;padding:4px;gap:2px;
+  display:inline-flex;background:rgba(20,18,43,.55);border-radius:999px;padding:4px;gap:2px;
 }
 .billing-toggle button{
-  padding:9px 20px;border-radius:7px;font-size:14px;font-weight:500;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 20px;border-radius:999px;font-size:14px;font-weight:500;
   color:rgba(253,252,250,.72);transition:background-color .2s ease,color .2s ease;
 }
 .billing-toggle button.on{background:#f5f5f4;color:#101010}
 .billing-toggle button:focus-visible{outline:2px solid #f5f5f4;outline-offset:2px}
+.tog-save{
+  font-size:11px;font-weight:500;line-height:1;letter-spacing:.02em;
+  color:#4ade80;background:rgba(74,222,128,.14);
+  padding:4px 9px;border-radius:999px;white-space:nowrap;
+}
+.billing-toggle button.on .tog-save{color:#15803d;background:rgba(21,128,61,.12)}
 .fee-chip{
-  background:rgba(20,18,43,.55);border-radius:8px;padding:9px 18px;
+  background:rgba(20,18,43,.55);border-radius:999px;padding:9px 18px;
   font-size:14px;color:rgba(253,252,250,.8);
 }
+/* theme-INVARIANT plan cards: navy glass on the approved gradient, hard-coded
+   colors so day mode cannot flip them (refs 9305ecb9 / 4b59e6bf) */
 .plans{
-  display:grid;grid-template-columns:repeat(2,minmax(0,400px));gap:28px;
-  justify-content:center;margin-top:56px;align-items:start;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;
+  max-width:1272px;margin-inline:auto;margin-top:56px;align-items:start;
 }
 .plan{
-  background:var(--cream);color:var(--ink);border-radius:var(--r-card);
-  padding:34px 32px 28px;position:relative;
+  position:relative;color:#f6f8fd;
+  background:rgba(15,13,34,.86);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:20px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 22px 44px -24px rgba(10,8,26,.6);
+  padding:30px 26px 24px;
 }
-.plan-pro{transform:translateY(-18px);box-shadow:0 22px 44px -18px rgba(20,18,43,.5)}
+@supports ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))){
+  .plan{
+    background:rgba(15,13,34,.55);
+    backdrop-filter:blur(14px) saturate(1.2);
+    -webkit-backdrop-filter:blur(14px) saturate(1.2);
+  }
+}
+.plan-pop{transform:translateY(-18px);border-color:rgba(255,255,255,.32)}
 .pop-tab{
   position:absolute;top:0;left:50%;transform:translate(-50%,-100%);
-  background:var(--accent);color:var(--cream);font-size:12.5px;font-weight:500;
-  padding:6px 18px 5px;border-radius:8px 8px 0 0;letter-spacing:.01em;
+  background:#f5f5f4;color:#14122b;font-size:12.5px;font-weight:500;
+  padding:6px 18px 5px;border-radius:10px 10px 0 0;letter-spacing:.01em;
 }
-.plan-name{display:flex;align-items:baseline;gap:10px}
+.plan-name{display:flex;flex-direction:column;gap:3px}
 .plan-name b{font-size:18px;font-weight:500}
-.plan-name i{font-size:13px;color:var(--micro)}
-.plan-price{margin-top:18px;display:flex;align-items:baseline;gap:6px}
-.plan-price .serif{font-size:56px;line-height:1}
-.plan-price small{font-size:14px;color:var(--micro)}
-.plan-note{font-size:12px;color:var(--micro);margin-top:6px;min-height:18px}
-.plan .btn{width:100%;margin-top:20px}
-.plan .microcopy{text-align:center;margin-top:12px}
-.plan-specs{list-style:none;margin-top:22px}
+.plan-name i{font-style:normal;font-size:13px;color:rgba(238,242,252,.62)}
+.plan-price{margin-top:16px;display:flex;align-items:baseline;gap:6px}
+.plan-price .serif{font-size:42px;line-height:1;letter-spacing:-.01em}
+.plan-price small{font-size:14px;color:rgba(238,242,252,.62)}
+.plan-note{font-size:12px;color:rgba(238,242,252,.62);margin-top:6px;min-height:18px}
+.plan-note.is-deal{color:#4ade80}
+.plan .btn{
+  width:100%;margin-top:18px;border-radius:999px;
+  transition:background-color .2s ease,color .2s ease,transform 160ms cubic-bezier(.23,1,.32,1);
+}
+.plan .btn:active{transform:scale(.98)}
+.plan .btn-ink{background:#f5f5f4;color:#14122b}
+.plan .btn-ink:hover{background:#fff}
+.plan .btn-outline{background:rgba(255,255,255,.05);color:#f6f8fd;box-shadow:inset 0 0 0 1px rgba(255,255,255,.38)}
+.plan .btn-outline:hover{background:rgba(255,255,255,.12)}
+.plan-specs{list-style:none;margin-top:20px}
 .plan-specs li{
   display:flex;justify-content:space-between;gap:12px;
-  padding:13px 2px;border-top:1px solid var(--hair);
-  font-size:14px;
+  padding:12px 2px;border-top:1px solid rgba(255,255,255,.12);
+  font-size:13.5px;
 }
-.plan-specs li span{color:var(--sec)}
-.plan-specs li b{font-weight:500}
+.plan-specs li span{color:rgba(238,242,252,.68)}
+.plan-specs li b{font-weight:500;text-align:right}
 .plan-foot{
-  border-top:1px solid var(--hair);margin-top:2px;padding-top:18px;
-  display:flex;justify-content:center;gap:18px;align-items:center;
+  border-top:1px solid rgba(255,255,255,.12);margin-top:2px;padding-top:16px;
+  display:flex;justify-content:center;gap:16px;align-items:center;
 }
-.plan-foot svg{height:16px;width:auto;fill:var(--ink)}
+.plan-foot svg{height:15px;width:auto;fill:#5865f2}
 .plan-foot .foot-s{
-  width:18px;height:18px;border-radius:5px;background:var(--ink);color:var(--cream);
+  width:18px;height:18px;border-radius:5px;background:#635bff;color:#fff;
   font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;
+}
+@media (max-width:1200px){
+  .plans{grid-template-columns:repeat(2,minmax(0,420px));justify-content:center;gap:24px;row-gap:40px}
+  .plan-pop{transform:none;margin-top:14px}
 }
 
 /* ============ faq ============ */
@@ -697,14 +974,16 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 }
 .acc-q:hover{color:var(--sec)}
 .acc-q:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.acc-icon{position:relative;width:14px;height:14px;flex:none}
-.acc-icon::before,.acc-icon::after{
-  content:"";position:absolute;background:var(--ink);border-radius:2px;
+.acc-icon{
+  position:relative;width:14px;height:14px;flex:none;
   transition:transform .2s cubic-bezier(.4,0,.2,1);
 }
-.acc-icon::before{left:0;right:0;top:6px;height:1.5px}
-.acc-icon::after{top:0;bottom:0;left:6.25px;width:1.5px}
-.acc-item.open .acc-icon::after{transform:scaleY(0)}
+.acc-icon::before{
+  content:"";position:absolute;left:2.5px;top:3.5px;width:7px;height:7px;
+  border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);
+  border-radius:1px;transform:rotate(-45deg);
+}
+.acc-item.open .acc-icon{transform:rotate(90deg)}
 .acc-a{height:0;overflow:hidden;transition:height .2s cubic-bezier(.4,0,.2,1)}
 .acc-a p{padding:0 40px 24px 2px;font-size:15px;line-height:24px;color:var(--sec)}
 
@@ -758,17 +1037,16 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 @media (max-width:900px){
   .nav-links{display:none}
   .hero-core{padding-top:64px}
-  .hero-stage{padding:56px 16px 20px}
+  .hero-stage{padding:56px 16px 84px}
   .chip-film-embed{display:none}
-  .steps-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 28px}
+  .hiw-grid{grid-template-columns:1fr;gap:64px}
   .split-grid{grid-template-columns:1fr;gap:52px;padding:48px 32px}
   .ui-stage{min-height:0;display:grid;gap:20px}
   .frame-store{position:static;width:100%;right:auto}
   .frame-checkout{position:relative;width:76%;left:auto;bottom:auto;margin-top:-64px;margin-left:0}
   .faq-grid{grid-template-columns:1fr;gap:44px}
   .faq-card{max-width:none}
-  .plans{grid-template-columns:minmax(0,420px)}
-  .plan-pro{transform:none}
+  .plans{grid-template-columns:repeat(2,minmax(0,1fr))}
   .crescendo{padding:72px 32px 80px}
 }
 @media (max-width:600px){
@@ -776,16 +1054,27 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .announce{font-size:13px;line-height:18px}
   .nav-login{display:none}
   .slab{width:calc(100% - 32px)}
-  .hero-core{padding:56px 16px 0}
-  .eyebrow{font-size:12px;padding:7px 14px}
+  .hero-core{padding:64px 16px 0}
   .hero-sub{font-size:16.5px;line-height:26px}
-  .hero-cta{flex-direction:column;align-items:stretch;width:100%;max-width:360px}
-  .hero-stage{padding:44px 0 16px}
+  .hero-sky{background-image:url('/sky-night-tall.jpg')}
+  html[data-theme="light"] .hero-sky{background-image:url('/sky-day-tall.jpg')}
+  /* soft CSS moon disc — night mobile only, floats over the shader clouds */
+  html:not([data-theme="light"]) .hero-sky::after{
+    content:"";position:absolute;top:72px;right:30px;width:84px;height:84px;
+    border-radius:50%;pointer-events:none;opacity:.85;
+    background:radial-gradient(circle at 38% 34%,#f6f8ff 0%,#dde6f6 52%,#b6c6e2 100%);
+    box-shadow:0 0 40px 16px rgba(214,228,255,.26),0 0 110px 46px rgba(180,202,246,.13);
+  }
+  .capture{flex-wrap:wrap;padding:8px;border-radius:26px}
+  .capture-prefix{padding-left:12px}
+  .capture input{height:46px}
+  .capture .btn{width:100%}
+  .hero-stage{padding:44px 0 72px}
   .film{width:calc(100% - 24px)}
   .film-frame{border-radius:12px}
-  .film-frame video{aspect-ratio:4/3}
-  .chip-film-pay{left:8px;bottom:-14px}
-  .chip-film-paid{display:none}
+  .film-frame video{aspect-ratio:4/3;border-radius:6px}
+  .card-sale{left:8px;bottom:-14px}
+  .card-paid{display:none}
   .rolemarq{padding-top:44px}
   .bento{padding-block:64px 72px}
   .bento-head{margin-bottom:36px}
@@ -793,10 +1082,18 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .bcard{grid-column:span 12}
   .bcard-lg{padding:22px 18px}
   .applayout{grid-template-columns:1fr}
-  .steps{padding-block:4px 72px}
-  .steps-grid{gap:24px 20px}
-  .step-num{font-size:44px}
-  .step h3{font-size:20px;line-height:26px;margin-top:10px}
+  .steps{padding-block:48px 80px}
+  .steps h2{font-size:32px}
+  .hiw-grid{gap:56px;margin-top:44px}
+  .hiw-step h3{font-size:24px;line-height:30px}
+  .hiw-body{margin-bottom:22px}
+  .hiw-panel{border-radius:20px;padding:16px}
+  .hiw-card{padding:18px 16px}
+  .hiw-2col{grid-template-columns:1fr;gap:0}
+  .hiw-linkpill{padding:11px 16px}
+  .hiw-ev{gap:11px;padding:13px 13px}
+  .hiw-ev-icon{width:30px;height:30px}
+  .hiw-ev-title{font-size:14px;line-height:20px}
   .split{margin-block:48px}
   .split-grid{padding:36px 22px;gap:40px}
   .split h2{font-size:33px;line-height:40px}
@@ -808,8 +1105,9 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .calc-fields{grid-template-columns:1fr;gap:20px;margin-top:30px}
   .crescendo{margin-block:48px;padding:56px 20px 64px}
   .cres-head h2{font-size:36px;line-height:44px}
-  .plans{margin-top:44px}
-  .plan{padding:28px 22px 24px}
+  .plans{grid-template-columns:minmax(0,420px);justify-content:center;margin-top:44px;gap:16px;row-gap:36px}
+  .plan{padding:26px 20px 22px}
+  .plan-price .serif{font-size:38px}
   .faq{padding-block:64px}
   .faq h2{font-size:36px;line-height:44px}
   .acc-q{font-size:17px;padding:18px 2px}
@@ -835,6 +1133,259 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:-.02em}
 .footer{background:#060606}
 .ghost-word{color:#151515}
+/* ============ v6 glass + money system (bento / discover / split / calc / faq / footer) ============ */
+:root{
+  --gl-surface:rgba(255,255,255,.05);
+  --gl-surface-2:rgba(255,255,255,.09);
+  --gl-border:rgba(255,255,255,.09);
+  --gl-border-strong:rgba(255,255,255,.17);
+  --gl-topshine:rgba(255,255,255,.06);
+  --gl-card-solid:#1a2233;
+  --gl-ink:#f2f5fb;
+  --gl-btn-ink-text:#101827;
+  --gl-sec:#aebacc;
+  --gl-micro:#8fa0b8;
+  --gl-blue:#7ea2ff;
+  --gl-accent-strong:#5865f2;
+  --gl-green:#4ade80;
+  --gl-green-border:rgba(74,222,128,.38);
+  --gl-blue-border:rgba(126,162,255,.42);
+  --gl-blue-tint:rgba(126,162,255,.12);
+  --gl-gold:#f0c46a;
+  --gl-track:rgba(255,255,255,.13);
+  --gl-ghost:rgba(255,255,255,.05);
+}
+html[data-theme="light"]{
+  --gl-surface:rgba(255,255,255,.6);
+  --gl-surface-2:rgba(255,255,255,.85);
+  --gl-border:rgba(15,23,42,.09);
+  --gl-border-strong:rgba(15,23,42,.17);
+  --gl-topshine:rgba(255,255,255,.85);
+  --gl-card-solid:#ffffff;
+  --gl-ink:#0f1626;
+  --gl-btn-ink-text:#ffffff;
+  --gl-sec:#44536e;
+  --gl-micro:#64748f;
+  --gl-blue:#5865f2;
+  --gl-accent-strong:#5865f2;
+  --gl-green:#16a34a;
+  --gl-green-border:rgba(22,163,74,.45);
+  --gl-blue-border:rgba(88,101,242,.42);
+  --gl-blue-tint:rgba(88,101,242,.1);
+  --gl-gold:#a16207;
+  --gl-track:rgba(15,23,42,.14);
+  --gl-ghost:rgba(15,22,38,.06);
+}
+
+/* --- shared header language (ugc.foundable) --- */
+.sec-eyebrow{font:500 15.5px/1.4 var(--sans);color:var(--gl-blue);margin-bottom:14px}
+h2.sec-display{
+  font-family:var(--grotesk);font-weight:700;letter-spacing:-.02em;
+  font-size:clamp(32px,4vw,52px);line-height:1.08;color:var(--gl-ink);max-width:24ch;
+}
+.t2{color:var(--gl-blue)}
+.kicker{
+  display:block;font:600 11.5px/1 var(--sans);letter-spacing:.16em;
+  text-transform:uppercase;color:var(--gl-micro);
+}
+
+/* --- bento re-house --- */
+.bento-head{text-align:left;margin-bottom:44px}
+.bcard{
+  background:var(--gl-surface);border:1px solid var(--gl-border);border-radius:22px;
+  box-shadow:inset 0 1px 0 var(--gl-topshine);
+}
+.bcard:hover{border-color:var(--gl-border-strong);transform:translateY(-2px)}
+.bcard h3{color:var(--gl-ink)}
+.blabel,.panel-label{color:var(--gl-micro)}
+.bbody{color:var(--gl-sec)}
+.bcard .bullets li{color:var(--gl-sec)}
+.bcard .bullets li::before{background:var(--gl-ink)}
+.ttile{border-color:var(--gl-border-strong)}
+.ttile.on{border-color:var(--gl-ink)}
+.dot.on{box-shadow:0 0 0 2px var(--gl-card-solid),0 0 0 3.5px var(--gl-ink)}
+.appr-val{border-color:var(--gl-border-strong);color:var(--gl-sec)}
+.typeseg button{border-color:var(--gl-border-strong);color:var(--gl-sec)}
+.typeseg .on{background:var(--gl-ink);color:var(--gl-btn-ink-text);border-color:var(--gl-ink)}
+.appview{border-color:var(--gl-border-strong)}          /* preview stays dark via --pv-* in BOTH themes */
+.opt{border-color:var(--gl-border-strong);color:var(--gl-sec)}
+.opt em{color:var(--gl-micro)}
+.opt b{color:var(--gl-ink)}
+.opt.on{border-color:var(--gl-ink);box-shadow:0 0 0 1px var(--gl-ink);background:var(--gl-surface-2);color:var(--gl-ink)}
+.disc-code{background:var(--gl-surface-2);border-color:var(--gl-border-strong);color:var(--gl-ink)}
+.disc-code i{background:var(--gl-sec)}
+.disc-apply{background:var(--gl-surface-2);border-color:var(--gl-border-strong);color:var(--gl-ink)}
+.disc-msg{color:var(--gl-green)}
+/* money is green: MRR line/area/marker */
+.mrr .line{stroke:var(--gl-green)}
+.mrr .area{fill:var(--gl-green)}
+.mrr .dash{stroke:var(--gl-track)}
+.mrr .marker circle:nth-child(1){fill:var(--gl-card-solid)}
+.mrr .marker circle:nth-child(2){fill:var(--gl-green)}
+.mrr-stat{background:var(--gl-card-solid);border-color:var(--gl-border-strong)}
+.mrr-stat b{color:var(--gl-ink)}
+.mrr-stat span{color:var(--gl-micro)}
+/* the two bordered stat cards (644c3ba1) */
+.stat-duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat-mini{border:1px solid var(--gl-border-strong);border-radius:16px;padding:16px 16px 14px;background:rgba(255,255,255,.02)}
+.stat-mini b{display:block;font-family:var(--grotesk);font-weight:700;font-size:30px;line-height:1;letter-spacing:-.02em}
+.stat-mini span{display:block;margin-top:7px;font-size:12.5px;line-height:17px;color:var(--gl-sec)}
+.stat-blue{border-color:var(--gl-blue-border)}
+.stat-blue b{color:var(--gl-blue)}
+.stat-green{border-color:var(--gl-green-border)}
+.stat-green b{color:var(--gl-green)}
+
+/* --- discover re-house --- */
+.discover-head{text-align:left}
+.discover-head .cats{justify-content:flex-start;margin-top:22px}
+.cat{background:var(--gl-surface);border-color:var(--gl-border);color:var(--gl-sec)}
+.store{background:var(--gl-surface);border-color:var(--gl-border);box-shadow:inset 0 1px 0 var(--gl-topshine)}
+.store:hover{border-color:var(--gl-border-strong)}
+.store-tile{box-shadow:0 0 0 4px var(--gl-card-solid);background-color:var(--gl-card-solid)}
+.store-name{color:var(--gl-ink)}
+.store-cat{color:var(--gl-sec);border-color:var(--gl-border)}
+.store-members{color:var(--gl-micro)}
+.store-price{color:var(--gl-ink)}
+.discover-link{color:var(--gl-ink)}
+
+/* --- storefront split re-house --- */
+.slab.split{background:var(--gl-surface);border:1px solid var(--gl-border);border-radius:24px;box-shadow:inset 0 1px 0 var(--gl-topshine)}
+.split .split-body{color:var(--gl-sec)}
+.split .bullets li{color:var(--gl-sec)}
+.split .bullets li::before{background:var(--gl-ink)}
+.split .microcopy,.calc-cta .microcopy{color:var(--gl-micro)}
+.split .demo-link{color:var(--gl-ink)}
+.split .btn-ink,.calc-cta .btn-ink{background:var(--gl-ink);color:var(--gl-btn-ink-text)}
+.split .btn-ink:hover,.calc-cta .btn-ink:hover{background:var(--gl-ink);opacity:.9}
+.browser{background:#14161d;border-color:rgba(255,255,255,.1)}   /* dark product chrome, both themes */
+.ui-stage .float-chip{background:var(--gl-card-solid);border-color:var(--gl-border-strong);color:var(--gl-ink)}
+
+/* --- calculator: full 18ec3632 + 9305ecb9 treatment --- */
+.calc-head{text-align:left;width:min(760px,100%);margin:0 auto 36px}
+.calc-head p{color:var(--gl-micro)}
+.calc{background:var(--gl-surface);border-color:var(--gl-border);border-radius:24px;box-shadow:inset 0 1px 0 var(--gl-topshine);padding:48px 56px 44px}
+.calc-row-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:16px}
+.calc-row-top label{font-size:15px;font-weight:500;color:var(--gl-ink);margin:0}
+.calc-count{font-family:var(--grotesk);font-weight:700;font-size:44px;line-height:1;letter-spacing:-.02em;color:var(--gl-ink);font-variant-numeric:tabular-nums}
+#calcSubs{background:linear-gradient(to right,var(--gl-accent-strong) var(--pct,28.6%),var(--gl-track) var(--pct,28.6%))}
+#calcSubs::-webkit-slider-thumb{width:24px;height:24px;background:#fff;border:0;box-shadow:0 2px 8px rgba(0,0,0,.35),0 0 0 1px rgba(15,23,42,.12)}
+#calcSubs::-moz-range-thumb{width:18px;height:18px;background:#fff;border:0;box-shadow:0 2px 8px rgba(0,0,0,.35),0 0 0 1px rgba(15,23,42,.12)}
+.calc .ticks{color:var(--gl-micro)}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.presets button{
+  border:1px solid var(--gl-border);border-radius:999px;padding:9px 16px;
+  font-size:13.5px;font-weight:500;color:var(--gl-sec);background:var(--gl-surface);
+  transition:background-color .15s ease,color .15s ease,border-color .15s ease,transform 160ms cubic-bezier(.23,1,.32,1);
+}
+.presets button:hover{border-color:var(--gl-border-strong);color:var(--gl-ink)}
+.presets button:active{transform:scale(.97)}
+.presets button.on{border-color:var(--gl-blue-border);background:var(--gl-blue-tint);color:var(--gl-ink)}
+.presets button:focus-visible{outline:2px solid var(--gl-accent-strong);outline-offset:2px}
+.calc-fields{margin-top:32px}
+.field label{color:var(--gl-ink)}
+.field input,.field select{background-color:var(--gl-surface-2);border-color:var(--gl-border-strong);color:var(--gl-ink)}
+.calc-net{margin-top:38px}
+.net-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.net-label{font:500 15.5px/1.4 var(--sans);color:var(--gl-blue)}
+.net-chip{
+  border:1px solid var(--gl-border-strong);border-radius:999px;padding:6px 14px;
+  font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gl-sec);
+}
+.calc-figure{color:var(--gl-ink)}
+.calc-figure small{color:var(--gl-micro)}
+.net-cap{margin-top:10px;font-size:14px;color:var(--gl-micro)}
+.proj{margin-top:34px;border-top:1px solid var(--gl-border);padding-top:22px}
+.proj-rows{margin-top:14px}
+.proj-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;font-size:15.5px;color:var(--gl-sec)}
+.proj-row + .proj-row{border-top:1px solid var(--gl-border)}
+.proj-row b{font-family:var(--grotesk);font-weight:700;font-size:17px;letter-spacing:-.01em;color:var(--gl-ink);font-variant-numeric:tabular-nums}
+.proj-row.gold,.proj-row.gold b{color:var(--gl-gold)}   /* THE page's only gold */
+.proj-cap{margin-top:14px;font-size:13px;line-height:19px;color:var(--gl-micro)}
+.calc-cta{margin-top:36px}
+#appRadius{background:linear-gradient(to right,var(--gl-accent-strong) var(--pct,66.7%),var(--gl-track) var(--pct,66.7%))}
+
+/* --- FAQ: separate gapped glass cards (4b59e6bf) --- */
+.faq-head{text-align:center;margin-bottom:44px}
+.faq-head .sec-display{margin-inline:auto}
+.acc{display:grid;gap:14px;max-width:820px;margin-inline:auto}
+.acc-item,.acc-item:first-child{
+  border:1px solid var(--gl-border);border-radius:22px;
+  background:var(--gl-surface);box-shadow:inset 0 1px 0 var(--gl-topshine);
+  padding:6px 26px;transition:border-color .2s ease;
+}
+.acc-item:hover{border-color:var(--gl-border-strong)}
+.acc-q{font-size:19px;color:var(--gl-ink);padding:20px 2px}
+.acc-q:hover{color:var(--gl-sec)}
+.acc-icon::before{border-color:var(--gl-ink)}
+.acc-a p{color:var(--gl-sec);padding:0 40px 22px 2px}
+.faq-card{
+  max-width:820px;margin:14px auto 0;background:var(--gl-blue-tint);
+  border:1px solid var(--gl-blue-border);border-radius:22px;padding:24px 26px;
+  display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;
+}
+.faq-card p{font-size:14.5px;line-height:21px;color:var(--gl-sec);margin:0;max-width:52ch}
+.faq-card a{font-size:14.5px;font-weight:500;color:var(--gl-ink);border-bottom:1px solid var(--gl-border-strong);transition:border-color .2s ease}
+.faq-card a:hover{border-color:var(--gl-ink)}
+
+/* --- closer + footer (df42b5c9 anatomy) --- */
+.closer{padding:120px 24px 92px;text-align:center}
+.closer h2{font-size:clamp(38px,5.2vw,60px);line-height:1.05;color:var(--gl-ink)}
+.btn-gloss{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  height:56px;padding:0 34px;border-radius:999px;margin-top:36px;
+  background:linear-gradient(180deg,#7b86ff 0%,#5865f2 45%,#4550e0 100%);
+  color:#fff;font-size:16px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(0,0,0,.18),0 12px 30px -12px rgba(88,101,242,.55);
+  transition:filter .2s ease,transform 160ms cubic-bezier(.23,1,.32,1);
+}
+.btn-gloss:hover{filter:brightness(1.07)}
+.btn-gloss:active{transform:scale(.98)}
+.btn-gloss:focus-visible{outline:2px solid var(--gl-blue);outline-offset:3px}
+.footer{background:transparent;color:var(--gl-micro);margin-top:24px;overflow:hidden}
+.footer-cols{border-top:1px solid var(--gl-border);padding:64px 0 56px}
+.fcol b{font:600 12px/1 var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--gl-micro)}
+.fcol a{color:var(--gl-sec)}
+.fcol a:hover{color:var(--gl-ink)}
+.legal{border-top:1px solid var(--gl-border);color:var(--gl-micro)}
+.legal .glyph{background:var(--gl-micro)}
+.soc-tile{
+  width:42px;height:42px;border-radius:12px;flex:none;
+  background:var(--gl-surface);border:1px solid var(--gl-border);
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color .2s ease,transform 160ms cubic-bezier(.23,1,.32,1);
+}
+.soc-tile:hover{border-color:var(--gl-border-strong)}
+.soc-tile:active{transform:scale(.96)}
+.soc-tile svg{width:20px;height:auto;fill:var(--gl-sec)}
+.soc-tile:hover svg{fill:var(--gl-ink)}
+.ghost-word{height:.55em;line-height:1;margin-top:48px;color:var(--gl-ghost)}
+
+/* --- mobile --- */
+@media (max-width:600px){
+  .calc{padding:36px 20px 32px}
+  .calc-count{font-size:34px}
+  .presets{gap:6px}
+  .presets button{padding:8px 12px;font-size:12.5px}
+  .stat-mini b{font-size:26px}
+  .proj-row{font-size:14.5px}
+  .acc-item,.acc-item:first-child{padding:2px 18px;border-radius:18px}
+  .acc-q{font-size:17px;padding:18px 2px}
+  .faq-card{padding:20px}
+  .closer{padding:80px 20px 60px}
+  .footer-cols{padding:48px 0 40px}
+}
+/* ── hero foot: the quiet Foundable row at the bottom of the sky ── */
+.hero-foot{
+  position:relative;display:flex;align-items:center;justify-content:center;gap:26px;
+  padding:10px 24px 30px;font-size:13.5px;font-weight:500;
+}
+.hero-foot a{color:inherit;opacity:.72;transition:opacity .2s ease;display:inline-flex;align-items:center;min-height:32px}
+.hero-foot a:hover{opacity:1}
+.hf-sep{width:1px;height:14px;background:currentColor;opacity:.28}
+.hf-ic svg{width:17px;height:17px;fill:currentColor;display:block}
+html[data-theme="light"] .hero-foot{color:#0f1626}
+html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
+@media (max-width:600px){.hero-foot{gap:20px;padding-bottom:24px}}
 </style>
 </head>
 <body>
@@ -857,36 +1408,39 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
       <a href="/api/invite">Invite Dues &#8599;</a>
     </div>
     <div class="nav-right">
-      <a class="btn btn-white nav-login" href="/dashboard">Log in</a>
-      <a class="btn btn-accent" href="/dashboard">Sign up</a>
+      <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch between day and night theme">
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2.2v2.1"/><path d="M12 19.7v2.1"/><path d="M2.2 12h2.1"/><path d="M19.7 12h2.1"/><path d="M4.9 4.9l1.5 1.5"/><path d="M17.6 17.6l1.5 1.5"/><path d="M19.1 4.9l-1.5 1.5"/><path d="M6.4 17.6l-1.5 1.5"/></g></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.6 14.4A8.7 8.7 0 0 1 9.6 3.4a8.7 8.7 0 1 0 11 11Z"/></svg>
+      </button>
+      <a class="nav-login" href="/dashboard">Log in</a>
+      <a class="btn btn-primary" href="/dashboard">Start free</a>
     </div>
   </div>
 </nav>
 
 <!-- 3 · hero -->
 <header class="hero">
+  <div class="hero-sky" aria-hidden="true"><canvas data-dues-sky></canvas></div>
+  <div class="hero-fade" aria-hidden="true"></div>
   <div class="hero-core">
-    <span class="eyebrow"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Built for Discord<i aria-hidden="true"></i><span class="mark-s">S</span>Paid out by Stripe</span>
-    <h1>Sell roles. Keep every dollar.</h1>
+    <h1>Sell roles. <span class="h1-key">Keep every dollar.</span></h1>
     <p class="hero-sub">Dues connects your
-      <span class="inline-mark"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="#f5f5f4" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Discord</span>
+      <span class="inline-mark"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="#5865f2" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Discord</span>
       server to your own
       <span class="inline-mark"><span class="mark-s">S</span>Stripe</span>
       account. Buyers pay, roles deliver themselves.</p>
-    <div class="trust-chips">
-      <span class="tchip">0% platform fee</span>
-      <span class="tchip">Secured by Stripe</span>
-      <span class="tchip">Instant role delivery</span>
-    </div>
-    <div class="hero-cta">
-      <a class="btn btn-pay" href="/dashboard">Start selling</a>
-      <a class="btn btn-white" href="/dashboard"><svg viewBox="0 0 127.14 96.36" width="19" height="15" aria-hidden="true"><path fill="#f5f5f4" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Sign in with Discord</a>
-    </div>
+    <form class="capture" id="captureForm" action="/dashboard" method="get">
+      <span class="capture-prefix" aria-hidden="true">dues.gg/</span>
+      <input type="text" name="server" placeholder="your-server" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Your server name">
+      <button class="btn btn-primary" type="submit">Open your store &#8594;</button>
+    </form>
+    <p class="microcopy">Free plan &#183; No credit card required &#183; Compatible with
+      <svg class="stripe-wordmark" viewBox="54 36 360 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stripe"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M414,113.4c0-25.6-12.4-45.8-36.1-45.8c-23.8,0-38.2,20.2-38.2,45.6c0,30.1,17,45.3,41.4,45.3c11.9,0,20.9-2.7,27.7-6.5v-20c-6.8,3.4-14.6,5.5-24.5,5.5c-9.7,0-18.3-3.4-19.4-15.2h48.9C413.8,121,414,115.8,414,113.4z M364.6,103.9c0-11.3,6.9-16,13.2-16c6.1,0,12.6,4.7,12.6,16H364.6z M301.1,67.6c-9.8,0-16.1,4.6-19.6,7.8l-1.3-6.2h-22v116.6l25-5.3l0.1-28.3c3.6,2.6,8.9,6.3,17.7,6.3c17.9,0,34.2-14.4,34.2-46.1C335.1,83.4,318.6,67.6,301.1,67.6z M295.1,136.5c-5.9,0-9.4-2.1-11.8-4.7l-0.1-37.1c2.6-2.9,6.2-4.9,11.9-4.9c9.1,0,15.4,10.2,15.4,23.3C310.5,126.5,304.3,136.5,295.1,136.5z M223.8,61.7l25.1-5.4V36l-25.1,5.3V61.7z M223.8,69.3h25.1v87.5h-25.1V69.3z M196.9,76.7l-1.6-7.4h-21.6v87.5h25V97.5c5.9-7.7,15.9-6.3,19-5.2v-23C214.5,68.1,202.8,65.9,196.9,76.7z M146.9,47.6l-24.4,5.2l-0.1,80.1c0,14.8,11.1,25.7,25.9,25.7c8.2,0,14.2-1.5,17.5-3.3V135c-3.2,1.3-19,5.9-19-8.9V90.6h19V69.3h-19L146.9,47.6z M79.3,94.7c0-3.9,3.2-5.4,8.5-5.4c7.6,0,17.2,2.3,24.8,6.4V72.2c-8.3-3.3-16.5-4.6-24.8-4.6C67.5,67.6,54,78.2,54,95.9c0,27.6,38,23.2,38,35.1c0,4.6-4,6.1-9.6,6.1c-8.3,0-18.9-3.4-27.3-8v23.8c9.3,4,18.7,5.7,27.3,5.7c20.8,0,35.1-10.3,35.1-28.2C117.4,100.6,79.3,105.9,79.3,94.7z"/></svg>
+    </p>
   </div>
 
   <div class="hero-stage">
     <div class="film reveal reveal-scale">
-      <div class="film-glow" aria-hidden="true"></div>
       <div class="film-frame">
         <div class="browser-bar"><span class="win-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="browser-url">dues.gg</span></div>
         <video src="/hero-tour.mp4?v=129" poster="/hero-poster.webp?v=129" muted loop playsinline autoplay></video>
@@ -899,9 +1453,23 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
           </div>
         </div>
       </div>
-      <div class="float-chip chip-film-pay"><span class="glyph" aria-hidden="true"></span>$49.99 &#183; @VIP delivered</div>
-      <div class="float-chip chip-film-paid"><i aria-hidden="true"></i>Paid out &#183; your Stripe</div>
+      <div class="sky-card card-sale" aria-hidden="true">
+        <span class="ok"><svg viewBox="0 0 12 12"><path d="M2 6.2 4.8 9 10 3.4"/></svg></span>
+        <span>New sale<small><b>$49.99</b> &#183; @VIP delivered</small></span>
+      </div>
+      <div class="sky-card card-paid" aria-hidden="true">
+        <span class="ok"><svg viewBox="0 0 12 12"><path d="M2 6.2 4.8 9 10 3.4"/></svg></span>
+        <span>Paid out to your Stripe<small><b>$483.20</b> this week</small></span>
+      </div>
     </div>
+  </div>
+  <div class="hero-foot">
+    <a href="#pricing">Pricing</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <span class="hf-sep" aria-hidden="true"></span>
+    <a class="hf-ic" href="/api/invite" aria-label="Dues on Discord"><svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></a>
+    <a class="hf-ic" href="https://x.com/duesgg" rel="noopener" aria-label="Dues on X"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zM17.083 19.77h1.833L7.084 4.126H5.117z"/></svg></a>
   </div>
 </header>
 
@@ -920,11 +1488,136 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
   </div></div>
 </section>
 
-<!-- 5 · bento: everything a paid community needs -->
+<!-- 5 · how it works · ugc.foundable four-step -->
+<section class="steps wrap" aria-labelledby="hiw-title">
+  <div class="hiw-inner">
+    <header class="hiw-head reveal">
+      <p class="hiw-eyebrow">How it works</p>
+      <h2 id="hiw-title">Four steps from server to payout.</h2>
+    </header>
+    <div class="hiw-grid">
+
+      <article class="hiw-step reveal">
+        <p class="hiw-n">(1)</p>
+        <h3>Connect</h3>
+        <p class="hiw-body">Sign in with Discord, pick your server, and link the Stripe account the money should land in.</p>
+        <div class="hiw-panel">
+          <div class="hiw-card" aria-hidden="true">
+            <div class="hiw-card-head">
+              <span class="hiw-card-title">Connect your server</span>
+              <span class="hiw-live"><i></i>Usually takes a minute</span>
+            </div>
+            <div class="hiw-progress"><i class="on"></i><i></i><i></i><i></i></div>
+            <div class="hiw-label">Server</div>
+            <div class="hiw-row">
+              <span class="hiw-tile hiw-tile-d"><svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></span>
+              <span class="hiw-row-main">Apex Signals<em>1,284 members</em></span>
+              <span class="hiw-row-ok"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </div>
+            <div class="hiw-label">Payouts</div>
+            <div class="hiw-row">
+              <span class="hiw-tile hiw-tile-s">S</span>
+              <span class="hiw-row-main">Your Stripe<em>Connected</em></span>
+              <span class="hiw-row-ok"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </div>
+            <div class="hiw-submit">Continue</div>
+            <p class="hiw-cardmicro">No code &#183; takes minutes</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="hiw-step reveal">
+        <p class="hiw-n">(2)</p>
+        <h3>Create</h3>
+        <p class="hiw-body">Name a product, set a price, attach the role it unlocks. Publish when it looks right.</p>
+        <div class="hiw-panel">
+          <div class="hiw-card" aria-hidden="true">
+            <div class="hiw-card-head">
+              <span class="hiw-card-title">New product</span>
+              <span class="hiw-live"><i></i>Preview updates live</span>
+            </div>
+            <div class="hiw-label">Name</div>
+            <div class="hiw-field">VIP Access</div>
+            <div class="hiw-2col">
+              <div>
+                <div class="hiw-label">Price</div>
+                <div class="hiw-field">$49.99 <em>/ month</em></div>
+              </div>
+              <div>
+                <div class="hiw-label">Unlocks role</div>
+                <div class="hiw-field"><span class="hiw-role">@VIP</span></div>
+              </div>
+            </div>
+            <div class="hiw-submit">Publish</div>
+            <p class="hiw-cardmicro">Monthly, lifetime, or both &#183; edit anytime</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="hiw-step reveal">
+        <p class="hiw-n">(3)</p>
+        <h3>Share</h3>
+        <p class="hiw-body">Your storefront lives on one link. Drop it in your bio, your server, your pinned post.</p>
+        <div class="hiw-panel">
+          <div aria-hidden="true">
+            <div class="hiw-linkpill">
+              <span class="hiw-linkurl">dues.gg/<b>your-server</b></span>
+              <span class="hiw-live"><i></i>Live</span>
+            </div>
+            <div class="browser hiw-mini-browser">
+              <div class="browser-bar"><span class="win-dots"><i></i><i></i><i></i></span><span class="browser-url">dues.gg/your-server</span></div>
+              <div class="shot hiw-shot"><img src="/land-storefront.png" alt="" loading="lazy"></div>
+            </div>
+          </div>
+          <p class="hiw-cardmicro">One link, everywhere</p>
+        </div>
+      </article>
+
+      <article class="hiw-step reveal">
+        <p class="hiw-n">(4)</p>
+        <h3>Get paid</h3>
+        <p class="hiw-body">Buyers pay into your own Stripe account. Dues never holds the money, and roles deliver themselves.</p>
+        <div class="hiw-panel">
+          <p class="hiw-simlabel">SIMULATED EXAMPLE &#183; NOT LIVE NUMBERS</p>
+          <ol class="hiw-timeline" aria-hidden="true">
+            <li class="hiw-ev">
+              <span class="hiw-ev-icon hiw-ev-check"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span>
+                <span class="hiw-ev-title">&#127881; New Subscriber! &#183; <b class="hiw-money">$49.99</b></span>
+                <span class="hiw-ev-sub">@mia_moves picked VIP Access</span>
+              </span>
+              <span class="hiw-ev-time">now</span>
+            </li>
+            <li class="hiw-ev">
+              <span class="hiw-ev-icon hiw-ev-check"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span>
+                <span class="hiw-ev-title">Role granted <span class="hiw-role">@VIP</span></span>
+                <span class="hiw-ev-sub">Delivered by the Dues bot in seconds</span>
+              </span>
+              <span class="hiw-ev-time">2m</span>
+            </li>
+            <li class="hiw-ev">
+              <span class="hiw-ev-icon hiw-ev-card"><svg viewBox="0 0 20 16" width="15" height="12"><rect x="0.75" y="0.75" width="18.5" height="14.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="0.75" y="3.6" width="18.5" height="3" fill="currentColor" stroke="none"/></svg></span>
+              <span>
+                <span class="hiw-ev-title">Paid out to your Stripe &#183; <b class="hiw-money">$483.20</b></span>
+                <span class="hiw-ev-sub">Week of Aug 25 &#183; 12 sales</span>
+              </span>
+              <span class="hiw-ev-time">Fri</span>
+            </li>
+          </ol>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- 6 · bento: everything a paid community needs -->
 <section id="features" class="bento wrap">
   <div class="bento-head">
-    <span class="glyph section-mark" aria-hidden="true"></span>
-    <h2>Everything a paid community needs.</h2>
+    <p class="sec-eyebrow">Features</p>
+    <h2 class="sec-display">Everything a paid community <span class="t2">needs.</span></h2>
   </div>
   <div class="bento-grid reveal">
 
@@ -959,7 +1652,7 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
     <div class="bcard bcard-lg" id="apptoy" style="--pv-bg:#0a0a0a;--pv-panel:#101010;--pv-text:#f5f5f4;--pv-pay:#5865f2;--pv-payink:#fff;--pv-r:16px;--pv-font:var(--grotesk)">
       <span class="blabel">Appearance</span>
       <h3>Make it yours</h3>
-      <p class="bbody">Colors, corners and type &#8212; buyers see your storefront, not ours. Everything here previews live.</p>
+      <p class="bbody">Colors, corners and type. Buyers see your storefront, not ours, and everything here previews live.</p>
       <div class="bwidget applayout">
         <div class="appctrl">
           <div>
@@ -1013,9 +1706,9 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
       <span class="blabel">Payouts</span>
       <h3>Straight to your Stripe</h3>
       <p class="bbody">Buyers pay into your Stripe account, not ours. Dues never holds the money.</p>
-      <div class="bwidget payout">
-        <span class="payout-pill"><span class="mark-s">S</span>Your Stripe</span>
-        <span class="paid-chip"><i aria-hidden="true"></i>Paid out &#183; $49.99</span>
+      <div class="bwidget stat-duo">
+        <div class="stat-mini stat-blue"><b>0%</b><span>platform fee, forever</span></div>
+        <div class="stat-mini stat-green"><b>100%</b><span>of every sale is yours</span></div>
       </div>
     </div>
 
@@ -1043,7 +1736,7 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
     <div class="bcard">
       <span class="blabel">Pricing</span>
       <h3>Price it your way</h3>
-      <p class="bbody">Lifetime, monthly, or both side by side &#8212; buyers pick one at checkout.</p>
+      <p class="bbody">Lifetime, monthly, or both side by side. Buyers pick one at checkout.</p>
       <div class="bwidget opts" aria-hidden="true">
         <div class="panel-label">Select option</div>
         <div class="opt on"><span>Lifetime<em>lifetime</em></span><b>$49.99</b></div>
@@ -1057,29 +1750,18 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
       <p class="bbody">Codes for launches and win-backs, applied right on your checkout.</p>
       <div class="bwidget disc" aria-hidden="true">
         <div class="disc-row"><span class="disc-code">LAUNCH20<i></i></span><span class="disc-apply">Apply</span></div>
-        <div class="disc-msg">LAUNCH20 applied &#8212; you save $10.00.</div>
+        <div class="disc-msg">LAUNCH20 applied. You save $10.00.</div>
       </div>
     </div>
 
   </div>
 </section>
 
-<!-- 6 · how it works -->
-<section class="steps wrap">
-  <div class="steps-grid reveal">
-    <div class="step"><span class="step-num">01</span><h3>Create</h3><p>Set up your roles and prices in minutes</p></div>
-    <div class="step"><span class="step-num">02</span><h3>Connect</h3><p>Invite Dues and link your Stripe</p></div>
-    <div class="step"><span class="step-num">03</span><h3>Customize</h3><p>Make the storefront look like your server</p></div>
-    <div class="step"><span class="step-num">04</span><h3>Get paid</h3><p>Money lands in your own Stripe account</p></div>
-  </div>
-</section>
-
-
 <!-- 7.5 · discover -->
 <section class="discover">
   <div class="wrap discover-head">
-    <span class="glyph section-mark" aria-hidden="true"></span>
-    <h2>Find your next community.</h2>
+    <p class="sec-eyebrow">Discover</p>
+    <h2 class="sec-display">Find your <span class="t2">next community.</span></h2>
     <div class="cats">
       <span class="cat">Trading</span><span class="cat">Esports</span><span class="cat">Fitness</span><span class="cat">Study</span><span class="cat">Signals</span><span class="cat">Music</span>
     </div>
@@ -1154,7 +1836,8 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
 <section class="slab split reveal">
   <div class="split-grid">
     <div>
-      <h2>A storefront on your link.</h2>
+      <p class="sec-eyebrow">Your storefront</p>
+      <h2 class="sec-display">A storefront <span class="t2">on your link.</span></h2>
       <p class="split-body">Every store ships with a hosted page and a Stripe checkout. Share one link in your bio, your server, or your pinned post, and let it sell while you sleep.</p>
       <ul class="bullets">
         <li>Hosted for you, no code, live in minutes.</li>
@@ -1184,36 +1867,58 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
 
 <section class="calc-sec wrap">
   <div class="calc-head">
-    <span class="glyph section-mark" aria-hidden="true"></span>
-    <h2>See what your server could make.</h2>
-    <p>Price times subscribers. There are no fees to subtract.</p>
+    <p class="sec-eyebrow">The math</p>
+    <h2 class="sec-display">See what your server <span class="t2">could make.</span></h2>
+    <p>Price times members. There are no fees to subtract.</p>
   </div>
   <div class="calc reveal">
-    <div class="calc-figure"><span class="serif" id="calcTotal">$1,500</span><small id="calcSuffix">/month</small></div>
+    <div class="calc-row-top">
+      <label for="calcSubs" id="calcSubsLabel">Paying members</label>
+      <output class="calc-count" id="calcCount" for="calcSubs">150</output>
+    </div>
+    <input id="calcSubs" type="range" min="10" max="500" step="5" value="150">
+    <div class="ticks">
+      <span style="left:0">10</span>
+      <span style="left:8.2%">50</span>
+      <span style="left:28.6%">150</span>
+      <span style="left:59.2%">300</span>
+      <span style="left:100%">500</span>
+    </div>
+    <div class="presets" id="calcPresets" role="group" aria-label="Preset member counts">
+      <button type="button" data-subs="10">10 members</button>
+      <button type="button" data-subs="50">50 members</button>
+      <button type="button" class="on" data-subs="150">150 members</button>
+      <button type="button" data-subs="500">500 members</button>
+    </div>
     <div class="calc-fields">
       <div class="field">
         <label for="calcPrice">Price per subscription</label>
         <input id="calcPrice" type="number" inputmode="decimal" min="1" max="999" step="0.01" value="9.99">
       </div>
       <div class="field">
-        <label for="calcBilling">Billing frequency</label>
+        <label for="calcBilling">Show total per</label>
         <select id="calcBilling">
-          <option value="monthly" selected>Monthly</option>
-          <option value="yearly">Yearly</option>
+          <option value="monthly" selected>Month</option>
+          <option value="yearly">Year</option>
         </select>
       </div>
     </div>
-    <div class="calc-slider">
-      <label for="calcSubs" id="calcSubsLabel">150 subscribers</label>
-      <input id="calcSubs" type="range" min="50" max="500" step="10" value="150">
-      <div class="ticks">
-        <span style="left:0">50</span>
-        <span style="left:11.1%">100</span>
-        <span style="left:33.3%">200</span>
-        <span style="left:55.6%">300</span>
-        <span style="left:77.8%">400</span>
-        <span style="left:100%">500</span>
+    <div class="calc-net">
+      <div class="net-top">
+        <span class="net-label">Your server makes</span>
+        <span class="net-chip">0% platform fee</span>
       </div>
+      <div class="calc-figure"><span class="serif" id="calcTotal">$1,500</span><small id="calcSuffix">/month</small></div>
+      <p class="net-cap" id="calcCaption">150 members &#215; $9.99/month</p>
+    </div>
+    <div class="proj">
+      <span class="kicker">Projections</span>
+      <div class="proj-rows">
+        <div class="proj-row"><span>One month</span><b id="projMonth">$1,499</b></div>
+        <div class="proj-row"><span>Half a year</span><b id="projHalf">$8,991</b></div>
+        <div class="proj-row gold"><span>A year</span><b id="projYear">$17,982</b></div>
+      </div>
+      <p class="proj-cap">Straight multiplication at your prices. Dues takes 0% of it.</p>
     </div>
     <div class="calc-cta">
       <a class="btn btn-ink" href="/dashboard">Start selling</a>
@@ -1231,22 +1936,22 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
   </div>
   <div class="cres-controls">
     <div class="billing-toggle" role="group" aria-label="Billing period">
-      <button type="button" class="on" id="togMonthly">Monthly</button>
-      <button type="button" id="togYearly">Yearly</button>
+      <button type="button" class="on" id="togMonthly" aria-pressed="true">Monthly</button>
+      <button type="button" id="togYearly" aria-pressed="false">Yearly <span class="tog-save">2 months free</span></button>
     </div>
     <div class="fee-chip">0% platform fee on every plan</div>
   </div>
   <div class="plans">
     <div class="plan">
-      <div class="plan-name"><b>Starter</b><i>For new stores</i></div>
-      <div class="plan-price"><span class="serif">$0</span><small>/month</small></div>
-      <div class="plan-note">forever</div>
+      <div class="plan-name"><b>Free</b><i>For new stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$0" data-yearly="$0">$0</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="free forever" data-note-yearly="free forever">free forever</div>
       <a class="btn btn-outline" href="/dashboard">Start selling</a>
-      <p class="microcopy">Free to start. Your Stripe, your money.</p>
       <ul class="plan-specs">
+        <li><span>Paying members</span><b>Up to 10</b></li>
         <li><span>Platform fee</span><b>0%</b></li>
         <li><span>Products</span><b>Unlimited</b></li>
-        <li><span>Members</span><b>Unlimited</b></li>
+        <li><span>Role delivery</span><b>Instant</b></li>
         <li><span>Payouts</span><b>Your Stripe</b></li>
       </ul>
       <div class="plan-foot">
@@ -1254,21 +1959,52 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
         <svg viewBox="0 0 127.14 96.36" width="21" height="16" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
       </div>
     </div>
-    <div class="plan plan-pro">
-      <div class="pop-tab">Popular</div>
+    <div class="plan">
       <div class="plan-name"><b>Pro</b><i>For growing stores</i></div>
-      <div class="plan-price"><span class="serif" id="proPrice">$29</span><small>/month</small></div>
-      <div class="plan-note" id="proNote"></div>
-      <a class="btn btn-ink" href="/dashboard">Start selling</a>
-      <p class="microcopy">Free to start. Your Stripe, your money.</p>
+      <div class="plan-price"><span class="serif" data-monthly="$14.99" data-yearly="$149.90">$14.99</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
+      <a class="btn btn-outline" href="/dashboard">Start selling</a>
       <ul class="plan-specs">
+        <li><span>Paying members</span><b>Up to 50</b></li>
         <li><span>Platform fee</span><b>0%</b></li>
         <li><span>Products</span><b>Unlimited</b></li>
-        <li><span>Members</span><b>Unlimited</b></li>
+        <li><span>Role delivery</span><b>Instant</b></li>
         <li><span>Payouts</span><b>Your Stripe</b></li>
-        <li><span>Custom domain</span><b>Included</b></li>
-        <li><span>Discover listing</span><b>Included</b></li>
-        <li><span>Support</span><b>Priority</b></li>
+      </ul>
+      <div class="plan-foot">
+        <span class="foot-s">S</span>
+        <svg viewBox="0 0 127.14 96.36" width="21" height="16" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      </div>
+    </div>
+    <div class="plan plan-pop">
+      <div class="pop-tab">Popular</div>
+      <div class="plan-name"><b>Max</b><i>For busy stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$44.99" data-yearly="$449.90">$44.99</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
+      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <ul class="plan-specs">
+        <li><span>Paying members</span><b>Up to 500</b></li>
+        <li><span>Platform fee</span><b>0%</b></li>
+        <li><span>Products</span><b>Unlimited</b></li>
+        <li><span>Role delivery</span><b>Instant</b></li>
+        <li><span>Payouts</span><b>Your Stripe</b></li>
+      </ul>
+      <div class="plan-foot">
+        <span class="foot-s">S</span>
+        <svg viewBox="0 0 127.14 96.36" width="21" height="16" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      </div>
+    </div>
+    <div class="plan">
+      <div class="plan-name"><b>Unlimited</b><i>For the biggest stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$134.99" data-yearly="$1,349.90">$134.99</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
+      <a class="btn btn-outline" href="/dashboard">Start selling</a>
+      <ul class="plan-specs">
+        <li><span>Paying members</span><b>Unlimited</b></li>
+        <li><span>Platform fee</span><b>0%</b></li>
+        <li><span>Products</span><b>Unlimited</b></li>
+        <li><span>Role delivery</span><b>Instant</b></li>
+        <li><span>Payouts</span><b>Your Stripe</b></li>
       </ul>
       <div class="plan-foot">
         <span class="foot-s">S</span>
@@ -1280,66 +2016,57 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
 
 <!-- 11 · faq -->
 <section id="faq" class="faq wrap">
-  <div class="faq-grid">
-    <div class="faq-left">
-      <h2>Questions?<br>Answers.</h2>
-      <div class="faq-card">
-        <span class="glyph" aria-hidden="true"></span>
-        <p>The fastest answer is your own store &#8212; connecting Discord and Stripe takes minutes.</p>
-        <a href="/dashboard">Open the dashboard &#8594;</a>
-      </div>
+  <div class="faq-head">
+    <p class="sec-eyebrow">FAQ</p>
+    <h2 class="sec-display">Questions, answered.</h2>
+  </div>
+  <div class="acc">
+    <div class="acc-item open">
+      <button class="acc-q" aria-expanded="true">How do payouts work?<span class="acc-icon" aria-hidden="true"></span></button>
+      <div class="acc-a"><p>Buyers check out on your own Stripe account, so the money is yours from the first second. Stripe pays out to your bank on its normal schedule. Dues never holds, routes, or delays a payment.</p></div>
     </div>
-    <div class="acc">
-      <div class="acc-item open">
-        <button class="acc-q" aria-expanded="true">How do payouts work?<span class="acc-icon" aria-hidden="true"></span></button>
-        <div class="acc-a"><p>Buyers check out on your own Stripe account, so the money is yours from the first second. Stripe pays out to your bank on its normal schedule. Dues never holds, routes, or delays a payment.</p></div>
-      </div>
-      <div class="acc-item">
-        <button class="acc-q" aria-expanded="false">Do I need a Stripe account?<span class="acc-icon" aria-hidden="true"></span></button>
-        <div class="acc-a"><p>Yes. Dues is built on Stripe, and connecting an account takes a few minutes during setup. If you already have one, you can use it as it is.</p></div>
-      </div>
-      <div class="acc-item">
-        <button class="acc-q" aria-expanded="false">What does Dues cost?<span class="acc-icon" aria-hidden="true"></span></button>
-        <div class="acc-a"><p>Starter is free with a 0% platform fee, so you only pay Stripe's standard processing fees. Pro is $29 per month when you want a custom domain and a Discover listing.</p></div>
-      </div>
-      <div class="acc-item">
-        <button class="acc-q" aria-expanded="false">Can buyers pay monthly?<span class="acc-icon" aria-hidden="true"></span></button>
-        <div class="acc-a"><p>They can. Every role can be sold as a monthly subscription, a yearly one, or a one-time lifetime purchase. You set the prices and can offer several options side by side.</p></div>
-      </div>
-      <div class="acc-item">
-        <button class="acc-q" aria-expanded="false">How fast do roles deliver?<span class="acc-icon" aria-hidden="true"></span></button>
-        <div class="acc-a"><p>The moment payment clears. The bot grants the role automatically, usually within seconds of checkout. There are no invites, approvals, or manual steps.</p></div>
-      </div>
-      <div class="acc-item">
-        <button class="acc-q" aria-expanded="false">What about refunds?<span class="acc-icon" aria-hidden="true"></span></button>
-        <div class="acc-a"><p>Refund a buyer from your Stripe dashboard whenever you choose. Dues sees the refund and removes the role automatically. Lapsed and disputed subscriptions are handled the same way.</p></div>
-      </div>
+    <div class="acc-item">
+      <button class="acc-q" aria-expanded="false">Do I need a Stripe account?<span class="acc-icon" aria-hidden="true"></span></button>
+      <div class="acc-a"><p>Yes. Dues is built on Stripe, and connecting an account takes a few minutes during setup. If you already have one, you can use it as it is.</p></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-q" aria-expanded="false">What does Dues cost?<span class="acc-icon" aria-hidden="true"></span></button>
+      <div class="acc-a"><p>The Free plan is $0 with a 0% platform fee for up to 10 paying members, so you only ever pay Stripe's processing fees. Paid plans raise the member cap: Pro is $14.99 per month for up to 50, Max is $44.99 for up to 500, and Unlimited is $134.99 with no cap. Yearly billing gives you two months free.</p></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-q" aria-expanded="false">Can buyers pay monthly?<span class="acc-icon" aria-hidden="true"></span></button>
+      <div class="acc-a"><p>They can. Every role can be sold as a monthly subscription, a yearly one, or a one-time lifetime purchase. You set the prices and can offer several options side by side.</p></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-q" aria-expanded="false">How fast do roles deliver?<span class="acc-icon" aria-hidden="true"></span></button>
+      <div class="acc-a"><p>The moment payment clears. The bot grants the role automatically, usually within seconds of checkout. There are no invites, approvals, or manual steps.</p></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-q" aria-expanded="false">What about refunds?<span class="acc-icon" aria-hidden="true"></span></button>
+      <div class="acc-a"><p>Refund a buyer from your Stripe dashboard whenever you choose. Dues sees the refund and removes the role automatically. Lapsed and disputed subscriptions are handled the same way.</p></div>
     </div>
   </div>
-</section>
-
-<!-- 12 · final cta -->
-<section class="slab final reveal">
-  <div class="glyph final-ghost" aria-hidden="true"></div>
-  <h2>Open your store tonight.</h2>
-  <p>Connect Discord, connect Stripe, and share your link. The bot handles everything after that.</p>
-  <a class="btn btn-ink" href="/dashboard">Start selling</a>
-  <p class="microcopy">Free to start. Your Stripe, your money.</p>
-  
+  <div class="faq-card">
+    <p>The fastest answer is your own store. Connecting Discord and Stripe takes minutes.</p>
+    <a href="/dashboard">Open the dashboard &#8594;</a>
+  </div>
 </section>
 
 </main>
 
 <!-- 13 · footer -->
 <footer class="footer">
-  <div class="ghost-word" aria-hidden="true">Dues</div>
+  <div class="closer">
+    <h2>Open your store tonight.</h2>
+    <a class="btn-gloss" href="/dashboard">Start selling &#8594;</a>
+  </div>
   <div class="wrap">
     <div class="footer-cols">
       <div class="fcol">
         <b>Product</b>
+        <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
         <a href="/discover">Discover stores</a>
-        <a href="#features">Features</a>
         <a href="/api/invite">Invite Dues</a>
       </div>
       <div class="fcol">
@@ -1368,15 +2095,48 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
         <span class="glyph" aria-hidden="true"></span>
         <span>&#169; 2026 Dues. All rights reserved.</span>
       </div>
-      <span>Built for Discord communities.</span>
+      <a class="soc-tile" href="/api/invite" aria-label="Join the Dues Discord">
+        <svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      </a>
     </div>
   </div>
+  <div class="ghost-word" aria-hidden="true">Dues</div>
 </footer>
 
+<script src="/sky.js?v=129" defer></script>
 <script>
 (function(){
   'use strict';
   var prm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* theme toggle (sun/moon): html[data-theme="light"] = day, absent = night */
+  var themeBtn = document.querySelector('[data-theme-toggle]');
+  var themeMeta = document.querySelector('meta[name="theme-color"]');
+  function syncThemeMeta(){
+    if(!themeMeta){ return; }
+    var light = document.documentElement.getAttribute('data-theme') === 'light';
+    themeMeta.setAttribute('content', light ? '#a9c6ef' : '#101827');
+  }
+  if(themeBtn){
+    themeBtn.addEventListener('click', function(){
+      var d = document.documentElement;
+      var toDark = d.getAttribute('data-theme') === 'light';
+      if(toDark){ d.removeAttribute('data-theme'); }
+      else{ d.setAttribute('data-theme','light'); }
+      try{ sessionStorage.setItem('ripley-theme', toDark ? 'dark' : 'light'); }catch(e){}
+      syncThemeMeta();
+    });
+  }
+  syncThemeMeta();
+
+  /* hero capture bar: any submit opens the dashboard */
+  var capture = document.getElementById('captureForm');
+  if(capture){
+    capture.addEventListener('submit', function(e){
+      e.preventDefault();
+      window.location.href = '/dashboard';
+    });
+  }
 
   /* nav scrim */
   var nav = document.getElementById('nav');
@@ -1419,23 +2179,41 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
   var billing = document.getElementById('calcBilling');
   var total = document.getElementById('calcTotal');
   var suffix = document.getElementById('calcSuffix');
-  var subsLabel = document.getElementById('calcSubsLabel');
+  var count = document.getElementById('calcCount');
+  var caption = document.getElementById('calcCaption');
+  var projMonth = document.getElementById('projMonth');
+  var projHalf = document.getElementById('projHalf');
+  var projYear = document.getElementById('projYear');
+  var presetBtns = Array.prototype.slice.call(document.querySelectorAll('#calcPresets button'));
+  function money(v){ return '$' + Math.round(v).toLocaleString('en-US'); }
   function paintTrack(){
     var pct = (subs.value - subs.min) / (subs.max - subs.min) * 100;
-    subs.style.background = 'linear-gradient(to right, #5865f2 ' + pct + '%, #2a2a2a ' + pct + '%)';
+    subs.style.setProperty('--pct', pct + '%');
   }
   function calc(){
     var p = parseFloat(price.value);
     if(!isFinite(p) || p < 0){ p = 0; }
     var s = parseInt(subs.value, 10);
     var yearly = billing.value === 'yearly';
-    var value = p * s * (yearly ? 12 : 1);
+    var monthly = p * s;
+    var value = monthly * (yearly ? 12 : 1);
     var rounded = Math.round(value / 10) * 10;
     total.textContent = '$' + rounded.toLocaleString('en-US');
     suffix.textContent = yearly ? '/year' : '/month';
-    subsLabel.textContent = s + ' subscribers';
+    if(count){ count.textContent = s.toLocaleString('en-US'); }
+    if(caption){ caption.textContent = s.toLocaleString('en-US') + ' members × $' + p.toFixed(2) + '/month'; }
+    if(projMonth){ projMonth.textContent = money(monthly); }
+    if(projHalf){ projHalf.textContent = money(monthly * 6); }
+    if(projYear){ projYear.textContent = money(monthly * 12); }
+    presetBtns.forEach(function(b){ b.classList.toggle('on', parseInt(b.dataset.subs, 10) === s); });
     paintTrack();
   }
+  presetBtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      subs.value = b.dataset.subs;
+      calc();
+    });
+  });
   ['input','change'].forEach(function(ev){
     price.addEventListener(ev, calc);
     subs.addEventListener(ev, calc);
@@ -1443,16 +2221,27 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
   });
   calc();
 
-  /* pricing billing toggle */
+  /* pricing billing toggle: swaps every card's real price from data attributes */
   var togM = document.getElementById('togMonthly');
   var togY = document.getElementById('togYearly');
-  var proPrice = document.getElementById('proPrice');
-  var proNote = document.getElementById('proNote');
+  var planCards = document.querySelectorAll('#pricing .plan');
   function setBilling(yearly){
     togM.classList.toggle('on', !yearly);
     togY.classList.toggle('on', yearly);
-    proPrice.textContent = yearly ? '$24' : '$29';
-    proNote.textContent = yearly ? 'billed yearly' : '';
+    togM.setAttribute('aria-pressed', String(!yearly));
+    togY.setAttribute('aria-pressed', String(yearly));
+    planCards.forEach(function(card){
+      var fig = card.querySelector('.plan-price .serif');
+      var per = card.querySelector('.plan-price small');
+      var note = card.querySelector('.plan-note');
+      if(!fig){ return; }
+      fig.textContent = fig.getAttribute(yearly ? 'data-yearly' : 'data-monthly');
+      if(per){ per.textContent = yearly ? '/year' : '/month'; }
+      if(note){
+        note.textContent = note.getAttribute(yearly ? 'data-note-yearly' : 'data-note-monthly');
+        note.classList.toggle('is-deal', yearly && note.textContent === '2 months free');
+      }
+    });
   }
   togM.addEventListener('click', function(){ setBilling(false); });
   togY.addEventListener('click', function(){ setBilling(true); });
@@ -1516,7 +2305,7 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
     var radVal = document.getElementById('appRadiusVal');
     function paintRad(){
       var pct = (rad.value - rad.min) / (rad.max - rad.min) * 100;
-      rad.style.background = 'linear-gradient(to right, #5865f2 ' + pct + '%, #2a2a2a ' + pct + '%)';
+      rad.style.setProperty('--pct', pct + '%');
       radVal.textContent = rad.value + 'px';
       apptoy.style.setProperty('--pv-r', rad.value + 'px');
     }
@@ -1553,10 +2342,13 @@ h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:
       stores.scrollLeft = startLeft - dx;
     }
   });
-  window.addEventListener('pointerup', function(){
+  function endDrag(){
     isDown = false;
     stores.classList.remove('dragging');
-  });
+  }
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+  stores.addEventListener('dragstart', function(e){ e.preventDefault(); });
   stores.addEventListener('click', function(e){
     if(moved){ e.preventDefault(); moved = false; }
   });
