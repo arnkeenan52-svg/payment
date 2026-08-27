@@ -284,7 +284,11 @@ for (const group of LAYOUT) {
 
 // welcome post — only on first build, so re-runs never double-post
 if (newlyCreated.has('welcome')) {
-  const msg = await call('POST', `/channels/${channelId['welcome']}/messages`, { content: welcomeMessage(channelId) });
+  const msg = await call('POST', `/channels/${channelId['welcome']}/messages`, {
+    content: welcomeMessage(channelId),
+    // the brand banner rides along as an embed so the welcome leads with the sky
+    embeds: [{ color: 0x5865f2, image: { url: 'https://dues.gg/dues-banner.png' } }],
+  });
   await call('PUT', `/channels/${channelId['welcome']}/pins/${msg.id}`).catch(() => {});
   console.log('#welcome — posted and pinned the welcome message');
 }

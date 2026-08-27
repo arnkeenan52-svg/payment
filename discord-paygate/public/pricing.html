@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=149" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=149" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=150" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=150" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=149') format('woff2');
+  src:url('/jakarta-latin.woff2?v=150') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -339,7 +339,7 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=149') center/cover;
+  background:url('/hero-poster.webp?v=150') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1441,7 +1441,7 @@ html[data-theme="light"] .sheet{
 
 /* the footer: the kit's own solid ground — the clouds stop at the sheet's lip */
 .footer{
-  position:relative;z-index:0;min-height:100vh;min-height:100lvh;overflow:clip;margin-top:-40px;
+  position:relative;z-index:0;overflow:clip;margin-top:-40px;
   background:linear-gradient(180deg,#1c2740 0%,#1f2f4d 30%,#243a64 58%,#274680 82%,#2a4f93 100%);
 }
 html[data-theme="light"] .footer{
@@ -1461,9 +1461,9 @@ html[data-theme="light"] .footer{
 }
 .footer-stage{
   position:relative;z-index:1;display:flex;flex-direction:column;box-sizing:border-box;
-  min-height:100vh;min-height:100lvh;padding:clamp(24px,5vh,104px) clamp(18px,3vw,32px) 0;
+  padding:clamp(24px,5vh,104px) clamp(18px,3vw,32px) 0;
 }
-@media (hover:hover) and (pointer:fine) and (min-width:640px){ .footer-stage{min-height:100vh} }
+@media (hover:hover) and (pointer:fine) and (min-width:640px){ .footer-stage{min-height:100vh;min-height:100lvh} }
 .footer-title{
   margin:auto 0 clamp(10px,2vh,28px);
   color:#fff;font-family:var(--jakarta);
@@ -1597,6 +1597,29 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   .hero-sky{position:fixed;inset:0 0 -160px 0;height:auto;margin:0}
   .footer{position:relative;z-index:2;margin-top:0}
 }
+
+/* ── phone footer blind: the desktop reveal, phantom-safe. JS turns on
+   html[data-blind] only when the footer fits the viewport; the in-flow
+   footer swaps for a spacer of the SAME px height, so the document's flow
+   height never changes. The fixed sky is clipped at the sheet's lip so the
+   pinned footer shows beneath it. ── */
+@media (hover:none),(pointer:coarse),(max-width:639px){
+  html[data-blind] .footer{position:fixed;inset:auto 0 0 0;z-index:0;margin-top:0}
+  html[data-blind] .footer-spacer{height:var(--footH,0px)}
+  /* compact stage so the whole footer fits a phone viewport */
+  .footer-stage{padding-top:30px}
+  .footer-title{font-size:clamp(27px,7.6vw,38px);margin-bottom:10px}
+  .footer-cta{margin-bottom:14px}
+  .footer-cta .btn-gloss{min-height:50px;padding:14px 28px;font-size:16px}
+  .footer-directory{margin-top:6px;gap:10px 16px;padding-bottom:6px}
+  .f-copy{margin-top:6px;font-size:12.5px}
+  .f-socials{margin-top:10px}
+  .footer .fcol{gap:7px}
+  .footer .fcol a{min-height:20px;font-size:13.5px}
+  .footer .fcol b{margin-bottom:1px}
+  .footer-watermark{--wm-h:calc(100vw * .14);margin-top:4px}
+}
+
 </style>
 </head>
 <body>
@@ -1772,7 +1795,7 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=149" defer></script>
+<script src="/sky.js?v=150" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2043,15 +2066,47 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   var nav = document.querySelector('.nav');
   var sheet = document.querySelector('.sheet');
   if(!nav || !sheet) return;
+  var html = document.documentElement;
+  var sky = document.querySelector('.hero-sky');
+  var footer = document.querySelector('.footer');
+  var phoneMq = window.matchMedia('(hover:none),(pointer:coarse),(max-width:639px)');
+  var lastClip = -1;
+  // phone blind: engage only when the whole footer fits the viewport, and
+  // keep flow height identical (spacer = measured footer px height)
+  var fit = function(){
+    if(!footer){ return; }
+    if(phoneMq.matches && footer.offsetHeight <= window.innerHeight - 24){
+      html.setAttribute('data-blind','');
+      html.style.setProperty('--footH', footer.offsetHeight + 'px');
+    } else {
+      html.removeAttribute('data-blind');
+      if(sky){ sky.style.clipPath = ''; }
+      lastClip = -1;
+    }
+  };
   var on = function(){
     nav.classList.toggle('scrolled', window.scrollY > 8);
     // once the sheet's lip is on screen the blind is rising — fade the nav out
-    var revealed = sheet.getBoundingClientRect().bottom <= window.innerHeight + 1;
-    document.documentElement.toggleAttribute('data-footer-revealed', revealed);
+    var bottom = sheet.getBoundingClientRect().bottom;
+    var revealed = bottom <= window.innerHeight + 1;
+    html.toggleAttribute('data-footer-revealed', revealed);
+    if(sky && html.hasAttribute('data-blind')){
+      // clip the fixed sky at the sheet's lip (canvas overshoots 160px below
+      // the viewport, and the lip's 40px bottom radius carries into the clip)
+      var v = Math.max(0, Math.round(window.innerHeight - bottom));
+      if(v !== lastClip){
+        lastClip = v;
+        sky.style.clipPath = v > 0 ? 'inset(0 0 ' + (v + 160) + 'px 0 round 0 0 40px 40px)' : '';
+      }
+    }
   };
   addEventListener('scroll', on, { passive:true });
-  addEventListener('resize', on);
-  on();
+  addEventListener('resize', function(){ fit(); on(); });
+  addEventListener('load', function(){ fit(); on(); });
+  if('ResizeObserver' in window && footer){
+    new ResizeObserver(function(){ fit(); on(); }).observe(footer);
+  }
+  fit(); on();
 })();
 </script>
 <script>

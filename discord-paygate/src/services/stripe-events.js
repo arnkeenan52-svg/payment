@@ -79,6 +79,7 @@ export async function processStripeEvent(event, routeStore = null) {
             // #f2f3f5 embed, so every seller whose members run light mode has
             // been getting an alert with no accent on it at all.
             color: 0x5865f2,
+            thumbnail: { url: 'https://dues.gg/icon-192.png' },
             footer: { text: store.name },
             timestamp: new Date().toISOString(),
           }],

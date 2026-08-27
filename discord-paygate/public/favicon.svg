@@ -1,10 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
 <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-<stop offset="0" stop-color="#6673f6"/><stop offset="1" stop-color="#4d5ae9"/>
-</linearGradient></defs>
-<rect width="320" height="320" rx="76" fill="url(#g)"/>
-<g fill="#fff" transform="translate(6,4)">
-<path d="M155 58H263L235 114H128Z"/>
-<path d="M119 130H226L199 186H92Z"/>
-<path d="M83 202H190L163 259H56Z"/>
+<stop offset="0" stop-color="#3a6ab4"/><stop offset="1" stop-color="#6d9edd"/></linearGradient></defs>
+<rect width="320" height="320" fill="url(#g)"/>
+<g fill="#fff" transform="translate(160,160) scale(0.773) translate(-159.5,-158.5)">
+<polygon points="155,58 263,58 235,114 128,114"/>
+<polygon points="119,130 226,130 199,186 92,186"/>
+<polygon points="83,202 190,202 163,259 56,259"/>
 </g></svg>
