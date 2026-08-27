@@ -324,6 +324,13 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 .btn-capture:hover{background:#3a404b;transform:translateY(-1px)}
 html:not([data-theme="light"]) .btn-capture{background:#333947;border:1px solid rgba(255,255,255,.14)}
 html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
+/* on wide screens the capture collapses to one compact row */
+@media (min-width:601px){
+  .capture{flex-direction:row;align-items:center;gap:10px;width:min(480px,100%);padding:7px 7px 7px 18px;border-radius:16px}
+  .capture-line{flex:1;min-width:0}
+  .capture-actions{flex:none}
+  .btn-capture{min-height:36px;padding:7px 14px;font-size:13.5px}
+}
 /* the quiet scroll hint at the fold, like the reference */
 .hero-scrollhint{
   position:absolute;left:50%;bottom:74px;transform:translateX(-50%);
