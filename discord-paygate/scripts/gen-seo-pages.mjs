@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://dues.gg';
-const V = '168'; // keep in step with the ?v= asset version on index.html
+const V = '169'; // keep in step with the ?v= asset version on index.html
 
 // Dues plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -349,7 +349,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=168" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=169" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/discover">Discover</a>
@@ -366,7 +366,7 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=168" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=169" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -424,7 +424,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta property="og:type" content="website" />
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
-  <meta property="og:image" content="${BASE}/og-card.png?v=168" />
+  <meta property="og:image" content="${BASE}/og-card.png?v=169" />
   <meta property="og:url" content="${canonical}" />
   <meta name="twitter:card" content="summary_large_image" />
   <!-- Icons. favicon.ico stays at a stable, UNVERSIONED url on purpose: Google
@@ -439,7 +439,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   <style>${DAY_CSS}</style>
   ${ld}
-  <script src="/theme.js?v=168"></script>
+  <script src="/theme.js?v=169"></script>
 </head>
 <body class="home seo-page">
 ${nav}
