@@ -1487,6 +1487,10 @@ const BG_CATALOG = [
   { id: 'meadow', label: 'Meadow', tone: 'light', thumb: '/bg/meadow.jpg' },
   { id: 'canyon', label: 'Canyon', tone: 'dark', thumb: '/bg/canyon.jpg' },
   { id: 'blossom', label: 'Blossom', tone: 'light', thumb: '/bg/blossom.jpg' },
+  { id: 'city', label: 'City night', tone: 'dark', thumb: '/bg/city.jpg' },
+  { id: 'volcano', label: 'Volcano', tone: 'dark', thumb: '/bg/volcano.jpg' },
+  { id: 'cosmos', label: 'Cosmos', tone: 'dark', thumb: '/bg/cosmos.jpg' },
+  { id: 'reef', label: 'Reef', tone: 'dark', thumb: '/bg/reef.jpg' },
   { id: 'aurora', label: 'Aurora', tone: 'dark' },
   { id: 'starfield', label: 'Starfield', tone: 'dark' },
   { id: 'fireflies', label: 'Fireflies', tone: 'dark' },
@@ -1497,6 +1501,14 @@ const BG_CATALOG = [
   { id: 'nebula', label: 'Nebula', tone: 'dark' },
   { id: 'synthwave', label: 'Synthwave', tone: 'dark' },
   { id: 'flow', label: 'Color flow', tone: 'dark' },
+  { id: 'matrix', label: 'Matrix rain', tone: 'dark' },
+  { id: 'hyperspace', label: 'Hyperspace', tone: 'dark' },
+  { id: 'thunder', label: 'Thunderstorm', tone: 'dark' },
+  { id: 'sakura', label: 'Sakura wind', tone: 'light' },
+  { id: 'bubbles', label: 'Bubbles', tone: 'dark' },
+  { id: 'confetti', label: 'Confetti', tone: 'dark' },
+  { id: 'smoke', label: 'Smoke', tone: 'dark' },
+  { id: 'golddust', label: 'Gold dust', tone: 'dark' },
   { id: 'midnight', label: 'Midnight', tone: 'dark' },
   { id: 'denim', label: 'Denim', tone: 'dark' },
   { id: 'royal', label: 'Royal', tone: 'dark' },
@@ -1593,6 +1605,9 @@ function appearanceBody(store) {
       </div>
       <div class="th-block">
         <span class="th-block-lab">Background</span>
+        <details class="bgp-dd">
+          <summary class="bgp-sum"><span class="bgp-cur" id="bgp-current">None</span><svg class="bgp-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+          <div class="bgp-pop">
         <div class="bgp-grid" role="group" aria-label="Store background">
           <button type="button" class="bgp" data-bgp=""><span class="bgp-thumb bgp-none">&times;</span><span class="bgp-name">None</span></button>
           ${BG_CATALOG.map((b) =>
@@ -1609,6 +1624,8 @@ function appearanceBody(store) {
           <span class="th-sw-name">Or import your own — a GIF, image, or MP4/WebM video URL</span>
           <input type="url" id="th-bgurl" placeholder="https://…/background.gif" value="${esc(t.bgUrl ?? '')}" spellcheck="false" />
         </label>
+          </div>
+        </details>
       </div>
       <div class="th-block">
         <span class="th-block-lab">Material</span>
@@ -2772,6 +2789,16 @@ function wireAppearance(store, slug) {
     document.querySelectorAll('.bgp').forEach((b) => {
       b.classList.toggle('active', t.bgUrl ? false : (b.dataset.bgp ?? '') === (t.bgPreset ?? ''));
     });
+    const cur = $('#bgp-current');
+    if (cur) {
+      const def = BG_CATALOG.find((b) => b.id === t.bgPreset);
+      if (t.bgUrl) cur.innerHTML = '<span class="bgp-cur-thumb bgp-none">&#9654;</span><b>Custom import</b>';
+      else if (!def) cur.innerHTML = '<span class="bgp-cur-thumb bgp-none">&times;</span><b>None</b>';
+      else cur.innerHTML = (def.thumb
+        ? `<span class="bgp-cur-thumb"><img src="${def.thumb}" alt="" /></span>`
+        : `<span class="bgp-cur-thumb"><span class="store-bg sbg-thumb" data-bg="${def.id}"><span class="sbg-a"></span><span class="sbg-b"></span><span class="sbg-c"></span></span></span>`)
+        + `<b>${def.label}</b>`;
+    }
   };
   for (const id of ['th-bg', 'th-panel', 'th-text', 'th-accent', 'th-pay', 'th-radius']) {
     $(`#${id}`)?.addEventListener('input', paint);

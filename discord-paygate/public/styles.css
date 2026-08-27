@@ -3439,3 +3439,127 @@ body[data-material='solid'] .panel, body[data-material='solid'] .prod-card, body
 .bgp-url-row { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
 .bgp-url-row input { width: 100%; }
 .bgp-mat-note { margin-top: 8px; }
+
+/* ── new animated scenes (round two — the cooler set) ── */
+/* matrix: green code rain on near-black */
+.store-bg[data-bg='matrix'] { background: linear-gradient(180deg, #020804, #04120a 60%, #06180d); }
+.store-bg[data-bg='matrix'] .sbg-a, .store-bg[data-bg='matrix'] .sbg-b {
+  inset: -110% -12% -12%;
+  background: repeating-linear-gradient(180deg, transparent 0 12px, rgba(63, 240, 120, 0.28) 12px 26px, transparent 26px 44px),
+              repeating-linear-gradient(90deg, transparent 0 16px, rgba(0, 0, 0, 0.5) 16px 18px);
+  animation: sbg-fall 2.6s linear infinite;
+}
+.store-bg[data-bg='matrix'] .sbg-b { animation-duration: 4.1s; opacity: 0.5; transform: translateX(9px); }
+/* hyperspace: streaks racing out of a deep-space core */
+.store-bg[data-bg='hyperspace'] { background: radial-gradient(circle at 50% 50%, #1a2450 0%, #0a0e24 45%, #05060f 100%); }
+.store-bg[data-bg='hyperspace'] .sbg-a, .store-bg[data-bg='hyperspace'] .sbg-b {
+  inset: -40%;
+  background: repeating-conic-gradient(from 0deg, transparent 0deg 4deg, rgba(160, 190, 255, 0.16) 4deg 4.6deg, transparent 4.6deg 9deg);
+  -webkit-mask: radial-gradient(circle, transparent 12%, #000 42%);
+  mask: radial-gradient(circle, transparent 12%, #000 42%);
+  animation: sbg-warp 7s ease-in-out infinite alternate, sbg-spin 90s linear infinite;
+}
+.store-bg[data-bg='hyperspace'] .sbg-b { animation-delay: -3.5s, -45s; opacity: 0.5; }
+/* thunderstorm: rolling murk with distant flashes */
+.store-bg[data-bg='thunder'] { background: linear-gradient(180deg, #171c28, #232a3a 55%, #2b3242); }
+.store-bg[data-bg='thunder'] .sbg-a {
+  filter: blur(52px); opacity: 0.6; border-radius: 40%;
+  background: radial-gradient(50% 34% at 30% 30%, #3a4358 0%, transparent 70%),
+              radial-gradient(44% 30% at 72% 45%, #2d3547 0%, transparent 70%);
+  animation: sbg-drift 22s ease-in-out infinite alternate;
+}
+.store-bg[data-bg='thunder'] .sbg-b {
+  inset: -110% -12% -12%;
+  background: repeating-linear-gradient(14deg, transparent 0 16px, rgba(170, 185, 215, 0.10) 16px 17px, transparent 17px 30px);
+  animation: sbg-fall 1.5s linear infinite;
+}
+.store-bg[data-bg='thunder'] .sbg-c { background: rgba(226, 235, 255, 0.9); opacity: 0; animation: sbg-flash 9s linear infinite; }
+/* sakura: petals on a soft pink wind */
+.store-bg[data-bg='sakura'] { background: linear-gradient(180deg, #f6dee8, #fbeef3 55%, #fdf7f9); }
+.store-bg[data-bg='sakura'] .sbg-a, .store-bg[data-bg='sakura'] .sbg-b {
+  inset: -110% -12% -12%;
+  background-image: radial-gradient(4px 3px at 22% 22%, #f2a9c4 45%, transparent 55%),
+    radial-gradient(3px 2.5px at 64% 48%, #eb8fb2 45%, transparent 55%),
+    radial-gradient(3.5px 3px at 82% 76%, #f6bccf 45%, transparent 55%),
+    radial-gradient(3px 2.5px at 38% 84%, #f2a9c4 45%, transparent 55%);
+  background-size: 300px 300px, 340px 340px, 380px 380px, 320px 320px;
+  animation: sbg-petal 13s linear infinite;
+}
+.store-bg[data-bg='sakura'] .sbg-b { animation-duration: 21s; opacity: 0.6; filter: blur(1px); }
+/* bubbles: rings rising through deep teal */
+.store-bg[data-bg='bubbles'] { background: linear-gradient(180deg, #05343e, #06222e 55%, #041520); }
+.store-bg[data-bg='bubbles'] .sbg-a, .store-bg[data-bg='bubbles'] .sbg-b {
+  inset: -12% -12% -110%;
+  background-image: radial-gradient(circle 6px at 20% 30%, transparent 4px, rgba(170, 230, 235, 0.5) 5px, transparent 6px),
+    radial-gradient(circle 4px at 60% 60%, transparent 2.5px, rgba(170, 230, 235, 0.4) 3.5px, transparent 4.5px),
+    radial-gradient(circle 8px at 84% 20%, transparent 6px, rgba(170, 230, 235, 0.35) 7px, transparent 8px),
+    radial-gradient(circle 3px at 40% 85%, transparent 1.8px, rgba(170, 230, 235, 0.45) 2.6px, transparent 3.4px);
+  background-size: 340px 340px, 280px 280px, 420px 420px, 300px 300px;
+  animation: sbg-riseloop 12s linear infinite;
+}
+.store-bg[data-bg='bubbles'] .sbg-b { animation-duration: 19s; opacity: 0.55; }
+/* confetti: a celebration that never stops */
+.store-bg[data-bg='confetti'] { background: linear-gradient(180deg, #131b2d, #1a2440 60%, #202c4e); }
+.store-bg[data-bg='confetti'] .sbg-a, .store-bg[data-bg='confetti'] .sbg-b {
+  inset: -110% -12% -12%;
+  background-image: radial-gradient(5px 3px at 20% 20%, #ffd166 46%, transparent 54%),
+    radial-gradient(4px 6px at 55% 45%, #ef476f 46%, transparent 54%),
+    radial-gradient(5px 3px at 80% 70%, #06d6a0 46%, transparent 54%),
+    radial-gradient(3px 5px at 35% 80%, #5865f2 46%, transparent 54%),
+    radial-gradient(4px 4px at 70% 15%, #f78c6b 46%, transparent 54%);
+  background-size: 300px 300px, 340px 340px, 320px 320px, 360px 360px, 280px 280px;
+  animation: sbg-petal 10s linear infinite;
+}
+.store-bg[data-bg='confetti'] .sbg-b { animation-duration: 16s; opacity: 0.6; transform: translateX(40px); }
+/* smoke: slow monochrome billows */
+.store-bg[data-bg='smoke'] { background: linear-gradient(180deg, #101114, #17181c 55%, #1d1e23); }
+.store-bg[data-bg='smoke'] .sbg-a, .store-bg[data-bg='smoke'] .sbg-b {
+  filter: blur(60px); opacity: 0.5; border-radius: 45%;
+  background: radial-gradient(44% 34% at 35% 45%, #3a3c44 0%, transparent 70%),
+              radial-gradient(38% 30% at 68% 55%, #2c2e36 0%, transparent 70%);
+  animation: sbg-drift 30s ease-in-out infinite alternate;
+}
+.store-bg[data-bg='smoke'] .sbg-b { animation-duration: 44s; animation-delay: -20s; transform: scale(-1); }
+/* gold dust: sparks drifting over near-black */
+.store-bg[data-bg='golddust'] { background: linear-gradient(180deg, #0c0a06, #14100a 55%, #1b150c); }
+.store-bg[data-bg='golddust'] .sbg-a, .store-bg[data-bg='golddust'] .sbg-b {
+  background-image: radial-gradient(2px 2px at 25% 30%, #f2c14e 45%, transparent 55%),
+    radial-gradient(1.5px 1.5px at 60% 65%, #ffd97a 45%, transparent 55%),
+    radial-gradient(2px 2px at 82% 25%, #e8b45a 45%, transparent 55%),
+    radial-gradient(1.5px 1.5px at 40% 82%, #f2c14e 45%, transparent 55%);
+  background-size: 300px 300px, 340px 340px, 380px 380px, 320px 320px;
+  animation: sbg-twinkle 4s ease-in-out infinite alternate, sbg-drift 40s ease-in-out infinite alternate;
+}
+.store-bg[data-bg='golddust'] .sbg-b { animation-delay: -2s, -20s; opacity: 0.6; }
+
+@keyframes sbg-warp { from { transform: scale(1); } to { transform: scale(1.35); } }
+@keyframes sbg-riseloop { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(12px, -49%, 0); } }
+@keyframes sbg-petal { from { transform: translate3d(0, 0, 0) rotate(0deg); } to { transform: translate3d(-60px, 49%, 0) rotate(8deg); } }
+@keyframes sbg-flash {
+  0%, 61%, 63.5%, 67%, 100% { opacity: 0; }
+  62% { opacity: 0.55; } 63% { opacity: 0.12; } 65.5% { opacity: 0.4; }
+}
+
+/* ── dashboard: background dropdown ── */
+.bgp-dd { position: relative; }
+.bgp-sum {
+  display: flex; align-items: center; gap: 12px; cursor: pointer; list-style: none;
+  padding: 8px 12px; border-radius: 12px; border: 1px solid var(--hairline-2); background: var(--well);
+}
+.bgp-sum::-webkit-details-marker { display: none; }
+.bgp-sum:hover { border-color: var(--edge-hot); }
+.bgp-cur { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.bgp-cur b { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.bgp-cur-thumb {
+  display: block; width: 46px; height: 28px; border-radius: 7px; overflow: hidden; flex: none;
+  border: 1px solid var(--hairline-2); background: var(--panel);
+}
+.bgp-cur-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bgp-cur-thumb.bgp-none { display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 13px; }
+.bgp-chev { margin-left: auto; color: var(--faint); transition: transform 0.15s; flex: none; }
+.bgp-dd[open] .bgp-chev { transform: rotate(180deg); }
+.bgp-pop {
+  margin-top: 10px; padding: 12px; border-radius: 14px;
+  border: 1px solid var(--hairline-2); background: var(--panel);
+  max-height: 360px; overflow: auto;
+}
