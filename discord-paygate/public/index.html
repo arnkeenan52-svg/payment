@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=140" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=140" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=141" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=141" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=140') format('woff2');
+  src:url('/jakarta-latin.woff2?v=141') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -300,9 +300,9 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 /* the glass capture BOX — foundable's hero anatomy: prompt line up top,
    submit tucked inside the bottom-right corner */
 .capture{
-  margin-top:34px;width:min(560px,100%);
-  display:flex;flex-direction:column;align-items:stretch;gap:10px;
-  padding:18px 14px 12px 22px;border-radius:26px;
+  margin-top:30px;width:min(500px,100%);
+  display:flex;flex-direction:column;align-items:stretch;gap:4px;
+  padding:12px 10px 10px 18px;border-radius:20px;
   background:var(--glass);border:1px solid var(--glass-brd);
   box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
   transition:border-color .2s ease;
@@ -311,14 +311,14 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 .capture-line{display:flex;align-items:center;gap:2px;cursor:text}
 .capture-prefix{font-size:16px;font-weight:500;color:var(--micro);flex:none}
 .capture input{
-  flex:1;min-width:0;height:34px;background:none;border:0;outline:none;
+  flex:1;min-width:0;height:30px;background:none;border:0;outline:none;
   font:inherit;font-size:16px;color:var(--ink);text-align:left;
 }
 .capture input::placeholder{color:var(--micro);opacity:.85}
 .capture-actions{display:flex;justify-content:flex-end}
 .btn-capture{
   display:inline-flex;align-items:center;gap:8px;
-  min-height:42px;padding:10px 18px;border:0;border-radius:11px;
+  min-height:38px;padding:8px 16px;border:0;border-radius:10px;
   background:#2c313a;color:#fff;font:inherit;font-size:14.5px;font-weight:700;
   cursor:pointer;transition:background .15s ease,transform .15s ease;
 }
@@ -353,7 +353,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=140') center/cover;
+  background:url('/hero-poster.webp?v=141') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -399,7 +399,7 @@ html:not([data-theme="light"]) .sky-card{background:rgba(13,20,32,.6)}
 html[data-theme="light"] .chip-film-embed{border-color:rgba(15,22,38,.12)}
 
 /* ============ role marquee strip ============ */
-.rolemarq{padding:60px 0 0;overflow:hidden}
+.rolemarq{padding:96px 0 12px;overflow:hidden}
 .marq-cap{
   text-align:center;font-size:11.5px;font-weight:500;letter-spacing:.14em;
   text-transform:uppercase;color:var(--micro);margin-bottom:20px;
@@ -996,7 +996,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 }
 
 /* ============ faq ============ */
-.faq{padding-block:100px}
+.faq{padding-block:72px 96px}
 .faq-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:80px;align-items:start}
 .faq h2{font-size:48px;line-height:56px}
 .faq-card{
@@ -1111,7 +1111,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
     background:radial-gradient(circle at 38% 34%,#f6f8ff 0%,#dde6f6 52%,#b6c6e2 100%);
     box-shadow:0 0 40px 16px rgba(214,228,255,.26),0 0 110px 46px rgba(180,202,246,.13);
   }
-  .capture{padding:14px 12px 10px 16px;border-radius:22px}
+  .capture{padding:10px 8px 8px 14px;border-radius:18px}
   .hero-stage{padding:44px 0 72px}
   .film{width:calc(100% - 24px)}
   .film-frame{border-radius:12px}
@@ -1544,15 +1544,15 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 
 /* ── the pill: solid blurple ramp — no sheen, no wet rims ── */
 .btn-primary,.btn-gloss{
-  border:1px solid rgba(64,76,196,.5);border-radius:999px;
-  background:linear-gradient(180deg,#626ff5 0%,#5865f2 55%,#4c58e0 100%);
-  box-shadow:0 6px 16px -8px rgba(40,50,160,.45);
+  border:0;border-radius:999px;
+  background:#5865f2;
+  box-shadow:0 3px 10px -5px rgba(30,40,120,.4);
   color:#fff;font-weight:700;
-  transition:box-shadow .18s cubic-bezier(.16,1,.3,1),transform .18s cubic-bezier(.16,1,.3,1),filter .18s cubic-bezier(.16,1,.3,1);
+  transition:background .15s ease,transform .15s ease,box-shadow .15s ease;
 }
-.btn-primary:hover{transform:translateY(-1px);filter:brightness(1.05);box-shadow:0 10px 22px -10px rgba(40,50,160,.5)}
+.btn-primary:hover{transform:translateY(-1px);background:#4752e8;box-shadow:0 6px 14px -6px rgba(30,40,120,.45)}
 .btn-gloss{display:inline-flex;justify-content:center;align-items:center;gap:12px;min-height:60px;padding:19px 38px;font-size:19px;letter-spacing:-.01em}
-.btn-gloss:hover{transform:translateY(-2px);filter:brightness(1.05);box-shadow:0 12px 26px -10px rgba(40,50,160,.5)}
+.btn-gloss:hover{transform:translateY(-2px);background:#4752e8;box-shadow:0 8px 18px -8px rgba(30,40,120,.45)}
 
 /* ── the kit's display face + weight inversion: Plus Jakarta Sans for the
    big moments; headings get lighter as they grow, small text stays heavy ── */
@@ -1592,7 +1592,7 @@ html[data-theme="light"] .fee-dues .fee-take{color:#177245}
 .fee-note{margin-top:10px;font-size:12px;line-height:18px;color:var(--micro)}
 
 /* ── the savings box: Subscord's calculator, on our glass ── */
-.save{padding:8px 24px 96px}
+.save{padding:72px 24px 88px}
 .save-card{
   width:min(640px,100%);margin:0 auto;padding:34px clamp(20px,4vw,40px) 28px;border-radius:26px;
   background:var(--glass);border:1px solid var(--glass-brd);
@@ -1609,7 +1609,7 @@ html[data-theme="light"] .fee-dues .fee-take{color:#177245}
 .save-field input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--blue);border:2.5px solid #fff;box-shadow:0 1px 6px rgba(20,30,80,.35)}
 .save-field input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:rgba(127,140,170,.32)}
 .save-field input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--blue);border:2.5px solid #fff}
-.save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(88,101,242,.1);border:1px solid rgba(88,101,242,.28)}
+.save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.32)}
 .save-cap{display:block;font:600 11.5px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
 .save-hero b{display:block;margin-top:6px;font-family:var(--grotesk);font-weight:700;font-size:clamp(36px,5vw,46px);letter-spacing:-.02em;color:#3ddc84}
 html[data-theme="light"] .save-hero b{color:#177245}
@@ -1618,9 +1618,11 @@ html[data-theme="light"] .save-hero b{color:#177245}
 .save-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}
 .sv-name{font-size:14.5px;font-weight:600;color:var(--ink)}
 .sv-name em{font-style:normal;font-weight:400;font-size:12px;color:var(--micro);margin-left:7px}
-.sv-cost{font-family:var(--grotesk);font-weight:700;font-size:15.5px;color:var(--ink)}
+.sv-cost{font-family:var(--grotesk);font-weight:700;font-size:15.5px;color:#ff8585}
+html[data-theme="light"] .sv-cost{color:#bb3535}
 .sv-bar{grid-column:1 / -1;height:6px;border-radius:99px;background:rgba(127,140,170,.22);overflow:hidden}
-.sv-bar i{display:block;height:100%;border-radius:99px;background:rgba(127,140,170,.55);transition:width .25s ease}
+.sv-bar i{display:block;height:100%;border-radius:99px;background:rgba(226,92,92,.7);transition:width .25s ease}
+html[data-theme="light"] .sv-bar i{background:rgba(192,53,53,.6)}
 .save-dues .sv-bar i{background:#3ddc84}
 html[data-theme="light"] .save-dues .sv-bar i{background:#1f9d5b}
 .save-dues .sv-cost{color:#3ddc84}
@@ -1628,24 +1630,27 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 .save-cta{margin-top:24px;display:flex;justify-content:center}
 .save-demo{margin-top:14px;text-align:center}
 .save-cta .btn{min-height:48px;padding:13px 26px;font-size:15.5px}
-/* payment methods, muted */
-.pay-row{margin:26px auto 0;width:min(640px,100%);display:flex;flex-direction:column;align-items:center;gap:12px}
-.pay-cap{font:600 11px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--micro)}
-.pay-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+/* payment methods: real brand marks on white chips, its own section */
+.pay{padding:8px 24px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.pay-cap{font:600 11px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--micro)}
+.pay-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:560px}
 .pay-chip{
-  display:inline-flex;align-items:center;gap:4px;min-height:30px;padding:4px 13px;border-radius:9px;
-  background:var(--glass);border:1px solid var(--glass-brd);
-  color:var(--sec);font-weight:800;font-size:12.5px;letter-spacing:.02em;
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  min-height:34px;min-width:64px;padding:5px 15px;border-radius:10px;
+  background:#fff;border:1px solid rgba(15,22,38,.1);
+  box-shadow:0 2px 8px -4px rgba(15,22,38,.2);
 }
-.pay-chip svg{display:block;height:13px;width:auto}
-.pay-chip b{font-weight:700;font-size:13px}
-.pay-visa{font-style:italic;letter-spacing:.06em}
-.pay-amex{letter-spacing:.08em}
-.pay-link{font-weight:800;text-transform:lowercase;font-size:14px}
-.gp-g{font-weight:800}
+.pay-chip svg{display:block;height:15px;width:auto}
+.pay-chip b{font-weight:800;font-size:13px;letter-spacing:.02em}
+.pm-visa{color:#1A1F71;font-style:italic;letter-spacing:.06em;font-size:14px}
+.pm-ink{color:#111}
+.pm-amexchip{background:#016FD0;border-color:#016FD0}
+.pm-amexchip b{color:#fff;letter-spacing:.1em;font-size:12px}
+.pm-linkchip{background:#33DDB3;border-color:#33DDB3}
+.pm-linkchip b{color:#011e0f;text-transform:lowercase;font-size:14px}
 @media (max-width:600px){
   .sky-grain{display:none}
-  .save{padding:0 16px 72px}
+  .save{padding:44px 16px 64px}
 }
 </style>
 </head>
@@ -1754,16 +1759,19 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
     <div class="save-cta"><a class="btn btn-primary" href="/dashboard">Start selling &#8594;</a></div>
     <p class="save-demo microcopy">Free to start. Your Stripe, your money. <a class="demo-link" href="/demo?plan=vip-access">See a live demo store</a></p>
   </div>
-  <div class="pay-row" aria-label="Supported payment methods">
-    <span class="pay-cap">Payments run on Stripe</span>
-    <span class="pay-chips">
-      <span class="pay-chip pay-visa" aria-label="Visa">VISA</span>
-      <span class="pay-chip" aria-label="Mastercard"><svg viewBox="0 0 36 22" aria-hidden="true"><circle cx="13" cy="11" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="23" cy="11" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/></svg></span>
-      <span class="pay-chip pay-amex" aria-label="American Express">AMEX</span>
-      <span class="pay-chip" aria-label="Apple Pay"><svg viewBox="0 0 15 18" aria-hidden="true" fill="currentColor"><path d="M12.3 9.6c0-2.1 1.7-3.1 1.8-3.15-1-1.4-2.5-1.6-3-1.65-1.3-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.45 2.52-.37 6.25 1.04 8.29.69 1 1.52 2.12 2.6 2.08 1.04-.04 1.44-.67 2.7-.67 1.26 0 1.62.67 2.72.65 1.12-.02 1.83-1.02 2.52-2.02.79-1.16 1.12-2.28 1.14-2.34-.03-.01-2.19-.84-2.22-3.29zM10.24 3.3c.57-.7.96-1.66.85-2.63-.83.03-1.83.55-2.42 1.24-.53.62-1 1.6-.87 2.55.92.07 1.86-.47 2.44-1.16z"/></svg><b>Pay</b></span>
-      <span class="pay-chip" aria-label="Google Pay"><b class="gp-g">G</b><b>Pay</b></span>
-      <span class="pay-chip pay-link" aria-label="Link">link</span>
-    </span>
+</section>
+
+
+<!-- 5.5 · payment methods -->
+<section class="pay">
+  <p class="pay-cap">Payments run on Stripe</p>
+  <div class="pay-chips" aria-label="Supported payment methods">
+    <span class="pay-chip" aria-label="Visa"><b class="pm-visa">VISA</b></span>
+    <span class="pay-chip" aria-label="Mastercard"><svg viewBox="0 0 38 24" aria-hidden="true"><circle cx="15" cy="12" r="9" fill="#EB001B"/><circle cx="23" cy="12" r="9" fill="#F79E1B"/><path d="M19 4.8a9 9 0 0 1 0 14.4 9 9 0 0 1 0-14.4z" fill="#FF5F00"/></svg></span>
+    <span class="pay-chip pm-amexchip" aria-label="American Express"><b>AMEX</b></span>
+    <span class="pay-chip" aria-label="Apple Pay"><svg viewBox="0 0 15 18" aria-hidden="true" fill="#000"><path d="M12.3 9.6c0-2.1 1.7-3.1 1.8-3.15-1-1.4-2.5-1.6-3-1.65-1.3-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.45 2.52-.37 6.25 1.04 8.29.69 1 1.52 2.12 2.6 2.08 1.04-.04 1.44-.67 2.7-.67 1.26 0 1.62.67 2.72.65 1.12-.02 1.83-1.02 2.52-2.02.79-1.16 1.12-2.28 1.14-2.34-.03-.01-2.19-.84-2.22-3.29zM10.24 3.3c.57-.7.96-1.66.85-2.63-.83.03-1.83.55-2.42 1.24-.53.62-1 1.6-.87 2.55.92.07 1.86-.47 2.44-1.16z"/></svg><b class="pm-ink">Pay</b></span>
+    <span class="pay-chip" aria-label="Google Pay"><svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg><b class="pm-ink">Pay</b></span>
+    <span class="pay-chip pm-linkchip" aria-label="Link"><b>link</b></span>
   </div>
 </section>
 
@@ -1856,7 +1864,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   </div>
 </footer>
 
-<script src="/sky.js?v=140" defer></script>
+<script src="/sky.js?v=141" defer></script>
 <script>
 (function(){
   'use strict';
