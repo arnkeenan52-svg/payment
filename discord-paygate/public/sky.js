@@ -15,6 +15,19 @@
   'use strict';
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+  // On touch devices, painting behind the glass while the finger scrolls is
+  // what makes scrolling stutter — so the shader holds still during the
+  // gesture and resumes right after. The drift is slow enough to hide it.
+  const COARSE = matchMedia('(pointer:coarse)').matches;
+  let scrolling = false, scrollT = 0;
+  if (COARSE) {
+    addEventListener('scroll', () => {
+      scrolling = true;
+      clearTimeout(scrollT);
+      scrollT = setTimeout(() => { scrolling = false; }, 160);
+    }, { passive: true });
+  }
+
   const VERT = 'attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
 
   const FRAG = `
@@ -162,7 +175,7 @@ void main(){
     let visible = true, last = 0;
     const size = () => {
       const w = cv.clientWidth || innerWidth, h = cv.clientHeight || innerHeight;
-      let s = Math.min(devicePixelRatio || 1, 1.5);
+      let s = Math.min(devicePixelRatio || 1, COARSE ? 1 : 1.5);
       if (w*s * h*s > MAXPX) s = Math.sqrt(MAXPX / (w*h));
       const W = Math.max(2, Math.round(w*s)), H = Math.max(2, Math.round(h*s));
       if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; gl.viewport(0,0,W,H); }
@@ -182,6 +195,7 @@ void main(){
     const frame = (now) => {
       requestAnimationFrame(frame);
       if (!visible || document.hidden) return;
+      if (scrolling) return;
       if (now - last < 1000/FPS) return;
       last = now;
       if (tw < 1) tw = Math.min(1, (now - twAt) / 1600);   // 1.6s day/night walk, wall-clock

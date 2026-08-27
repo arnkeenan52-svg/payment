@@ -81,7 +81,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
 (() => {
   const v = document.getElementById('hero-media');
   if (!v || v.tagName !== 'VIDEO') return;
-  const V = '148';
+  const V = '149';
   let started = false;
 
   const sound = document.getElementById('hero-sound');
