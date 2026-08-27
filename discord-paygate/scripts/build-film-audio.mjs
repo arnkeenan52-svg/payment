@@ -488,37 +488,41 @@ on(6.52, 13.50, BEAT / 2, (t) => {
 // the pointer is on that frame. It is the cheapest possible way to tie sound to
 // picture and almost nothing does it.
 //
-//    2.30  store    "Create store"      x=1210  the film's first press
-//    5.86  stripe   "Connect Stripe"    x=1081  the ignition
-//    7.96  product  the price commits   x= 693
-//    8.54  product  the @VIP role chip  x= 575
-//    9.72  theme    Blurple             x= 718  (Midnight -> Blurple -> Ivory:
-//   10.46  theme    Ivory               x= 525   dark, blue, white, nothing else)
-//   11.42  theme    the slider GRAB     x= 615  softer, a drag is not a click
-//   12.02  theme    mid-drag            x= 249  the far end of the travel
-//   12.62  theme    the RELEASE         x= 774  softer still
-//   13.60  live     "Pay with card"     x=1225  the press the burst is born from
+//    2.30  store    "Create store"      x= 992  the film's first press
+//    4.20  dark     the Stripe pulse    edges   not a press: the tick the wires
+//                                               light up on, softer, centred
+//    7.96  product  billing confirms    x=1262
+//    8.54  product  "Create product"    x= 988
+//    9.72  theme    the swatch          x=1512
+//   10.46  theme    the type tile       x=1512
+//   11.42  theme    the slider GRAB     x=1472  softer, a drag is not a click
+//   12.62  theme    the RELEASE         x=1590  softer still
+//   13.02  cta      "Publish store"     x= 982  the press that becomes the window
+//   13.60  live     "Pay with card"     x= 960  the press the burst is born from
 const CLICKS = [
-  [2.30, 1.00, 0.261], [5.86, 1.00, 0.126], [7.96, 1.00, -0.278],
-  [8.54, 1.00, -0.401], [9.72, 1.00, -0.252], [10.46, 1.00, -0.453],
-  [11.42, 0.50, -0.359], [12.62, 0.34, -0.194], [13.60, 1.00, 0.276],
+  [2.30, 1.00, 0.033], [4.20, 0.35, 0.0], [7.96, 1.00, 0.314],
+  [8.54, 1.00, 0.029], [9.72, 1.00, 0.575], [10.46, 1.00, 0.575],
+  [11.42, 0.50, 0.533], [12.62, 0.34, 0.656], [13.02, 1.00, 0.023],
+  [13.60, 1.00, 0.0],
 ];
 CLICKS.forEach(([t, g, p]) => click(t, g, p));
 
 // ── scene changes ───────────────────────────────────────────────────────────
-// The beat table in hero/film.html cuts at 3.44, 6.52, 9.00, 12.48, 15.92 and
-// 18.16. Two of those used to have something under them and four had nothing,
-// which is why the middle of the film felt like one long take with music on it.
-// Each sweep runs ACROSS the image in the direction the next beat arrives from,
-// so the edit is audible without being an effect.
-whoosh(6.26, 0.42, 0.62, 0.55, -0.55);
-whoosh(8.74, 0.42, 0.68, -0.55, 0.55);
-whoosh(12.22, 0.38, 0.55, 0.50, -0.50);
+// The rebuilt film's junctions: the dark room's exit whip starts at 5.56 and
+// the worksheet lands on the 5.92 impact; the worksheet leaves upward at 8.84
+// under the theme's rise; the theme whips out at 12.68 handing to the carried
+// CTA; the burst washes into the receipts at 15.66. Each sweep runs ACROSS the
+// image in the direction the world is actually moving on those frames.
+whoosh(5.60, 0.40, 0.66, 0.60, -0.60);
+whoosh(8.86, 0.42, 0.68, -0.55, 0.55);
+whoosh(12.68, 0.38, 0.58, 0.55, -0.55);
 whoosh(15.66, 0.44, 0.72, -0.60, 0.60);
 
 // ── the two big moments ─────────────────────────────────────────────────────
 // The room change into the dark Stripe beat, and the burst.
-impact(3.30, 0.55, 0.55);
+impact(3.30, 0.55, 0.55);          // the keycap drops out of the rising dark
+impact(4.56, 0.50, 0.65);          // ignition: the pulse reaches the keycap
+impact(5.92, 0.40, 0.45);          // the worksheet lands out of the exit whip
 riser(12.90, 1.10, 1.0);
 impact(14.00, 1.0, 0.85);
 // After the burst the rhythm stops dead and only the room is left ringing. A
@@ -531,12 +535,11 @@ sweepSub(15.10, 0.86, 30, 62, 0.60);
 // 0.47s then 0.40s. Money arriving faster and faster is told entirely through
 // the interval, with no copy at all.
 //
-// THERE ARE THREE, and there used to be four. The fourth rang at 17.40 over
-// nothing at all: SALES in hero/film.html has three entries and SALE_AT has
-// three times, so the last bell was a sound with no picture under it. Bells are
-// picture cues like the clicks; a bell with no card is exactly the kind of thing
-// that makes a soundtrack feel bolted on. The pan is the measured centre of the
-// alert stack (x=1197 of 1920), read out of the DOM the same way the clicks were.
+// FOUR CARDS POP, THREE BELLS RING. The first card lands at 15.92, still
+// inside the bloom's wash and the sub swell — a bell there would fight the
+// wash, so the drumbeat's cadence starts being audible from the second card.
+// Bells are picture cues like the clicks; each of these three has a card
+// landing under it on the exact frame.
 const SALE_AT = [16.20, 16.67, 17.07];
 SALE_AT.forEach((t, i) => chime(t, 587.33 * Math.pow(2, i / 12) * (i > 1 ? 1.5 : 1), 1, 0.20 + i * 0.07));
 on(16.00, 18.01, BAR / 2, (t) => kick(t, 0.62));
