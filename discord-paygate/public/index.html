@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Dues — Sell Discord access" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.png" />
+  <meta property="og:image" content="https://dues.gg/og-card.png?v=166" />
   <meta property="og:image:width" content="2400" />
   <meta property="og:image:height" content="1260" />
   <meta property="og:url" content="https://dues.gg/" />
@@ -28,11 +28,11 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Dues — Sell Discord access" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.png" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.png?v=166" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=165" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=165" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=166" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=166" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=165') format('woff2');
+  src:url('/jakarta-latin.woff2?v=166') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -285,10 +285,11 @@ html[data-theme="light"] .hero-sky{
   font-size:clamp(46px,4.8vw,68px);line-height:1.06;
 }
 .hero-sub{
-  margin-top:18px;max-width:600px;
+  margin-top:18px;max-width:640px;
   font-size:17px;line-height:26px;color:var(--sec);
 }
 html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
+.zerofee{font-weight:700;color:var(--ink);white-space:nowrap}
 .inline-mark{font-weight:500;color:var(--ink);white-space:nowrap}
 .inline-mark svg{display:inline-block;width:18px;height:18px;vertical-align:-3.5px;margin-right:3px}
 .mark-s{
@@ -355,7 +356,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=165') center/cover;
+  background:url('/hero-poster.webp?v=166') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1793,25 +1794,12 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   .footer-watermark{--wm-h:calc(100vw * .14);margin-top:4px}
 }
 /* ── punch-up: gradient accent words, numbered steps, richer cards ── */
-.grad-word{
-  background:linear-gradient(92deg,#5865f2 0%,#4a90e2 55%,#38b6ff 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
-}
-html:not([data-theme="light"]) .grad-word{
-  background:linear-gradient(92deg,#8e9aff 0%,#6fb3ff 55%,#7ee0ff 100%);
-  -webkit-background-clip:text;background-clip:text;
-}
 .how-card,.voice-card,.comm-card{position:relative;overflow:hidden;transition:transform .25s cubic-bezier(.23,1,.32,1),box-shadow .25s cubic-bezier(.23,1,.32,1)}
 .how-card::before,.voice-card::before{
   content:"";position:absolute;top:0;left:16%;right:16%;height:2px;border-radius:99px;
   background:linear-gradient(90deg,transparent,rgba(88,101,242,.55),transparent);
 }
 .how-card:hover,.voice-card:hover{transform:translateY(-4px);box-shadow:0 34px 70px -28px rgba(4,8,18,.55),inset 0 1px 0 rgba(255,255,255,.12)}
-.how-card::after{
-  content:attr(data-n);position:absolute;top:10px;right:18px;pointer-events:none;
-  font:700 46px/1 var(--grotesk);letter-spacing:-.02em;color:rgba(88,101,242,.14);
-}
-html:not([data-theme="light"]) .how-card::after{color:rgba(142,154,255,.16)}
 .how-ic{background:linear-gradient(135deg,#5865f2,#7ea2ff);border:0;color:#fff;box-shadow:0 10px 24px -10px rgba(88,101,242,.7)}
 html:not([data-theme="light"]) .how-ic{color:#fff}
 .voice-avwrap{position:relative;display:inline-flex;flex:none}
@@ -1825,6 +1813,8 @@ html:not([data-theme="light"]) .how-ic{color:#fff}
 }
 html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 .voice-av{font-size:16px;letter-spacing:-.02em}
+.voice-av svg{width:22px;height:22px}
+.voice-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .comm-card::before,.comm-card::after{
   content:"";position:absolute;z-index:0;pointer-events:none;border-radius:50%;filter:blur(52px);
 }
@@ -1871,7 +1861,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 <header class="hero">
   <div class="hero-core">
     <h1>Monetize your community.</h1>
-    <p class="hero-sub">Create a paid <span class="inline-mark"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="#5865f2" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Discord</span> server and get paid automatically.</p>
+    <p class="hero-sub">Create a paid <span class="inline-mark"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="#5865f2" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Discord</span> server and get paid automatically &#8212; <b class="zerofee">0% platform fees</b>.</p>
     <form class="capture" id="captureForm" action="/dashboard" method="get">
       <label class="capture-line" for="captureInput">
         <span class="capture-prefix" aria-hidden="true">dues.gg/</span>
@@ -1971,20 +1961,20 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 <section class="how wrap" id="how">
   <div class="how-head">
     <p class="sec-eyebrow">HOW IT WORKS</p>
-    <h2 class="sec-display">Selling in <span class="grad-word">three steps.</span></h2>
+    <h2 class="sec-display">Selling in three steps.</h2>
   </div>
   <div class="how-grid">
-    <div class="how-card reveal" data-n="01">
+    <div class="how-card reveal">
       <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
       <h3>Connect Stripe</h3>
       <p>Link your own Stripe account in minutes. Every payment settles straight into it &#8212; Dues never holds your money.</p>
     </div>
-    <div class="how-card reveal" data-n="02">
+    <div class="how-card reveal">
       <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
       <h3>Create a product</h3>
       <p>Turn any role into a product &#8212; monthly, yearly, or one-time lifetime. Set the price, pick the role, done.</p>
     </div>
-    <div class="how-card reveal" data-n="03">
+    <div class="how-card reveal">
       <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
       <h3>Get paid</h3>
       <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and you keep every dollar.</p>
@@ -1996,13 +1986,13 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 <section class="voices wrap" aria-label="What communities say about Dues">
   <div class="voices-head">
     <p class="sec-eyebrow">COMMUNITIES</p>
-    <h2 class="sec-display">What sellers <span class="grad-word">say.</span></h2>
+    <h2 class="sec-display">What sellers say.</h2>
   </div>
   <div class="voices-grid">
     <figure class="voice-card reveal">
       <span class="voice-quote" aria-hidden="true">&#8220;</span>
       <figcaption class="voice-who">
-        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#23262e,#4b5162)">AK</span><i class="voice-dot"></i></span>
+        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#23262e,#4b5162)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg></span><i class="voice-dot"></i></span>
         <span class="voice-meta"><b>AK</b><small>stupidmoneyconcepts</small></span>
       </figcaption>
       <blockquote>Had the store live the same night. Members buy, the role hits instantly, and every dollar lands in my own Stripe.</blockquote>
@@ -2010,7 +2000,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
     <figure class="voice-card reveal">
       <span class="voice-quote" aria-hidden="true">&#8220;</span>
       <figcaption class="voice-who">
-        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#b8860b,#ffd23f)">H</span><i class="voice-dot"></i></span>
+        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#b8860b,#ffd23f)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16l1.2-4.2A2 2 0 0 1 8.1 10.4h7.8a2 2 0 0 1 1.9 1.4L19 16"/><rect x="3.6" y="15.6" width="16.8" height="4" rx="1.4"/><circle cx="7.6" cy="19.6" r="1.5" fill="#fff" stroke="none"/><circle cx="16.4" cy="19.6" r="1.5" fill="#fff" stroke="none"/></svg></span><i class="voice-dot"></i></span>
         <span class="voice-meta"><b>Hazen</b><small>apex garage</small></span>
       </figcaption>
       <blockquote>Our paid car-club tiers run themselves now. Zero platform cut means the garage keeps what it earns.</blockquote>
@@ -2018,7 +2008,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
     <figure class="voice-card reveal">
       <span class="voice-quote" aria-hidden="true">&#8220;</span>
       <figcaption class="voice-who">
-        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#7a2a1d,#d4593f)">J</span><i class="voice-dot"></i></span>
+        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#7a2a1d,#d4593f)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg></span><i class="voice-dot"></i></span>
         <span class="voice-meta"><b>Jasonlang77</b><small>ringside picks</small></span>
       </figcaption>
       <blockquote>Fight-night picks are a paid role now. Subs renew on their own and lapsed cards lose access without me touching anything.</blockquote>
@@ -2046,7 +2036,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 <section id="faq" class="faq wrap">
   <div class="faq-head">
     <p class="sec-eyebrow">FAQ</p>
-    <h2 class="sec-display">Questions, <span class="grad-word">answered.</span></h2>
+    <h2 class="sec-display">Questions, answered.</h2>
   </div>
   <div class="acc">
     <div class="acc-item open">
@@ -2131,7 +2121,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
   </div>
 </footer>
 
-<script src="/sky.js?v=165" defer></script>
+<script src="/sky.js?v=166" defer></script>
 <script>
 (function(){
   'use strict';

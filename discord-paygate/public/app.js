@@ -722,32 +722,25 @@ function renderShop() {
   $('#shop-name').textContent = state.brand ?? state.server?.name ?? '';
   const desc = (state.store?.description ?? '').trim();
   const descEl = $('#shop-desc');
-  descEl.textContent = desc;
+  $('#shop-desc-text').textContent = desc;
   descEl.hidden = !desc;
-  // Whop-style "see more": long descriptions clamp to three lines.
+  // Long descriptions clamp to two lines with an inline "… see more".
   const more = $('#shop-desc-more');
   if (more) {
-    const long = desc.length > 180;
+    const long = desc.length > 140;
     descEl.classList.toggle('clamped', long);
     more.hidden = !long;
-    more.textContent = 'see more';
+    more.innerHTML = '&#8230; see more';
     more.onclick = () => {
       const nowClamped = descEl.classList.toggle('clamped');
-      more.textContent = nowClamped ? 'see more' : 'see less';
+      more.innerHTML = nowClamped ? '&#8230; see more' : 'see less';
     };
   }
-  // Trust chips: the live member count (only when the owner shows it) plus
-  // two platform facts that hold for every Dues store.
-  const ICON_MEMBERS = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 20c.7-3.4 3.2-5.2 6.2-5.2s5.5 1.8 6.2 5.2"/><path d="M15.5 5.2a3.4 3.4 0 0 1 0 5.9M18.2 14.9c1.7.8 2.7 2.4 3 5.1"/></svg>';
-  const ICON_LOCK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
-  const ICON_BOLT = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg>';
-  const trust = $('#shop-trust');
-  const count = state.store?.memberCount;
-  trust.innerHTML =
-    (Number.isFinite(count) && count > 0 ? `<span class="shop-chip">${ICON_MEMBERS}<strong>${count}</strong>&nbsp;member${count === 1 ? '' : 's'}</span>` : '') +
-    `<span class="shop-chip">${ICON_LOCK}Secured by Stripe</span>` +
-    `<span class="shop-chip">${ICON_BOLT}Automatic role delivery</span>`;
-  // Social links: fixed keys, saved as https URLs in the dashboard.
+  // One quiet meta line, dot-separated: social icons, then the two platform
+  // facts that hold for every Dues store. The member count gets its own
+  // "N joined" line beneath, the way community pages read.
+  const ICON_LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+  const ICON_BOLT = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg>';
   const LINK_ICONS = {
     discord: '<svg width="17" height="13" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>',
     x: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.2l7.3-8.3L1.2 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L7.1 3.9H5.3L17.8 20z"/></svg>',
@@ -756,14 +749,22 @@ function renderShop() {
     tiktok: '<svg width="13" height="15" viewBox="0 0 20 23" fill="currentColor" aria-hidden="true"><path d="M15.5 0h-3.8v15.1a3.3 3.3 0 1 1-3.3-3.3c.3 0 .7 0 1 .1V8a7.2 7.2 0 0 0-1-.1 7.1 7.1 0 1 0 7.1 7.1V7.6a9 9 0 0 0 4.8 1.4V5.2A5.2 5.2 0 0 1 15.5 0z"/></svg>',
     website: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.6 2.6 3.9 5.8 3.9 9.2s-1.3 6.6-3.9 9.2c-2.6-2.6-3.9-5.8-3.9-9.2s1.3-6.6 3.9-9.2z"/></svg>',
   };
-  const linksBox = $('#shop-links');
   const links = state.store?.links ?? {};
   const linkHtml = Object.keys(LINK_ICONS)
     .filter((k) => typeof links[k] === 'string' && /^https:\/\//.test(links[k]))
-    .map((k) => `<a class="shop-link" href="${esc(links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
+    .map((k) => `<a class="shop-mlink" href="${esc(links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
     .join('');
-  linksBox.innerHTML = linkHtml;
-  linksBox.hidden = !linkHtml;
+  const metaBits = [];
+  if (linkHtml) metaBits.push(`<span class="shop-mgroup">${linkHtml}</span>`);
+  metaBits.push(`<span class="shop-mitem">${ICON_LOCK}Secured by Stripe</span>`);
+  metaBits.push(`<span class="shop-mitem">${ICON_BOLT}Automatic role delivery</span>`);
+  $('#shop-metaline').innerHTML = metaBits.join('<i class="shop-mdot" aria-hidden="true"></i>');
+  const joined = $('#shop-joined');
+  const count = state.store?.memberCount;
+  if (Number.isFinite(count) && count > 0) {
+    joined.innerHTML = `<b>${count}</b> joined`;
+    joined.hidden = false;
+  } else joined.hidden = true;
   // About: plain text, escaped, split into paragraphs.
   const about = (state.store?.about ?? '').trim();
   const aboutBox = $('#shop-about-box');
@@ -789,6 +790,11 @@ function renderShop() {
     }
   }
   setTab('products');
+  const join = $('#shop-join');
+  if (join && !join.dataset.wired) {
+    join.dataset.wired = '1';
+    join.addEventListener('click', () => setTab('products'));
+  }
   const grid = $('#shop-grid');
   // One card per PRODUCT: price options ride inside their product's page,
   // never as sibling cards.
@@ -814,10 +820,6 @@ function renderShop() {
             : `<img class="prod-shot" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" />`)
         : `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`) +
       `<span class="prod-name">${esc(plan.name)}</span>` +
-      ((plan.roleNames ?? []).length
-        ? `<span class="prod-roles">${plan.roleNames.slice(0, 3).map((r) => `<span class="prod-role">${esc(roleLabel(r))}</span>`).join('')}</span>`
-        : '') +
-      (plan.description ? `<p class="prod-desc">${esc(plan.description)}</p>` : '') +
       `<span class="prod-foot"><span class="prod-price">${priceHtml}</span><span class="prod-per">${per}</span></span>`;
     card.onclick = () => openCheckout(plan.id);
     grid.append(card);

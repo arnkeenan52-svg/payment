@@ -18,15 +18,15 @@
   <!-- og:end -->
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=165" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=165" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=166" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=166" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=165" />
+  <link rel="stylesheet" href="/styles.css?v=166" />
 </head>
 <body>
   <header class="top">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=165" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=166" alt="Dues" height="20" /></a>
     </div>
     <div id="account" class="account"></div>
   </header>
@@ -41,21 +41,22 @@
         <img class="logo shop-icon" id="shop-icon" src="" alt="" width="84" height="84" hidden />
       </div>
       <div class="shop-head">
-        <h1 class="shop-name" id="shop-name">&nbsp;</h1>
-        <p class="shop-desc" id="shop-desc" hidden></p>
-        <button type="button" class="shop-desc-more" id="shop-desc-more" hidden>see more</button>
-        <div class="shop-meta">
-          <div class="shop-links" id="shop-links" hidden></div>
-          <div class="shop-trust" id="shop-trust"></div>
+        <div class="shop-titlebar">
+          <h1 class="shop-name" id="shop-name">&nbsp;</h1>
+          <a class="shop-join" id="shop-join" href="#shop-pane-products">Join</a>
         </div>
+        <p class="shop-desc" id="shop-desc" hidden><span id="shop-desc-text"></span><button type="button" class="shop-desc-more" id="shop-desc-more" hidden>&#8230; see more</button></p>
+        <div class="shop-metaline" id="shop-metaline"></div>
+        <p class="shop-joined" id="shop-joined" hidden></p>
       </div>
       <nav class="shop-tabs" id="shop-tabs" hidden aria-label="Store sections">
+        <button type="button" class="shop-tab" data-tab="about">Home</button>
         <button type="button" class="shop-tab active" data-tab="products">Products</button>
-        <button type="button" class="shop-tab" data-tab="about">About</button>
       </nav>
       <div class="shop-pane" id="shop-pane-products">
+        <h2 class="shop-sec">Products</h2>
         <div class="shop-grid" id="shop-grid"></div>
-        <p class="shop-empty" id="shop-empty" hidden>Nothing is for sale here yet — check back soon.</p>
+        <p class="shop-empty" id="shop-empty" hidden>Nothing is for sale here yet &#8212; check back soon.</p>
       </div>
       <section class="shop-about shop-pane" id="shop-about-box" hidden>
         <div id="shop-about"></div>
@@ -124,10 +125,10 @@
 
   <footer>
     <span class="powered-label">Checkout powered by:</span>
-    <img class="powered-mark" src="/dues.png?v=165" alt="Dues" height="18" />
+    <img class="powered-mark" src="/dues.png?v=166" alt="Dues" height="18" />
     <a class="powered-community" href="https://discord.gg/G6yjsX5qbB" rel="noopener">Join the Dues community</a>
   </footer>
 
-  <script src="/app.js?v=165"></script>
+  <script src="/app.js?v=166"></script>
 </body>
 </html>

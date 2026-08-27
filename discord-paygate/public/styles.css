@@ -2805,7 +2805,7 @@ html.menu-open .top {
 .shop-hero { position: relative; margin-bottom: 54px; }
 .shop-hero.no-banner { margin-bottom: 12px; }
 .shop-hero.empty { display: none; }
-.shop-banner { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; border-radius: 18px; border: 1px solid var(--edge); display: block; }
+.shop-banner { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; border-radius: 14px; border: 1px solid var(--edge); display: block; }
 .shop-banner[hidden] { display: none; }
 .shop-icon {
   width: 84px; height: 84px; border-radius: 22px;
@@ -2815,28 +2815,46 @@ html.menu-open .top {
 }
 .shop-hero.no-banner .shop-icon { position: static; border: 1px solid var(--edge); box-shadow: none; }
 .shop-head { display: flex; flex-direction: column; gap: 8px; padding: 0 4px; }
+.shop-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.shop-join {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 40px; padding: 9px 24px; border-radius: 10px;
+  background: var(--blurple); color: #fff; font-weight: 700; font-size: 14.5px; text-decoration: none;
+  transition: background 0.15s;
+}
+.shop-join:hover { background: #4752e8; }
+.shop-metaline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--dim); font-size: 13.5px; margin-top: 2px; }
+.shop-mgroup { display: inline-flex; align-items: center; gap: 14px; }
+.shop-mlink { color: var(--dim); display: inline-flex; }
+.shop-mlink:hover { color: var(--ink); }
+.shop-mitem { display: inline-flex; align-items: center; gap: 6px; }
+.shop-mdot { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); }
+.shop-joined { margin: 4px 0 0; font-size: 14px; color: var(--dim); }
+.shop-joined b { color: var(--ink); font-weight: 750; font-size: 15.5px; }
+.shop-sec { font-family: var(--font-head); font-size: 19px; font-weight: 750; letter-spacing: -0.01em; margin: 0 0 14px; }
 .shop-name { margin: 0; font-family: var(--font-head); font-size: 30px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.12; }
 .shop-desc { margin: 0; color: var(--dim); font-size: 14.5px; line-height: 1.55; max-width: 72ch; }
-.shop-desc.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.shop-desc.clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .shop-desc-more {
-  align-self: flex-start; background: none; border: 0; padding: 0; cursor: pointer;
-  color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 600; opacity: 0.8;
+  display: inline; background: none; border: 0; padding: 0; margin-left: 3px; cursor: pointer;
+  color: var(--dim); font: inherit; font-size: 14.5px;
 }
+.shop-desc-more:hover { color: var(--ink); }
 .shop-desc-more:hover { opacity: 1; }
 .shop-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 4px; }
 /* whop-style tab bar under the head */
 .shop-tabs {
-  display: flex; gap: 26px; margin-top: 22px; border-bottom: 1px solid var(--hairline-2);
+  display: grid; grid-template-columns: repeat(2, 1fr); margin-top: 24px; border-bottom: 1px solid var(--hairline-2);
 }
 .shop-tab {
   position: relative; background: none; border: 0; cursor: pointer; font: inherit;
-  padding: 10px 2px 12px; color: var(--dim); font-size: 14.5px; font-weight: 600;
+  padding: 11px 2px 13px; color: var(--dim); font-size: 15px; font-weight: 600; text-align: center;
 }
 .shop-tab:hover { color: var(--ink); }
 .shop-tab.active { color: var(--ink); }
 .shop-tab.active::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px;
-  border-radius: 99px 99px 0 0; background: var(--blurple);
+  content: ""; position: absolute; left: 50%; transform: translateX(-50%); bottom: -1px;
+  width: 72px; height: 3px; border-radius: 99px 99px 0 0; background: var(--blurple);
 }
 .shop-pane { margin-top: 20px; }
 .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
@@ -2858,6 +2876,7 @@ html.menu-open .top {
   background: color-mix(in srgb, var(--accent) 12%, var(--panel)); color: var(--accent);
 }
 .prod-name { font-weight: 700; font-size: 15.5px; font-family: var(--font-head); letter-spacing: -0.01em; }
+.prod-price { color: var(--blurple-text); font-weight: 750; }
 .prod-desc {
   margin: 0; color: var(--dim); font-size: 13px; line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
