@@ -28,3 +28,4 @@ probe*.mjs
 tmp-hero-frames/
 tmp-film-audio.wav
 remotion/node_modules/
+.playwright-cli/
