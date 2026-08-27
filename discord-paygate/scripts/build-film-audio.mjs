@@ -22,21 +22,30 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = process.env.FILM_AUDIO || path.join(ROOT, 'tmp-film-audio.wav');
 const SR = 48000;
-const DUR = 29.56;
+const DUR = 29.43;
 // ── THE RETIME ──────────────────────────────────────────────────────────────
-// The identical pause table to hero/film.html: picture-synced cues and chord
-// turns remap through newT(); the pulse keeps its 120 BPM on the real clock.
-const PAUSES = [
-  [0.00, 0.16, 0.36], [1.44, 1.64, 0.44], [2.12, 2.28, 0.40],
-  [3.52, 4.16, 1.40], [4.92, 5.52, 1.40], [6.88, 7.12, 0.44],
-  [7.48, 7.92, 0.56], [8.08, 8.52, 0.48], [9.40, 9.68, 0.56],
-  [10.04, 10.44, 0.48], [10.72, 11.40, 0.80], [12.84, 13.00, 0.36],
-  [13.40, 13.56, 0.48], [17.16, 17.48, 0.80], [19.00, 20.00, 0.60],
+// The identical variable-rate table to hero/film.html: picture-synced cues and
+// chord turns remap through newT(); the pulse keeps its 120 BPM on the real
+// clock. Motion stretches 1.15-1.35x, dwells 1.8-2.5x, the payoff (Pay press
+// through the swirl and the receipt pops) plays at exactly 1.0x.
+const SEGS = [
+  [0.00, 0.16, 2.50], [0.16, 1.44, 1.25], [1.44, 1.64, 2.00],
+  [1.64, 2.12, 1.25], [2.12, 2.28, 2.00], [2.28, 3.52, 1.20],
+  [3.52, 4.16, 2.50], [4.16, 4.92, 1.20], [4.92, 5.52, 2.50],
+  [5.52, 5.92, 1.15], [5.92, 6.88, 1.35], [6.88, 7.12, 1.80],
+  [7.12, 7.48, 1.30], [7.48, 7.92, 1.80], [7.92, 8.08, 1.20],
+  [8.08, 8.52, 1.80], [8.52, 9.40, 1.30], [9.40, 9.68, 1.80],
+  [9.68, 10.04, 1.25], [10.04, 10.44, 1.80], [10.44, 10.72, 1.25],
+  [10.72, 11.40, 2.20], [11.40, 12.84, 1.35], [12.84, 13.00, 1.80],
+  [13.00, 13.40, 1.25], [13.40, 13.56, 1.80], [13.56, 17.16, 1.00],
+  [17.16, 17.48, 2.00], [17.48, 18.16, 1.15], [18.16, 18.80, 1.30],
+  [18.80, 20.00, 2.20],
 ];
 const newT = (o) => {
-  let n = o;
-  for (const [a, b, add] of PAUSES) {
-    if (o >= b) n += add; else if (o > a) n += add * (o - a) / (b - a);
+  let n = 0;
+  for (const [a, b, s] of SEGS) {
+    if (o <= a) break;
+    n += (Math.min(o, b) - a) * s;
   }
   return n;
 };

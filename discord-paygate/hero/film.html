@@ -789,39 +789,60 @@ const T = {
 
 
 /* ── THE RETIME ─────────────────────────────────────────────────────────────
-   The 20s master plays at ~30s by stretching only what is already still:
-   the plate breath, the dwells before every press, the dark room's two
-   holds, the pre-drain hold and the endcard freeze. Every press, whip,
-   cut, typing run and the verbatim swirl play at their original speed.
-   All windows and additions sit on the 0.04s authored grid so the warp
-   never lands between frames. Audio applies the identical table.        */
-const PAUSES = [
-  [0.00, 0.16, 0.36],   // the opening plate breathes
-  [1.44, 1.64, 0.44],   // the caret blinks in the empty field
-  [2.12, 2.28, 0.40],   // dwell before Create store
-  [3.52, 4.16, 1.40],   // the keycap tableau
-  [4.92, 5.52, 1.40],   // the lit room holds
-  [6.88, 7.12, 0.44],   // between name and price
-  [7.48, 7.92, 0.56],   // dwell before Billing
-  [8.08, 8.52, 0.48],   // dwell before Create product
-  [9.40, 9.68, 0.56],   // dwell before the preset
-  [10.04, 10.44, 0.48], // dwell before the type segment
-  [10.72, 11.40, 0.80], // the settled preview holds
-  [12.84, 13.00, 0.36], // dwell before Publish
-  [13.40, 13.56, 0.48], // dwell before Pay
-  [17.16, 17.48, 0.80], // the four receipts hold before the drain
-  [19.00, 20.00, 0.60], // the endcard freeze runs longer
+   The 20s master plays at ~29.4s through a variable-rate clock, not through
+   frozen holds. The first cut alternated original-speed motion with 3-4x
+   dwells, and the whiplash between sprint and standstill read as unnatural.
+   Here the whole film breathes at one temperament: motion runs at 1.15-1.35x
+   stretch (deliberate, never slow-motion), dwells at 1.8-2.5x (they linger,
+   but the caret still blinks and the settles still settle — time never
+   stops), and the payoff — the Pay press, the verbatim swirl, the four
+   receipt pops — plays at exactly 1.0x so the beat the founder kept lands
+   with its original punch. The widest rate ratio on screen is 2.5:1 where
+   the old cut swung 4:1 against a dead stop. Segment bounds sit on the
+   0.04s authored grid. Audio applies the identical table.               */
+const SEGS = [
+  [0.00, 0.16, 2.50],   // the opening plate breathes
+  [0.16, 1.44, 1.25],   // the title types on
+  [1.44, 1.64, 2.00],   // the caret blinks in the empty field
+  [1.64, 2.12, 1.25],   // the field fills
+  [2.12, 2.28, 2.00],   // dwell before Create store
+  [2.28, 3.52, 1.20],   // the press, the rise, the keycap drop
+  [3.52, 4.16, 2.50],   // the keycap tableau
+  [4.16, 4.92, 1.20],   // the pulse enters the wires, ignition
+  [4.92, 5.52, 2.50],   // the lit room holds
+  [5.52, 5.92, 1.15],   // exit whip → worksheet landing
+  [5.92, 6.88, 1.35],   // typing the product name
+  [6.88, 7.12, 1.80],   // breath between name and price
+  [7.12, 7.48, 1.30],   // typing the price
+  [7.48, 7.92, 1.80],   // dwell before Billing
+  [7.92, 8.08, 1.20],   // the Billing press
+  [8.08, 8.52, 1.80],   // dwell before Create product
+  [8.52, 9.40, 1.30],   // Create product
+  [9.40, 9.68, 1.80],   // dwell before the preset
+  [9.68, 10.04, 1.25],  // the swatch press
+  [10.04, 10.44, 1.80], // dwell before the type segment
+  [10.44, 10.72, 1.25], // the type press
+  [10.72, 11.40, 2.20], // the settled preview holds
+  [11.40, 12.84, 1.35], // slider grab → release
+  [12.84, 13.00, 1.80], // dwell before Publish
+  [13.00, 13.40, 1.25], // Publish + the Lifetime option
+  [13.40, 13.56, 1.80], // dwell before Pay
+  [13.56, 17.16, 1.00], // Pay → boom → the verbatim swirl → the pops
+  [17.16, 17.48, 2.00], // the four receipts hold before the drain
+  [17.48, 18.16, 1.15], // tilt, flips, hard cut № 2
+  [18.16, 18.80, 1.30], // the endcard enters
+  [18.80, 20.00, 2.20], // the endcard holds
 ];
 const newT = (o) => {
-  let n = o;
-  for (const [a, b, add] of PAUSES) {
-    if (o >= b) n += add; else if (o > a) n += add * (o - a) / (b - a);
+  let n = 0;
+  for (const [a, b, s] of SEGS) {
+    if (o <= a) break;
+    n += (Math.min(o, b) - a) * s;
   }
   return n;
 };
 const NEW_END = newT(20.0);
-const BK = [[0, 0]];
-for (const [a, b] of PAUSES) BK.push([newT(a), a], [newT(b), b]);
+const BK = SEGS.map(([a]) => [newT(a), a]);
 BK.push([NEW_END, 20.0]);
 const oldT = (nw) => {
   for (let i = 1; i < BK.length; i++) {
@@ -1482,7 +1503,7 @@ function build() {
   simCursor();
 }
 
-window.__duration = 29.56;
+window.__duration = Math.round(NEW_END * 100) / 100; // 29.43 — the variable-rate clock's full run
 
 // Gate on fonts and any late images. The glyph mask is a data URI in the
 // stylesheet, so there is nothing cross-origin left to wait for.
