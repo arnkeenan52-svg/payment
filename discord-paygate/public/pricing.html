@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Pricing — Dues" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.png?v=166" />
+  <meta property="og:image" content="https://dues.gg/og-card.png?v=167" />
   <meta property="og:image:width" content="2400" />
   <meta property="og:image:height" content="1260" />
   <meta property="og:url" content="https://dues.gg/pricing" />
@@ -28,11 +28,11 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Pricing — Dues" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.png?v=166" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.png?v=167" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=166" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=166" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=167" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=167" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=166') format('woff2');
+  src:url('/jakarta-latin.woff2?v=167') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -339,7 +339,7 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=166') center/cover;
+  background:url('/hero-poster.webp?v=167') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1606,6 +1606,11 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
 @media (hover:none),(pointer:coarse),(max-width:639px){
   html[data-blind] .footer{position:fixed;inset:auto 0 0 0;z-index:0;margin-top:0}
   html[data-blind] .footer-spacer{height:var(--footH,0px)}
+  /* the pinned footer may only paint near the reveal — after an iOS toolbar
+     collapse/expand the sky clip can go momentarily stale, and an always-on
+     footer then shows as a solid bar at the screen bottom mid-page */
+  html[data-blind] .footer{visibility:hidden}
+  html[data-blind][data-footer-near] .footer{visibility:visible}
   /* compact stage so the whole footer fits a phone viewport */
   .footer-stage{padding-top:30px}
   .footer-title{font-size:clamp(27px,7.6vw,38px);margin-bottom:10px}
@@ -1794,7 +1799,7 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=166" defer></script>
+<script src="/sky.js?v=167" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2089,6 +2094,8 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
     var bottom = sheet.getBoundingClientRect().bottom;
     var revealed = bottom <= window.innerHeight + 1;
     html.toggleAttribute('data-footer-revealed', revealed);
+    // the pinned footer may only paint near the reveal (see the CSS gate)
+    html.toggleAttribute('data-footer-near', bottom <= window.innerHeight + 160);
     if(sky && html.hasAttribute('data-blind')){
       // clip the fixed sky at the sheet's lip (canvas overshoots 160px below
       // the viewport, and the lip's 40px bottom radius carries into the clip)
@@ -2099,11 +2106,22 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
       }
     }
   };
-  addEventListener('scroll', on, { passive:true });
-  addEventListener('resize', function(){ fit(); on(); });
-  addEventListener('load', function(){ fit(); on(); });
+  // momentum scrolling and toolbar animations can swallow the final scroll
+  // event — always recompute once more after everything settles
+  var settle;
+  var onScroll = function(){ on(); clearTimeout(settle); settle = setTimeout(on, 160); };
+  var refresh = function(){ lastClip = -1; fit(); on(); };
+  addEventListener('scroll', onScroll, { passive:true });
+  addEventListener('resize', refresh);
+  addEventListener('load', refresh);
+  if(window.visualViewport){
+    // iOS moves the visual viewport on toolbar collapse/expand without
+    // reliably firing window resize — recompute so the clip never goes stale
+    visualViewport.addEventListener('resize', refresh);
+    visualViewport.addEventListener('scroll', onScroll);
+  }
   if('ResizeObserver' in window && footer){
-    new ResizeObserver(function(){ fit(); on(); }).observe(footer);
+    new ResizeObserver(refresh).observe(footer);
   }
   fit(); on();
 })();

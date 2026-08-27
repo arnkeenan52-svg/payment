@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Dues — Sell Discord access" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.png?v=166" />
+  <meta property="og:image" content="https://dues.gg/og-card.png?v=167" />
   <meta property="og:image:width" content="2400" />
   <meta property="og:image:height" content="1260" />
   <meta property="og:url" content="https://dues.gg/" />
@@ -28,11 +28,11 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Dues — Sell Discord access" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.png?v=166" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.png?v=167" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=166" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=166" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=167" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=167" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=166') format('woff2');
+  src:url('/jakarta-latin.woff2?v=167') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -356,7 +356,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=166') center/cover;
+  background:url('/hero-poster.webp?v=167') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1687,80 +1687,228 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   .footer{position:relative;z-index:2;margin-top:0}
 }
 
-/* ── how it works ── */
-.how{padding:56px 24px 30px}
-.how-head{text-align:center;margin-bottom:40px}
-.how-head .sec-display{margin-inline:auto}
-.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.how-card{
-  padding:30px 26px 28px;border-radius:22px;text-align:center;
-  background:var(--glass);border:1px solid var(--glass-brd);
-  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
-}
-.how-ic{
-  display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;
-  border-radius:50%;background:rgba(88,101,242,.12);border:1px solid rgba(88,101,242,.28);color:#5865f2;
-}
-html:not([data-theme="light"]) .how-ic{color:#8e9aff}
-.how-ic svg{width:24px;height:24px}
-.how-card h3{margin-top:16px;font-family:var(--jakarta);font-weight:600;font-size:18.5px;letter-spacing:-.01em;color:var(--ink)}
-.how-card p{margin-top:9px;font-size:14.5px;line-height:23px;color:var(--sec)}
+/* ── mid-page editorial heads: eyebrow + display left, supporting note right ── */
+.mid-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:34px}
+.mid-note{flex:none;max-width:30ch;margin:0 0 8px;font-size:14.5px;line-height:22px;color:var(--sec);text-align:right}
 @media (max-width:800px){
-  .how-grid{grid-template-columns:1fr}
-  .how-card{text-align:left;display:grid;grid-template-columns:56px 1fr;gap:4px 18px;padding:22px 20px}
-  .how-ic{grid-row:1 / 3}
-  .how-card h3{margin-top:6px}
-  .how-card p{grid-column:2}
+  .mid-head{flex-direction:column;align-items:flex-start;gap:14px;margin-bottom:28px}
+  .mid-note{text-align:left;margin:0;max-width:44ch}
 }
 
-/* ── what sellers say ── */
-.voices{padding:30px 24px 26px}
-.voices-head{text-align:center;margin-bottom:36px}
-.voices-head .sec-display{margin-inline:auto}
-.voices-pill{
-  display:inline-block;vertical-align:2px;margin-left:10px;padding:3px 9px;border-radius:99px;
-  font:600 10px/1.3 var(--sans);letter-spacing:.08em;text-transform:uppercase;
-  background:rgba(88,101,242,.14);border:1px solid rgba(88,101,242,.3);color:#5865f2;
+/* ── mini product-UI insets (obvious mocks: dotted window bar + PREVIEW tag) ── */
+.mui{
+  position:relative;border-radius:16px;overflow:hidden;
+  background:var(--gl-card-solid);border:1px solid var(--gl-border-strong);
+  box-shadow:0 18px 44px -22px rgba(4,8,18,.5);
+  font-family:var(--sans);
 }
-html:not([data-theme="light"]) .voices-pill{color:#8e9aff}
-.voices-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.voice-card{
-  margin:0;padding:24px 24px 26px;border-radius:22px;
+.mui-bar{display:flex;align-items:center;gap:5px;padding:9px 13px;border-bottom:1px solid var(--gl-border)}
+.mui-bar i{width:7px;height:7px;border-radius:50%;background:var(--gl-track);font-style:normal}
+.mui-bar em{margin-left:7px;font-style:normal;font:600 9.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gl-micro)}
+.mui-body{padding:12px 14px 14px;display:grid;gap:8px}
+.mui-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--gl-sec)}
+.mui-tag{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:12.5px;color:var(--gl-ink)}
+.mui-slogo{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:#635bff;color:#fff;font:700 13px/1 var(--grotesk)}
+.mui-chip-ok{display:inline-flex;align-items:center;gap:5px;padding:3.5px 9px;border-radius:99px;font:600 10.5px/1.4 var(--sans);color:var(--gl-green);background:rgba(74,222,128,.1);border:1px solid var(--gl-green-border)}
+html[data-theme="light"] .mui-chip-ok{background:rgba(22,163,74,.07)}
+.mui-chip-ok svg{width:10px;height:10px}
+.mui-num{font-family:var(--grotesk);font-weight:700;font-size:12.5px;color:var(--gl-ink);letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.mui-num.ok{color:var(--gl-green)}
+.mui-role{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font:600 12px/1.5 var(--sans);color:#8e9aff;background:rgba(88,101,242,.14);border:1px solid rgba(88,101,242,.32)}
+html[data-theme="light"] .mui-role{color:#4854e8;background:rgba(88,101,242,.1)}
+.mui-role::before{content:"";width:7px;height:7px;border-radius:50%;background:#5865f2}
+.mui-opt{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--gl-border-strong);border-radius:10px;padding:7.5px 11px;font-size:12.5px;color:var(--gl-sec)}
+.mui-opt em{font-style:normal;font-size:11px;color:var(--gl-micro);margin-left:5px}
+.mui-opt b{font-family:var(--grotesk);font-weight:700;font-size:13.5px;color:var(--gl-ink);letter-spacing:-.01em}
+.mui-opt.on{border-color:var(--gl-blue-border);background:var(--gl-blue-tint);color:var(--gl-ink);box-shadow:0 0 0 1px var(--gl-blue-border)}
+
+/* ── how it works: asymmetric bento with mock insets, full-width payoff row ── */
+.how{padding:64px 24px 30px}
+.how-bento{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.how-cell{
+  position:relative;overflow:hidden;border-radius:22px;
   background:var(--glass);border:1px solid var(--glass-brd);
   box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+  padding:26px 26px 24px;display:flex;flex-direction:column;
+  transition:transform .25s cubic-bezier(.23,1,.32,1),box-shadow .25s cubic-bezier(.23,1,.32,1),border-color .2s ease;
 }
-.voice-who{display:flex;align-items:center;gap:12px}
+.how-cell::before{
+  content:"";position:absolute;top:0;left:16%;right:16%;height:2px;border-radius:99px;
+  background:linear-gradient(90deg,transparent,rgba(88,101,242,.55),transparent);
+}
+.how-cell:hover{transform:translateY(-4px);border-color:var(--gl-blue-border);box-shadow:0 34px 70px -28px rgba(4,8,18,.55),inset 0 1px 0 rgba(255,255,255,.12)}
+.how-a{grid-column:span 7}
+.how-b{grid-column:span 5}
+.how-c{grid-column:span 12;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:center;gap:clamp(20px,3vw,40px)}
+.how-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.how-ic{
+  display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;
+  border-radius:13px;background:linear-gradient(135deg,#5865f2,#7ea2ff);color:#fff;
+  box-shadow:0 10px 24px -10px rgba(88,101,242,.7);
+}
+.how-ic svg{width:21px;height:21px}
+.how-step{flex:none;font:600 10.5px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#8e9aff;padding:6px 11px;border-radius:99px;border:1px solid rgba(88,101,242,.3);background:rgba(88,101,242,.1)}
+html[data-theme="light"] .how-step{color:#4854e8}
+.how-cell h3{margin-top:16px;font-family:var(--jakarta);font-weight:600;font-size:19px;letter-spacing:-.01em;color:var(--ink)}
+.how-p{margin:8px 0 20px;font-size:14.5px;line-height:23px;color:var(--sec);max-width:52ch}
+.how-a .mui,.how-b .mui{margin-top:auto}
+.how-c-txt{display:flex;flex-direction:column}
+.how-c-txt .how-p{margin-bottom:0}
+.how-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch;gap:8px}
+.how-node{
+  display:flex;flex-direction:column;gap:7px;justify-content:center;min-width:0;
+  border-radius:14px;padding:13px 14px;
+  background:var(--gl-card-solid);border:1px solid var(--gl-border-strong);
+  box-shadow:0 14px 34px -20px rgba(4,8,18,.5);
+}
+.how-node small{font:600 9.5px/1.3 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gl-micro);white-space:nowrap}
+.how-node b{display:flex;align-items:center;gap:7px;font-family:var(--sans);font-weight:600;font-size:13px;color:var(--gl-ink);white-space:nowrap}
+.how-node b svg{width:13px;height:13px;flex:none}
+.how-node .nd-blurple{color:#8e9aff}
+html[data-theme="light"] .how-node .nd-blurple{color:#5865f2}
+.how-node.n-role{border-left:3px solid #5865f2}
+.how-node.n-pay{border-left:3px solid var(--gl-green)}
+.how-node .ok{color:var(--gl-green)}
+.how-join{align-self:center;font:600 15px/1 var(--grotesk);color:var(--gl-micro)}
+@media (max-width:960px){
+  .how-a,.how-b,.how-c{grid-column:span 12}
+  .how-c{grid-template-columns:1fr;gap:18px;align-items:stretch}
+  .how-flow{grid-template-columns:1fr;gap:6px}
+  .how-join{justify-self:center;transform:rotate(90deg)}
+  .how-node b{white-space:normal}
+}
+@media (max-width:600px){
+  .how{padding:48px 16px 24px}
+  .how-cell{padding:22px 20px 20px}
+}
+
+/* ── what sellers say: featured editorial card + stacked rail ── */
+.voices{padding:34px 24px 26px}
+.voices-stage{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px;align-items:stretch}
+.voices-side{display:grid;grid-template-rows:1fr 1fr;gap:16px;min-width:0}
+.voice-card{
+  position:relative;overflow:hidden;margin:0;padding:22px 24px 24px;border-radius:22px;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+  display:flex;flex-direction:column;
+  transition:transform .25s cubic-bezier(.23,1,.32,1),box-shadow .25s cubic-bezier(.23,1,.32,1),border-color .2s ease;
+}
+.voice-card::before{
+  content:"";position:absolute;top:0;left:16%;right:16%;height:2px;border-radius:99px;
+  background:linear-gradient(90deg,transparent,rgba(88,101,242,.55),transparent);
+}
+.voice-card:hover{transform:translateY(-4px);border-color:var(--gl-blue-border);box-shadow:0 34px 70px -28px rgba(4,8,18,.55),inset 0 1px 0 rgba(255,255,255,.12)}
+.voice-card > *{position:relative;z-index:1}
+.voice-who{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--gl-border)}
+.voice-avwrap{position:relative;display:inline-flex;flex:none}
 .voice-av{
   display:inline-flex;align-items:center;justify-content:center;flex:none;
-  width:44px;height:44px;border-radius:50%;color:#fff;
-  font:700 18px/1 var(--grotesk);box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+  width:42px;height:42px;border-radius:50%;color:#fff;
+  font:700 16px/1 var(--grotesk);letter-spacing:-.02em;box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+}
+.voice-av svg{width:21px;height:21px}
+.voice-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.voice-dot{
+  position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;
+  background:#23a55a;border:2.5px solid rgba(255,255,255,.92);
 }
 .voice-meta{display:flex;flex-direction:column;min-width:0}
-.voice-meta b{font-size:15.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.voice-meta b{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 .voice-meta small{margin-top:2px;font-size:12.5px;color:var(--micro)}
-.voice-card blockquote{margin:14px 0 0;font-size:14.5px;line-height:23px;color:var(--sec)}
-@media (max-width:800px){.voices-grid{grid-template-columns:1fr}}
+.voice-card blockquote{margin:16px 0 0;font-size:14.5px;line-height:23px;color:var(--sec)}
+.voice-quote{
+  position:absolute;top:8px;right:20px;z-index:0;pointer-events:none;user-select:none;
+  font:700 92px/1 var(--grotesk);color:rgba(88,101,242,.12);
+}
+html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
+.voices-side .voice-quote{font-size:60px;top:6px;right:16px}
+.voice-lead{padding:28px 30px 30px;background:var(--gl-surface-2)}
+.voice-lead::after{
+  content:"";position:absolute;z-index:0;pointer-events:none;border-radius:50%;filter:blur(52px);
+  width:400px;height:320px;top:-160px;right:-120px;
+  background:radial-gradient(closest-side,rgba(88,101,242,.24),transparent);
+}
+.voice-lead .voice-av{width:52px;height:52px}
+.voice-lead .voice-av svg{width:25px;height:25px}
+.voice-lead .voice-dot{width:15px;height:15px}
+.voice-lead .voice-meta b{font-size:16.5px}
+.voice-lead blockquote{
+  margin-block:auto;padding-block:20px 6px;font-family:var(--jakarta);font-weight:500;
+  font-size:clamp(18px,1.6vw,21.5px);line-height:1.52;letter-spacing:-.01em;color:var(--ink);max-width:32ch;
+}
+@media (max-width:960px){
+  .voices-stage{grid-template-columns:1fr}
+  .voices-side{grid-template-rows:none}
+  .voice-lead blockquote{max-width:none}
+}
+@media (max-width:600px){
+  .voices{padding:26px 16px 22px}
+  .voice-lead{padding:24px 22px 26px}
+}
 
-/* ── community card ── */
-.comm{padding:22px 24px 56px}
+/* ── community card: split CTA with a live-presence channel mock ── */
+.comm{padding:26px 24px 56px}
 .comm-card{
-  display:flex;align-items:center;gap:32px;
-  padding:clamp(28px,4vw,44px) clamp(22px,4.5vw,48px);border-radius:26px;
+  position:relative;overflow:hidden;
+  display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);align-items:center;gap:clamp(28px,4vw,52px);
+  padding:clamp(28px,4vw,46px) clamp(22px,4.5vw,48px);border-radius:26px;
   background:var(--glass);border:1px solid var(--glass-brd);
   box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
 }
-.comm-txt{flex:1;min-width:0}
+.comm-card::before,.comm-card::after{
+  content:"";position:absolute;z-index:0;pointer-events:none;border-radius:50%;filter:blur(52px);
+}
+.comm-card::before{width:420px;height:320px;top:-140px;right:-90px;background:radial-gradient(closest-side,rgba(88,101,242,.28),transparent)}
+.comm-card::after{width:360px;height:280px;bottom:-140px;left:-80px;background:radial-gradient(closest-side,rgba(61,220,132,.16),transparent)}
+.comm-txt{position:relative;z-index:1;min-width:0}
 .comm-txt h2{font-family:var(--jakarta);font-weight:600;font-size:clamp(24px,3vw,34px);letter-spacing:-.02em;line-height:1.14;color:var(--ink)}
 .comm-txt>p{margin-top:12px;max-width:56ch;font-size:15.5px;line-height:25px;color:var(--sec)}
-.comm-checks{margin-top:18px;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:10px 22px}
-.comm-checks li{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--ink)}
+.comm-checks{margin-top:18px;padding:0;list-style:none;display:grid;gap:10px}
+.comm-checks li{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--ink)}
 .comm-checks svg{width:18px;height:18px;color:#1f9d5b;flex:none}
 html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
+.comm-cta-row{margin-top:24px;display:flex;align-items:center;gap:16px}
 .comm-btn{flex:none;min-height:48px;padding:13px 26px;font-size:15.5px}
-@media (max-width:800px){
-  .comm-card{flex-direction:column;align-items:flex-start;gap:24px}
-  .comm-btn{align-self:stretch;justify-content:center}
+.comm-mock{
+  position:relative;z-index:1;min-width:0;border-radius:18px;overflow:hidden;
+  background:var(--gl-card-solid);border:1px solid var(--gl-border-strong);
+  box-shadow:0 24px 54px -26px rgba(4,8,18,.6);
 }
+.cm-head{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--gl-border)}
+.cm-hash{font:700 16px/1 var(--grotesk);color:var(--gl-micro)}
+.cm-head b{font:600 13.5px/1 var(--sans);color:var(--gl-ink)}
+.cm-presence{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font:600 10.5px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gl-green)}
+.cm-presence i{width:7px;height:7px;border-radius:50%;background:var(--gl-green);font-style:normal;box-shadow:0 0 0 3px rgba(74,222,128,.16)}
+.cm-body{padding:15px 16px 16px;display:grid;gap:14px}
+.cm-msg{display:grid;grid-template-columns:34px 1fr;gap:11px;align-items:start}
+.cm-av{width:34px;height:34px;border-radius:50%;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.cm-av i{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:#23a55a;border:2px solid var(--gl-card-solid);font-style:normal}
+.cm-lines{display:grid;gap:6px;padding-top:3px;min-width:0}
+.cm-lines i{display:block;height:8px;border-radius:99px;background:var(--gl-track);font-style:normal}
+.cm-lines .ln-name{height:9px;background:rgba(126,162,255,.5)}
+html[data-theme="light"] .cm-lines .ln-name{background:rgba(88,101,242,.35)}
+.cm-typing{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:12px;background:var(--gl-surface-2);border:1px solid var(--gl-border);font-size:12px;color:var(--gl-micro)}
+.cm-typing .dots{display:inline-flex;gap:3px}
+.cm-typing .dots i{width:5px;height:5px;border-radius:50%;background:var(--gl-micro);font-style:normal;animation:cmty 1.2s infinite}
+.cm-typing .dots i:nth-child(2){animation-delay:.15s}
+.cm-typing .dots i:nth-child(3){animation-delay:.3s}
+@keyframes cmty{0%,60%,100%{opacity:.35;transform:none}30%{opacity:1;transform:translateY(-2px)}}
+@media (max-width:900px){
+  .comm-card{grid-template-columns:1fr;gap:26px;align-items:stretch}
+  .comm-cta-row{flex-direction:column;align-items:stretch}
+  .comm-btn{justify-content:center}
+}
+@media (max-width:600px){
+  .comm{padding:22px 16px 48px}
+}
+
+/* ── payment band framing: hairline-flanked caption + settle note ── */
+.pay{padding-top:26px}
+.pay-cap{display:flex;align-items:center;gap:16px}
+.pay-cap::before,.pay-cap::after{content:"";height:1px;width:min(11vw,88px)}
+.pay-cap::before{background:linear-gradient(90deg,transparent,var(--hair))}
+.pay-cap::after{background:linear-gradient(90deg,var(--hair),transparent)}
+.pay-note{font-size:12.5px;line-height:18px;color:var(--micro);text-align:center;margin-top:-2px}
 
 /* ── phone footer blind: the desktop reveal, phantom-safe. JS turns on
    html[data-blind] only when the footer fits the viewport; the in-flow
@@ -1770,6 +1918,11 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 @media (hover:none),(pointer:coarse),(max-width:639px){
   html[data-blind] .footer{position:fixed;inset:auto 0 0 0;z-index:0;margin-top:0}
   html[data-blind] .footer-spacer{height:var(--footH,0px)}
+  /* the pinned footer may only paint near the reveal — after an iOS toolbar
+     collapse/expand the sky clip can go momentarily stale, and an always-on
+     footer then shows as a solid bar at the screen bottom mid-page */
+  html[data-blind] .footer{visibility:hidden}
+  html[data-blind][data-footer-near] .footer{visibility:visible}
   /* first paint owns the whole screen: the hero spans the LARGE viewport so
      the marquee never peeks in before scrolling — even with the browser
      toolbar collapsed. The link row stays pinned at the fold; the content
@@ -1793,39 +1946,12 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   .footer .fcol b{margin-bottom:1px}
   .footer-watermark{--wm-h:calc(100vw * .14);margin-top:4px}
 }
-/* ── punch-up: gradient accent words, numbered steps, richer cards ── */
-.how-card,.voice-card,.comm-card{position:relative;overflow:hidden;transition:transform .25s cubic-bezier(.23,1,.32,1),box-shadow .25s cubic-bezier(.23,1,.32,1)}
-.how-card::before,.voice-card::before{
-  content:"";position:absolute;top:0;left:16%;right:16%;height:2px;border-radius:99px;
-  background:linear-gradient(90deg,transparent,rgba(88,101,242,.55),transparent);
-}
-.how-card:hover,.voice-card:hover{transform:translateY(-4px);box-shadow:0 34px 70px -28px rgba(4,8,18,.55),inset 0 1px 0 rgba(255,255,255,.12)}
-.how-ic{background:linear-gradient(135deg,#5865f2,#7ea2ff);border:0;color:#fff;box-shadow:0 10px 24px -10px rgba(88,101,242,.7)}
-html:not([data-theme="light"]) .how-ic{color:#fff}
-.voice-avwrap{position:relative;display:inline-flex;flex:none}
-.voice-dot{
-  position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;
-  background:#23a55a;border:2.5px solid rgba(255,255,255,.92);
-}
-.voice-quote{
-  position:absolute;top:2px;right:16px;pointer-events:none;user-select:none;
-  font:700 84px/1 var(--grotesk);color:rgba(88,101,242,.12);
-}
-html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
-.voice-av{font-size:16px;letter-spacing:-.02em}
-.voice-av svg{width:22px;height:22px}
-.voice-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.comm-card::before,.comm-card::after{
-  content:"";position:absolute;z-index:0;pointer-events:none;border-radius:50%;filter:blur(52px);
-}
-.comm-card::before{width:420px;height:320px;top:-140px;right:-90px;background:radial-gradient(closest-side,rgba(88,101,242,.28),transparent)}
-.comm-card::after{width:360px;height:280px;bottom:-140px;left:-80px;background:radial-gradient(closest-side,rgba(61,220,132,.16),transparent)}
-.comm-txt,.comm-btn{position:relative;z-index:1}
+/* ── micro-motion: chips lift, cards settle; all off under reduced motion ── */
 .pay-chip{transition:transform .2s cubic-bezier(.23,1,.32,1)}
 .pay-chip:hover{transform:translateY(-2px)}
 @media (prefers-reduced-motion:reduce){
-  .how-card,.voice-card,.pay-chip{transition:none}
-  .how-card:hover,.voice-card:hover,.pay-chip:hover{transform:none}
+  .how-cell,.voice-card,.pay-chip{transition:none}
+  .how-cell:hover,.voice-card:hover,.pay-chip:hover{transform:none}
 }
 </style>
 </head>
@@ -1883,7 +2009,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
     <a href="/privacy">Privacy</a>
     <a href="/terms">Terms</a>
     <span class="hf-sep" aria-hidden="true"></span>
-    <a class="hf-ic" href="/api/invite" aria-label="Dues on Discord"><svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></a>
+    <a class="hf-ic" href="/api/community" aria-label="Dues on Discord"><svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></a>
     <a class="hf-ic" href="https://x.com/duesdiscord" rel="noopener" aria-label="Dues on X"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zM17.083 19.77h1.833L7.084 4.126H5.117z"/></svg></a>
   </div>
 </header>
@@ -1955,64 +2081,116 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
     <span class="pay-chip pay-xtra pm-wechatchip" aria-label="WeChat Pay"><b>WeChat Pay</b></span>
     <span class="pay-chip pay-xtra pm-afterpaychip" aria-label="Afterpay"><b>afterpay</b></span>
   </div>
+  <p class="pay-note">Cards, wallets and local methods &#8212; every one settles to your own Stripe account.</p>
 </section>
 
 <!-- 4.5 · how it works -->
 <section class="how wrap" id="how">
-  <div class="how-head">
-    <p class="sec-eyebrow">HOW IT WORKS</p>
-    <h2 class="sec-display">Selling in three steps.</h2>
+  <div class="mid-head">
+    <div>
+      <p class="sec-eyebrow">HOW IT WORKS</p>
+      <h2 class="sec-display">Selling in three steps.</h2>
+    </div>
+    <p class="mid-note">From Stripe connect to first payout in one sitting &#8212; the bot handles everything after.</p>
   </div>
-  <div class="how-grid">
-    <div class="how-card reveal">
-      <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
+  <div class="how-bento">
+    <article class="how-cell how-a reveal">
+      <div class="how-top">
+        <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
+        <span class="how-step">Step 1</span>
+      </div>
       <h3>Connect Stripe</h3>
-      <p>Link your own Stripe account in minutes. Every payment settles straight into it &#8212; Dues never holds your money.</p>
-    </div>
-    <div class="how-card reveal">
-      <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
+      <p class="how-p">Link your own Stripe account in minutes. Every payment settles straight into it &#8212; Dues never holds your money.</p>
+      <div class="mui" aria-hidden="true">
+        <div class="mui-bar"><i></i><i></i><i></i><em>Setup &#183; preview</em></div>
+        <div class="mui-body">
+          <div class="mui-row"><span class="mui-tag"><span class="mui-slogo">S</span>Stripe account</span><span class="mui-chip-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg>Connected</span></div>
+          <div class="mui-row"><span>Payouts</span><span class="mui-num">Bank &#8226;&#8226;&#8226;&#8226;4242</span></div>
+          <div class="mui-row"><span>Platform fee on sales</span><span class="mui-num ok">0%</span></div>
+        </div>
+      </div>
+    </article>
+    <article class="how-cell how-b reveal">
+      <div class="how-top">
+        <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
+        <span class="how-step">Step 2</span>
+      </div>
       <h3>Create a product</h3>
-      <p>Turn any role into a product &#8212; monthly, yearly, or one-time lifetime. Set the price, pick the role, done.</p>
-    </div>
-    <div class="how-card reveal">
-      <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-      <h3>Get paid</h3>
-      <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and you keep every dollar.</p>
-    </div>
+      <p class="how-p">Turn any role into a product &#8212; monthly, yearly, or one-time lifetime. Set the price, pick the role, done.</p>
+      <div class="mui" aria-hidden="true">
+        <div class="mui-bar"><i></i><i></i><i></i><em>Product &#183; preview</em></div>
+        <div class="mui-body">
+          <div class="mui-row"><span>Role</span><span class="mui-role">@VIP</span></div>
+          <span class="mui-opt on"><span>Monthly<em>auto-renews</em></span><b>$19.99</b></span>
+          <span class="mui-opt"><span>Lifetime<em>one-time</em></span><b>$149</b></span>
+        </div>
+      </div>
+    </article>
+    <article class="how-cell how-c reveal">
+      <div class="how-c-txt">
+        <div class="how-top">
+          <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+          <span class="how-step">Step 3</span>
+        </div>
+        <h3>Get paid</h3>
+        <p class="how-p">Share your dues.gg store link. Buyers check out, roles land in seconds, and you keep every dollar.</p>
+      </div>
+      <div class="how-flow" aria-hidden="true">
+        <div class="how-node">
+          <small>Checkout</small>
+          <b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nd-blurple"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>$19.99 paid</b>
+        </div>
+        <span class="how-join">&#8594;</span>
+        <div class="how-node n-role">
+          <small>Discord</small>
+          <b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="nd-blurple"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg>@VIP granted</b>
+        </div>
+        <span class="how-join">&#8594;</span>
+        <div class="how-node n-pay">
+          <small>Your Stripe</small>
+          <b class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>Every dollar &#8594; you</b>
+        </div>
+      </div>
+    </article>
   </div>
 </section>
 
 <!-- 5.8 · what sellers say -->
 <section class="voices wrap" aria-label="What communities say about Dues">
-  <div class="voices-head">
-    <p class="sec-eyebrow">COMMUNITIES</p>
-    <h2 class="sec-display">What sellers say.</h2>
+  <div class="mid-head">
+    <div>
+      <p class="sec-eyebrow">COMMUNITIES</p>
+      <h2 class="sec-display">What sellers say.</h2>
+    </div>
+    <p class="mid-note">Owners selling roles on their own Stripe accounts.</p>
   </div>
-  <div class="voices-grid">
-    <figure class="voice-card reveal">
+  <div class="voices-stage">
+    <figure class="voice-card voice-lead reveal">
       <span class="voice-quote" aria-hidden="true">&#8220;</span>
       <figcaption class="voice-who">
-        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#23262e,#4b5162)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg></span><i class="voice-dot"></i></span>
+        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#23262e,#4b5162)"><img src="/voices/ak.jpg" alt="" width="128" height="128" loading="lazy" decoding="async"></span><i class="voice-dot"></i></span>
         <span class="voice-meta"><b>AK</b><small>stupidmoneyconcepts</small></span>
       </figcaption>
       <blockquote>Had the store live the same night. Members buy, the role hits instantly, and every dollar lands in my own Stripe.</blockquote>
     </figure>
-    <figure class="voice-card reveal">
-      <span class="voice-quote" aria-hidden="true">&#8220;</span>
-      <figcaption class="voice-who">
-        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#b8860b,#ffd23f)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16l1.2-4.2A2 2 0 0 1 8.1 10.4h7.8a2 2 0 0 1 1.9 1.4L19 16"/><rect x="3.6" y="15.6" width="16.8" height="4" rx="1.4"/><circle cx="7.6" cy="19.6" r="1.5" fill="#fff" stroke="none"/><circle cx="16.4" cy="19.6" r="1.5" fill="#fff" stroke="none"/></svg></span><i class="voice-dot"></i></span>
-        <span class="voice-meta"><b>Hazen</b><small>apex garage</small></span>
-      </figcaption>
-      <blockquote>Our paid car-club tiers run themselves now. Zero platform cut means the garage keeps what it earns.</blockquote>
-    </figure>
-    <figure class="voice-card reveal">
-      <span class="voice-quote" aria-hidden="true">&#8220;</span>
-      <figcaption class="voice-who">
-        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#7a2a1d,#d4593f)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg></span><i class="voice-dot"></i></span>
-        <span class="voice-meta"><b>Jasonlang77</b><small>ringside picks</small></span>
-      </figcaption>
-      <blockquote>Fight-night picks are a paid role now. Subs renew on their own and lapsed cards lose access without me touching anything.</blockquote>
-    </figure>
+    <div class="voices-side">
+      <figure class="voice-card reveal">
+        <span class="voice-quote" aria-hidden="true">&#8220;</span>
+        <figcaption class="voice-who">
+          <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#b8860b,#ffd23f)"><img src="/voices/hazen.jpg" alt="" width="128" height="128" loading="lazy" decoding="async"></span><i class="voice-dot"></i></span>
+          <span class="voice-meta"><b>Hazen</b><small>apex garage</small></span>
+        </figcaption>
+        <blockquote>Our paid car-club tiers run themselves now. Zero platform cut means the garage keeps what it earns.</blockquote>
+      </figure>
+      <figure class="voice-card reveal">
+        <span class="voice-quote" aria-hidden="true">&#8220;</span>
+        <figcaption class="voice-who">
+          <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#7a2a1d,#d4593f)"><img src="/voices/jason.jpg" alt="" width="128" height="128" loading="lazy" decoding="async"></span><i class="voice-dot"></i></span>
+          <span class="voice-meta"><b>Jasonlang77</b><small>ringside picks</small></span>
+        </figcaption>
+        <blockquote>Fight-night picks are a paid role now. Subs renew on their own and lapsed cards lose access without me touching anything.</blockquote>
+      </figure>
+    </div>
   </div>
 </section>
 
@@ -2027,8 +2205,28 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Feature requests</li>
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Owner networking</li>
       </ul>
+      <div class="comm-cta-row">
+        <a class="btn btn-primary comm-btn" href="/api/community">Join our Discord</a>
+      </div>
     </div>
-    <a class="btn btn-primary comm-btn" href="/api/community">Join our Discord</a>
+    <div class="comm-mock" aria-hidden="true">
+      <div class="cm-head"><span class="cm-hash">#</span><b>owners-lounge</b><span class="cm-presence"><i></i>online</span></div>
+      <div class="cm-body">
+        <div class="cm-msg">
+          <span class="cm-av" style="background:linear-gradient(135deg,#23262e,#4b5162)"><i></i></span>
+          <span class="cm-lines"><i class="ln-name" style="width:27%"></i><i style="width:82%"></i><i style="width:58%"></i></span>
+        </div>
+        <div class="cm-msg">
+          <span class="cm-av" style="background:linear-gradient(135deg,#b8860b,#ffd23f)"><i></i></span>
+          <span class="cm-lines"><i class="ln-name" style="width:34%"></i><i style="width:46%"></i></span>
+        </div>
+        <div class="cm-msg">
+          <span class="cm-av" style="background:linear-gradient(135deg,#5865f2,#7ea2ff)"><i></i></span>
+          <span class="cm-lines"><i class="ln-name" style="width:21%"></i><i style="width:74%"></i></span>
+        </div>
+        <div class="cm-typing"><span class="dots"><i></i><i></i><i></i></span>the Dues team is typing&#8230;</div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -2083,7 +2281,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
         <span class="f-brand"><span class="glyph" aria-hidden="true"></span>Dues</span>
         <p class="f-copy">&#169; 2026 Dues. All rights reserved.</p>
         <div class="f-socials">
-          <a class="soc-tile" href="/api/invite" aria-label="Join the Dues Discord"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></a>
+          <a class="soc-tile" href="/api/community" aria-label="Join the Dues Discord"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></a>
           <a class="soc-tile" href="https://x.com/duesdiscord" rel="noopener" aria-label="Dues on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zM17.083 19.77h1.833L7.084 4.126H5.117z"/></svg></a>
         </div>
       </div>
@@ -2121,7 +2319,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
   </div>
 </footer>
 
-<script src="/sky.js?v=166" defer></script>
+<script src="/sky.js?v=167" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2427,6 +2625,8 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
     var bottom = sheet.getBoundingClientRect().bottom;
     var revealed = bottom <= window.innerHeight + 1;
     html.toggleAttribute('data-footer-revealed', revealed);
+    // the pinned footer may only paint near the reveal (see the CSS gate)
+    html.toggleAttribute('data-footer-near', bottom <= window.innerHeight + 160);
     if(sky && html.hasAttribute('data-blind')){
       // clip the fixed sky at the sheet's lip (canvas overshoots 160px below
       // the viewport, and the lip's 40px bottom radius carries into the clip)
@@ -2437,11 +2637,22 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
       }
     }
   };
-  addEventListener('scroll', on, { passive:true });
-  addEventListener('resize', function(){ fit(); on(); });
-  addEventListener('load', function(){ fit(); on(); });
+  // momentum scrolling and toolbar animations can swallow the final scroll
+  // event — always recompute once more after everything settles
+  var settle;
+  var onScroll = function(){ on(); clearTimeout(settle); settle = setTimeout(on, 160); };
+  var refresh = function(){ lastClip = -1; fit(); on(); };
+  addEventListener('scroll', onScroll, { passive:true });
+  addEventListener('resize', refresh);
+  addEventListener('load', refresh);
+  if(window.visualViewport){
+    // iOS moves the visual viewport on toolbar collapse/expand without
+    // reliably firing window resize — recompute so the clip never goes stale
+    visualViewport.addEventListener('resize', refresh);
+    visualViewport.addEventListener('scroll', onScroll);
+  }
   if('ResizeObserver' in window && footer){
-    new ResizeObserver(function(){ fit(); on(); }).observe(footer);
+    new ResizeObserver(refresh).observe(footer);
   }
   fit(); on();
 })();

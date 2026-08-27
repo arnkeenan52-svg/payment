@@ -32,10 +32,13 @@ RUN fc-cache -f >/dev/null
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --no-audit --no-fund
 
-# The real Dues lockup, composited onto every card. welcome-card.js resolves it
-# relative to itself (../../assets), so it has to land at /app/assets — unlike
-# the fonts above, which fontconfig finds system-wide.
-COPY assets/dues-mark.png ./assets/dues-mark.png
+# The real Dues lockup, composited onto every card, plus the cloud grounds the
+# sky theme reads at render time. welcome-card.js resolves them relative to
+# itself (../../assets), so they have to land at /app/assets — unlike the
+# fonts above, which fontconfig finds system-wide. Missing grounds no longer
+# kill the card (it falls back to the flat brand color), but the whole point
+# is the clouds — keep these in step with THEMES in welcome-card.js.
+COPY assets/dues-mark.png assets/sky-night-card.jpg assets/sky-day-card.jpg ./assets/
 
 COPY scripts/presence.js ./scripts/presence.js
 COPY src/lib/welcome-card.js ./src/lib/welcome-card.js

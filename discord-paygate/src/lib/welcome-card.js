@@ -76,14 +76,25 @@ const THEMES = {
 // The cloud ground, embedded as a data URI so librsvg needs no file access.
 // Cached per theme; sliced to cover whatever card size asks for it. A soft
 // navy gradient sits on top so white text stays readable over bright clouds.
+//
+// A missing ground must never cost the card itself: a deployment that forgot
+// to ship the JPGs (the worker image copies assets file-by-file) degrades to
+// the flat brand color under the same scrim, and warns loudly once, instead
+// of throwing away every welcome message over a decoration.
 const skyCache = new Map();
 function skyLayer(t, w, h) {
   if (!skyCache.has(t.sky)) {
-    const bytes = readFileSync(fileURLToPath(new URL(`../../assets/${t.sky}`, import.meta.url)));
-    skyCache.set(t.sky, `data:image/jpeg;base64,${bytes.toString('base64')}`);
+    try {
+      const bytes = readFileSync(fileURLToPath(new URL(`../../assets/${t.sky}`, import.meta.url)));
+      skyCache.set(t.sky, `data:image/jpeg;base64,${bytes.toString('base64')}`);
+    } catch (err) {
+      console.warn(`[welcome-card] sky ground assets/${t.sky} unreadable (${err.code ?? err.message}) — rendering flat ${t.bg}`);
+      skyCache.set(t.sky, null);
+    }
   }
+  const ground = skyCache.get(t.sky);
   return (
-    `<image x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" href="${skyCache.get(t.sky)}" />` +
+    (ground ? `<image x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" href="${ground}" />` : '') +
     `<rect width="${w}" height="${h}" fill="url(#duesScrim)" />`
   );
 }

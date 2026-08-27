@@ -18,15 +18,15 @@
   <!-- og:end -->
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=166" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=166" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=167" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=167" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=166" />
+  <link rel="stylesheet" href="/styles.css?v=167" />
 </head>
 <body>
   <header class="top">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=166" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=167" alt="Dues" height="20" /></a>
     </div>
     <div id="account" class="account"></div>
   </header>
@@ -37,13 +37,20 @@
          no ?plan deep link; picking a card slides into the checkout below. -->
     <section class="shop" id="shop" hidden>
       <div class="shop-hero" id="shop-hero">
-        <img class="shop-banner" id="shop-banner" alt="" hidden onerror="this.hidden = true" />
-        <img class="logo shop-icon" id="shop-icon" src="" alt="" width="84" height="84" hidden />
+        <img class="shop-banner media-fade" id="shop-banner" alt="" hidden onerror="this.hidden = true" onload="this.classList.add('loaded')" />
+        <img class="logo shop-icon media-fade" id="shop-icon" src="" alt="" width="84" height="84" hidden onload="this.classList.add('loaded')" />
       </div>
       <div class="shop-head">
         <div class="shop-titlebar">
           <h1 class="shop-name" id="shop-name">&nbsp;</h1>
-          <a class="shop-join" id="shop-join" href="#shop-pane-products">Join</a>
+          <div class="shop-actions">
+            <button type="button" class="shop-share" id="shop-share" hidden aria-label="Share this store — copies the link">
+              <svg class="ss-share" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+              <svg class="ss-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>
+              <span class="shop-share-tip" role="status">Link copied</span>
+            </button>
+            <a class="shop-join" id="shop-join" href="#shop-pane-products">Join</a>
+          </div>
         </div>
         <p class="shop-desc" id="shop-desc" hidden><span id="shop-desc-text"></span><button type="button" class="shop-desc-more" id="shop-desc-more" hidden>&#8230; see more</button></p>
         <div class="shop-metaline" id="shop-metaline"></div>
@@ -71,7 +78,7 @@
 
       <div class="order-product">
         <div class="op-left">
-          <img class="op-thumb" id="product-shot" alt="" hidden onerror="this.hidden = true" />
+          <img class="op-thumb media-fade" id="product-shot" alt="" hidden onerror="this.hidden = true" onload="this.classList.add('loaded')" />
           <span class="op-name" id="plan-name">&nbsp;</span>
         </div>
         <span class="op-price" id="price">&nbsp;</span>
@@ -125,10 +132,10 @@
 
   <footer>
     <span class="powered-label">Checkout powered by:</span>
-    <img class="powered-mark" src="/dues.png?v=166" alt="Dues" height="18" />
+    <img class="powered-mark" src="/dues.png?v=167" alt="Dues" height="18" />
     <a class="powered-community" href="https://discord.gg/G6yjsX5qbB" rel="noopener">Join the Dues community</a>
   </footer>
 
-  <script src="/app.js?v=166"></script>
+  <script src="/app.js?v=167"></script>
 </body>
 </html>

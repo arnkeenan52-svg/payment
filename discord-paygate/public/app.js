@@ -156,6 +156,7 @@ function renderBrand() {
         vid.loop = true;
         vid.playsInline = true;
         vid.setAttribute('aria-hidden', 'true');
+        vid.addEventListener('loadeddata', () => vid.classList.add('loaded'), { once: true });
         shot.after(vid);
       }
       if (vid.getAttribute('src') !== art) vid.src = art;
@@ -397,6 +398,14 @@ function renderCta() {
   btn.textContent = `Pay ${fmtPrice(applied ? applied.discountedUsd : plan.priceUsd)} with ${state.method === 'coinbase' ? 'Crypto' : 'Card'}`;
   btn.onclick = () => pay(btn, plan);
   area.append(btn);
+  // One quiet, factual line under the buy action: renewing plans really can
+  // be cancelled from /account; lifetime plans really never bill again.
+  const assure = document.createElement('p');
+  assure.className = 'pay-assure';
+  assure.textContent = plan.lifetime
+    ? 'One-time payment — no renewals, ever.'
+    : 'Cancel anytime from your account.';
+  area.append(assure);
 }
 
 // The Apply button: confirm the code with the server and show the buyer the
@@ -795,6 +804,38 @@ function renderShop() {
     join.dataset.wired = '1';
     join.addEventListener('click', () => setTab('products'));
   }
+  // Share: copies the store's canonical link (desktop) or opens the native
+  // share sheet (touch). Frontend-only — no network, nothing invented.
+  const share = $('#shop-share');
+  if (share && STORE_SLUG) {
+    share.hidden = false;
+    if (!share.dataset.wired) {
+      share.dataset.wired = '1';
+      share.addEventListener('click', async () => {
+        const url = `${location.origin}/${STORE_SLUG}`;
+        const title = state.brand ?? state.server?.name ?? 'Dues store';
+        if (navigator.share && window.matchMedia?.('(pointer: coarse)').matches) {
+          try { await navigator.share({ title, url }); } catch { /* sheet dismissed */ }
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(url);
+        } catch {
+          // Clipboard API can be denied (permissions, http) — fall back.
+          const tmp = document.createElement('textarea');
+          tmp.value = url;
+          tmp.style.cssText = 'position:fixed;top:-200px;opacity:0';
+          document.body.append(tmp);
+          tmp.select();
+          try { document.execCommand('copy'); } catch { /* nothing left to try */ }
+          tmp.remove();
+        }
+        share.classList.add('copied');
+        clearTimeout(share._copiedTimer);
+        share._copiedTimer = setTimeout(() => share.classList.remove('copied'), 1800);
+      });
+    }
+  }
   const grid = $('#shop-grid');
   // One card per PRODUCT: price options ride inside their product's page,
   // never as sibling cards.
@@ -816,8 +857,8 @@ function renderShop() {
     card.innerHTML =
       (plan.imageUrl
         ? (isVideoMedia(plan)
-            ? `<video class="prod-shot" src="${esc(plan.imageUrl)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true" onerror="this.remove()"></video>`
-            : `<img class="prod-shot" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" />`)
+            ? `<video class="prod-shot media-fade" src="${esc(plan.imageUrl)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true" onerror="this.remove()" onloadeddata="this.classList.add('loaded')"></video>`
+            : `<img class="prod-shot media-fade" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" onload="this.classList.add('loaded')" />`)
         : `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`) +
       `<span class="prod-name">${esc(plan.name)}</span>` +
       `<span class="prod-foot"><span class="prod-price">${priceHtml}</span><span class="prod-per">${per}</span></span>`;
