@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#131b2d" />
   <title>My Account — Dues</title>
   <meta name="robots" content="noindex" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
@@ -11,6 +12,48 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=143" />
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="/styles.css?v=143" />
+  <style>
+    /* Navy night retheme — colors only. Remaps the old "Dues black" monochrome
+       tokens from styles.css onto the brand's navy system (the landing page's
+       night :root). Scoped to the dark face; html[data-theme="light"] keeps the
+       stylesheet's own light values untouched. */
+    html:not([data-theme='light']) {
+      --bg: #101827;                       /* page ground */
+      --panel: #182338;                    /* raised panels / cards */
+      --panel-hover: #1e2b45;
+      --edge: rgba(148, 163, 190, 0.16);   /* hairline borders */
+      --edge-selected: #5865f2;            /* selection rings: blurple */
+      --ink: #f2f5fa;                      /* primary text */
+      --dim: #b7c1d4;                      /* secondary text */
+      --accent: #5865f2;                   /* blurple replaces the white action color */
+      --accent-hot: #4752e8;
+      --accent-ink: #ffffff;
+      --well: #131b2d;                     /* deeper insets */
+      --raised: #1c2740;
+      --hairline: rgba(148, 163, 190, 0.10);
+      --hairline-2: rgba(148, 163, 190, 0.14);
+      --edge-hot: rgba(148, 163, 190, 0.32);
+      --active-fill: #223050;
+      --faint: #94a0b5;                    /* muted */
+      --solid: #5865f2;                    /* white primary fills -> blurple */
+      --solid-ink: #ffffff;
+      --good: #3ddc84;                     /* positive money green */
+      --money: #3ddc84;
+    }
+    html:not([data-theme='light']) ::selection { background: rgba(88, 101, 242, 0.45); color: #f2f5fa; }
+    /* primary action pill: the mono grey fill becomes the brand blurple,
+       matching the landing's sign-in pill (body.home .account .btn-pill) */
+    html:not([data-theme='light']) .btn-pill { background: var(--blurple); border-color: transparent; color: #ffffff; }
+    html:not([data-theme='light']) .btn-pill:hover { background: #4752e8; filter: none; }
+    /* literal monochrome / off-palette colors in styles.css, remapped */
+    html:not([data-theme='light']) .pay-btn:hover:not(:disabled) { background: #4752e8; }
+    html:not([data-theme='light']) .btn-blurple:hover { background: #4752e8; }
+    html:not([data-theme='light']) .error-actions .dismiss:hover { background: var(--active-fill); }
+    /* focus rings: blurple (the blurple pay/primary buttons keep their legible pale ring) */
+    html:not([data-theme='light']) .btn-fill:focus-visible,
+    html:not([data-theme='light']) .btn-secondary:focus-visible,
+    html:not([data-theme='light']) .powered-community:focus-visible { outline-color: #5865f2; }
+  </style>
   <script src="/theme.js?v=143"></script>
 </head>
 <body>
