@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://dues.gg';
-const V = '143'; // keep in step with the ?v= asset version on index.html
+const V = '144'; // keep in step with the ?v= asset version on index.html
 
 // Dues plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -243,10 +243,113 @@ const USE_CASES = {
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// Day-sky retheme (the landing page's light look, statically): these pages are
+// DAY-ONLY — the tokens below override styles.css in every data-theme state,
+// so the ground is always the sky gradient, panels are frosted white glass,
+// and the one action color is blurple. Colors/surfaces only; markup untouched.
+const DAY_CSS = `
+/* day-sky theme — overrides the monochrome tokens in styles.css (all states) */
+:root, :root[data-theme='light'], :root[data-theme='dark'] {
+  color-scheme: light;
+  --bg: #f4f8fd;
+  --panel: rgba(255,255,255,.62);
+  --panel-hover: rgba(255,255,255,.86);
+  --edge: rgba(255,255,255,.75);
+  --edge-selected: rgba(15,22,38,.32);
+  --ink: #0f1626;
+  --dim: #43506a;
+  --accent: #5865f2;
+  --accent-hot: #4752e8;
+  --accent-ink: #ffffff;
+  --well: rgba(255,255,255,.5);
+  --raised: rgba(255,255,255,.72);
+  --hairline: rgba(15,22,38,.08);
+  --hairline-2: rgba(15,22,38,.12);
+  --edge-hot: rgba(15,22,38,.28);
+  --active-fill: rgba(255,255,255,.92);
+  --faint: #8fa0bd;
+  --solid: #5865f2;
+  --solid-ink: #ffffff;
+  --blurple: #5865f2;
+  --blurple-text: #4753c9;
+  --good: #15803d;
+  --bad: #c43c3c;
+  --money: #15803d;
+  --amber: #9a6207;
+}
+/* the Discord-native landing block re-declares the dark surface tokens under
+   html:not([data-theme='light']) body.home — out-specify it back to day */
+body.home,
+html:not([data-theme='light']) body.home,
+html[data-theme='light'] body.home {
+  --bg: #f4f8fd;
+  --panel: rgba(255,255,255,.62);
+  --panel-hover: rgba(255,255,255,.86);
+  --well: rgba(255,255,255,.5);
+  --raised: rgba(255,255,255,.72);
+  --edge: rgba(255,255,255,.75);
+  --edge-hot: rgba(15,22,38,.28);
+  --hairline: rgba(15,22,38,.08);
+  --hairline-2: rgba(15,22,38,.12);
+  --active-fill: rgba(255,255,255,.92);
+  --ink: #0f1626;
+  --dim: #43506a;
+  --faint: #8fa0bd;
+  --brand-text: #4a54d6;
+}
+/* static day ground: sky at the top, paper below; html stays sky so iOS
+   chrome and overscroll blend */
+html, html[data-theme='light'], html[data-theme='dark'] { background: #70a3e6; }
+body, body.home {
+  background: linear-gradient(180deg, #70a3e6 0%, #adceed 420px, #f4f8fd 820px, #f4f8fd 100%);
+  color: var(--ink);
+}
+/* frosted white glass panels */
+.panel, body.home .panel {
+  background: rgba(255,255,255,.62);
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 18px;
+  box-shadow: 0 18px 40px -18px rgba(40,60,120,.25);
+}
+/* nav: white glass over the sky (also when a scroll listener adds .scrolled) */
+.top, body.home .top,
+html:not([data-theme='light']) body.home .top.scrolled,
+html[data-theme='light'] body.home .top.scrolled {
+  background: rgba(255,255,255,.55);
+  border-bottom: 1px solid rgba(255,255,255,.65);
+}
+/* the wordmark ships as a white PNG — always invert it on the day ground */
+.platform-mark, .powered-mark { filter: invert(1); }
+/* these pages are day-only: no theme toggle */
+.theme-btn { display: none; }
+/* blurple pill buttons */
+.btn-fill, .btn-blurple { background: #5865f2; color: #ffffff; border-radius: 999px; }
+.btn-fill:hover, .btn-blurple:hover { filter: none; background: #4752e8; }
+.btn-pill, .btn-secondary { border-radius: 999px; }
+/* big headings sit a touch lighter on the sky */
+h1, .xhero h1, .section-title { font-weight: 600; }
+/* hero copy sits on the deepest sky — needs near-ink, not 60% ink */
+.xhero .hero-sub, .seo-hero .hero-sub, .disc-hero .hero-sub { color: rgba(15,22,38,.82); }
+body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
+/* hairlines that only existed as white-on-dark need real ink now */
+.cmp-table th { border-bottom-color: rgba(15,22,38,.2); }
+.disc-meta { border-top-color: rgba(15,22,38,.12); }
+/* footnotes need real muted ink, not a transparent mix */
+.calc-note, .footer-disclaimer { color: #66748f; }
+.calc-bar-sub { color: rgba(15,22,38,.55); }
+/* links read blurple everywhere */
+.guide-body a { color: #5865f2; }
+.alt-card .seo-card-cta a { color: #5865f2; }
+/* "our product" chip on the alternatives lists */
+.alt-ours { background: #5865f2; color: #ffffff; }
+/* search box as glass (discover) */
+.search-box { background: rgba(255,255,255,.62); border-color: rgba(255,255,255,.75); }
+`;
+
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=143" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=144" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/pricing">Pricing</a>
@@ -263,7 +366,7 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=143" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=144" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -314,6 +417,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#70a3e6" />
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />
   <link rel="canonical" href="${canonical}" />
@@ -333,8 +437,9 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=${V}" />
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
+  <style>${DAY_CSS}</style>
   ${ld}
-  <script src="/theme.js?v=143"></script>
+  <script src="/theme.js?v=144"></script>
 </head>
 <body class="home seo-page">
 ${nav}
