@@ -40,6 +40,10 @@
       "destination": "/api/webhooks/stripe?store=:storeid"
     },
     {
+      "source": "/pricing",
+      "destination": "/pricing.html"
+    },
+    {
       "source": "/terms",
       "destination": "/terms.html"
     },

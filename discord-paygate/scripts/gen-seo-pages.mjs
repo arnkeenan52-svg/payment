@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://dues.gg';
-const V = '133'; // keep in step with the ?v= asset version on index.html
+const V = '134'; // keep in step with the ?v= asset version on index.html
 
 // Dues plan facts (src/services/billing.js TIERS — keep in sync).
 const RIPLEY_TIERS = [
@@ -246,11 +246,11 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=133" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=134" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/#features">Features</a>
-      <a class="nav-link" href="/#pricing">Pricing</a>
+      <a class="nav-link" href="/pricing">Pricing</a>
       <a class="nav-link" href="/vs">Compare</a>
       <a class="nav-link" href="/tools">Tools</a>
     </nav>
@@ -263,11 +263,11 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=133" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=134" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
-      <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/#pricing">Pricing</a><a href="/#faq">FAQ</a>
+      <a href="/discover">Discover stores</a><a href="/#features">Features</a><a href="/pricing">Pricing</a><a href="/#faq">FAQ</a>
       <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a>
       <a href="https://discord.gg/G6yjsX5qbB" rel="noopener">Community Discord</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
@@ -334,7 +334,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   ${ld}
-  <script src="/theme.js?v=133"></script>
+  <script src="/theme.js?v=134"></script>
 </head>
 <body class="home seo-page">
 ${nav}
@@ -1170,7 +1170,7 @@ function helpPage() {
     ['Members & transactions', 'Every member and payment in one place: search, CSV export, and manual extend or revoke when you need to step in.', '/dashboard', 'Dashboard → Members'],
     ['Make it yours', 'Theme presets, custom colors, corner radius and typeface — with a live preview of your storefront before anything is saved.', '/dashboard', 'Dashboard → Store → Appearance'],
     ['Discover', 'An optional public directory of Dues stores. Off by default; list yours from the Store section if you want the traffic.', '/discover', 'Browse Discover'],
-    ['Your plan', 'Free for your first 10 paying members. After that, flat monthly plans from $14.99 — always 0% of sales, on every plan.', '/#pricing', 'See pricing'],
+    ['Your plan', 'Free for your first 10 paying members. After that, flat monthly plans from $14.99 — always 0% of sales, on every plan.', '/pricing', 'See pricing'],
     ['For buyers: your account', 'Cancel a renewing membership yourself, see what you own, and re-sync your Discord role if it ever goes missing.', '/account', 'Open your account'],
     ['Receipts', 'Buyers get a confirmation email after every purchase, and each payment has a receipt page they can get back to.', '/terms', 'Delivery & refunds'],
   ];
@@ -1310,7 +1310,7 @@ Competitor pricing referenced anywhere on this site is the publicly listed prici
 // sitemap + robots: the landing page plus every generated page. Store pages
 // are user content and terms/privacy/dashboard/account are noindex — none of
 // those belong in the sitemap.
-const urls = ['/', '/vs', ...Object.keys(COMPETITORS).map((s) => `/vs/${s}`), '/tools',
+const urls = ['/', '/pricing', '/vs', ...Object.keys(COMPETITORS).map((s) => `/vs/${s}`), '/tools',
   '/tools/discord-fee-calculator', '/tools/whop-fee-calculator', '/tools/launchpass-fee-calculator', '/tools/patreon-fee-calculator', '/tools/doorfee-fee-calculator',
   '/use-cases', ...Object.keys(USE_CASES).map((s) => `/use-cases/${s}`),
   '/guides', ...Object.keys(GUIDES).map((s) => `/guides/${s}`),

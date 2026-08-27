@@ -15,18 +15,18 @@
     }
   })();
   </script>
-  <title>Dues — The Discord payment platform with 0% platform fees</title>
-  <meta name="description" content="Monetize your Discord server and receive payments straight to your own Stripe account. 0% platform fees, instant role delivery, free for your first 10 members." />
+  <title>Pricing — Dues</title>
+  <meta name="description" content="Dues pricing: 0% platform fee on every plan. Free for your first 10 paying members, then flat monthly plans — Pro $14.99, Max $44.99, Unlimited $134.99. Yearly gets 2 months free." />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Dues — Sell Discord access" />
+  <meta property="og:title" content="Pricing — Dues" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
   <meta property="og:image" content="https://dues.gg/og-card.png" />
   <meta property="og:image:width" content="2400" />
   <meta property="og:image:height" content="1260" />
-  <meta property="og:url" content="https://dues.gg/" />
-  <link rel="canonical" href="https://dues.gg/" />
+  <meta property="og:url" content="https://dues.gg/pricing" />
+  <link rel="canonical" href="https://dues.gg/pricing" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Dues — Sell Discord access" />
+  <meta name="twitter:title" content="Pricing — Dues" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
@@ -1547,6 +1547,15 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
   .footer-watermark{--wm-h:calc(100vw * .2)}
 }
 
+
+/* ── pricing page ── */
+.page-hero{padding:148px 0 6px;text-align:center}
+.page-hero h1{font-family:var(--jakarta);font-weight:600;font-size:clamp(42px,4.8vw,64px);letter-spacing:-.03em;word-spacing:.06em;line-height:1.06;color:var(--ink)}
+.page-hero .sec-eyebrow{margin-bottom:16px}
+.page-hero-sub{margin:18px auto 0;max-width:560px;font-size:17px;line-height:27px;color:var(--sec)}
+html:not([data-theme="light"]) .page-hero-sub{color:#c6d0e2}
+.crescendo{margin-top:40px}
+@media (max-width:600px){.page-hero{padding:120px 20px 0}}
 </style>
 </head>
 <body>
@@ -1562,7 +1571,7 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
       <span class="glyph" aria-hidden="true"></span><span>Dues</span>
     </a>
     <div class="nav-links">
-      <a href="/pricing">Pricing</a>
+      <a href="/pricing" aria-current="page">Pricing</a>
       <a href="/discover">Discover</a>
       <a href="/api/invite">Invite Dues &#8599;</a>
     </div>
@@ -1577,292 +1586,99 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
   </div>
 </nav>
 
-<!-- 3 · hero -->
-<header class="hero">
-  <div class="hero-core">
-    <h1>Sell roles. <span class="h1-key">Keep every dollar.</span></h1>
-    <p class="hero-sub">Dues connects your
-      <span class="inline-mark"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="#5865f2" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>Discord</span>
-      server to your own
-      <span class="inline-mark"><span class="mark-s">S</span>Stripe</span>
-      account. Buyers pay, roles deliver themselves.</p>
-    <form class="capture" id="captureForm" action="/dashboard" method="get">
-      <span class="capture-prefix" aria-hidden="true">dues.gg/</span>
-      <input type="text" name="server" placeholder="your-server" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Your server name">
-      <button class="btn btn-primary" type="submit">Open your store &#8594;</button>
-    </form>
-    <p class="microcopy">Free plan &#183; No credit card required<span class="mc-compat"> &#183; Compatible with
-      <svg class="stripe-wordmark" viewBox="54 36 360 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stripe"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M414,113.4c0-25.6-12.4-45.8-36.1-45.8c-23.8,0-38.2,20.2-38.2,45.6c0,30.1,17,45.3,41.4,45.3c11.9,0,20.9-2.7,27.7-6.5v-20c-6.8,3.4-14.6,5.5-24.5,5.5c-9.7,0-18.3-3.4-19.4-15.2h48.9C413.8,121,414,115.8,414,113.4z M364.6,103.9c0-11.3,6.9-16,13.2-16c6.1,0,12.6,4.7,12.6,16H364.6z M301.1,67.6c-9.8,0-16.1,4.6-19.6,7.8l-1.3-6.2h-22v116.6l25-5.3l0.1-28.3c3.6,2.6,8.9,6.3,17.7,6.3c17.9,0,34.2-14.4,34.2-46.1C335.1,83.4,318.6,67.6,301.1,67.6z M295.1,136.5c-5.9,0-9.4-2.1-11.8-4.7l-0.1-37.1c2.6-2.9,6.2-4.9,11.9-4.9c9.1,0,15.4,10.2,15.4,23.3C310.5,126.5,304.3,136.5,295.1,136.5z M223.8,61.7l25.1-5.4V36l-25.1,5.3V61.7z M223.8,69.3h25.1v87.5h-25.1V69.3z M196.9,76.7l-1.6-7.4h-21.6v87.5h25V97.5c5.9-7.7,15.9-6.3,19-5.2v-23C214.5,68.1,202.8,65.9,196.9,76.7z M146.9,47.6l-24.4,5.2l-0.1,80.1c0,14.8,11.1,25.7,25.9,25.7c8.2,0,14.2-1.5,17.5-3.3V135c-3.2,1.3-19,5.9-19-8.9V90.6h19V69.3h-19L146.9,47.6z M79.3,94.7c0-3.9,3.2-5.4,8.5-5.4c7.6,0,17.2,2.3,24.8,6.4V72.2c-8.3-3.3-16.5-4.6-24.8-4.6C67.5,67.6,54,78.2,54,95.9c0,27.6,38,23.2,38,35.1c0,4.6-4,6.1-9.6,6.1c-8.3,0-18.9-3.4-27.3-8v23.8c9.3,4,18.7,5.7,27.3,5.7c20.8,0,35.1-10.3,35.1-28.2C117.4,100.6,79.3,105.9,79.3,94.7z"/></svg> and <span class="discord-inline" role="img" aria-label="Discord"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="currentColor" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg><b>Discord</b></span></span>
-    </p>
-  </div>
-
-  <div class="hero-foot">
-    <a href="/pricing">Pricing</a>
-    <a href="/privacy">Privacy</a>
-    <a href="/terms">Terms</a>
-    <span class="hf-sep" aria-hidden="true"></span>
-    <a class="hf-ic" href="/api/invite" aria-label="Dues on Discord"><svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></a>
-    <a class="hf-ic" href="https://x.com/duesgg" rel="noopener" aria-label="Dues on X"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zM17.083 19.77h1.833L7.084 4.126H5.117z"/></svg></a>
-  </div>
+<!-- pricing page head -->
+<header class="page-hero wrap">
+  <p class="sec-eyebrow">PRICING</p>
+  <h1>Flat plans. 0% fees.</h1>
+  <p class="page-hero-sub">Every plan keeps the platform fee at zero. You pay Stripe&rsquo;s processing and nothing else &mdash; upgrade only for more paying members.</p>
 </header>
 
-<main>
-
-<!-- 4 · role marquee -->
-
-
-<!-- 5 · how it works · ugc.foundable four-step -->
-<section id="features" class="steps wrap" aria-labelledby="hiw-title">
-  <div class="hiw-inner">
-    <header class="hiw-head reveal">
-      <p class="hiw-eyebrow">How it works</p>
-      <h2 id="hiw-title">Four steps from server to payout.</h2>
-    </header>
-    <div class="hiw-grid">
-
-      <article class="hiw-step reveal">
-        <p class="hiw-n">(1)</p>
-        <h3>Connect</h3>
-        <p class="hiw-body">Sign in with Discord, pick your server, and link the Stripe account the money should land in.</p>
-        <div class="hiw-panel">
-          <div class="hiw-card" aria-hidden="true">
-            <div class="hiw-card-head">
-              <span class="hiw-card-title">Connect your server</span>
-              <span class="hiw-live"><i></i>Usually takes a minute</span>
-            </div>
-            <div class="hiw-progress"><i class="on"></i><i></i><i></i><i></i></div>
-            <div class="hiw-label">Server</div>
-            <div class="hiw-row">
-              <span class="hiw-tile hiw-tile-d"><svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></span>
-              <span class="hiw-row-main">Apex Signals<em>1,284 members</em></span>
-              <span class="hiw-row-ok"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </div>
-            <div class="hiw-label">Payouts</div>
-            <div class="hiw-row">
-              <span class="hiw-tile hiw-tile-s">S</span>
-              <span class="hiw-row-main">Your Stripe<em>Connected</em></span>
-              <span class="hiw-row-ok"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </div>
-            <div class="hiw-submit">Continue</div>
-            <p class="hiw-cardmicro">No code &#183; takes minutes</p>
-          </div>
-        </div>
-      </article>
-
-      <article class="hiw-step reveal">
-        <p class="hiw-n">(2)</p>
-        <h3>Create</h3>
-        <p class="hiw-body">Name a product, set a price, attach the role it unlocks. Publish when it looks right.</p>
-        <div class="hiw-panel">
-          <div class="hiw-card" aria-hidden="true">
-            <div class="hiw-card-head">
-              <span class="hiw-card-title">New product</span>
-              <span class="hiw-live"><i></i>Preview updates live</span>
-            </div>
-            <div class="hiw-label">Name</div>
-            <div class="hiw-field">VIP Access</div>
-            <div class="hiw-2col">
-              <div>
-                <div class="hiw-label">Price</div>
-                <div class="hiw-field">$49.99 <em>/ month</em></div>
-              </div>
-              <div>
-                <div class="hiw-label">Unlocks role</div>
-                <div class="hiw-field"><span class="hiw-role">@VIP</span></div>
-              </div>
-            </div>
-            <div class="hiw-submit">Publish</div>
-            <p class="hiw-cardmicro">Monthly, lifetime, or both &#183; edit anytime</p>
-          </div>
-        </div>
-      </article>
-
-      <article class="hiw-step reveal">
-        <p class="hiw-n">(3)</p>
-        <h3>Share</h3>
-        <p class="hiw-body">Your storefront lives on one link. Drop it in your bio, your server, your pinned post.</p>
-        <div class="hiw-panel">
-          <div aria-hidden="true">
-            <div class="hiw-linkpill">
-              <span class="hiw-linkurl">dues.gg/<b>your-server</b></span>
-              <span class="hiw-live"><i></i>Live</span>
-            </div>
-            <div class="hiw-card hiw-storecard">
-              <div class="hiw-store-head">
-                <span class="hiw-tile hiw-tile-d"><svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></span>
-                <span class="hiw-row-main">Apex Signals<em>dues.gg/your-server</em></span>
-                <span class="hiw-live"><i></i>Open</span>
-              </div>
-              <div class="hiw-label">Products</div>
-              <div class="hiw-row">
-                <span class="hiw-row-main">VIP Access<em>Unlocks <span class="hiw-role">@VIP</span></em></span>
-                <span class="hiw-buy">$49.99<em>/mo</em></span>
-              </div>
-              <div class="hiw-row">
-                <span class="hiw-row-main">VIP Lifetime<em>One-time payment</em></span>
-                <span class="hiw-buy">$199</span>
-              </div>
-              <div class="hiw-submit">Join now</div>
-            </div>
-          </div>
-          <p class="hiw-cardmicro">One link, everywhere &#183; <a class="demo-link" href="/demo?plan=vip-access">see a live demo</a></p>
-        </div>
-      </article>
-
-      <article class="hiw-step reveal">
-        <p class="hiw-n">(4)</p>
-        <h3>Get paid</h3>
-        <p class="hiw-body">Buyers pay into your own Stripe account. Dues never holds the money, and roles deliver themselves.</p>
-        <div class="hiw-panel">
-          <p class="hiw-simlabel">SIMULATED EXAMPLE &#183; NOT LIVE NUMBERS</p>
-          <ol class="hiw-timeline" aria-hidden="true">
-            <li class="hiw-ev">
-              <span class="hiw-ev-icon hiw-ev-check"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <span>
-                <span class="hiw-ev-title">&#127881; New Subscriber! &#183; <b class="hiw-money">$49.99</b></span>
-                <span class="hiw-ev-sub">@mia_moves picked VIP Access</span>
-              </span>
-              <span class="hiw-ev-time">now</span>
-            </li>
-            <li class="hiw-ev">
-              <span class="hiw-ev-icon hiw-ev-check"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <span>
-                <span class="hiw-ev-title">Role granted <span class="hiw-role">@VIP</span></span>
-                <span class="hiw-ev-sub">Delivered by the Dues bot in seconds</span>
-              </span>
-              <span class="hiw-ev-time">2m</span>
-            </li>
-            <li class="hiw-ev">
-              <span class="hiw-ev-icon hiw-ev-card"><svg viewBox="0 0 20 16" width="15" height="12"><rect x="0.75" y="0.75" width="18.5" height="14.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="0.75" y="3.6" width="18.5" height="3" fill="currentColor" stroke="none"/></svg></span>
-              <span>
-                <span class="hiw-ev-title">Paid out to your Stripe &#183; <b class="hiw-money">$483.20</b></span>
-                <span class="hiw-ev-sub">Week of Aug 25 &#183; 12 sales</span>
-              </span>
-              <span class="hiw-ev-time">Fri</span>
-            </li>
-          </ol>
-        </div>
-      </article>
-
-    </div>
+<!-- 10 · pricing crescendo -->
+<section id="pricing" class="slab crescendo reveal">
+  <div class="cres-head">
+    <span class="glyph section-mark" aria-hidden="true"></span>
+    <h2>Free while you grow.</h2>
+    <p>Start at $0 and keep every sale. Upgrade when you want more reach.</p>
   </div>
-</section>
-
-
-<!-- 6 · bento: everything a paid community needs -->
-
-
-<!-- 7.5 · discover -->
-
-
-
-<!-- 8.5 · feature split C: storefront -->
-
-
-<!-- 9 · calculator -->
-
-
-<section class="calc-sec wrap">
-  <div class="calc-head">
-    <p class="sec-eyebrow">The math</p>
-    <h2 class="sec-display">See what your server <span class="t2">could make.</span></h2>
-    <p>Price times members. There are no fees to subtract.</p>
+  <div class="cres-controls">
+    <div class="billing-toggle" role="group" aria-label="Billing period">
+      <button type="button" class="on" id="togMonthly" aria-pressed="true">Monthly</button>
+      <button type="button" id="togYearly" aria-pressed="false">Yearly <span class="tog-save">2 months free</span></button>
+    </div>
+    <div class="fee-chip">0% platform fee on every plan</div>
   </div>
-  <div class="calc reveal">
-    <div class="calc-row-top">
-      <label for="calcSubs" id="calcSubsLabel">Paying members</label>
-      <output class="calc-count" id="calcCount" for="calcSubs">150</output>
-    </div>
-    <input id="calcSubs" type="range" min="10" max="500" step="5" value="150">
-    <div class="ticks">
-      <span style="left:0">10</span>
-      <span style="left:8.2%">50</span>
-      <span style="left:28.6%">150</span>
-      <span style="left:59.2%">300</span>
-      <span style="left:100%">500</span>
-    </div>
-    <div class="presets" id="calcPresets" role="group" aria-label="Preset member counts">
-      <button type="button" data-subs="10">10 members</button>
-      <button type="button" data-subs="50">50 members</button>
-      <button type="button" class="on" data-subs="150">150 members</button>
-      <button type="button" data-subs="500">500 members</button>
-    </div>
-    <div class="calc-fields">
-      <div class="field">
-        <label for="calcPrice">Price per subscription</label>
-        <input id="calcPrice" type="number" inputmode="decimal" min="1" max="999" step="0.01" value="9.99">
-      </div>
-      <div class="field">
-        <label for="calcBilling">Show total per</label>
-        <select id="calcBilling">
-          <option value="monthly" selected>Month</option>
-          <option value="yearly">Year</option>
-        </select>
+  <div class="plans">
+    <div class="plan">
+      <div class="plan-name"><b>Free</b><i>For new stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$0" data-yearly="$0">$0</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="free forever" data-note-yearly="free forever">free forever</div>
+      <a class="btn btn-outline" href="/dashboard">Start selling</a>
+      <ul class="plan-specs">
+        <li><span>Paying members</span><b>Up to 10</b></li>
+        <li><span>Platform fee</span><b>0%</b></li>
+        <li><span>Products</span><b>Unlimited</b></li>
+        <li><span>Role delivery</span><b>Instant</b></li>
+        <li><span>Payouts</span><b>Your Stripe</b></li>
+      </ul>
+      <div class="plan-foot">
+        <span class="foot-s">S</span>
+        <svg viewBox="0 0 127.14 96.36" width="21" height="16" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
       </div>
     </div>
-    <div class="calc-net">
-      <div class="net-top">
-        <span class="net-label">Your server makes</span>
-        <span class="net-chip">0% platform fee</span>
+    <div class="plan">
+      <div class="plan-name"><b>Pro</b><i>For growing stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$14.99" data-yearly="$149.90">$14.99</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
+      <a class="btn btn-outline" href="/dashboard">Start selling</a>
+      <ul class="plan-specs">
+        <li><span>Paying members</span><b>Up to 50</b></li>
+        <li><span>Platform fee</span><b>0%</b></li>
+        <li><span>Products</span><b>Unlimited</b></li>
+        <li><span>Role delivery</span><b>Instant</b></li>
+        <li><span>Payouts</span><b>Your Stripe</b></li>
+      </ul>
+      <div class="plan-foot">
+        <span class="foot-s">S</span>
+        <svg viewBox="0 0 127.14 96.36" width="21" height="16" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
       </div>
-      <div class="calc-figure"><span class="serif" id="calcTotal">$1,500</span><small id="calcSuffix">/month</small></div>
-      <p class="net-cap" id="calcCaption">150 members &#215; $9.99/month</p>
     </div>
-    <div class="proj">
-      <span class="kicker">Projections</span>
-      <div class="proj-rows">
-        <div class="proj-row"><span>One month</span><b id="projMonth">$1,499</b></div>
-        <div class="proj-row"><span>Half a year</span><b id="projHalf">$8,991</b></div>
-        <div class="proj-row gold"><span>A year</span><b id="projYear">$17,982</b></div>
-      </div>
-      <p class="proj-cap">Straight multiplication at your prices. Dues takes 0% of it.</p>
-    </div>
-    <div class="calc-cta">
+    <div class="plan plan-pop">
+      <div class="pop-tab">Popular</div>
+      <div class="plan-name"><b>Max</b><i>For busy stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$44.99" data-yearly="$449.90">$44.99</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
       <a class="btn btn-ink" href="/dashboard">Start selling</a>
-      <p class="microcopy">Free to start. Your Stripe, your money.</p>
+      <ul class="plan-specs">
+        <li><span>Paying members</span><b>Up to 500</b></li>
+        <li><span>Platform fee</span><b>0%</b></li>
+        <li><span>Products</span><b>Unlimited</b></li>
+        <li><span>Role delivery</span><b>Instant</b></li>
+        <li><span>Payouts</span><b>Your Stripe</b></li>
+      </ul>
+      <div class="plan-foot">
+        <span class="foot-s">S</span>
+        <svg viewBox="0 0 127.14 96.36" width="21" height="16" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      </div>
+    </div>
+    <div class="plan">
+      <div class="plan-name"><b>Unlimited</b><i>For the biggest stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$134.99" data-yearly="$1,349.90">$134.99</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
+      <a class="btn btn-outline" href="/dashboard">Start selling</a>
+      <ul class="plan-specs">
+        <li><span>Paying members</span><b>Unlimited</b></li>
+        <li><span>Platform fee</span><b>0%</b></li>
+        <li><span>Products</span><b>Unlimited</b></li>
+        <li><span>Role delivery</span><b>Instant</b></li>
+        <li><span>Payouts</span><b>Your Stripe</b></li>
+      </ul>
+      <div class="plan-foot">
+        <span class="foot-s">S</span>
+        <svg viewBox="0 0 127.14 96.36" width="21" height="16" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      </div>
     </div>
   </div>
 </section>
-
-<!-- 11 · faq -->
-<section id="faq" class="faq wrap">
-  <div class="faq-head">
-    <p class="sec-eyebrow">FAQ</p>
-    <h2 class="sec-display">Questions, answered.</h2>
-  </div>
-  <div class="acc">
-    <div class="acc-item open">
-      <button class="acc-q" aria-expanded="true">How do payouts work?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>Buyers check out on your own Stripe account, so the money is yours from the first second. Stripe pays out to your bank on its normal schedule. Dues never holds, routes, or delays a payment.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">Do I need a Stripe account?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>Yes. Dues is built on Stripe, and connecting an account takes a few minutes during setup. If you already have one, you can use it as it is.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">What does Dues cost?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>The Free plan is $0 with a 0% platform fee for up to 10 paying members, so you only ever pay Stripe's processing fees. Paid plans raise the member cap: Pro is $14.99 per month for up to 50, Max is $44.99 for up to 500, and Unlimited is $134.99 with no cap. Yearly billing gives you two months free.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">Can buyers pay monthly?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>They can. Every role can be sold as a monthly subscription, a yearly one, or a one-time lifetime purchase. You set the prices and can offer several options side by side.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">How fast do roles deliver?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>The moment payment clears. The bot grants the role automatically, usually within seconds of checkout. There are no invites, approvals, or manual steps.</p></div>
-    </div>
-    <div class="acc-item">
-      <button class="acc-q" aria-expanded="false">What about refunds?<span class="acc-icon" aria-hidden="true"></span></button>
-      <div class="acc-a"><p>Refund a buyer from your Stripe dashboard whenever you choose. Dues sees the refund and removes the role automatically. Lapsed and disputed subscriptions are handled the same way.</p></div>
-    </div>
-  </div>
-  <div class="faq-card">
-    <p>The fastest answer is your own store. Connecting Discord and Stripe takes minutes.</p>
-    <a href="/dashboard">Open the dashboard &#8594;</a>
-  </div>
-</section>
-
-</main>
 
 <!-- 13 · footer -->
 </div><!-- /sheet -->
@@ -1883,7 +1699,7 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
       </div>
       <div class="fcol">
         <b>Product</b>
-        <a href="#features">Features</a>
+        <a href="/#features">Features</a>
         <a href="/pricing">Pricing</a>
         <a href="/discover">Discover stores</a>
         <a href="/api/invite">Invite Dues</a>

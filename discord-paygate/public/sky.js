@@ -171,8 +171,9 @@ void main(){
     size();
     addEventListener('resize', size);
     new MutationObserver(() => {
+      // the flip is instant — no dusk walk between day and night
       const next = themeName();
-      if (next !== cur) { from = cur; cur = next; tw = 0; twAt = performance.now(); }
+      if (next !== cur) { from = cur = next; tw = 1; }
     }).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
     if ('IntersectionObserver' in window)
       new IntersectionObserver((e) => { visible = e[0].isIntersecting; }).observe(cv);
