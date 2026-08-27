@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=155" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=155" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=156" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=156" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=155') format('woff2');
+  src:url('/jakarta-latin.woff2?v=156') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -355,7 +355,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=155') center/cover;
+  background:url('/hero-poster.webp?v=156') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1655,8 +1655,19 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 .pm-wechatchip b{color:#07c160;font-size:12.5px;letter-spacing:0}
 .pm-afterpaychip{background:#b2fce4;border-color:#b2fce4}
 .pm-afterpaychip b{color:#0a1a14;text-transform:lowercase;font-size:13.5px;letter-spacing:0}
-/* phones keep the core eight; the wider set is a desktop flex */
-@media (max-width:639px){.pay-chip.pay-xtra{display:none}}
+/* phones keep the core eight in a strict symmetric 4x2 grid */
+@media (max-width:639px){
+  .pay-chip.pay-xtra{display:none}
+  .pay-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:min(100%,376px)}
+  .pay-chip{min-width:0;padding:5px 4px}
+  .pay-chip b{font-size:11.5px}
+  .pm-visa{font-size:12.5px}
+  .pm-linkchip b{font-size:12.5px}
+  .pm-klarnachip b{font-size:12px}
+  .pay-chip svg{height:13px}
+  .pm-cashchip svg{height:12px}
+  .pm-cash-ink{font-size:11px}
+}
 @media (max-width:600px){
   .sky-grain{display:none}
   .save{padding:44px 16px 64px}
@@ -2005,7 +2016,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=155" defer></script>
+<script src="/sky.js?v=156" defer></script>
 <script>
 (function(){
   'use strict';
