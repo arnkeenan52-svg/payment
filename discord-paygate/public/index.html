@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=156" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=156" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=157" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=157" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=156') format('woff2');
+  src:url('/jakarta-latin.woff2?v=157') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -355,7 +355,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=156') center/cover;
+  background:url('/hero-poster.webp?v=157') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1742,7 +1742,10 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
      rides a little higher via the bottom padding. */
   .hero{min-height:100vh;min-height:100lvh}
   .hero-core{padding:36px 16px 130px}
-  .rolemarq{padding-top:40px}
+  .rolemarq{padding-top:40px;transition:opacity .45s ease}
+  /* clean first paint: whatever Safari's floating bar exposes, the marquee
+     stays invisible until the visitor actually starts scrolling */
+  html[data-at-top] .rolemarq{opacity:0}
   /* compact stage so the whole footer fits a phone viewport */
   .footer-stage{padding-top:30px}
   .footer-title{font-size:clamp(27px,7.6vw,38px);margin-bottom:10px}
@@ -2016,7 +2019,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=156" defer></script>
+<script src="/sky.js?v=157" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2316,6 +2319,8 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   };
   var on = function(){
     nav.classList.toggle('scrolled', window.scrollY > 8);
+    // resting at the very top = the clean first screen (phones hide the marquee)
+    html.toggleAttribute('data-at-top', window.scrollY <= 24);
     // once the sheet's lip is on screen the blind is rising — fade the nav out
     var bottom = sheet.getBoundingClientRect().bottom;
     var revealed = bottom <= window.innerHeight + 1;
