@@ -18,15 +18,15 @@
   <!-- og:end -->
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=164" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=164" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=165" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=165" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=164" />
+  <link rel="stylesheet" href="/styles.css?v=165" />
 </head>
 <body>
   <header class="top">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=164" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=165" alt="Dues" height="20" /></a>
     </div>
     <div id="account" class="account"></div>
   </header>
@@ -36,21 +36,28 @@
          card. app.js shows this when the store has more than one product and
          no ?plan deep link; picking a card slides into the checkout below. -->
     <section class="shop" id="shop" hidden>
-      <img class="shop-banner" id="shop-banner" alt="" hidden onerror="this.hidden = true" />
+      <div class="shop-hero" id="shop-hero">
+        <img class="shop-banner" id="shop-banner" alt="" hidden onerror="this.hidden = true" />
+        <img class="logo shop-icon" id="shop-icon" src="" alt="" width="84" height="84" hidden />
+      </div>
       <div class="shop-head">
-        <img class="logo shop-icon" id="shop-icon" src="" alt="" width="52" height="52" hidden />
-        <div>
-          <h1 class="shop-name" id="shop-name">&nbsp;</h1>
-          <p class="shop-desc" id="shop-desc" hidden></p>
+        <h1 class="shop-name" id="shop-name">&nbsp;</h1>
+        <p class="shop-desc" id="shop-desc" hidden></p>
+        <button type="button" class="shop-desc-more" id="shop-desc-more" hidden>see more</button>
+        <div class="shop-meta">
+          <div class="shop-links" id="shop-links" hidden></div>
+          <div class="shop-trust" id="shop-trust"></div>
         </div>
       </div>
-      <div class="shop-trust" id="shop-trust"></div>
-      <div class="shop-links" id="shop-links" hidden></div>
-      <p class="label">Products</p>
-      <div class="shop-grid" id="shop-grid"></div>
-      <p class="shop-empty" id="shop-empty" hidden>Nothing is for sale here yet — check back soon.</p>
-      <section class="shop-about" id="shop-about-box" hidden>
-        <p class="label">About</p>
+      <nav class="shop-tabs" id="shop-tabs" hidden aria-label="Store sections">
+        <button type="button" class="shop-tab active" data-tab="products">Products</button>
+        <button type="button" class="shop-tab" data-tab="about">About</button>
+      </nav>
+      <div class="shop-pane" id="shop-pane-products">
+        <div class="shop-grid" id="shop-grid"></div>
+        <p class="shop-empty" id="shop-empty" hidden>Nothing is for sale here yet — check back soon.</p>
+      </div>
+      <section class="shop-about shop-pane" id="shop-about-box" hidden>
         <div id="shop-about"></div>
       </section>
     </section>
@@ -117,10 +124,10 @@
 
   <footer>
     <span class="powered-label">Checkout powered by:</span>
-    <img class="powered-mark" src="/dues.png?v=164" alt="Dues" height="18" />
+    <img class="powered-mark" src="/dues.png?v=165" alt="Dues" height="18" />
     <a class="powered-community" href="https://discord.gg/G6yjsX5qbB" rel="noopener">Join the Dues community</a>
   </footer>
 
-  <script src="/app.js?v=164"></script>
+  <script src="/app.js?v=165"></script>
 </body>
 </html>

@@ -715,10 +715,27 @@ function renderShop() {
     icon.src = state.server.iconUrl;
     icon.hidden = false;
   } else icon.hidden = true;
+  // The hero block collapses when there is neither banner nor icon, and the
+  // icon only overlaps when it has a banner to overlap.
+  $('#shop-hero')?.classList.toggle('no-banner', banner.hidden);
+  $('#shop-hero')?.classList.toggle('empty', banner.hidden && icon.hidden);
   $('#shop-name').textContent = state.brand ?? state.server?.name ?? '';
   const desc = (state.store?.description ?? '').trim();
-  $('#shop-desc').textContent = desc;
-  $('#shop-desc').hidden = !desc;
+  const descEl = $('#shop-desc');
+  descEl.textContent = desc;
+  descEl.hidden = !desc;
+  // Whop-style "see more": long descriptions clamp to three lines.
+  const more = $('#shop-desc-more');
+  if (more) {
+    const long = desc.length > 180;
+    descEl.classList.toggle('clamped', long);
+    more.hidden = !long;
+    more.textContent = 'see more';
+    more.onclick = () => {
+      const nowClamped = descEl.classList.toggle('clamped');
+      more.textContent = nowClamped ? 'see more' : 'see less';
+    };
+  }
   // Trust chips: the live member count (only when the owner shows it) plus
   // two platform facts that hold for every Dues store.
   const ICON_MEMBERS = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 20c.7-3.4 3.2-5.2 6.2-5.2s5.5 1.8 6.2 5.2"/><path d="M15.5 5.2a3.4 3.4 0 0 1 0 5.9M18.2 14.9c1.7.8 2.7 2.4 3 5.1"/></svg>';
@@ -750,10 +767,28 @@ function renderShop() {
   // About: plain text, escaped, split into paragraphs.
   const about = (state.store?.about ?? '').trim();
   const aboutBox = $('#shop-about-box');
+  const tabs = $('#shop-tabs');
   if (about) {
     $('#shop-about').innerHTML = about.split(/\n+/).map((line) => `<p>${esc(line.trim())}</p>`).join('');
-    aboutBox.hidden = false;
-  } else aboutBox.hidden = true;
+  }
+  // Whop-style tabs: Products is home; About appears only when written.
+  const shopEl = $('#shop');
+  const setTab = (tab) => {
+    shopEl.dataset.tab = tab;
+    tabs?.querySelectorAll('.shop-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+    $('#shop-pane-products').hidden = tab !== 'products';
+    aboutBox.hidden = tab !== 'about' || !about;
+  };
+  if (tabs) {
+    tabs.hidden = !about;
+    if (!tabs.dataset.wired) {
+      tabs.dataset.wired = '1';
+      tabs.querySelectorAll('.shop-tab').forEach((b) => {
+        b.addEventListener('click', () => setTab(b.dataset.tab));
+      });
+    }
+  }
+  setTab('products');
   const grid = $('#shop-grid');
   // One card per PRODUCT: price options ride inside their product's page,
   // never as sibling cards.
