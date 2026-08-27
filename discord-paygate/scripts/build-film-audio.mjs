@@ -493,17 +493,18 @@ on(6.52, 13.50, BEAT / 2, (t) => {
 //                                               light up on, softer, centred
 //    7.96  product  billing confirms    x=1262
 //    8.54  product  "Create product"    x= 988
-//    9.72  theme    the swatch          x=1512
-//   10.46  theme    the type tile       x=1512
-//   11.42  theme    the slider GRAB     x=1472  softer, a drag is not a click
-//   12.62  theme    the RELEASE         x=1590  softer still
+//    9.72  theme    the Blurple preset  x= 737
+//   10.46  theme    the Serif segment   x= 610
+//   11.42  theme    the corners GRAB    x= 625  softer, a drag is not a click
+//   12.62  theme    the RELEASE         x= 366  softer still — down at 2px
 //   13.02  cta      "Publish store"     x= 982  the press that becomes the window
+//   13.28  live     the Lifetime option x=1146  the buyer choosing
 //   13.60  live     "Pay with card"     x= 960  the press the burst is born from
 const CLICKS = [
   [2.30, 1.00, 0.033], [4.20, 0.35, 0.0], [7.96, 1.00, 0.314],
-  [8.54, 1.00, 0.029], [9.72, 1.00, 0.575], [10.46, 1.00, 0.575],
-  [11.42, 0.50, 0.533], [12.62, 0.34, 0.656], [13.02, 1.00, 0.023],
-  [13.60, 1.00, 0.0],
+  [8.54, 1.00, 0.029], [9.72, 1.00, -0.232], [10.46, 1.00, -0.365],
+  [11.42, 0.50, -0.349], [12.62, 0.34, -0.619], [13.02, 1.00, 0.023],
+  [13.28, 0.45, 0.194], [13.60, 1.00, 0.0],
 ];
 CLICKS.forEach(([t, g, p]) => click(t, g, p));
 
