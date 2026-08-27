@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=163" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=163" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=164" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=164" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=163') format('woff2');
+  src:url('/jakarta-latin.woff2?v=164') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -355,7 +355,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=163') center/cover;
+  background:url('/hero-poster.webp?v=164') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1792,6 +1792,51 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   .footer .fcol b{margin-bottom:1px}
   .footer-watermark{--wm-h:calc(100vw * .14);margin-top:4px}
 }
+/* ── punch-up: gradient accent words, numbered steps, richer cards ── */
+.grad-word{
+  background:linear-gradient(92deg,#5865f2 0%,#4a90e2 55%,#38b6ff 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+}
+html:not([data-theme="light"]) .grad-word{
+  background:linear-gradient(92deg,#8e9aff 0%,#6fb3ff 55%,#7ee0ff 100%);
+  -webkit-background-clip:text;background-clip:text;
+}
+.how-card,.voice-card,.comm-card{position:relative;overflow:hidden;transition:transform .25s cubic-bezier(.23,1,.32,1),box-shadow .25s cubic-bezier(.23,1,.32,1)}
+.how-card::before,.voice-card::before{
+  content:"";position:absolute;top:0;left:16%;right:16%;height:2px;border-radius:99px;
+  background:linear-gradient(90deg,transparent,rgba(88,101,242,.55),transparent);
+}
+.how-card:hover,.voice-card:hover{transform:translateY(-4px);box-shadow:0 34px 70px -28px rgba(4,8,18,.55),inset 0 1px 0 rgba(255,255,255,.12)}
+.how-card::after{
+  content:attr(data-n);position:absolute;top:10px;right:18px;pointer-events:none;
+  font:700 46px/1 var(--grotesk);letter-spacing:-.02em;color:rgba(88,101,242,.14);
+}
+html:not([data-theme="light"]) .how-card::after{color:rgba(142,154,255,.16)}
+.how-ic{background:linear-gradient(135deg,#5865f2,#7ea2ff);border:0;color:#fff;box-shadow:0 10px 24px -10px rgba(88,101,242,.7)}
+html:not([data-theme="light"]) .how-ic{color:#fff}
+.voice-avwrap{position:relative;display:inline-flex;flex:none}
+.voice-dot{
+  position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;
+  background:#23a55a;border:2.5px solid rgba(255,255,255,.92);
+}
+.voice-quote{
+  position:absolute;top:2px;right:16px;pointer-events:none;user-select:none;
+  font:700 84px/1 var(--grotesk);color:rgba(88,101,242,.12);
+}
+html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
+.voice-av{font-size:16px;letter-spacing:-.02em}
+.comm-card::before,.comm-card::after{
+  content:"";position:absolute;z-index:0;pointer-events:none;border-radius:50%;filter:blur(52px);
+}
+.comm-card::before{width:420px;height:320px;top:-140px;right:-90px;background:radial-gradient(closest-side,rgba(88,101,242,.28),transparent)}
+.comm-card::after{width:360px;height:280px;bottom:-140px;left:-80px;background:radial-gradient(closest-side,rgba(61,220,132,.16),transparent)}
+.comm-txt,.comm-btn{position:relative;z-index:1}
+.pay-chip{transition:transform .2s cubic-bezier(.23,1,.32,1)}
+.pay-chip:hover{transform:translateY(-2px)}
+@media (prefers-reduced-motion:reduce){
+  .how-card,.voice-card,.pay-chip{transition:none}
+  .how-card:hover,.voice-card:hover,.pay-chip:hover{transform:none}
+}
 </style>
 </head>
 <body>
@@ -1926,20 +1971,20 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 <section class="how wrap" id="how">
   <div class="how-head">
     <p class="sec-eyebrow">HOW IT WORKS</p>
-    <h2 class="sec-display">Selling in three steps.</h2>
+    <h2 class="sec-display">Selling in <span class="grad-word">three steps.</span></h2>
   </div>
   <div class="how-grid">
-    <div class="how-card reveal">
+    <div class="how-card reveal" data-n="01">
       <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
       <h3>Connect Stripe</h3>
       <p>Link your own Stripe account in minutes. Every payment settles straight into it &#8212; Dues never holds your money.</p>
     </div>
-    <div class="how-card reveal">
+    <div class="how-card reveal" data-n="02">
       <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
       <h3>Create a product</h3>
       <p>Turn any role into a product &#8212; monthly, yearly, or one-time lifetime. Set the price, pick the role, done.</p>
     </div>
-    <div class="how-card reveal">
+    <div class="how-card reveal" data-n="03">
       <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
       <h3>Get paid</h3>
       <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and you keep every dollar.</p>
@@ -1950,30 +1995,33 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 <!-- 5.8 · what sellers say -->
 <section class="voices wrap" aria-label="What communities say about Dues">
   <div class="voices-head">
-    <p class="sec-eyebrow">COMMUNITIES <span class="voices-pill">Early preview</span></p>
-    <h2 class="sec-display">What sellers say.</h2>
+    <p class="sec-eyebrow">COMMUNITIES</p>
+    <h2 class="sec-display">What sellers <span class="grad-word">say.</span></h2>
   </div>
   <div class="voices-grid">
     <figure class="voice-card reveal">
+      <span class="voice-quote" aria-hidden="true">&#8220;</span>
       <figcaption class="voice-who">
-        <span class="voice-av" style="background:linear-gradient(135deg,#5865f2,#8e9aff)">T</span>
-        <span class="voice-meta"><b>traderworld</b><small>Community owner</small></span>
+        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#23262e,#4b5162)">AK</span><i class="voice-dot"></i></span>
+        <span class="voice-meta"><b>AK</b><small>stupidmoneyconcepts</small></span>
       </figcaption>
-      <blockquote>&#8220;Set the store up in one evening. Buyers pay, the role lands on its own, and the money is in my Stripe &#8212; nothing to run day to day.&#8221;</blockquote>
+      <blockquote>Had the store live the same night. Members buy, the role hits instantly, and every dollar lands in my own Stripe.</blockquote>
     </figure>
     <figure class="voice-card reveal">
+      <span class="voice-quote" aria-hidden="true">&#8220;</span>
       <figcaption class="voice-who">
-        <span class="voice-av" style="background:linear-gradient(135deg,#1f9d5b,#3ddc84)">U</span>
-        <span class="voice-meta"><b>ugc-agency</b><small>Community owner</small></span>
+        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#b8860b,#ffd23f)">H</span><i class="voice-dot"></i></span>
+        <span class="voice-meta"><b>Hazen</b><small>apex garage</small></span>
       </figcaption>
-      <blockquote>&#8220;We moved off a 3% platform and kept every krone since. The 0% fee is real &#8212; you only ever see Stripe&#8217;s processing.&#8221;</blockquote>
+      <blockquote>Our paid car-club tiers run themselves now. Zero platform cut means the garage keeps what it earns.</blockquote>
     </figure>
     <figure class="voice-card reveal">
+      <span class="voice-quote" aria-hidden="true">&#8220;</span>
       <figcaption class="voice-who">
-        <span class="voice-av" style="background:linear-gradient(135deg,#b8792a,#e8b45a)">V</span>
-        <span class="voice-meta"><b>vip-signals</b><small>Community owner</small></span>
+        <span class="voice-avwrap"><span class="voice-av" style="background:linear-gradient(135deg,#7a2a1d,#d4593f)">J</span><i class="voice-dot"></i></span>
+        <span class="voice-meta"><b>Jasonlang77</b><small>ringside picks</small></span>
       </figcaption>
-      <blockquote>&#8220;Cancellations, refunds, expired cards &#8212; the bot cleans up roles by itself. Support questions basically disappeared.&#8221;</blockquote>
+      <blockquote>Fight-night picks are a paid role now. Subs renew on their own and lapsed cards lose access without me touching anything.</blockquote>
     </figure>
   </div>
 </section>
@@ -1998,7 +2046,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 <section id="faq" class="faq wrap">
   <div class="faq-head">
     <p class="sec-eyebrow">FAQ</p>
-    <h2 class="sec-display">Questions, answered.</h2>
+    <h2 class="sec-display">Questions, <span class="grad-word">answered.</span></h2>
   </div>
   <div class="acc">
     <div class="acc-item open">
@@ -2083,7 +2131,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=163" defer></script>
+<script src="/sky.js?v=164" defer></script>
 <script>
 (function(){
   'use strict';

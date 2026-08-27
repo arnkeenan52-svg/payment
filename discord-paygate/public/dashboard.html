@@ -8,10 +8,10 @@
   <meta name="robots" content="noindex" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=163" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=163" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=164" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=164" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=163" />
+  <link rel="stylesheet" href="/styles.css?v=164" />
   <style>
     /* Navy night retheme — colors only. Remaps the old "Dues black" monochrome
        tokens from styles.css onto the brand's navy system (the landing page's
@@ -68,7 +68,9 @@
       --money: #177245;
     }
     /* a whisper of sky at the top of the page ground */
-    html[data-theme='light'] body { background: linear-gradient(180deg, #d5e5f8 0%, #e9f1fb 300px) fixed; }
+    html[data-theme='light'] body { background: linear-gradient(180deg, #70a3e6 0%, #adceed 380px, #eaf2fb 760px) fixed; }
+    /* night ground matches the night homepage sky: #131b2d melting into navy */
+    html:not([data-theme='light']) body { background: linear-gradient(180deg, #131b2d 0%, #101827 420px) fixed; }
     html[data-theme='light'] ::selection { background: rgba(88, 101, 242, 0.25); color: #0f1626; }
 
     /* primary action pill: the mono grey fill becomes the brand blurple,
@@ -99,12 +101,12 @@
     html:not([data-theme='light']) .th-range input,
     html:not([data-theme='light']) .disc-toggle input { accent-color: #5865f2; }
   </style>
-  <script src="/theme.js?v=163"></script>
+  <script src="/theme.js?v=164"></script>
 </head>
 <body class="app">
   <header class="top">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=163" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=164" alt="Dues" height="20" /></a>
     </div>
     <div class="top-right">
       <div id="account" class="account"></div>
@@ -116,6 +118,6 @@
     <div id="content"></div>
   </main>
 
-  <script src="/dashboard.js?v=163"></script>
+  <script src="/dashboard.js?v=164"></script>
 </body>
 </html>
