@@ -31,8 +31,8 @@
   <meta name="twitter:image" content="https://dues.gg/og-card.png" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=144" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=144" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=145" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=145" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=144') format('woff2');
+  src:url('/jakarta-latin.woff2?v=145') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -299,38 +299,32 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 /* the glass capture BOX — foundable's hero anatomy: prompt line up top,
    submit tucked inside the bottom-right corner */
 .capture{
-  margin-top:30px;width:min(500px,100%);
-  display:flex;flex-direction:column;align-items:stretch;gap:4px;
-  padding:12px 10px 10px 18px;border-radius:20px;
+  margin-top:30px;width:min(480px,100%);
+  display:flex;flex-direction:row;align-items:center;gap:8px;
+  padding:6px 6px 6px 16px;border-radius:16px;
   background:var(--glass);border:1px solid var(--glass-brd);
   box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
   transition:border-color .2s ease;
 }
 .capture:focus-within{border-color:var(--blue)}
-.capture-line{display:flex;align-items:center;gap:2px;cursor:text}
+.capture-line{display:flex;align-items:center;gap:2px;cursor:text;flex:1;min-width:0}
 .capture-prefix{font-size:16px;font-weight:500;color:var(--micro);flex:none}
 .capture input{
   flex:1;min-width:0;height:30px;background:none;border:0;outline:none;
   font:inherit;font-size:16px;color:var(--ink);text-align:left;
 }
 .capture input::placeholder{color:var(--micro);opacity:.85}
-.capture-actions{display:flex;justify-content:flex-end}
+.capture-actions{flex:none}
 .btn-capture{
-  display:inline-flex;align-items:center;gap:8px;
-  min-height:38px;padding:8px 16px;border:0;border-radius:10px;
-  background:#2c313a;color:#fff;font:inherit;font-size:14.5px;font-weight:700;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  min-height:36px;padding:7px 13px;border:0;border-radius:10px;
+  background:#2c313a;color:#fff;font:inherit;font-size:13.5px;font-weight:700;
   cursor:pointer;transition:background .15s ease,transform .15s ease;
 }
 .btn-capture:hover{background:#3a404b;transform:translateY(-1px)}
 html:not([data-theme="light"]) .btn-capture{background:#333947;border:1px solid rgba(255,255,255,.14)}
 html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 /* on wide screens the capture collapses to one compact row */
-@media (min-width:601px){
-  .capture{flex-direction:row;align-items:center;gap:10px;width:min(480px,100%);padding:7px 7px 7px 18px;border-radius:16px}
-  .capture-line{flex:1;min-width:0}
-  .capture-actions{flex:none}
-  .btn-capture{min-height:36px;padding:7px 14px;font-size:13.5px}
-}
 /* the quiet scroll hint at the fold, like the reference */
 .hero-scrollhint{
   position:absolute;left:50%;bottom:74px;transform:translateX(-50%);
@@ -359,7 +353,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=144') center/cover;
+  background:url('/hero-poster.webp?v=145') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1117,7 +1111,9 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
     background:radial-gradient(circle at 38% 34%,#f6f8ff 0%,#dde6f6 52%,#b6c6e2 100%);
     box-shadow:0 0 40px 16px rgba(214,228,255,.26),0 0 110px 46px rgba(180,202,246,.13);
   }
-  .capture{padding:10px 8px 8px 14px;border-radius:18px}
+  .capture{padding:5px 5px 5px 12px;border-radius:14px}
+  .btn-capture{min-height:34px;padding:6px 10px;font-size:12.5px}
+  .capture-prefix,.capture input{font-size:15px}
   .hero-stage{padding:44px 0 72px}
   .film{width:calc(100% - 24px)}
   .film-frame{border-radius:12px}
@@ -1857,7 +1853,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   </div>
 </footer>
 
-<script src="/sky.js?v=144" defer></script>
+<script src="/sky.js?v=145" defer></script>
 <script>
 (function(){
   'use strict';
