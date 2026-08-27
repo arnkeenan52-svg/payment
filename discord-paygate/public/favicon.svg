@@ -1,6 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="105" ry="105" fill="#0a0a0a"/>
-  <g transform="translate(0 0) scale(1.000000)">
-    <path d="M250 121 H396 L359 196 H213 Z M202 218 H348 L311 294 H165 Z M153 316 H299 L262 391 H116 Z" fill="#ffffff"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#6673f6"/><stop offset="1" stop-color="#4d5ae9"/>
+</linearGradient></defs>
+<rect width="320" height="320" rx="76" fill="url(#g)"/>
+<g fill="#fff" transform="translate(6,4)">
+<path d="M155 58H263L235 114H128Z"/>
+<path d="M119 130H226L199 186H92Z"/>
+<path d="M83 202H190L163 259H56Z"/>
+</g></svg>
