@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Pricing — Dues" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.png?v=170" />
+  <meta property="og:image" content="https://dues.gg/og-card.png?v=171" />
   <meta property="og:image:width" content="2400" />
   <meta property="og:image:height" content="1260" />
   <meta property="og:url" content="https://dues.gg/pricing" />
@@ -28,11 +28,11 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Pricing — Dues" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.png?v=170" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.png?v=171" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=170" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=170" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=171" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=171" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -55,7 +55,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=170') format('woff2');
+  src:url('/jakarta-latin.woff2?v=171') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -339,7 +339,7 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=170') center/cover;
+  background:url('/hero-poster.webp?v=171') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1804,7 +1804,7 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=170" defer></script>
+<script src="/sky.js?v=171" defer></script>
 <script>
 (function(){
   'use strict';
@@ -1812,11 +1812,18 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
 
   /* theme toggle (sun/moon): html[data-theme="light"] = day, absent = night */
   var themeBtn = document.querySelector('[data-theme-toggle]');
-  var themeMeta = document.querySelector('meta[name="theme-color"]');
   function syncThemeMeta(){
-    if(!themeMeta){ return; }
     var light = document.documentElement.getAttribute('data-theme') === 'light';
-    themeMeta.setAttribute('content', light ? '#70a3e6' : '#131b2d');
+    var want = light ? '#70a3e6' : '#131b2d';
+    // iOS Safari ignores content updates on an existing theme-color meta, so
+    // the status-bar band kept the old face after a toggle — replacing the
+    // NODE is the update Safari actually honours
+    var old = document.querySelector('meta[name="theme-color"]');
+    if(old && old.getAttribute('content') === want){ return; }
+    var meta = document.createElement('meta');
+    meta.setAttribute('name','theme-color');
+    meta.setAttribute('content', want);
+    if(old){ old.replaceWith(meta); } else { document.head.appendChild(meta); }
   }
   syncThemeMeta();
   window.addEventListener('pageshow', function(e){
