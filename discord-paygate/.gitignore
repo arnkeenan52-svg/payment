@@ -39,6 +39,7 @@ probe*.mjs
 .navcheck*
 .verify-*
 .shot-*
+.probe*
 tmp-hero-frames/
 tmp-film-audio.wav
 remotion/node_modules/
