@@ -1686,6 +1686,75 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 .save-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .save-num:focus-visible{outline:2px solid var(--blue);outline-offset:1px;border-color:var(--blue)}
 
+
+.save-card h2{font-family:var(--jakarta);font-weight:500;font-size:clamp(26px,3vw,34px);letter-spacing:-.02em;text-align:center}
+.save-sub{margin:10px 0 26px;text-align:center;font-size:15px;line-height:23px;color:var(--sec)}
+.save-field{margin-top:18px}
+
+.save-lab{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:10px}
+.save-lab label{font-size:14.5px;font-weight:500;color:var(--ink)}
+.save-lab output{font-family:var(--grotesk);font-weight:700;font-size:16px;color:var(--ink)}
+.save-field input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;border:0;padding:0}
+.save-field input[type=range]::-webkit-slider-runnable-track{
+  height:6px;border-radius:99px;
+  background:linear-gradient(90deg,var(--blue) 0 var(--fill,0%),rgba(127,140,170,.32) var(--fill,0%) 100%);
+}
+.save-field input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--blue);border:2.5px solid #fff;box-shadow:0 1px 6px rgba(20,30,80,.35)}
+.save-field input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:rgba(127,140,170,.32)}
+/* Firefox paints the travelled part itself rather than reading a gradient. */
+.save-field input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:var(--blue)}
+.save-field input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--blue);border:2.5px solid #fff}
+.save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(88,101,242,.1);border:1px solid rgba(88,101,242,.28)}
+.save-cap{display:block;font:600 11.5px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
+.save-hero b{display:block;margin-top:6px;font-family:var(--grotesk);font-weight:700;font-size:clamp(36px,5vw,46px);letter-spacing:-.02em;color:#3ddc84}
+html[data-theme="light"] .save-hero b{color:#177245}
+.save-hero small{display:block;margin-top:4px;font-size:12.5px;color:var(--micro)}
+.save-rows{display:flex;flex-direction:column;gap:13px}
+.save-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}
+.sv-name{font-size:14.5px;font-weight:600;color:var(--ink)}
+.sv-name em{font-style:normal;font-weight:400;font-size:12px;color:var(--micro);margin-left:7px}
+.sv-cost{font-family:var(--grotesk);font-weight:700;font-size:15.5px;color:var(--ink)}
+.sv-bar{grid-column:1 / -1;height:6px;border-radius:99px;background:rgba(127,140,170,.22);overflow:hidden}
+.sv-bar i{display:block;height:100%;border-radius:99px;background:rgba(127,140,170,.55);transition:width .25s ease}
+.save-dues .sv-bar i{background:#3ddc84}
+html[data-theme="light"] .save-dues .sv-bar i{background:#1f9d5b}
+.save-dues .sv-cost{color:#3ddc84}
+html[data-theme="light"] .save-dues .sv-cost{color:#177245}
+.save-cta{margin-top:24px;display:flex;justify-content:center}
+.save-demo{margin-top:14px;text-align:center}
+.save-cta .btn{min-height:48px;padding:13px 26px;font-size:15.5px}
+
+/* Both breakpoint blocks live BELOW every base .save-* rule on purpose. They
+   used to sit above them, and since a media query adds no specificity, each
+   base declaration that came later silently won: the phone block's label size
+   and slider height were being overridden by the very rules they were meant
+   to override, while its width/height changes worked because THOSE base rules
+   happened to be declared earlier. Same trap, opposite outcome, in one block. */
+/* Phone: the control row is the whole screen width, so the label and its box
+   both get room rather than being shrunk to desktop proportions on a device
+   with more horizontal space to spend, not less. */
+@media (max-width:640px){
+  .save-field{margin-top:30px}
+  .save-lab{gap:10px;margin-bottom:8px}
+  /* The label gets the room, the box takes only what it needs. At 132px the
+     box was 42% of the card's inner width, which left "Average monthly price
+     ($)" too little to fit and wrapped it onto a second line — the label and
+     its own unit split across two rows while a mostly-empty box sat beside
+     them. 94px still clears the 44px touch target in both directions and
+     hands ~40px back to the text. */
+  .save-lab label{font-size:15.5px;min-width:0}
+  .save-num{height:44px;width:94px;font-size:18px;flex:none}
+  .save-field input[type=range]{height:32px}
+  .save-field input[type=range]::-webkit-slider-thumb{width:24px;height:24px;margin-top:-9px}
+  .save-field input[type=range]::-moz-range-thumb{width:22px;height:22px}
+  /* Each comparison row is a name, its pricing basis, and the figure. Inline,
+     the basis competes with the price for the same line on a 316px card and
+     the two longest ("LaunchPass $29/mo + 3.5%" and "$99") end up shoulder to
+     shoulder. Stacked, the price has the row to itself — which is how the
+     reference sets it. */
+  .sv-name em{display:block;margin-left:0;margin-top:3px}
+  .save-rows{gap:16px}
+}
 /* Desktop: one box, two columns — the controls and the figure they produce on
    the left, the comparison they produce on the right, so a change to a slider
    and its effect on the bars are in one glance instead of a scroll apart. */
@@ -1733,52 +1802,6 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
   .save-cta{margin-top:20px}
   .fee-note{font-size:11.5px;line-height:17px}
 }
-.save-card h2{font-family:var(--jakarta);font-weight:500;font-size:clamp(26px,3vw,34px);letter-spacing:-.02em;text-align:center}
-.save-sub{margin:10px 0 26px;text-align:center;font-size:15px;line-height:23px;color:var(--sec)}
-.save-field{margin-top:18px}
-/* Phone: the control row is the whole screen width, so the label and its box
-   both get room rather than being shrunk to desktop proportions on a device
-   with more horizontal space to spend, not less. */
-@media (max-width:640px){
-  .save-field{margin-top:26px}
-  .save-lab label{font-size:16px}
-  .save-num{height:52px;width:132px;font-size:19px}
-  .save-field input[type=range]{height:34px}
-  .save-field input[type=range]::-webkit-slider-thumb{width:24px;height:24px;margin-top:-9px}
-  .save-field input[type=range]::-moz-range-thumb{width:22px;height:22px}
-}
-.save-lab{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:10px}
-.save-lab label{font-size:14.5px;font-weight:500;color:var(--ink)}
-.save-lab output{font-family:var(--grotesk);font-weight:700;font-size:16px;color:var(--ink)}
-.save-field input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;border:0;padding:0}
-.save-field input[type=range]::-webkit-slider-runnable-track{
-  height:6px;border-radius:99px;
-  background:linear-gradient(90deg,var(--blue) 0 var(--fill,0%),rgba(127,140,170,.32) var(--fill,0%) 100%);
-}
-.save-field input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--blue);border:2.5px solid #fff;box-shadow:0 1px 6px rgba(20,30,80,.35)}
-.save-field input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:rgba(127,140,170,.32)}
-/* Firefox paints the travelled part itself rather than reading a gradient. */
-.save-field input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:var(--blue)}
-.save-field input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--blue);border:2.5px solid #fff}
-.save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(88,101,242,.1);border:1px solid rgba(88,101,242,.28)}
-.save-cap{display:block;font:600 11.5px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
-.save-hero b{display:block;margin-top:6px;font-family:var(--grotesk);font-weight:700;font-size:clamp(36px,5vw,46px);letter-spacing:-.02em;color:#3ddc84}
-html[data-theme="light"] .save-hero b{color:#177245}
-.save-hero small{display:block;margin-top:4px;font-size:12.5px;color:var(--micro)}
-.save-rows{display:flex;flex-direction:column;gap:13px}
-.save-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}
-.sv-name{font-size:14.5px;font-weight:600;color:var(--ink)}
-.sv-name em{font-style:normal;font-weight:400;font-size:12px;color:var(--micro);margin-left:7px}
-.sv-cost{font-family:var(--grotesk);font-weight:700;font-size:15.5px;color:var(--ink)}
-.sv-bar{grid-column:1 / -1;height:6px;border-radius:99px;background:rgba(127,140,170,.22);overflow:hidden}
-.sv-bar i{display:block;height:100%;border-radius:99px;background:rgba(127,140,170,.55);transition:width .25s ease}
-.save-dues .sv-bar i{background:#3ddc84}
-html[data-theme="light"] .save-dues .sv-bar i{background:#1f9d5b}
-.save-dues .sv-cost{color:#3ddc84}
-html[data-theme="light"] .save-dues .sv-cost{color:#177245}
-.save-cta{margin-top:24px;display:flex;justify-content:center}
-.save-demo{margin-top:14px;text-align:center}
-.save-cta .btn{min-height:48px;padding:13px 26px;font-size:15.5px}
 /* payment methods: real brand marks on white chips, its own section */
 .pay{padding:8px 24px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
 .pay-cap{font:600 11px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--micro)}
