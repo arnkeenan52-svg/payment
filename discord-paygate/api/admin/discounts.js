@@ -3,6 +3,7 @@ import { ownerAuthorized } from '../../src/lib/authz.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import * as db from '../../src/db.js';
 import { adminStoreBySlug, planOf } from '../../src/services/stores.js';
+import { roundAmount, minCharge, maxCharge, formatAmount, normalize as normalizeCurrency } from '../../src/lib/currency.js';
 
 // Discount codes for a store: list / create / delete, owner-gated. Codes are
 // stored locally; checkout turns a valid code into a one-shot Stripe coupon
@@ -44,13 +45,16 @@ export default guard(async function handler(req, res) {
         return;
       }
       const kind = body.kind === 'fixed' ? 'fixed' : 'percent';
-      const amount = Math.round(Number(body.amount) * 100) / 100;
+      // A fixed discount is denominated in the store's currency, so it rounds
+      // and bounds by that currency — not by cents and dollars.
+      const dcur = normalizeCurrency(store.currency);
+      const amount = kind === 'fixed' ? roundAmount(Number(body.amount), dcur) : Math.round(Number(body.amount) * 100) / 100;
       if (kind === 'percent' && (!Number.isFinite(amount) || amount < 1 || amount > 100)) {
         sendJson(res, 400, { error: 'Percent must be between 1 and 100.' });
         return;
       }
-      if (kind === 'fixed' && (!Number.isFinite(amount) || amount < 0.5 || amount > 10000)) {
-        sendJson(res, 400, { error: 'Fixed discounts are $0.50 to $10,000.' });
+      if (kind === 'fixed' && (!Number.isFinite(amount) || amount < minCharge(dcur) || amount > maxCharge(dcur))) {
+        sendJson(res, 400, { error: `Fixed discounts are ${formatAmount(minCharge(dcur), dcur)} to ${formatAmount(maxCharge(dcur), dcur)}.` });
         return;
       }
       let planKey = null;

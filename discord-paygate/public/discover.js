@@ -1,3 +1,21 @@
+// The directory lists stores that price in different currencies, so a bare $
+// on every card is simply wrong for most of them. Intl carries each currency's
+// symbol and decimal count; the zero-decimal set is the one thing it needs told.
+const DISC_ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga',
+  'pyg', 'rwf', 'vnd', 'vuv', 'xaf', 'xof', 'xpf', 'isk', 'ugx']);
+const fmtFrom = (amount, cur) => {
+  const c = String(cur ?? 'usd').toLowerCase();
+  const dp = DISC_ZERO_DECIMAL.has(c) ? 0 : 2;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency', currency: c.toUpperCase(),
+      minimumFractionDigits: dp, maximumFractionDigits: dp,
+    }).format(Number(amount));
+  } catch {
+    return `${c.toUpperCase()} ${Number(amount).toFixed(dp)}`;
+  }
+};
+
 // /discover — the public directory. Opt-in stores only; every number on a
 // card is real (live members, actual product count, actual lowest price).
 const $ = (sel) => document.querySelector(sel);
@@ -28,7 +46,7 @@ function card(s) {
     : `<span class="disc-icon disc-icon-fallback">${initial}</span>`;
   const meta = [
     `${s.products} product${s.products === 1 ? '' : 's'}`,
-    `from $${Number(s.fromUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `from ${fmtFrom(s.fromUsd, s.currency)}`,
     s.members > 0 ? `${s.members} member${s.members === 1 ? '' : 's'}` : null,
   ].filter(Boolean).join(' · ');
   // The store's own accent, validated server-side, as a signature hairline.

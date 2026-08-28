@@ -36,6 +36,9 @@ export default guard(async function handler(req, res) {
         accent: s.theme?.accent ?? null,
         products: plans.length,
         fromUsd: Math.min(...plans.map((p) => p.priceUsd)),
+        // Public directory: stores here price in different currencies, so the
+        // cheapest number is meaningless without the code that goes with it.
+        currency: plans[0]?.currency ?? s.currency ?? 'usd',
         members: await countLiveMembers([s.id]),
         createdAt: s.createdAt ?? null,
       });

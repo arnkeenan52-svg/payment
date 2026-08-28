@@ -119,6 +119,7 @@ export async function processStripeEvent(event, routeStore = null) {
           periodEnd: subscriptionPeriodEnd(sub),
           store,
           paidUsd,
+          currency: paidCurrency,
         });
         await emailReceipt();
         await notifySale();
@@ -133,6 +134,7 @@ export async function processStripeEvent(event, routeStore = null) {
           periodEnd: null,
           store,
           paidUsd,
+          currency: paidCurrency,
         });
         await emailReceipt();
         await notifySale();

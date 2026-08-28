@@ -551,6 +551,9 @@ function renderSetupStep(g, step) {
       </label>
       <div class="field-row">
         <label class="field">
+          <!-- USD by name here on purpose: this runs while the store is being
+               created, and a new store starts in USD. Settings is where it
+               changes, and every price field after that follows it. -->
           <span class="field-label">Price (USD) <span aria-hidden="true">*</span></span>
           <input id="f-price" type="text" inputmode="decimal" placeholder="59.99" autocomplete="off" />
           <span class="field-err" id="err-price" role="alert"></span>
@@ -1330,7 +1333,7 @@ function productEditorFields(p = {}) {
     <div class="field-row">
       <label class="field"><span class="field-label">Name <span aria-hidden="true">*</span></span>
         <input class="pe-name" type="text" maxlength="80" value="${esc(p.name ?? '')}" placeholder="Premium" /></label>
-      <label class="field"><span class="field-label">Price (USD) <span aria-hidden="true">*</span></span>
+      <label class="field"><span class="field-label">Price (${esc(STORE_CURRENCY.toUpperCase())}) <span aria-hidden="true">*</span></span>
         <input class="pe-price" type="text" inputmode="decimal" value="${p.priceUsd ?? ''}" placeholder="59.99" autocomplete="off" /></label>
     </div>
     <label class="field"><span class="field-label">Description</span>
@@ -1382,7 +1385,7 @@ function optionRowHtml() {
   return `<div class="field-row pe-opt-row">
     <label class="field"><span class="field-label">Option label</span>
       <input class="po-label" type="text" maxlength="40" placeholder="Monthly" /></label>
-    <label class="field"><span class="field-label">Price (USD)</span>
+    <label class="field"><span class="field-label">Price (${esc(STORE_CURRENCY.toUpperCase())})</span>
       <input class="po-price" type="text" inputmode="decimal" placeholder="50" autocomplete="off" /></label>
     <label class="field"><span class="field-label">Billing</span>
       <select class="po-billing">
@@ -1475,7 +1478,7 @@ function sectionDiscounts(discounts, products, slug) {
           <label class="field"><span class="field-label">Code <span aria-hidden="true">*</span></span>
             <input id="dc-code" type="text" maxlength="32" placeholder="LAUNCH20" style="text-transform:uppercase" spellcheck="false" /></label>
           <label class="field"><span class="field-label">Type</span>
-            <select id="dc-kind"><option value="percent">Percent off</option><option value="fixed">Fixed USD off</option></select></label>
+            <select id="dc-kind"><option value="percent">Percent off</option><option value="fixed">Fixed ${esc(STORE_CURRENCY.toUpperCase())} off</option></select></label>
           <label class="field"><span class="field-label">Amount <span aria-hidden="true">*</span></span>
             <input id="dc-amount" type="text" inputmode="decimal" placeholder="20" autocomplete="off" /></label>
         </div>
@@ -2480,7 +2483,7 @@ function wireMembers(slug) {
         .then((r) => r.json())
         .then((d) => {
           $('#am-plan').innerHTML = (d.plans ?? [])
-            .map((p) => `<option value="${esc(p.id)}">${esc(p.name)} — $${p.priceUsd}</option>`)
+            .map((p) => `<option value="${esc(p.id)}">${esc(p.name)} — ${esc(usd(p.priceUsd, p.currency))}</option>`)
             .join('');
         })
         .catch(() => {});

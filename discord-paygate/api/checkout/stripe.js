@@ -3,7 +3,7 @@ import { storeBySlug, planOf } from '../../src/services/stores.js';
 import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { createCheckoutSession, stripeFetch } from '../../src/lib/stripe.js';
-import { fromMinor, normalize as normalizeCurrency } from '../../src/lib/currency.js';
+import { fromMinor, toMinor, normalize as normalizeCurrency } from '../../src/lib/currency.js';
 import { memberLimitBlocks } from '../../src/services/billing.js';
 import { getGuildMember } from '../../src/lib/discord.js';
 import * as db from '../../src/db.js';
@@ -93,7 +93,14 @@ export default guard(async function handler(req, res) {
           name: codeRaw,
           ...(d.kind === 'percent'
             ? { percent_off: Math.min(100, Math.max(1, d.amount)) }
-            : { amount_off: Math.round(Math.min(d.amount, plan.priceUsd) * 100), currency: 'usd' }),
+            // A fixed discount is money, so it carries the plan's currency and
+            // the plan's minor-unit factor. Hardcoded 'usd' × 100 minted a
+            // ¥500-off coupon as a $500-off one — refused by Stripe at best,
+            // and at worst a discount a hundred times the intended size.
+            : {
+                amount_off: toMinor(Math.min(d.amount, plan.priceUsd), plan.currency),
+                currency: normalizeCurrency(plan.currency),
+              }),
         },
       });
       couponId = coupon.id;

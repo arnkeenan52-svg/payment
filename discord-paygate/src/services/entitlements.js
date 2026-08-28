@@ -170,7 +170,7 @@ async function reconcileNow(discordId, store) {
 // periodEnd null/undefined on a non-lifetime plan means the provider gave us
 // nothing usable — fall back to the plan's own duration. A NULL expiry in the
 // database must mean lifetime and nothing else.
-export async function grant({ discordId, planId, provider, providerRef, periodEnd = null, store = null, paidUsd = null }) {
+export async function grant({ discordId, planId, provider, providerRef, periodEnd = null, store = null, paidUsd = null, currency = null }) {
   const target = store ?? defaultStore();
   const plan = await planOf(target, planId);
   if (!plan) {
@@ -202,6 +202,10 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
     graceUntil: null,
     storeId: target?.id ?? null,
     paidUsd,
+    // The currency the sale actually happened in. Without it every row lands
+    // as 'usd' and a yen store's history reads as dollars — the amount would
+    // be right and its label wrong, which is the worst of the two.
+    currency: currency ?? plan.currency ?? target?.currency ?? 'usd',
   });
   await reconcile(discordId, target);
   return sub;
