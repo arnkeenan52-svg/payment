@@ -1886,90 +1886,45 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
 }
 
 /* ── mini product-UI insets (obvious mocks: dotted window bar + PREVIEW tag) ── */
-.mui{
-  position:relative;border-radius:16px;overflow:hidden;
-  background:var(--gl-card-solid);border:1px solid var(--gl-border-strong);
-  box-shadow:0 18px 44px -22px rgba(4,8,18,.5);
-  font-family:var(--sans);
-}
-.mui-bar{display:flex;align-items:center;gap:5px;padding:9px 13px;border-bottom:1px solid var(--gl-border)}
-.mui-bar i{width:7px;height:7px;border-radius:50%;background:var(--gl-track);font-style:normal}
-.mui-bar em{margin-left:7px;font-style:normal;font:600 9.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gl-micro)}
-.mui-body{padding:12px 14px 14px;display:grid;gap:8px}
-.mui-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--gl-sec)}
-.mui-tag{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:12.5px;color:var(--gl-ink)}
-.mui-slogo{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:#635bff;color:#fff;font:700 13px/1 var(--grotesk)}
-.mui-chip-ok{display:inline-flex;align-items:center;gap:5px;padding:3.5px 9px;border-radius:99px;font:600 10.5px/1.4 var(--sans);color:var(--gl-green);background:rgba(74,222,128,.1);border:1px solid var(--gl-green-border)}
-html[data-theme="light"] .mui-chip-ok{background:rgba(22,163,74,.07)}
-.mui-chip-ok svg{width:10px;height:10px}
-.mui-num{font-family:var(--grotesk);font-weight:700;font-size:12.5px;color:var(--gl-ink);letter-spacing:.01em;font-variant-numeric:tabular-nums}
-.mui-num.ok{color:var(--gl-green)}
-.mui-role{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font:600 12px/1.5 var(--sans);color:#8e9aff;background:rgba(88,101,242,.14);border:1px solid rgba(88,101,242,.32)}
-html[data-theme="light"] .mui-role{color:#4854e8;background:rgba(88,101,242,.1)}
-.mui-role::before{content:"";width:7px;height:7px;border-radius:50%;background:#5865f2}
-.mui-opt{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--gl-border-strong);border-radius:10px;padding:7.5px 11px;font-size:12.5px;color:var(--gl-sec)}
-.mui-opt em{font-style:normal;font-size:11px;color:var(--gl-micro);margin-left:5px}
-.mui-opt b{font-family:var(--grotesk);font-weight:700;font-size:13.5px;color:var(--gl-ink);letter-spacing:-.01em}
-.mui-opt.on{border-color:var(--gl-blue-border);background:var(--gl-blue-tint);color:var(--gl-ink);box-shadow:0 0 0 1px var(--gl-blue-border)}
-
-/* ── how it works: asymmetric bento with mock insets, full-width payoff row ── */
+/* ── how it works: three plain columns ────────────────────────────────────
+   Was an asymmetric bento with mock UI insets inside each cell. The section
+   answers one question — what are the three things I do — and the mockups
+   were answering a different one at four times the height, so the reader had
+   to work past a fake settings panel to find "connect Stripe". A centred
+   heading and three columns say it outright. */
 .how{padding:64px 24px 30px}
-.how-bento{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
-.how-cell{
-  position:relative;overflow:hidden;border-radius:22px;
-  background:var(--glass);border:1px solid var(--glass-brd);
-  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
-  padding:26px 26px 24px;display:flex;flex-direction:column;
-  transition:transform .25s cubic-bezier(.23,1,.32,1),box-shadow .25s cubic-bezier(.23,1,.32,1),border-color .2s ease;
+.how-title{
+  font-family:var(--jakarta);font-weight:600;text-align:center;
+  font-size:clamp(30px,4vw,44px);line-height:1.1;letter-spacing:-.02em;color:var(--ink);
 }
-.how-cell::before{
-  content:"";position:absolute;top:0;left:16%;right:16%;height:2px;border-radius:99px;
-  background:linear-gradient(90deg,transparent,rgba(88,101,242,.55),transparent);
+.how-steps{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(24px,4vw,56px);margin-top:clamp(32px,5vw,56px);
 }
-.how-cell:hover{transform:translateY(-4px);border-color:var(--gl-blue-border);box-shadow:0 34px 70px -28px rgba(4,8,18,.55),inset 0 1px 0 rgba(255,255,255,.12)}
-.how-a{grid-column:span 7}
-.how-b{grid-column:span 5}
-.how-c{grid-column:span 12;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:center;gap:clamp(20px,3vw,40px)}
-.how-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.how-ic{
-  display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;
-  border-radius:13px;background:linear-gradient(135deg,#5865f2,#7ea2ff);color:#fff;
-  box-shadow:0 10px 24px -10px rgba(88,101,242,.7);
+.how-step{display:flex;flex-direction:column;align-items:center;text-align:center}
+.how-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:50%;
+  background:var(--gl-glass-2,rgba(127,140,170,.14));
+  border:1px solid var(--gl-border,rgba(127,140,170,.22));
+  color:var(--sec);
 }
-.how-ic svg{width:21px;height:21px}
-.how-step{flex:none;font:600 10.5px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#8e9aff;padding:6px 11px;border-radius:99px;border:1px solid rgba(88,101,242,.3);background:rgba(88,101,242,.1)}
-html[data-theme="light"] .how-step{color:#4854e8}
-.how-cell h3{margin-top:16px;font-family:var(--jakarta);font-weight:600;font-size:19px;letter-spacing:-.01em;color:var(--ink)}
-.how-p{margin:8px 0 20px;font-size:14.5px;line-height:23px;color:var(--sec);max-width:52ch}
-.how-a .mui,.how-b .mui{margin-top:auto}
-.how-c-txt{display:flex;flex-direction:column}
-.how-c-txt .how-p{margin-bottom:0}
-.how-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch;gap:8px}
-.how-node{
-  display:flex;flex-direction:column;gap:7px;justify-content:center;min-width:0;
-  border-radius:14px;padding:13px 14px;
-  background:var(--gl-card-solid);border:1px solid var(--gl-border-strong);
-  box-shadow:0 14px 34px -20px rgba(4,8,18,.5);
+.how-badge svg{width:23px;height:23px}
+.how-step h3{
+  margin-top:18px;font-family:var(--jakarta);font-weight:600;
+  font-size:17px;letter-spacing:-.01em;color:var(--ink);
 }
-.how-node small{font:600 9.5px/1.3 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gl-micro);white-space:nowrap}
-.how-node b{display:flex;align-items:center;gap:7px;font-family:var(--sans);font-weight:600;font-size:13px;color:var(--gl-ink);white-space:nowrap}
-.how-node b svg{width:13px;height:13px;flex:none}
-.how-node .nd-blurple{color:#8e9aff}
-html[data-theme="light"] .how-node .nd-blurple{color:#5865f2}
-.how-node.n-role{border-left:3px solid #5865f2}
-.how-node.n-pay{border-left:3px solid var(--gl-green)}
-.how-node .ok{color:var(--gl-green)}
-.how-join{align-self:center;font:600 15px/1 var(--grotesk);color:var(--gl-micro)}
-@media (max-width:960px){
-  .how-a,.how-b,.how-c{grid-column:span 12}
-  .how-c{grid-template-columns:1fr;gap:18px;align-items:stretch}
-  .how-flow{grid-template-columns:1fr;gap:6px}
-  .how-join{justify-self:center;transform:rotate(90deg)}
-  .how-node b{white-space:normal}
+.how-step p{
+  /* Capped in ch, not px: three columns on a wide screen would otherwise run
+     to 90 characters a line, which is past where the eye reliably finds the
+     next row. */
+  margin-top:8px;font-size:14.5px;line-height:23px;color:var(--sec);max-width:34ch;
+}
+@media (max-width:860px){
+  .how-steps{grid-template-columns:1fr;gap:36px;max-width:460px;margin-inline:auto}
 }
 @media (max-width:600px){
   .how{padding:48px 16px 24px}
-  .how-cell{padding:22px 20px 20px}
 }
 
 /* ── what sellers say: featured editorial card + stacked rail ── */
@@ -2182,8 +2137,8 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 .pay-chip{transition:transform .2s cubic-bezier(.23,1,.32,1)}
 .pay-chip:hover{transform:translateY(-2px)}
 @media (prefers-reduced-motion:reduce){
-  .how-cell,.voice-card,.pay-chip{transition:none}
-  .how-cell:hover,.voice-card:hover,.pay-chip:hover{transform:none}
+  .voice-card,.pay-chip{transition:none}
+  .voice-card:hover,.pay-chip:hover{transform:none}
 }
 </style>
 </head>
@@ -2334,71 +2289,22 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 
 <!-- 4.5 · how it works -->
 <section class="how wrap" id="how">
-  <div class="mid-head">
-    <div>
-      <p class="sec-eyebrow">HOW IT WORKS</p>
-      <h2 class="sec-display">Selling in three steps.</h2>
-    </div>
-    <p class="mid-note">From Stripe connect to first payout in one sitting &#8212; the bot handles everything after.</p>
-  </div>
-  <div class="how-bento">
-    <article class="how-cell how-a reveal">
-      <div class="how-top">
-        <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
-        <span class="how-step">Step 1</span>
-      </div>
-      <h3>Connect Stripe</h3>
-      <p class="how-p">Link your own Stripe account in minutes. Every payment settles straight into it &#8212; Dues never holds your money.</p>
-      <div class="mui" aria-hidden="true">
-        <div class="mui-bar"><i></i><i></i><i></i><em>Setup &#183; preview</em></div>
-        <div class="mui-body">
-          <div class="mui-row"><span class="mui-tag"><span class="mui-slogo">S</span>Stripe account</span><span class="mui-chip-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg>Connected</span></div>
-          <div class="mui-row"><span>Payouts</span><span class="mui-num">Bank &#8226;&#8226;&#8226;&#8226;4242</span></div>
-          <div class="mui-row"><span>Platform fee on sales</span><span class="mui-num ok">0%</span></div>
-        </div>
-      </div>
+  <h2 class="how-title">How it works</h2>
+  <div class="how-steps">
+    <article class="how-step reveal">
+      <span class="how-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
+      <h3>Set up payouts</h3>
+      <p>Connect your own Stripe account, add a crypto wallet, or both. Every payment settles straight into them &#8212; Dues never holds your money.</p>
     </article>
-    <article class="how-cell how-b reveal">
-      <div class="how-top">
-        <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
-        <span class="how-step">Step 2</span>
-      </div>
+    <article class="how-step reveal">
+      <span class="how-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
       <h3>Create a product</h3>
-      <p class="how-p">Turn any role into a product &#8212; monthly, yearly, or one-time lifetime. Set the price, pick the role, done.</p>
-      <div class="mui" aria-hidden="true">
-        <div class="mui-bar"><i></i><i></i><i></i><em>Product &#183; preview</em></div>
-        <div class="mui-body">
-          <div class="mui-row"><span>Role</span><span class="mui-role">@VIP</span></div>
-          <span class="mui-opt on"><span>Monthly<em>auto-renews</em></span><b>$19.99</b></span>
-          <span class="mui-opt"><span>Lifetime<em>one-time</em></span><b>$149</b></span>
-        </div>
-      </div>
+      <p>Turn any role into a product &#8212; monthly, yearly or one-time lifetime. Set the price, pick the role, and choose how long access lasts.</p>
     </article>
-    <article class="how-cell how-c reveal">
-      <div class="how-c-txt">
-        <div class="how-top">
-          <span class="how-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-          <span class="how-step">Step 3</span>
-        </div>
-        <h3>Get paid</h3>
-        <p class="how-p">Share your dues.gg store link. Buyers check out, roles land in seconds, and you keep every dollar.</p>
-      </div>
-      <div class="how-flow" aria-hidden="true">
-        <div class="how-node">
-          <small>Checkout</small>
-          <b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nd-blurple"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>$19.99 paid</b>
-        </div>
-        <span class="how-join">&#8594;</span>
-        <div class="how-node n-role">
-          <small>Discord</small>
-          <b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="nd-blurple"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg>@VIP granted</b>
-        </div>
-        <span class="how-join">&#8594;</span>
-        <div class="how-node n-pay">
-          <small>Your Stripe</small>
-          <b class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>Every dollar &#8594; you</b>
-        </div>
-      </div>
+    <article class="how-step reveal">
+      <span class="how-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+      <h3>Get paid</h3>
+      <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and every dollar goes to your account, not ours.</p>
     </article>
   </div>
 </section>
