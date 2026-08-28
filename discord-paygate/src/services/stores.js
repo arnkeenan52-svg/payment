@@ -9,6 +9,7 @@
 import { config } from '../config.js';
 import * as db from '../db.js';
 import { openSecret } from '../lib/secretbox.js';
+import { uploadKind } from '../lib/upload.js';
 
 // The built-in store is NOT special to buyers: it lives at its own slug
 // derived from its brand name (e.g. /tradeleaks), exactly like every other
@@ -168,13 +169,43 @@ export async function everyStore() {
 }
 
 // Uploaded product photos are stored as ABSOLUTE /api/img URLs minted under
-// whatever domain the platform had at upload time. Serving them re-based on
-// the current base keeps every photo alive across domain moves
-// (ripleybot.com → dues.gg). Foreign image links pass through untouched.
-export function rebaseImageUrl(u) {
+// whatever domain — and whatever store link — the platform had at upload time.
+// Serving them re-based on the current base keeps every photo alive across
+// domain moves (ripleybot.com → dues.gg), and re-based on the current slug
+// keeps it alive across a store RENAME: /api/img resolves by slug, so a stored
+// URL naming the old link 404s every photo the moment the owner changes it.
+// Foreign image links pass through untouched.
+export function rebaseImageUrl(u, currentSlug = null) {
   if (typeof u !== 'string') return u ?? null;
   const at = u.indexOf('/api/img?');
-  return at > 0 ? `${config.publicBaseUrl}${u.slice(at)}` : u;
+  if (at <= 0) return u;
+  const rest = u.slice(at);
+  if (!currentSlug) return `${config.publicBaseUrl}${rest}`;
+  const q = rest.indexOf('?');
+  const params = new URLSearchParams(rest.slice(q + 1));
+  params.set('store', currentSlug); // set, not append — keeps the parameter's place
+  return `${config.publicBaseUrl}${rest.slice(0, q)}?${params.toString()}`;
+}
+
+// The store's banner. An upload always beats a pasted link, and its URL is
+// minted here from the CURRENT slug rather than stored — the same rename trap
+// rebaseImageUrl exists for, with no stored value to go stale. updated_at is
+// the cache-buster, so replacing the banner is visible immediately behind the
+// endpoint's one-hour cache-control.
+export async function bannerFor(store) {
+  if (!store) return { url: null, kind: null };
+  if (store.id !== null && store.id !== undefined) {
+    const media = await db.getStoreMediaMeta(store.id, 'banner');
+    if (media) {
+      return {
+        url: `${config.publicBaseUrl}/api/img?store=${encodeURIComponent(store.slug)}&kind=banner&v=${media.updatedAt}`,
+        kind: uploadKind(media.mime),
+      };
+    }
+  }
+  const linked = typeof store.bannerUrl === 'string' && store.bannerUrl.trim() ? store.bannerUrl.trim() : null;
+  if (!linked) return { url: null, kind: null };
+  return { url: linked, kind: /\.(mp4|webm)([?#]|$)/i.test(linked) ? 'video' : 'image' };
 }
 
 // The store's product catalog in the same shape plans.json uses, so the
@@ -187,7 +218,7 @@ export async function plansOf(store) {
     name: p.name,
     description: p.description ?? '',
     descriptionHighlight: null,
-    imageUrl: rebaseImageUrl(p.imageUrl),
+    imageUrl: rebaseImageUrl(p.imageUrl, store.slug),
     mediaKind: p.mediaKind ?? null,
     roleNames: p.roleNames,
     priceUsd: p.priceUsd,

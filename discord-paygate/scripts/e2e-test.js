@@ -509,6 +509,8 @@ async function initTestDb() {
     await tq('DROP TABLE IF EXISTS app_secrets');
     await tq('DROP TABLE IF EXISTS stores');
     await tq('DROP TABLE IF EXISTS store_plans');
+    await tq('DROP TABLE IF EXISTS store_media');
+    await tq('DROP TABLE IF EXISTS store_follows');
     await tq('DROP TABLE IF EXISTS platform_billing');
     await tq('DROP TABLE IF EXISTS discounts');
   } else {
@@ -3095,6 +3097,247 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
     body: JSON.stringify({ planId: 'vip-access', store: 'demo' }),
   });
   assert.ok(co.status >= 400, `demo checkout must refuse (got ${co.status})`);
+});
+
+// The store-page login dance, repeated by the scenarios below exactly as the
+// ones above spell it out.
+const loginAsUser = async (code) => {
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+};
+
+test('store banners: uploaded media serves from /api/img, beats a pasted link, survives a rename', async () => {
+  const u7Cookie = await loginAsUser('code_u7');
+  const storeCall = (slug, body) =>
+    fetch(`${appUrl}/api/admin/store`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u7Cookie },
+      body: JSON.stringify({ store: slug, ...body }),
+    });
+  const publicStore = async (slug) => (await (await fetch(`${appUrl}/api/plans?store=${slug}`)).json()).store;
+  const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  const MP4 = 'AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDE=';
+  // The earlier settings scenario left a pasted banner link on this store.
+  assert.equal((await publicStore('vip-signals')).bannerUrl, 'https://cdn.e2e.test/banner.png');
+
+  // The whitelist IS the content-type /api/img echoes back under nosniff, so
+  // anything outside it is refused before a byte is written.
+  assert.equal((await storeCall('vip-signals', { bannerData: 'data:image/png;base64,@@@' })).status, 400);
+  assert.equal((await storeCall('vip-signals', { bannerData: 'data:text/html;base64,PHNjcmlwdD4=' })).status, 400);
+  assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals&kind=banner`)).status, 404, 'a refused upload stored nothing');
+
+  const up = await storeCall('vip-signals', { bannerData: `data:image/png;base64,${PNG}` });
+  const upBody = await up.text();
+  assert.equal(up.status, 200, upBody);
+  const echo = JSON.parse(upBody).store;
+  assert.equal(echo.hasBannerUpload, true, 'the echo carries every editable field or the form wipes it');
+  assert.equal(echo.bannerKind, 'image');
+  assert.equal(echo.bannerUrl, 'https://cdn.e2e.test/banner.png', 'the pasted link is kept, not clobbered by an upload');
+
+  const pub = await publicStore('vip-signals');
+  assert.match(pub.bannerUrl, /\/api\/img\?store=vip-signals&kind=banner&v=\d+$/, 'the storefront gets a ready-to-use URL');
+  assert.equal(pub.bannerKind, 'image');
+  const served = await fetch(pub.bannerUrl.replace('https://tradeleaks.e2e', appUrl));
+  assert.equal(served.status, 200);
+  assert.equal(served.headers.get('content-type'), 'image/png');
+  assert.equal(served.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(Buffer.from(await served.arrayBuffer()).toString('base64'), PNG, 'served bytes match the upload');
+  // Link previews lead with the banner the owner chose for the page.
+  const shared = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.match(shared, /property="og:image" content="[^"]*kind=banner/, 'the banner fronts the store unfurl');
+
+  // Uploads the whitelist accepts must actually be deliverable: a 1.2MB
+  // banner puts the JSON body well over the 1 MiB ceiling every other route
+  // keeps, and under the dev shim (which reads the stream itself) that ceiling
+  // is what rejected them.
+  const BIG = 'A'.repeat(1_600_000);
+  assert.ok(BIG.length + 22 <= 2_000_000, 'the test payload stays inside the whitelist cap');
+  assert.equal((await storeCall('vip-signals', { bannerData: `data:image/png;base64,${BIG}` })).status, 200, 'an upload over 1 MiB is deliverable');
+  const bigServed = await fetch(`${appUrl}/api/img?store=vip-signals&kind=banner`);
+  assert.equal(Number(bigServed.headers.get('content-length')), 1_200_000, 'all of it round-trips');
+  await bigServed.arrayBuffer();
+  assert.equal((await storeCall('vip-signals', { bannerData: `data:image/png;base64,${PNG}` })).status, 200);
+
+  // A rename must not strand any of it: /api/img resolves by slug, so nothing
+  // about these URLs is stored — banner and product photo alike are minted
+  // from whatever link the store carries right now.
+  const storeId = Number((await tq("SELECT id FROM stores WHERE slug = 'vip-signals'")).rows[0].id);
+  const target = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf);
+  const productCall = (body) =>
+    fetch(`${appUrl}/api/onboard`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u7Cookie },
+      body: JSON.stringify({ step: 'product-update', storeId, planKey: target.id, ...body }),
+    });
+  assert.equal((await productCall({ imageData: `data:image/png;base64,${PNG}` })).status, 200);
+  assert.equal((await storeCall('vip-signals', { slug: 'vip-elite' })).status, 200);
+  assert.match((await publicStore('vip-elite')).bannerUrl, /\/api\/img\?store=vip-elite&kind=banner/);
+  assert.equal((await fetch(`${appUrl}/api/img?store=vip-elite&kind=banner`)).status, 200, 'the renamed store still serves its banner');
+  const movedPhoto = (await (await fetch(`${appUrl}/api/plans?store=vip-elite`)).json()).plans.find((p) => p.id === target.id).imageUrl;
+  assert.match(movedPhoto, /\/api\/img\?store=vip-elite&plan=/, 'product photos follow the store to its new link');
+  assert.equal((await fetch(movedPhoto.replace('https://tradeleaks.e2e', appUrl))).status, 200, 'and still serve there');
+  assert.equal((await storeCall('vip-elite', { slug: 'vip-signals' })).status, 200);
+  assert.equal((await productCall({ imageData: null })).status, 200);
+
+  // A short clip is a banner too — same endpoint, so Safari's byte ranges are
+  // answered for free, but an unfurler never gets handed an mp4.
+  assert.equal((await storeCall('vip-signals', { bannerData: `data:video/mp4;base64,${MP4}` })).status, 200);
+  assert.equal((await publicStore('vip-signals')).bannerKind, 'video');
+  const ranged = await fetch(`${appUrl}/api/img?store=vip-signals&kind=banner`, { headers: { range: 'bytes=0-9' } });
+  assert.equal(ranged.status, 206, 'byte ranges answered');
+  assert.equal((await ranged.arrayBuffer()).byteLength, 10);
+  assert.equal(ranged.headers.get('content-type'), 'video/mp4');
+  const sharedVid = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.ok(!/property="og:image" content="[^"]*kind=banner/.test(sharedVid), 'og:image skips video banners');
+
+  // Three states: '' clears back to the pasted link, and an unrelated save
+  // leaves the banner exactly where it was.
+  assert.equal((await storeCall('vip-signals', { bannerData: '' })).status, 200);
+  const cleared = await publicStore('vip-signals');
+  assert.equal(cleared.bannerUrl, 'https://cdn.e2e.test/banner.png', 'clearing the upload falls back to the pasted link');
+  assert.equal(cleared.bannerKind, 'image');
+  assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals&kind=banner`)).status, 404, 'a cleared banner is gone');
+  assert.equal((await storeCall('vip-signals', { bannerData: `data:image/png;base64,${PNG}` })).status, 200);
+  assert.equal((await storeCall('vip-signals', { description: 'The alpha desk.' })).status, 200);
+  assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals&kind=banner`)).status, 200, 'an unrelated save must not drop the banner');
+
+  // The dashboard re-renders its settings form from /api/admin/payments.
+  const dash = await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals`, { headers: { cookie: u7Cookie } })).json();
+  const dstore = dash.stores.find((s) => s.slug === 'vip-signals');
+  assert.equal(dstore.hasBannerUpload, true, 'dashboard payload knows an upload exists');
+  assert.equal(dstore.bannerKind, 'image');
+  assert.match(dstore.bannerImageUrl, /kind=banner/, 'dashboard payload carries the resolved banner');
+  assert.equal(dstore.bannerUrl, 'https://cdn.e2e.test/banner.png', 'the URL field still gets the pasted link');
+  assert.ok(!JSON.stringify(dash).includes('base64'), 'the upload itself never rides a list payload');
+
+  // Stores with no row of their own have nowhere to hang media.
+  assert.equal((await fetch(`${appUrl}/api/img?store=tradeleaks&kind=banner`)).status, 404);
+  assert.equal((await publicStore('demo')).bannerKind, null);
+  assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals`)).status, 400, 'a plan-less, kind-less request is still a bad request');
+});
+
+test('following a store: signed-in only, idempotent, counts only, owner refused, rate-limited', async () => {
+  const U7 = '507700000000000007'; // the vip-signals owner
+  const U8 = '508800000000000008'; // a buyer
+  const U14 = '514400000000000014'; // owns nothing right now; G3 is free
+  const u7Cookie = await loginAsUser('code_u7');
+  const u8Cookie = await loginAsUser('code_u8');
+  const u14Cookie = await loginAsUser('code_u14');
+  const follow = (cookie, body) =>
+    fetch(`${appUrl}/api/follow`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
+      body: JSON.stringify(body),
+    });
+  const me = async (cookie) => (await (await fetch(`${appUrl}/api/me`, { headers: { cookie } })).json());
+  const publicStore = async (slug) => (await (await fetch(`${appUrl}/api/plans?store=${slug}`)).json()).store;
+  const storeId = Number((await tq("SELECT id FROM stores WHERE slug = 'vip-signals'")).rows[0].id);
+  const ledger = async (id) => Number((await tq('SELECT COUNT(*) AS n FROM store_follows WHERE store_id = ?', [id])).rows[0].n);
+
+  // Signed out is a 401 with the words the button shows; GET is not a way in.
+  const anon = await follow(null, { store: 'vip-signals', action: 'follow' });
+  assert.equal(anon.status, 401);
+  assert.deepEqual(await anon.json(), { error: 'sign in first' });
+  assert.equal((await fetch(`${appUrl}/api/follow`, { headers: { cookie: u8Cookie } })).status, 405);
+  assert.equal((await follow(u8Cookie, { store: 'vip-signals', action: 'sabotage' })).status, 400);
+
+  // Follow, then follow again: one ledger row, one follower, same answer.
+  const first = await follow(u8Cookie, { store: 'vip-signals', action: 'follow' });
+  assert.equal(first.status, 200);
+  assert.deepEqual(await first.json(), { ok: true, store: 'vip-signals', following: true, followers: 1 });
+  assert.equal((await (await follow(u8Cookie, { store: 'vip-signals', action: 'follow' })).json()).followers, 1, 'a double tap is not a second follower');
+  assert.equal(await ledger(storeId), 1, 'exactly one row after two follows');
+
+  // The public payload carries the COUNT and never who it is made of.
+  const pub = await publicStore('vip-signals');
+  assert.equal(pub.followers, 1, 'the number is COUNT(*), computed server-side');
+  assert.equal(pub.followable, true);
+  assert.ok(!JSON.stringify(pub).includes(U8), 'no client is ever handed a roster of who follows a store');
+  // The caller's own list is the one caller-scoped piece, and it is slugs.
+  assert.deepEqual((await me(u8Cookie)).following, ['vip-signals']);
+  assert.deepEqual((await me(u14Cookie)).following, [], 'following is per caller, not global');
+
+  // Unfollow is idempotent the same way — unfollowing nothing is not an error.
+  assert.equal((await (await follow(u8Cookie, { store: 'vip-signals', action: 'unfollow' })).json()).followers, 0);
+  const twice = await follow(u8Cookie, { store: 'vip-signals', action: 'unfollow' });
+  assert.equal(twice.status, 200);
+  assert.deepEqual(await twice.json(), { ok: true, store: 'vip-signals', following: false, followers: 0 });
+  assert.equal(await ledger(storeId), 0);
+
+  // A seller padding their own store 0 → 1 is the number nobody should trust.
+  assert.equal((await follow(u7Cookie, { store: 'vip-signals', action: 'follow' })).status, 409);
+  assert.equal((await publicStore('vip-signals')).followers, 0, 'refused, and the count stays honest');
+
+  // Nothing without a database row of its own is followable.
+  for (const slug of ['demo', 'tradeleaks', 'no-such-store', 'NOT A SLUG']) {
+    assert.equal((await follow(u8Cookie, { store: slug, action: 'follow' })).status, 404, `"${slug}" must not be followable`);
+  }
+  for (const slug of ['demo', 'tradeleaks']) {
+    const s = await publicStore(slug);
+    assert.equal(s.followers, null, `${slug} reports null, never 0 — there is no store to count`);
+    assert.equal(s.followable, false);
+  }
+
+  // The owner's own dashboard gets the exact number, 0 included.
+  const dashAt = async (cookie, slug) =>
+    (await (await fetch(`${appUrl}/api/admin/payments?store=${slug}`, { headers: { cookie } })).json()).stores.find((s) => s.slug === slug);
+  assert.equal((await dashAt(u7Cookie, 'vip-signals')).followers, 0, 'the seller sees 0 rather than a hidden number');
+  assert.equal((await follow(u8Cookie, { store: 'vip-signals', action: 'follow' })).status, 200);
+  const dstore = await dashAt(u7Cookie, 'vip-signals');
+  assert.equal(dstore.followers, 1);
+  assert.ok(!JSON.stringify(dstore).includes(U8), 'the dashboard gets a count, never a roster');
+
+  // The ledger is keyed on the store row, so a rename carries the follow with
+  // it — including in the follower's own list.
+  const rename = (slug, to) =>
+    fetch(`${appUrl}/api/admin/store`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u7Cookie },
+      body: JSON.stringify({ store: slug, slug: to }),
+    });
+  assert.equal((await rename('vip-signals', 'vip-elite')).status, 200);
+  assert.equal((await publicStore('vip-elite')).followers, 1, 'follows survive a slug rename');
+  assert.deepEqual((await me(u8Cookie)).following, ['vip-elite'], 'the list names the store as it is now');
+  assert.equal((await rename('vip-elite', 'vip-signals')).status, 200);
+
+  // Rate limit, counted from the ledger itself: 20 follows a minute per
+  // account. Twenty rows backdated to now stand in for the flood.
+  const t = nowSec();
+  for (let i = 0; i < 20; i += 1) {
+    await tq('INSERT INTO store_follows (store_id, follower_discord_id, created_at) VALUES (?, ?, ?)', [990000 + i, U8, t]);
+  }
+  assert.equal((await follow(u8Cookie, { store: 'vip-signals', action: 'follow' })).status, 429);
+  await tq('DELETE FROM store_follows WHERE follower_discord_id = ? AND store_id >= ?', [U8, 990000]);
+  assert.equal((await follow(u8Cookie, { store: 'vip-signals', action: 'follow' })).status, 200, 'the window is the ledger, so clearing it clears the block');
+  // A row already inside the window costs nothing to re-follow.
+  assert.equal(await ledger(storeId), 1);
+
+  // Deleting a store takes its follows with it — no orphan rows, and the link
+  // stops being followable the moment the store is gone.
+  const made = await fetch(`${appUrl}/api/onboard`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u14Cookie },
+    body: JSON.stringify({ step: 'store', guildId: G3, name: 'Trade Hub Followed', stripeKey: OWNER2_KEY }),
+  });
+  assert.equal(made.status, 200, await made.clone().text());
+  const fresh = (await made.json()).store;
+  assert.equal((await (await follow(u8Cookie, { store: fresh.slug, action: 'follow' })).json()).followers, 1);
+  assert.equal(await ledger(Number(fresh.id)), 1);
+  const del = await fetch(`${appUrl}/api/admin/store`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u14Cookie },
+    body: JSON.stringify({ store: fresh.slug, action: 'delete' }),
+  });
+  assert.equal(del.status, 200, await del.text());
+  assert.equal(await ledger(Number(fresh.id)), 0, 'a deleted store leaves no follow rows behind');
+  assert.equal((await follow(u8Cookie, { store: fresh.slug, action: 'follow' })).status, 404);
+  assert.deepEqual((await me(u8Cookie)).following, ['vip-signals'], 'the deleted store drops out of the follower list');
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════

@@ -1510,6 +1510,10 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .photo-row { display: flex; align-items: center; gap: 10px; margin: 4px 0 8px; }
 .photo-prev { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid var(--edge); background: var(--well); flex: none; }
 .photo-prev[hidden] { display: none; }
+/* The banner preview is 3:1 like the banner itself — a 44px square told an
+   owner nothing about how their image would actually crop. */
+.st-pick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.st-banner-prev { width: 132px; height: 44px; border-radius: 6px; }
 
 .set-head h3 { margin: 0; font-size: 15px; }
 .set-head .card-sub { margin: 0; }

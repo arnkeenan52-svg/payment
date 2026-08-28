@@ -1,6 +1,12 @@
 // Tiny helpers shared by the router and route handlers.
 
-const MAX_BODY = 1024 * 1024; // 1 MiB is plenty for any webhook or form we accept
+// 1 MiB is plenty for any webhook or form, and it is the ceiling every
+// signature-verifying path keeps. Routes that carry an owner's upload (a
+// product photo, a store banner) pass their own larger maxBytes: Vercel
+// pre-parses those bodies, but under the dev shim (and therefore the whole
+// e2e suite) the stream is read here, where a 1 MiB cap rejected uploads the
+// data-URL whitelist itself allows.
+const MAX_BODY = 1024 * 1024;
 
 // Raw body, exactly as sent — signatures are HMACs over these bytes.
 // CRITICAL Vercel detail: the platform defines req.body as a LAZY GETTER that
@@ -9,7 +15,7 @@ const MAX_BODY = 1024 * 1024; // 1 MiB is plenty for any webhook or form we acce
 // a getter (or absent property) means the stream is still untouched — read it.
 // Only a plain pre-set value is used directly (Buffer/string), and a plain
 // parsed object is a clean, catchable error — never a function crash.
-export function readRawBody(req) {
+export function readRawBody(req, maxBytes = MAX_BODY) {
   const desc = Object.getOwnPropertyDescriptor(req, 'body');
   if (desc && 'value' in desc && desc.value !== undefined && desc.value !== null) {
     if (Buffer.isBuffer(desc.value)) return Promise.resolve(desc.value);
@@ -21,7 +27,7 @@ export function readRawBody(req) {
     let size = 0;
     req.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_BODY) {
+      if (size > maxBytes) {
         reject(new Error('body too large'));
         req.destroy();
         return;
@@ -35,12 +41,12 @@ export function readRawBody(req) {
 
 // JSON body for ordinary API routes. Here a parsed req.body is welcome —
 // accessing the Vercel getter is fine because we want the parsed value.
-export async function readJsonBody(req) {
+export async function readJsonBody(req, { maxBytes = MAX_BODY } = {}) {
   if (req.body !== undefined && req.body !== null && !Buffer.isBuffer(req.body) && typeof req.body === 'object') {
     return req.body;
   }
   if (typeof req.body === 'string') return req.body.length ? JSON.parse(req.body) : {};
-  const raw = await readRawBody(req);
+  const raw = await readRawBody(req, maxBytes);
   if (raw.length === 0) return {};
   return JSON.parse(raw.toString('utf8'));
 }

@@ -112,6 +112,34 @@ const ddl = (dialect) => {
     UNIQUE (store_id, plan_key)
   );
 
+  -- Uploaded store-level media (currently one row: kind 'banner'), held as a
+  -- data URL. A separate table rather than a column on stores because every
+  -- store read is SELECT * and allStores() feeds the public /discover
+  -- directory — a multi-megabyte TEXT column would ride along on all of them.
+  CREATE TABLE IF NOT EXISTS store_media (
+    store_id   ${int} NOT NULL,
+    kind       TEXT NOT NULL,
+    mime       TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    updated_at ${int} NOT NULL,
+    PRIMARY KEY (store_id, kind)
+  );
+
+  -- One row per (store, follower). store_id is NOT NULL on purpose: elsewhere
+  -- in this schema NULL means "the built-in store", but NULL is DISTINCT from
+  -- NULL inside a UNIQUE constraint in both SQLite and Postgres, which would
+  -- silently break the idempotency this constraint IS. The built-in and demo
+  -- stores are simply not followable. Only the COUNT of these rows is ever
+  -- public — who follows a store never leaves this table.
+  CREATE TABLE IF NOT EXISTS store_follows (
+    ${id},
+    store_id            ${int} NOT NULL,
+    follower_discord_id TEXT NOT NULL,
+    created_at          ${int} NOT NULL,
+    UNIQUE (store_id, follower_discord_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_store_follows_follower ON store_follows (follower_discord_id);
+
   -- Discount codes, scoped per store and optionally per product. uses counts
   -- completed checkouts (incremented by the webhook, not at session time).
   CREATE TABLE IF NOT EXISTS discounts (
@@ -598,7 +626,87 @@ export async function countStoreSubscriptions(storeId) {
 export async function deleteStore(storeId) {
   await q('DELETE FROM discounts WHERE store_id = ?', [storeId]);
   await q('DELETE FROM store_plans WHERE store_id = ?', [storeId]);
+  await q('DELETE FROM store_media WHERE store_id = ?', [storeId]);
+  await q('DELETE FROM store_follows WHERE store_id = ?', [storeId]);
   await q('DELETE FROM stores WHERE id = ?', [storeId]);
+}
+
+// ── store media (uploaded banners) ────────────────────────────────────────────
+
+export async function setStoreMedia(storeId, kind, mime, data) {
+  await q(
+    `INSERT INTO store_media (store_id, kind, mime, data, updated_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT (store_id, kind) DO UPDATE SET
+       mime = excluded.mime, data = excluded.data, updated_at = excluded.updated_at`,
+    [storeId, kind, mime, data, now()],
+  );
+}
+
+// Everything ABOUT the upload without the upload: what it is and when it
+// changed. Every render path uses this — the blob itself is loaded only by
+// the endpoint that streams it.
+export async function getStoreMediaMeta(storeId, kind) {
+  const { rows } = await q('SELECT mime, updated_at FROM store_media WHERE store_id = ? AND kind = ?', [storeId, kind]);
+  return rows[0] ? { mime: String(rows[0].mime), updatedAt: Number(rows[0].updated_at) } : null;
+}
+
+export async function getStoreMedia(storeId, kind) {
+  const { rows } = await q('SELECT data FROM store_media WHERE store_id = ? AND kind = ?', [storeId, kind]);
+  return rows[0]?.data ?? null;
+}
+
+export async function deleteStoreMedia(storeId, kind) {
+  await q('DELETE FROM store_media WHERE store_id = ? AND kind = ?', [storeId, kind]);
+}
+
+// ── store follows ─────────────────────────────────────────────────────────────
+// Counts only ever leave this module. Nothing here returns a roster of who
+// follows a store, because no client is ever allowed one.
+
+// Idempotent by the UNIQUE constraint, not by a racy SELECT-then-INSERT.
+// Returns whether this call is what created the row.
+export async function followStore(storeId, discordId) {
+  const { changes } = await q(
+    `INSERT INTO store_follows (store_id, follower_discord_id, created_at) VALUES (?, ?, ?)
+     ON CONFLICT (store_id, follower_discord_id) DO NOTHING`,
+    [storeId, discordId, now()],
+  );
+  return changes === 1;
+}
+
+export async function unfollowStore(storeId, discordId) {
+  const { changes } = await q('DELETE FROM store_follows WHERE store_id = ? AND follower_discord_id = ?', [storeId, discordId]);
+  return changes > 0;
+}
+
+// The public follower number, and the only shape of it that exists: COUNT(*),
+// computed here, never seeded or adjusted. (pg returns COUNT as a string.)
+export async function countStoreFollowers(storeId) {
+  const { rows } = await q('SELECT COUNT(*) AS n FROM store_follows WHERE store_id = ?', [storeId]);
+  return Number(rows[0]?.n ?? 0);
+}
+
+export async function isFollowingStore(storeId, discordId) {
+  const { rows } = await q('SELECT 1 AS hit FROM store_follows WHERE store_id = ? AND follower_discord_id = ?', [storeId, discordId]);
+  return rows.length > 0;
+}
+
+// The caller's OWN follow list, as store slugs — this is what /api/me returns,
+// and it is scoped to the signed-in follower by construction.
+export async function storesFollowedBy(discordId) {
+  const { rows } = await q(
+    `SELECT s.slug FROM store_follows f JOIN stores s ON s.id = f.store_id
+     WHERE f.follower_discord_id = ? ORDER BY f.id`,
+    [discordId],
+  );
+  return rows.map((r) => String(r.slug));
+}
+
+// The follow ledger doubles as the rate limiter's window: no separate counter
+// to drift, and a repeat follow (which inserts nothing) costs nothing.
+export async function countRecentFollowsBy(discordId, since) {
+  const { rows } = await q('SELECT COUNT(*) AS n FROM store_follows WHERE follower_discord_id = ? AND created_at >= ?', [discordId, since]);
+  return Number(rows[0]?.n ?? 0);
 }
 
 const planRow = (r) =>

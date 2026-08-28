@@ -790,19 +790,24 @@ function renderShop() {
 
   // Banner: image or video, and the slot never collapses — the identity block
   // hangs off its lower edge, so an absent banner still needs its height.
+  // Null-guarded because a browser can hold a cached copy of the previous
+  // store.html while already running this script: during a deploy the two
+  // are versioned separately, and a hard throw here would blank the whole
+  // storefront rather than lose one banner.
   const bImg = $('#shop-banner');
   const bVid = $('#shop-banner-video');
   const bUrl = state.store?.bannerUrl ?? null;
   const bVideo = state.store?.bannerKind === 'video';
-  bImg.hidden = !bUrl || bVideo;
-  bVid.hidden = !bUrl || !bVideo;
-  if (bUrl && bVideo) { if (bVid.src !== bUrl) bVid.src = bUrl; }
-  else if (bUrl) { if (bImg.src !== bUrl) bImg.src = bUrl; }
+  if (bImg) bImg.hidden = !bUrl || bVideo;
+  if (bVid) bVid.hidden = !bUrl || !bVideo;
+  if (bUrl && bVideo) { if (bVid && bVid.src !== bUrl) bVid.src = bUrl; }
+  else if (bUrl && bImg) { if (bImg.src !== bUrl) bImg.src = bUrl; }
   $('#shop-hero')?.classList.toggle('no-banner', !bUrl);
 
   const name = state.brand ?? state.server?.name ?? '';
   const icon = $('#shop-icon');
   const iconPh = $('#shop-icon-ph');
+  if (!icon || !iconPh) return;
   if (state.server?.iconUrl) {
     icon.src = state.server.iconUrl;
     icon.hidden = false;

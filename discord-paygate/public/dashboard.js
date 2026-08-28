@@ -142,7 +142,10 @@ function parsePrice(v) {
 // around 100KB, hand back a data URL the API stores and serves via /api/img.
 // Animated media (GIF, MP4, WebM) rides through untouched — a canvas pass
 // would freeze the first frame — capped so the request stays deliverable.
-function readPhoto(file, ok, err) {
+// `max` is the longest edge the image is resized down to. Product photos sit
+// in a small card and 1000 is plenty; a banner spans the whole store page at
+// 3:1, so it gets more room before it starts looking soft.
+function readPhoto(file, ok, err, { max = 1000 } = {}) {
   if (!file) return err('Pick an image file.');
   const type = file.type || '';
   if (type === 'image/gif' || type === 'video/mp4' || type === 'video/webm') {
@@ -160,7 +163,6 @@ function readPhoto(file, ok, err) {
   const img = new Image();
   img.onload = () => {
     URL.revokeObjectURL(url);
-    const max = 1000;
     const scale = Math.min(1, max / Math.max(img.width, img.height));
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));
@@ -1727,8 +1729,16 @@ function sectionStore(store, link) {
           <input id="st-name" type="text" maxlength="60" value="${esc(store.name)}" /></label>
         <label class="field"><span class="field-label">Description</span>
           <input id="st-desc" type="text" maxlength="500" value="${esc(store.description ?? '')}" placeholder="One or two lines shown under your store name." /></label>
-        <label class="field"><span class="field-label">Banner URL</span>
-          <input id="st-banner" type="url" value="${esc(store.bannerUrl ?? '')}" placeholder="https://…  (1500×400 works best)" spellcheck="false" /></label>
+        <div class="field"><span class="field-label">Banner</span>
+          <div class="st-pick">
+            <img class="st-banner-prev photo-prev" id="st-banner-prev" alt="" ${store.bannerImageUrl ? `src="${esc(store.bannerImageUrl)}"` : 'hidden'} />
+            <button type="button" class="btn-secondary" id="st-banner-btn">${store.hasBannerUpload ? 'Replace banner' : 'Upload banner'}</button>
+            <button type="button" class="btn-ghost" id="st-banner-clear" ${store.hasBannerUpload ? '' : 'hidden'}>Remove</button>
+            <input id="st-banner-file" type="file" accept="image/*,video/mp4,video/webm" hidden />
+          </div>
+          <span class="field-help">1600×533 works best (3:1). An upload wins over a pasted link.</span>
+          <input id="st-banner" type="url" value="${esc(store.bannerUrl ?? '')}" placeholder="…or paste a link: https://…" spellcheck="false" />
+          <p class="field-err" id="err-banner" role="alert"></p></div>
         <label class="field"><span class="field-label">About</span>
           <textarea id="st-about" rows="4" maxlength="2000" placeholder="Tell buyers what your community offers. Blank lines make paragraphs.">${esc(store.about ?? '')}</textarea></label>
         <div class="field"><span class="field-label">Links</span>
@@ -2979,6 +2989,42 @@ function wireStoreSettings(store, slug) {
     addEventListener('scroll', window.__stSpyFn, { passive: true });
     spy();
   }
+  // Banner picker. bannerPick is three-state and that is the whole contract
+  // with the API: undefined leaves the stored banner alone, '' clears it, a
+  // data URL replaces it. A save that touches other fields must not wipe it.
+  let bannerPick;
+  const bannerFile = $('#st-banner-file');
+  const bannerPrev = $('#st-banner-prev');
+  const bannerClear = $('#st-banner-clear');
+  if (bannerFile) {
+    $('#st-banner-btn').onclick = () => bannerFile.click();
+    bannerFile.onchange = () => {
+      const file = bannerFile.files?.[0];
+      bannerFile.value = '';
+      if (!file) return;
+      fieldErr('banner', '');
+      readPhoto(
+        file,
+        (data) => {
+          bannerPick = data;
+          bannerPrev.src = data;
+          bannerPrev.hidden = false;
+          bannerClear.hidden = false;
+          $('#st-banner-btn').textContent = 'Replace banner';
+        },
+        (msg) => fieldErr('banner', msg),
+        { max: 1600 },
+      );
+    };
+    bannerClear.onclick = () => {
+      bannerPick = '';
+      bannerPrev.removeAttribute('src');
+      bannerPrev.hidden = true;
+      bannerClear.hidden = true;
+      $('#st-banner-btn').textContent = 'Upload banner';
+      fieldErr('banner', '');
+    };
+  }
   $('#st-save').onclick = async () => {
     const btn = $('#st-save');
     fieldErr('store', '');
@@ -2990,6 +3036,7 @@ function wireStoreSettings(store, slug) {
         name: $('#st-name').value,
         description: $('#st-desc').value,
         bannerUrl: $('#st-banner').value,
+        ...(bannerPick === undefined ? {} : { bannerData: bannerPick }),
         about: $('#st-about').value,
         links: Object.fromEntries(['discord', 'x', 'youtube', 'instagram', 'tiktok', 'website'].map((k) => [k, $(`#st-link-${k}`).value])),
         showMembers: $('#st-members').checked,

@@ -1,7 +1,7 @@
 import { config } from '../src/config.js';
 import { sendJson, guard } from '../src/lib/http.js';
 import { sessionUserId } from '../src/lib/session.js';
-import { getUser, subscriptionsForMember, isEntitled, storesByOwner } from '../src/db.js';
+import { getUser, subscriptionsForMember, isEntitled, storesByOwner, storesFollowedBy } from '../src/db.js';
 import { storeById, planOf } from '../src/services/stores.js';
 
 export default guard(async function handler(req, res) {
@@ -60,6 +60,10 @@ export default guard(async function handler(req, res) {
     isOwner: Boolean(config.ownerDiscordId) && uid === config.ownerDiscordId,
     // Runs at least one store — gates the Dashboard nav link for sellers.
     seller: (await storesByOwner(uid)).length > 0,
+    // The slugs THIS caller follows, so a store page can render its own
+    // button in the right state. Caller-scoped: the public payload carries
+    // follower counts, never who they are.
+    following: await storesFollowedBy(uid),
     subscriptions: subs,
   });
 });

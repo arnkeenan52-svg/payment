@@ -8,19 +8,14 @@ import { getUser } from '../src/db.js';
 import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember, getGuildChannels } from '../src/lib/discord.js';
 import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache, isStripeKey, stripeKeyMode } from '../src/lib/stripe.js';
 import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf, rebaseImageUrl } from '../src/services/stores.js';
+import { parseUploadDataUrl, UPLOAD_BODY_LIMIT } from '../src/lib/upload.js';
 
 const ADMINISTRATOR = 1n << 3n;
 const MANAGE_GUILD = 1n << 5n;
 
-// Uploaded product media arrives as data URLs. Stills are downscaled by the
-// dashboard (~100KB typical; 2M chars ≈ 1.5MB decoded is the hard ceiling).
-// GIFs and short MP4/WebM clips ride through un-recompressed — a canvas pass
-// would freeze them — with a 4M-char cap (~3MB decoded) so the JSON body
-// stays deliverable.
-const isImageDataUrl = (v) =>
-  typeof v === 'string' &&
-  ((v.length <= 2_000_000 && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) ||
-    (v.length <= 4_000_000 && /^data:(?:image\/gif|video\/(?:mp4|webm));base64,[A-Za-z0-9+/=]+$/.test(v)));
+// Uploaded product media arrives as data URLs, on the platform-wide upload
+// whitelist (src/lib/upload.js) that store banners share.
+const isImageDataUrl = (v) => parseUploadDataUrl(v) !== null;
 
 async function callerManagesGuild(uid, guildId) {
   const user = await getUser(uid);
@@ -64,7 +59,7 @@ export default guard(async function handler(req, res) {
     sendJson(res, 401, { error: 'sign in with Discord first' });
     return;
   }
-  const body = await readJsonBody(req).catch(() => ({}));
+  const body = await readJsonBody(req, { maxBytes: UPLOAD_BODY_LIMIT }).catch(() => ({}));
 
   switch (body?.step) {
     // ── 0. is the bot in this guild yet? ────────────────────────────────────
@@ -392,7 +387,7 @@ export default guard(async function handler(req, res) {
         const linkOwner = (p.variantOf && byKey.get(p.variantOf)) || p;
         out.push({
           ...p,
-          imageUrl: rebaseImageUrl(p.imageUrl),
+          imageUrl: rebaseImageUrl(p.imageUrl, row.slug),
           buyers: await db.countBuyersOfPlan(row.id, p.planKey),
           checkoutUrl: `${config.publicBaseUrl}/${row.slug}/${encodeURIComponent(linkOwner.linkSlug ?? linkOwner.planKey)}`,
         });

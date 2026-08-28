@@ -8,6 +8,7 @@ import { stripeFetch, isStripeKey } from '../../src/lib/stripe.js';
 import { validateTheme } from '../../src/lib/theme.js';
 import { isStoreCategory } from '../../src/services/stores.js';
 import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
+import { parseUploadDataUrl, uploadKind, UPLOAD_BODY_LIMIT } from '../../src/lib/upload.js';
 
 // Store identity settings: name, description, banner, custom link (slug).
 // Tenant stores only — the built-in store is env-configured.
@@ -21,7 +22,7 @@ export default guard(async function handler(req, res) {
     sendJson(res, 401, { error: 'sign in first' });
     return;
   }
-  const body = await readJsonBody(req).catch(() => ({}));
+  const body = await readJsonBody(req, { maxBytes: UPLOAD_BODY_LIMIT }).catch(() => ({}));
   const store = await adminStoreBySlug(String(body.store ?? ''));
   if (!store || store.id === null || store.id === undefined) {
     sendJson(res, 404, { error: 'unknown store' });
@@ -129,8 +130,24 @@ export default guard(async function handler(req, res) {
   }
   if (body.bannerUrl !== undefined) {
     const u = String(body.bannerUrl).trim();
-    if (u && !/^https:\/\/\S+$/.test(u)) return sendJson(res, 400, { error: 'The banner URL must start with https:// (1500×400 works best).' });
+    if (u && !/^https:\/\/\S+$/.test(u)) return sendJson(res, 400, { error: 'The banner URL must start with https:// (1600×533 works best).' });
     fields.bannerUrl = u ? u.slice(0, 500) : null;
+  }
+  // The uploaded banner, three-state like every other picker in the dashboard:
+  // absent leaves it alone, empty clears it, a data URL replaces it. Validated
+  // here but written after the row update, so a rejected slug or channel never
+  // leaves a banner applied to a save that failed.
+  let bannerUpload; // undefined = untouched
+  if (body.bannerData !== undefined) {
+    if (body.bannerData === null || body.bannerData === '') {
+      bannerUpload = null;
+    } else {
+      const parsed = parseUploadDataUrl(body.bannerData);
+      if (!parsed) {
+        return sendJson(res, 400, { error: 'That banner could not be read — use a JPG, PNG, WebP or GIF under 1.5MB, or a short MP4/WebM clip.' });
+      }
+      bannerUpload = { mime: parsed.mime, data: body.bannerData };
+    }
   }
   // Sale notifications: the channel the bot posts each order to. Validated
   // against the store's own guild, and a test message proves the bot can
@@ -176,6 +193,11 @@ export default guard(async function handler(req, res) {
     }
   }
   const row = await db.updateStore(store.id, fields);
+  if (bannerUpload === null) await db.deleteStoreMedia(store.id, 'banner');
+  else if (bannerUpload) await db.setStoreMedia(store.id, 'banner', bannerUpload.mime, bannerUpload.data);
+  // The upload itself never rides a response — only what it IS, so the form
+  // can show "banner uploaded" and pick <img> vs <video> for its preview.
+  const bannerMedia = await db.getStoreMediaMeta(store.id, 'banner');
   // Return EVERY editable field, not just the few that changed: the dashboard
   // repopulates the settings form from this response, and any field omitted
   // here renders blank and gets wiped on the next save (the "saved, then went
@@ -187,6 +209,8 @@ export default guard(async function handler(req, res) {
       name: row.name,
       description: row.description ?? null,
       bannerUrl: row.banner_url ?? null,
+      hasBannerUpload: Boolean(bannerMedia),
+      bannerKind: bannerMedia ? uploadKind(bannerMedia.mime) : null,
       notifyChannelId: row.notify_channel_id ?? null,
       status: row.status,
       about: row.about ?? null,

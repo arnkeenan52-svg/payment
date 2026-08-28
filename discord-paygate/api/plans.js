@@ -2,9 +2,9 @@ import { config, capabilities } from '../src/config.js';
 import { sendJson, guard } from '../src/lib/http.js';
 import { getGuild, guildIconUrl } from '../src/lib/discord.js';
 import { effectiveRoleMap } from '../src/services/plan-config.js';
-import { storeBySlug, sellablePlansOf } from '../src/services/stores.js';
+import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.js';
 import { DEMO_SLUG, demoPlansPayload } from '../src/services/demo-store.js';
-import { countLiveMembers } from '../src/db.js';
+import { countLiveMembers, countStoreFollowers } from '../src/db.js';
 
 // The server's own identity fronts every checkout: name and icon come from
 // the live guild lookup via the bot (animated icons surface as .gif).
@@ -30,7 +30,12 @@ export default guard(async function handler(req, res) {
   const url = new URL(req.url, 'http://localhost');
   const slugParam = url.searchParams.get('store') ?? '';
   if (slugParam === DEMO_SLUG) {
-    sendJson(res, 200, demoPlansPayload({ platformName: config.platform, brandFallback: config.brand }));
+    const payload = demoPlansPayload({ platformName: config.platform, brandFallback: config.brand });
+    // The demo has no database row behind it, so there is nothing to key a
+    // follow on and no count to report. null, not 0 — "nobody follows this"
+    // would be a claim about a store that does not exist.
+    Object.assign(payload.store, { bannerKind: null, followers: null, followable: false });
+    sendJson(res, 200, payload);
     return;
   }
   const store = await storeBySlug(slugParam);
@@ -41,16 +46,25 @@ export default guard(async function handler(req, res) {
   const { name, iconUrl } = await serverInfo(store.guildId, store.isDefault ? config.discord.guildName : store.name);
   const roleMap = store.isDefault ? await effectiveRoleMap() : null;
   const plans = await sellablePlansOf(store);
+  const banner = await bannerFor(store);
+  // The built-in store is virtual (id null): no row, so no follow ledger.
+  const followable = store.id !== null && store.id !== undefined;
   sendJson(res, 200, {
     brand: store.isDefault ? config.brand : store.name,
     platform: { name: config.platform },
     store: {
       slug: store.slug, status: store.status, description: store.description ?? null,
-      bannerUrl: store.bannerUrl ?? null, theme: store.theme ?? null,
+      // Ready to use as-is: an uploaded banner is served from /api/img under
+      // the store's CURRENT link, a pasted one passes through.
+      bannerUrl: banner.url, bannerKind: banner.kind, theme: store.theme ?? null,
       about: store.about ?? null, links: store.links ?? null,
       // Live members, only when the owner switched the badge on — the count
       // is the same real number the dashboard bills on.
       memberCount: store.showMembers ? await countLiveMembers([store.id ?? null]) : null,
+      // COUNT(*) of the follow ledger and nothing else — never seeded, never
+      // rounded. A store nobody can follow reports null rather than 0.
+      followers: followable ? await countStoreFollowers(store.id) : null,
+      followable,
     },
     // Guild id is public (it's in every invite link); the receipt page needs
     // it for the "Open on Discord" deep link.

@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { guard, sendText } from '../src/lib/http.js';
 import { config } from '../src/config.js';
-import { storeBySlug, sellablePlansOf } from '../src/services/stores.js';
+import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.js';
 import { DEMO_SLUG, DEMO_NAME, DEMO_THEME, demoPlans } from '../src/services/demo-store.js';
 import { validateTheme, themeCss, bgLayer } from '../src/lib/theme.js';
 
@@ -85,7 +85,13 @@ export default guard(async (req, res) => {
         .filter((p) => p?.mediaKind !== 'video' && !/\.(mp4|webm)([?#]|$)/i.test(p?.imageUrl ?? ''))
         .map((p) => p.imageUrl)
         .find((u) => typeof u === 'string' && u.startsWith('https://'));
-      const image = productImg ?? `${config.publicBaseUrl}/shot-store.png`;
+      // The store's banner is the picture its owner chose for the page, so it
+      // leads the unfurl — except on a PRODUCT link, where the card's title is
+      // that product and its own photo is what belongs beside it. Video
+      // banners are skipped: unfurlers render an <img> and nothing else, so an
+      // mp4 would be a broken card.
+      const banner = linkedPlan ? { url: null, kind: null } : await bannerFor(store).catch(() => ({ url: null, kind: null }));
+      const image = (banner.kind === 'image' && banner.url) || productImg || `${config.publicBaseUrl}/shot-store.png`;
       const title = linkedPlan ? `${linkedPlan.name} — ${store.name}` : `${store.name} — Membership`;
       const desc = linkedPlan
         ? `${(linkedPlan.description ?? '').trim() || `Join ${store.name}.`} $${linkedPlan.priceUsd.toFixed(2)}${linkedPlan.lifetime ? ' · lifetime' : '/month'} — roles delivered in seconds.`

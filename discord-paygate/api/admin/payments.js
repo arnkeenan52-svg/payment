@@ -2,8 +2,8 @@ import { sendJson, guard } from '../../src/lib/http.js';
 import { ownerAuthorized } from '../../src/lib/authz.js';
 import { cronAuthorized } from '../cron/reconcile.js';
 import { sessionUserId } from '../../src/lib/session.js';
-import { allSubscriptionsWithUsers, isEntitled, checkoutAttempts, getUser } from '../../src/db.js';
-import { storesOwnedBy, everyStore, plansOf, defaultStore } from '../../src/services/stores.js';
+import { allSubscriptionsWithUsers, isEntitled, checkoutAttempts, getUser, countStoreFollowers, getStoreMediaMeta } from '../../src/db.js';
+import { storesOwnedBy, everyStore, plansOf, defaultStore, bannerFor } from '../../src/services/stores.js';
 
 // Payments timeline + totals, scoped to the stores the caller owns. The
 // platform owner (OWNER_DISCORD_ID) and the cron secret see everything.
@@ -105,6 +105,32 @@ export default guard(async function handler(req, res) {
   }
   const completed = checkouts.filter((c) => c.status === 'completed').length;
 
+  // The owner's own view of each store they run. The follower number here is
+  // the EXACT count, 0 included — the storefront hides small numbers, but the
+  // person running the store is owed the truth. Still a count: the dashboard
+  // never learns who any of them are.
+  const storeRows = await Promise.all(
+    stores.map(async (s) => {
+      const managed = s.id !== null && s.id !== undefined;
+      const banner = await bannerFor(s);
+      const bannerMedia = managed ? await getStoreMediaMeta(s.id, 'banner') : null;
+      return {
+        id: s.id, slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault,
+        notifyChannelId: s.notifyChannelId ?? null, theme: s.theme ?? null,
+        discoverable: Boolean(s.discoverable), category: s.category ?? null,
+        description: s.description ?? null,
+        // bannerUrl stays the PASTED link the settings form owns; the resolved
+        // one (upload wins) and its kind ride alongside for the preview.
+        bannerUrl: s.bannerUrl ?? null,
+        bannerImageUrl: banner.url, bannerKind: banner.kind,
+        hasBannerUpload: Boolean(bannerMedia),
+        about: s.about ?? null, links: s.links ?? null, showMembers: Boolean(s.showMembers),
+        dashboardPrefs: s.dashboardPrefs ?? null,
+        followers: managed ? await countStoreFollowers(s.id) : null,
+      };
+    }),
+  );
+
   const activeMembers = new Set(rows.filter((r) => r.entitled).map((r) => r.discordId));
   sendJson(res, 200, {
     // Every store the caller owns (for the dashboard's store switcher);
@@ -112,14 +138,7 @@ export default guard(async function handler(req, res) {
     // This payload is what the dashboard's settings forms re-render from
     // after every save — it must carry EVERY editable store field, or a
     // saved value comes back looking blank and the next save wipes it.
-    stores: stores.map((s) => ({
-      id: s.id, slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault,
-      notifyChannelId: s.notifyChannelId ?? null, theme: s.theme ?? null,
-      discoverable: Boolean(s.discoverable), category: s.category ?? null,
-      description: s.description ?? null, bannerUrl: s.bannerUrl ?? null,
-      about: s.about ?? null, links: s.links ?? null, showMembers: Boolean(s.showMembers),
-      dashboardPrefs: s.dashboardPrefs ?? null,
-    })),
+    stores: storeRows,
     totals: {
       allTimeUsd: Math.round(rows.reduce((sum, r) => sum + r.amountUsd, 0) * 100) / 100,
       payments: rows.length,
