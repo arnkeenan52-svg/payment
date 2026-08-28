@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Dues — Sell Discord access" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=193" />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=194" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -40,12 +40,12 @@
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=193" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=194" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline &#39;Monetize your community.&#39; and a field for claiming a store link" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=193" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=193" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=194" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=194" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -68,7 +68,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=193') format('woff2');
+  src:url('/jakarta-latin.woff2?v=194') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -393,7 +393,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=193') center/cover;
+  background:url('/hero-poster.webp?v=194') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1945,6 +1945,20 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
    height never changes. The fixed sky is clipped at the sheet's lip so the
    pinned footer shows beneath it. ── */
 @media (hover:none),(pointer:coarse),(max-width:639px){
+  /* The reveal only arms while the whole footer fits the viewport — that guard
+     is what stops the phantom-height bug. So the footer has to stay short on a
+     phone, and a column of twelve comparisons does not. Measured at 390x844 it
+     ran 1003px against an 820px budget and the effect simply switched itself
+     off. The twelve fold away here behind "All comparisons", which is the page
+     that lists them; they stay in the markup and stay on desktop. */
+  .footer .fcol a.f-deep{display:none}   /* qualified: .footer .fcol a is (0,2,1) and outranks a bare .f-deep */
+  /* And a structural cap, so this cannot happen again by accident. The reveal
+     dies the moment the footer outgrows the viewport, and it dies SILENTLY —
+     no error, the effect just stops existing. Tagging links by hand only holds
+     until someone adds an untagged one. Six rows per column is the ceiling on a
+     phone whatever the markup does: today every column is already under it, so
+     this changes nothing visible and bounds every future addition. */
+  .footer .fcol a:nth-of-type(n+7){display:none}
   /* the footer is pinned ONLY while the reveal is near. Everywhere else it
      is an ordinary in-flow footer at the end of the document, so there is
      simply nothing at the viewport bottom to peek through when an iOS
@@ -2336,19 +2350,19 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
            the page that lists their children. Nothing is orphaned. -->
       <div class="fcol">
         <b>Compare</b>
-        <a href="/vs/whop">Dues vs Whop</a>
-        <a href="/vs/launchpass">Dues vs LaunchPass</a>
-        <a href="/vs/subscord">Dues vs Subscord</a>
-        <a href="/vs/patreon">Dues vs Patreon</a>
-        <a href="/vs/doorfee">Dues vs DoorFee</a>
-        <a href="/vs/xoe">Dues vs XOE</a>
-        <a href="/vs/memberful">Dues vs Memberful</a>
-        <a href="/vs/gumroad">Dues vs Gumroad</a>
-        <a href="/vs/ko-fi">Dues vs Ko-fi</a>
-        <a href="/vs/buymeacoffee">Dues vs Buy Me a Coffee</a>
-        <a href="/vs/upgrade-chat">Dues vs Upgrade.Chat</a>
-        <a href="/vs/mighty-networks">Dues vs Mighty Networks</a>
         <a href="/vs/">All comparisons</a>
+        <a class="f-deep" href="/vs/whop">Dues vs Whop</a>
+        <a class="f-deep" href="/vs/launchpass">Dues vs LaunchPass</a>
+        <a class="f-deep" href="/vs/subscord">Dues vs Subscord</a>
+        <a class="f-deep" href="/vs/patreon">Dues vs Patreon</a>
+        <a class="f-deep" href="/vs/doorfee">Dues vs DoorFee</a>
+        <a class="f-deep" href="/vs/xoe">Dues vs XOE</a>
+        <a class="f-deep" href="/vs/memberful">Dues vs Memberful</a>
+        <a class="f-deep" href="/vs/gumroad">Dues vs Gumroad</a>
+        <a class="f-deep" href="/vs/ko-fi">Dues vs Ko-fi</a>
+        <a class="f-deep" href="/vs/buymeacoffee">Dues vs Buy Me a Coffee</a>
+        <a class="f-deep" href="/vs/upgrade-chat">Dues vs Upgrade.Chat</a>
+        <a class="f-deep" href="/vs/mighty-networks">Dues vs Mighty Networks</a>
       </div>
       <div class="fcol">
         <b>Learn</b>
@@ -2375,7 +2389,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=193" defer></script>
+<script src="/sky.js?v=194" defer></script>
 <script>
 (function(){
   'use strict';
