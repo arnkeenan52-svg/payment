@@ -22,7 +22,7 @@
   <meta property="og:locale" content="en_US" />
   <meta property="og:title" content="Pricing — Dues" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=178" />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=179" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:url" content="https://dues.gg/pricing" />
@@ -31,11 +31,11 @@
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:title" content="Pricing — Dues" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=178" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=179" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=178" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=178" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=179" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=179" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -58,7 +58,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=178') format('woff2');
+  src:url('/jakarta-latin.woff2?v=179') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -342,7 +342,7 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=178') center/cover;
+  background:url('/hero-poster.webp?v=179') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1807,7 +1807,7 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=178" defer></script>
+<script src="/sky.js?v=179" defer></script>
 <script>
 (function(){
   'use strict';
@@ -1818,15 +1818,22 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   function syncThemeMeta(){
     var light = document.documentElement.getAttribute('data-theme') === 'light';
     var want = light ? '#70a3e6' : '#131b2d';
-    // iOS Safari ignores content updates on an existing theme-color meta, so
-    // the status-bar band kept the old face after a toggle — replacing the
-    // NODE is the update Safari actually honours
     var old = document.querySelector('meta[name="theme-color"]');
     if(old && old.getAttribute('content') === want){ return; }
-    var meta = document.createElement('meta');
-    meta.setAttribute('name','theme-color');
-    meta.setAttribute('content', want);
-    if(old){ old.replaceWith(meta); } else { document.head.appendChild(meta); }
+    // iOS Safari re-reads theme-color when the tag is REMOVED and a new one
+    // is inserted as a SEPARATE mutation. Editing the content attribute does
+    // nothing, and replaceWith() is close enough to an edit that WebKit
+    // treats it the same way — which is why the band kept the old face after
+    // a toggle. Drop it, let that commit, then add the new one next frame.
+    if(old){ old.remove(); }
+    var add = function(){
+      var meta = document.createElement('meta');
+      meta.setAttribute('name','theme-color');
+      meta.setAttribute('content', want);
+      document.head.appendChild(meta);
+    };
+    if(window.requestAnimationFrame){ requestAnimationFrame(function(){ requestAnimationFrame(add); }); }
+    else { add(); }
   }
   syncThemeMeta();
   window.addEventListener('pageshow', function(e){
@@ -2103,6 +2110,20 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   // and keep flow height identical (spacer = measured footer px height)
   var fit = function(){
     if(!footer){ return; }
+    // THE PHONE BLIND IS OFF. It pinned the footer behind the sheet and
+    // clipped the fixed sky canvas at the sheet's lip to reveal it, and that
+    // clip is only ever as fresh as the last scroll event iOS chose to
+    // deliver. Two rounds of guards later it was still leaving a strip of
+    // bare page ground across the bottom of the screen after a visit to the
+    // footer. The reveal is a flourish; a blue bar on every visit is not a
+    // fair price for it, so on phones the footer is now an ordinary block at
+    // the end of the document. Everything below still works — it simply
+    // never engages. Remove this return to try the blind again.
+    html.removeAttribute('data-blind');
+    html.removeAttribute('data-footer-near');
+    if(sky){ sky.style.clipPath = ''; }
+    lastClip = -1;
+    return;
     if(phoneMq.matches && footer.offsetHeight <= largeVh() - 24){
       html.setAttribute('data-blind','');
       html.style.setProperty('--footH', footer.offsetHeight + 'px');

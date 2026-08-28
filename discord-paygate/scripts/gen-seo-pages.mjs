@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://dues.gg';
-const V = '178'; // keep in step with the ?v= asset version on index.html
+const V = '179'; // keep in step with the ?v= asset version on index.html
 // Describes the shared link-preview card (public/og-card.jpg), which is a
 // render of the homepage hero — see scripts/build-og-card.mjs.
 const OG_ALT =
@@ -353,7 +353,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=178" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=179" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/discover">Discover</a>
@@ -370,7 +370,7 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=178" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=179" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -428,7 +428,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta property="og:type" content="website" />
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
-  <meta property="og:image" content="${BASE}/og-card.jpg?v=178" />
+  <meta property="og:image" content="${BASE}/og-card.jpg?v=179" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -442,7 +442,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
-  <meta name="twitter:image" content="${BASE}/og-card.jpg?v=178" />
+  <meta name="twitter:image" content="${BASE}/og-card.jpg?v=179" />
   <meta name="twitter:image:alt" content="${esc(OG_ALT)}" />
   <!-- Icons. favicon.ico stays at a stable, UNVERSIONED url on purpose: Google
        caches the search-result favicon by URL, and a moving ?v= resets it.
@@ -456,7 +456,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   <style>${DAY_CSS}</style>
   ${ld}
-  <script src="/theme.js?v=178"></script>
+  <script src="/theme.js?v=179"></script>
 </head>
 <body class="home seo-page">
 ${nav}
