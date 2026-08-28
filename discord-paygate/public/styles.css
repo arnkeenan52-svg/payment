@@ -3395,6 +3395,28 @@ body[data-material='solid'].has-bg .shop-col {
 
 /* overview: customize panel (accent, stat cards, default period) */
 .set-card > .dc-body { margin: 14px 20px 0; display: flex; flex-direction: column; gap: 16px; }
+
+/* A row that goes somewhere. One line, full width, the whole thing tappable —
+   the shape a phone user already knows means "this opens another screen".
+   Replaces a whole settings panel that existed only to hold one link. */
+.jumprow {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; min-height: 64px;
+  border: 1px solid var(--edge); border-radius: 14px;
+  background: var(--panel); color: var(--ink); text-decoration: none;
+}
+.jumprow:hover { background: var(--panel-hover); border-color: var(--dim); }
+.jumprow:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.jumprow-ic {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent);
+}
+.jumprow-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.jumprow-txt b { font-size: 14.5px; font-weight: 700; }
+.jumprow-txt small { font-size: 12.5px; color: var(--dim); line-height: 1.45; }
+.jumprow-go { flex: none; margin-left: auto; color: var(--dim); display: inline-flex; }
+.jumprow:hover .jumprow-go { color: var(--ink); }
 .dc-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .dc-help { flex-basis: 100%; margin: 0; }
 .dc-open { display: inline-flex; align-items: center; gap: 8px; width: auto; flex: none; align-self: flex-start; text-decoration: none; }

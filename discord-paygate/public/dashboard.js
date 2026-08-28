@@ -2012,11 +2012,20 @@ function sectionCustomize(store) {
       foot: `<button class="btn-pill" id="dc-save">Save</button>
         <button class="btn-ghost" id="dc-reset">Reset to default</button>`,
     })}
-    ${setCard({
-      title: 'Storefront',
-      sub: 'What buyers see has its own controls — colors, corners and type live in the Store section.',
-      body: `<div class="dc-body"><a class="btn-secondary dc-open" href="#/store/${esc(store.slug)}/store">${I.shop} Open store appearance</a></div>`,
-    })}
+    ${/* Not a card. This panel had a title, a sentence and one link, and spent
+          169px of a phone screen saying where something else lives — 115px of
+          it empty to the right of a left-aligned button. The settings stack
+          already dropped a card for this exact reason ("a panel that only
+          announces a behaviour is furniture"); pointing somewhere is
+          navigation, so it gets the shape navigation has. */ ''}
+    <a class="jumprow" href="#/store/${esc(store.slug)}/store">
+      <span class="jumprow-ic" aria-hidden="true">${I.shop}</span>
+      <span class="jumprow-txt">
+        <b>Store appearance</b>
+        <small>Colors, corners and type</small>
+      </span>
+      <span class="jumprow-go" aria-hidden="true">${I.arrow}</span>
+    </a>
     </div>`;
 }
 
