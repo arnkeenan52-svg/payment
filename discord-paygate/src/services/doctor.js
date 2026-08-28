@@ -19,6 +19,7 @@ import {
 } from '../lib/stripe.js';
 import { getAppSecret, setAppSecret, acquireLock, releaseLock } from '../db.js';
 import { resendApiKey, receiptFrom } from '../lib/email.js';
+import { toMinor, fromMinor, formatAmount, normalize as normalizeCurrency } from '../lib/currency.js';
 
 const MANAGE_ROLES = 1n << 28n;
 const ADMINISTRATOR = 1n << 3n;
@@ -168,16 +169,22 @@ export async function runDoctor() {
         continue;
       }
       const price = await res.json();
-      const expected = Math.round(plan.priceUsd * 100);
-      // plans.json prices are USD by definition (priceUsd). The Stripe
-      // account's default currency is irrelevant — the price object's own
-      // currency is what buyers get charged in, so any mismatch here means
-      // the wrong money would be taken. Fail loudly, never silently pass.
+      // The plan's own currency, which for plans.json is USD and for a
+      // database store is whatever that store prices in. Comparing in MINOR
+      // units means the expected figure has to be built with the same
+      // per-currency factor the charge will use, or a ¥ plan would be checked
+      // against a hundredfold-wrong number and "pass".
+      const want = normalizeCurrency(plan.currency);
+      const expected = toMinor(plan.priceUsd, want);
+      // The Stripe account's default currency is irrelevant — the price
+      // object's own currency is what buyers get charged in, so any mismatch
+      // here means the wrong money would be taken. Fail loudly, never
+      // silently pass.
       const currency = String(price.currency ?? '').toLowerCase();
-      if (currency !== 'usd') {
+      if (currency !== want) {
         add(id, name, 'fail',
-          `CURRENCY MISMATCH: plans.json prices are USD but price ${plan.stripePriceId} is ${currency.toUpperCase() || 'unknown'} — buyers would be charged in the wrong currency`,
-          `Create the price in USD (Stripe dashboard → Product catalog → the product → Add another price → currency USD, $${plan.priceUsd}, ${plan.lifetime ? 'One-off' : 'Recurring'}) and put its id in plans.json. Do not rely on the account's default currency.`);
+          `CURRENCY MISMATCH: this plan is priced in ${want.toUpperCase()} but price ${plan.stripePriceId} is ${currency.toUpperCase() || 'unknown'} — buyers would be charged in the wrong currency`,
+          `Create the price in ${want.toUpperCase()} (Stripe dashboard → Product catalog → the product → Add another price → currency ${want.toUpperCase()}, ${formatAmount(plan.priceUsd, want)}, ${plan.lifetime ? 'One-off' : 'Recurring'}) and put its id in plans.json. Do not rely on the account's default currency.`);
       } else if (price.active !== true) {
         add(id, name, 'fail', `price ${plan.stripePriceId} is archived (active=false)`,
           'Unarchive it or create a new price: Stripe dashboard → Product catalog → the product → Pricing.');
@@ -188,10 +195,10 @@ export async function runDoctor() {
         add(id, name, 'fail', `price ${plan.stripePriceId} is one-time but plan "${plan.id}" is a recurring ${plan.interval} plan`,
           `Create a Recurring (${plan.interval}) price in Stripe → Product catalog and put its id in plans.json.`);
       } else if (price.unit_amount !== expected) {
-        add(id, name, 'fail', `price is ${(price.unit_amount / 100).toFixed(2)} USD but plans.json says $${plan.priceUsd}`,
+        add(id, name, 'fail', `price is ${formatAmount(fromMinor(price.unit_amount, want), want)} but this plan says ${formatAmount(plan.priceUsd, want)}`,
           `Fix whichever is wrong: the price in Stripe → Product catalog, or priceUsd in plans.json.`);
       } else {
-        add(id, name, 'pass', `${plan.stripePriceId}: $${(price.unit_amount / 100).toFixed(2)} USD ${price.type === 'one_time' ? 'one-time' : `every ${price.recurring?.interval}`}, active`);
+        add(id, name, 'pass', `${plan.stripePriceId}: ${formatAmount(fromMinor(price.unit_amount, want), want)} ${want.toUpperCase()} ${price.type === 'one_time' ? 'one-time' : `every ${price.recurring?.interval}`}, active`);
       }
     } catch (err) {
       add(id, name, 'fail', `could not reach Stripe: ${err.message}`);

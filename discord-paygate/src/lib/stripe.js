@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { config } from '../config.js';
+import { toMinor, normalize as normalizeCurrency } from './currency.js';
 
 // Verifies a `stripe-signature` header (format: t=<unix>,v1=<hex>[,v1=<hex>…])
 // against the raw body. Constant-time compare, and the signed timestamp must
@@ -45,11 +46,21 @@ function encodeForm(obj, prefix = '') {
   return pairs;
 }
 
+// Every request is pinned to one Stripe API version. Unpinned, each seller's
+// account default applies, and Dues would be talking a different dialect to
+// every store it serves. That is not merely untidy — before 2025-03-31.basil,
+// a Checkout Session under Adaptive Pricing reported the BUYER's currency and
+// converted amount in `currency`/`amount_total`, and from basil on it reports
+// the seller's own. Unpinned, the same revenue row means different things on
+// two seller accounts, and nothing in the response says which.
+export const STRIPE_API_VERSION = '2025-03-31.basil';
+
 export async function stripeFetch(path, { method = 'GET', form, key = config.stripe.secretKey } = {}) {
   const res = await fetch(`${config.stripe.apiBase}${path}`, {
     method,
     headers: {
       authorization: `Bearer ${key}`,
+      'stripe-version': STRIPE_API_VERSION,
       ...(form ? { 'content-type': 'application/x-www-form-urlencoded' } : {}),
     },
     body: form ? encodeForm(form).join('&') : undefined,
@@ -89,9 +100,13 @@ export const getSubscription = (id, key = config.stripe.secretKey) => stripeFetc
 
 // The configured stripePriceId wins. When it does not exist on this account
 // (wrong mode, wrong account, stale id), fall back to the newest ACTIVE price
-// matching the plan's own terms: USD, the exact amount, one-time for lifetime
-// plans, or the plan's interval for recurring ones. The doctor surfaces the
-// fallback as a warning so the owner can pin the real id.
+// matching the plan's own terms: the plan's own currency, the exact amount,
+// one-time for lifetime plans, or the plan's interval for recurring ones. The
+// doctor surfaces the fallback as a warning so the owner can pin the real id.
+//
+// Matching on currency is not a nicety. Amounts are compared in MINOR units,
+// and 1500 minor is ¥1500 but only $15.00 — without the currency filter a
+// yen-priced plan would happily bind to a dollar price a hundredfold cheaper.
 const PRICE_TTL_MS = 5 * 60_000;
 const priceCache = new Map(); // planId -> { at, promise }
 
@@ -100,7 +115,10 @@ export function invalidatePriceCache() {
 }
 
 export function resolvePlanPrice(plan, key = config.stripe.secretKey) {
-  const cacheKey = `${key.slice(-8)}:${plan.id}`;
+  // Currency is part of the key: the same plan id repriced into another
+  // currency is a different Stripe price, and a five-minute stale hit here
+  // would sell it at the old one.
+  const cacheKey = `${key.slice(-8)}:${plan.id}:${normalizeCurrency(plan.currency)}`;
   const cached = priceCache.get(cacheKey);
   const at = Date.now();
   if (cached && at - cached.at <= PRICE_TTL_MS) return cached.promise;
@@ -113,11 +131,12 @@ export function resolvePlanPrice(plan, key = config.stripe.secretKey) {
       }
     }
     try {
-      const cents = Math.round(Number(plan.priceUsd) * 100);
+      const currency = normalizeCurrency(plan.currency);
+      const minor = toMinor(plan.priceUsd, currency);
       const type = plan.lifetime ? 'one_time' : 'recurring';
       const list = await stripeFetch(`/v1/prices?active=true&limit=100&type=${type}`, { key });
       const matches = (list.data ?? [])
-        .filter((p) => p.active && String(p.currency).toLowerCase() === 'usd' && p.unit_amount === cents)
+        .filter((p) => p.active && String(p.currency).toLowerCase() === currency && p.unit_amount === minor)
         .filter((p) => plan.lifetime || p.recurring?.interval === plan.interval)
         .sort((a, b) => (b.created ?? 0) - (a.created ?? 0));
       return matches.length ? { price: matches[0], source: 'amount' } : null;
@@ -129,6 +148,71 @@ export function resolvePlanPrice(plan, key = config.stripe.secretKey) {
   promise.then((r) => {
     if (!r) priceCache.delete(cacheKey);
   });
+  return promise;
+}
+
+// ── what this seller can actually be paid in ─────────────────────────────────
+
+// Dues never asks a seller for bank details and never stores them. The bank
+// accounts live in the seller's own Stripe account, where they already are, and
+// this reads back the list so the dashboard can offer the currencies the seller
+// can genuinely settle — instead of offering all 133 and letting them pick one
+// their payouts would fail in.
+//
+// Two facts come back:
+//   defaultCurrency — the account's settlement currency
+//   currencies      — every currency the account holds a bank account for
+//
+// Stripe's own rule for Adaptive Pricing is that a price's currency must be one
+// of the account's settlement currencies, so this list is exactly the set of
+// currencies a store may price in.
+const PAYOUT_TTL_MS = 5 * 60_000;
+const payoutCache = new Map();
+
+export function invalidatePayoutCache() {
+  payoutCache.clear();
+}
+
+export function payoutCurrencies(key = config.stripe.secretKey) {
+  const cacheKey = String(key).slice(-8);
+  const cached = payoutCache.get(cacheKey);
+  const at = Date.now();
+  if (cached && at - cached.at <= PAYOUT_TTL_MS) return cached.promise;
+  const promise = (async () => {
+    const account = await stripeFetch('/v1/account', { key });
+    const defaultCurrency = normalizeCurrency(account.default_currency);
+    let banks = account.external_accounts?.data ?? null;
+    // The inline list stops at 10. Ask properly when there is an id to ask with,
+    // but never let that second call fail the whole answer.
+    if (account.id) {
+      try {
+        const list = await stripeFetch(
+          `/v1/accounts/${account.id}/external_accounts?object=bank_account&limit=100`,
+          { key },
+        );
+        if (Array.isArray(list.data)) banks = list.data;
+      } catch {
+        /* keep whatever the account object already gave us */
+      }
+    }
+    const accounts = (banks ?? [])
+      .filter((b) => b?.object === 'bank_account')
+      .map((b) => ({
+        currency: normalizeCurrency(b.currency),
+        last4: b.last4 ?? null,
+        bankName: b.bank_name ?? null,
+        country: b.country ?? null,
+        status: b.status ?? null,
+        defaultForCurrency: Boolean(b.default_for_currency),
+      }));
+    // The default currency is settleable whether or not a bank account for it
+    // came back on this call, so it is always in the list and always first.
+    const currencies = [defaultCurrency, ...accounts.map((a) => a.currency)]
+      .filter((c, i, all) => all.indexOf(c) === i);
+    return { defaultCurrency, currencies, accounts };
+  })();
+  payoutCache.set(cacheKey, { at, promise });
+  promise.catch(() => payoutCache.delete(cacheKey));
   return promise;
 }
 
@@ -181,6 +265,11 @@ export function createWebhookEndpoint(url, key = config.stripe.secretKey) {
     form: {
       url,
       enabled_events: WEBHOOK_EVENTS,
+      // Event payloads are rendered at the ENDPOINT's version, which the
+      // request header above cannot reach. Pinning it here is what makes the
+      // amount on an incoming event mean the same thing on every seller's
+      // account as it does on every outgoing call.
+      api_version: STRIPE_API_VERSION,
       description: 'Dues paygate — registered automatically by the setup doctor',
       metadata: { managed_by: 'ripley-paygate' },
     },
@@ -252,8 +341,8 @@ export async function ensureTenantPrice(store, plan) {
       ...(plan.description ? { description: plan.description } : {}),
       ...(plan.imageUrl && plan.mediaKind !== 'video' ? { images: [plan.imageUrl] } : {}),
       default_price_data: {
-        currency: 'usd',
-        unit_amount: Math.round(plan.priceUsd * 100),
+        currency: normalizeCurrency(plan.currency),
+        unit_amount: toMinor(plan.priceUsd, plan.currency),
         ...(plan.lifetime ? {} : { recurring: { interval: 'month' } }),
       },
     },
@@ -276,7 +365,9 @@ export async function createCheckoutSession({ plan, discordId, note = '', store 
   }
   if (!priceId) {
     throw new Error(
-      `no usable Stripe price for plan "${plan.id}" (configured ${plan.stripePriceId}, and no active USD ${lifetime ? 'one-time' : plan.interval} price of $${plan.priceUsd} on this account)`,
+      `no usable Stripe price for plan "${plan.id}" (configured ${plan.stripePriceId}, and no active `
+        + `${normalizeCurrency(plan.currency).toUpperCase()} ${lifetime ? 'one-time' : plan.interval} price of `
+        + `${plan.priceUsd} on this account)`,
     );
   }
   // Every store — the built-in one included — is addressed by its own slug,
@@ -312,6 +403,20 @@ export async function createCheckoutSession({ plan, discordId, note = '', store 
               },
             },
           }),
+      // Let Stripe present the price in the buyer's own currency. This is a
+      // per-session override of the seller's dashboard toggle, so it works
+      // without the seller configuring anything: Stripe picks the buyer's
+      // local currency, converts at its own rate, and still settles the
+      // seller in the currency the price is denominated in. Stripe charges
+      // the SELLER nothing for it — the 2-4% sits in the rate the buyer is
+      // quoted, and a buyer who prefers the original currency can switch back
+      // on Stripe's page.
+      //
+      // It only engages when the price's currency is one of the seller's own
+      // settlement currencies, which is exactly what the store-currency
+      // picker constrains it to. Otherwise Stripe quietly presents the
+      // original price, which is the old behaviour.
+      adaptive_pricing: { enabled: true },
       success_url: successUrl,
       cancel_url: `${config.publicBaseUrl}${backTo}?checkout=cancelled`,
     },

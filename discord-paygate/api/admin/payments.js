@@ -68,6 +68,9 @@ export default guard(async function handler(req, res) {
       planId: s.plan_id,
       planName: plan?.name ?? s.plan_id,
       amountUsd: s.paid_usd !== null && s.paid_usd !== undefined ? Number(s.paid_usd) : plan?.priceUsd ?? 0,
+      // The currency THIS sale happened in, off the row itself — not the
+      // store's current one. History does not get re-denominated.
+      currency: s.currency ?? store.currency ?? 'usd',
       provider: s.provider,
       status: s.status,
       entitled: isEntitled(s),
@@ -99,6 +102,7 @@ export default guard(async function handler(req, res) {
       planId: a.plan_id,
       planName: catalog.find((p) => p.id === a.plan_id)?.name ?? a.plan_id,
       amountUsd: Number(a.amount_usd ?? 0),
+      currency: a.currency ?? store.currency ?? 'usd',
       discountCode: a.discount_code ?? null,
       status: a.status,
       sessionId: a.session_id,
@@ -135,6 +139,10 @@ export default guard(async function handler(req, res) {
         creatorName: s.creatorName ?? null,
         team: s.team ?? null,
         teamHeading: s.teamHeading ?? null,
+        // What this store prices in. Every money figure the dashboard draws is
+        // denominated in it, so it has to arrive with the payload rather than
+        // be assumed.
+        currency: s.currency ?? 'usd',
         // The seller's own rating, and the real one: this is the same COUNT
         // and mean the storefront draws, reported even while the switch is
         // off, because turning the display off must not blind the seller to
@@ -157,7 +165,22 @@ export default guard(async function handler(req, res) {
     // saved value comes back looking blank and the next save wipes it.
     stores: storeRows,
     totals: {
+      // One number per currency, never one number across them. An owner with a
+      // USD store and a DKK store used to get their sum presented as dollars.
+      byCurrency: rows.reduce((acc, r) => {
+        const c = r.currency ?? 'usd';
+        acc[c] = Math.round(((acc[c] ?? 0) + r.amountUsd) * 100) / 100;
+        return acc;
+      }, {}),
+      // Kept for the headline figure, and only meaningful when the rows share
+      // one currency — `currency` below says whether they do.
       allTimeUsd: Math.round(rows.reduce((sum, r) => sum + r.amountUsd, 0) * 100) / 100,
+      // The single currency every row is in, or null when they differ. The
+      // dashboard refuses to print a total it cannot name.
+      currency: (() => {
+        const all = new Set(rows.map((r) => r.currency ?? 'usd'));
+        return all.size === 1 ? [...all][0] : null;
+      })(),
       payments: rows.length,
       activeMembers: activeMembers.size,
       lifetimeMembers: new Set(rows.filter((r) => r.lifetime).map((r) => r.discordId)).size,

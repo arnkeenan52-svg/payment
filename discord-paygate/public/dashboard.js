@@ -7,7 +7,26 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 // Discord roles display as @Name exactly once — a role literally named
 // "@PREMIUM" must not render as "@@PREMIUM". Stored names stay verbatim.
 const roleLabel = (r) => `@${String(r ?? '').replace(/^@+/, '')}`;
-const usd = (n) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// Every seller-money figure on this dashboard is denominated in the SELECTED
+// STORE's currency, set from the payload the moment a store is chosen. Dues's
+// own money — the platform-admin volume and MRR — is always USD and passes it
+// explicitly, because the two must never borrow each other's symbol.
+let STORE_CURRENCY = 'usd';
+const ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga',
+  'pyg', 'rwf', 'vnd', 'vuv', 'xaf', 'xof', 'xpf', 'isk', 'ugx']);
+const curDp = (c) => (ZERO_DECIMAL.has(String(c ?? '').toLowerCase()) ? 0 : 2);
+const usd = (n, cur = STORE_CURRENCY) => {
+  const c = String(cur ?? STORE_CURRENCY).toLowerCase();
+  const dp = curDp(c);
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency', currency: c.toUpperCase(),
+      minimumFractionDigits: dp, maximumFractionDigits: dp,
+    }).format(Number(n));
+  } catch {
+    return `${c.toUpperCase()} ${Number(n).toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp })}`;
+  }
+};
 const fmtDT = (unix) =>
   new Date(unix * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
   ', ' + new Date(unix * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -256,7 +275,7 @@ async function viewAdmin() {
       <td>${st.status === 'live' ? '<span class="chip chip-good">Live</span>' : '<span class="chip chip-off">Draft</span>'}</td>
       <td>${esc(st.ownerTier)}</td>
       <td class="num">${st.members}</td>
-      <td class="num">${usd(st.revenueUsd)}</td>
+      <td class="num">${usd(st.revenueUsd, 'usd')}</td>
       <td class="dim">${st.createdAt ? fmtDT(st.createdAt) : '—'}</td>
     </tr>`;
 
@@ -266,7 +285,7 @@ async function viewAdmin() {
         u.entitled ? ' <span class="chip chip-good">Member</span>' : u.memberships ? ' <span class="chip chip-off">Lapsed</span>' : ''
       }</td>
       <td class="num">${u.memberships || ''}</td>
-      <td class="num">${u.spentUsd ? usd(u.spentUsd) : ''}</td>
+      <td class="num">${u.spentUsd ? usd(u.spentUsd, 'usd') : ''}</td>
       <td class="dim">${fmtDT(u.joinedAt)}</td>
       <td class="dim">${rel(u.lastSeenAt)}</td>
     </tr>`;
@@ -283,9 +302,9 @@ async function viewAdmin() {
         <div class="ck-stat"><span class="ck-num">${t.users}</span><span class="ck-lab">Signed-in accounts</span></div>
         <div class="ck-stat"><span class="ck-num">${t.storesLive}<span class="ck-sub">${t.storesDraft ? ` +${t.storesDraft} draft` : ''}</span></span><span class="ck-lab">Stores set up</span></div>
         <div class="ck-stat"><span class="ck-num ck-good">${t.activeMembers}</span><span class="ck-lab">Active members</span></div>
-        <div class="ck-stat"><span class="ck-num ck-good">${usd(t.allTimeUsd)}</span><span class="ck-lab">All-time volume</span></div>
+        <div class="ck-stat"><span class="ck-num ck-good">${usd(t.allTimeUsd, 'usd')}</span><span class="ck-lab">All-time volume</span></div>
         <div class="ck-stat"><span class="ck-num">${t.checkoutsStarted}<span class="ck-sub"> ${conv} paid</span></span><span class="ck-lab">Checkouts started</span></div>
-        <div class="ck-stat"><span class="ck-num ck-good">${usd(t.mrrUsd)}<span class="ck-sub">${t.payingOwners ? ` ${t.payingOwners} paying` : ''}</span></span><span class="ck-lab">Dues MRR</span></div>
+        <div class="ck-stat"><span class="ck-num ck-good">${usd(t.mrrUsd, 'usd')}<span class="ck-sub">${t.payingOwners ? ` ${t.payingOwners} paying` : ''}</span></span><span class="ck-lab">Dues MRR</span></div>
       </div>
 
       <section class="panel table-panel">
@@ -881,7 +900,14 @@ function revenueChart(series) {
   const y = (v) => padT + plotH - (v / max) * plotH;
   const band = plotW / n;
   const x = (i) => padL + i * band + band / 2;
-  const money = (v) => (max >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : `$${v}`);
+  // Axis ticks: compact, and in the store's currency rather than a bare $.
+  const sym = (() => {
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: STORE_CURRENCY.toUpperCase(),
+        minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(0).replace(/[\d\s.,]/g, '');
+    } catch { return ''; }
+  })();
+  const money = (v) => (max >= 1000 ? `${sym}${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : `${sym}${v}`);
   const base = padT + plotH;
 
   // Three quiet horizontals: a solid baseline and two dashed guides — the
@@ -1047,7 +1073,7 @@ function paymentsRows(list) {
       (p) => `<tr>
         <td>${p.username ? '@' + esc(p.username) : ''}<span class="dim"> ${esc(p.discordId)}</span></td>
         <td>${esc(p.planName)}<span class="row-when">${fmtDT(p.createdAt)}</span></td>
-        <td class="num">${usd(p.amountUsd)}</td>
+        <td class="num">${usd(p.amountUsd, p.currency)}</td>
         <td>${chipFor(p)}</td>
         <td class="dim">${fmtDT(p.createdAt)}</td>
       </tr>`,
@@ -1076,7 +1102,7 @@ function checkoutRows(list) {
         <td>${esc(c.planName)}${c.discountCode ? ` <span class="chip chip-code">${esc(c.discountCode)}</span>` : ''}<span class="row-when">${fmtDT(c.createdAt)}${
           c.completedAt ? ` · paid in ${fmtDur(c.completedAt - c.createdAt)}` : ''
         }</span></td>
-        <td class="num">${usd(c.amountUsd)}</td>
+        <td class="num">${usd(c.amountUsd, c.currency)}</td>
         <td>${
           c.status === 'completed'
             ? '<span class="chip chip-good">Paid</span>'
@@ -1226,7 +1252,7 @@ function sectionOverview(data, store, slug) {
                 .map(
                   (p) => `<li><span class="g-icon g-icon-fallback sale-ic">${esc((p.username ?? '?').slice(0, 1).toUpperCase())}</span>
                     <span class="sale-meta"><strong>${p.username ? '@' + esc(p.username) : esc(p.discordId)}</strong><span class="dim">${esc(p.planName)} · ${fmtDT(p.createdAt)}</span></span>
-                    <span class="sale-amt">${usd(p.amountUsd)}</span></li>`,
+                    <span class="sale-amt">${usd(p.amountUsd, p.currency)}</span></li>`,
                 )
                 .join('')}</ul>`
             : '<div class="empty-chart">No recent sales</div>'
@@ -1387,7 +1413,7 @@ function sectionProducts(products, data, slug) {
             : `${p.imageUrl ? `<img class="prod-thumb" src="${esc(p.imageUrl)}" alt="" width="30" height="30" />` : '<span class="prod-thumb prod-thumb-empty"></span>'}
           <span><strong>${esc(p.name)}</strong><span class="dim prod-roles"> ${esc((p.roleNames ?? []).map(roleLabel).join(', '))}${p.requiredRoleId ? ` · ${esc(roleLabel(p.requiredRoleName ?? 'role'))} only` : ''}</span></span>`
         }</td>
-        <td class="num">${usd(p.priceUsd)}</td>
+        <td class="num">${usd(p.priceUsd, p.currency)}</td>
         <td class="dim">${billingLabel(p)}${
           p.expiresAt ? (p.expiresAt * 1000 <= Date.now() ? ' · <strong>ended</strong>' : ` · ends ${new Date(p.expiresAt * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`) : ''
         }</td>
@@ -2014,6 +2040,22 @@ function sectionSettings(store, isPlatformOwner) {
     ${
       !store.isDefault
         ? setCard({
+            id: 'cur-card',
+            title: 'Currency',
+            sub: 'What you price in. Buyers everywhere still see their own currency at checkout — this is the one you get paid in.',
+            body: `
+              <label class="field"><span class="field-label">Price my products in</span>
+                <select id="cur-select"><option value="">Loading…</option></select>
+                <span class="field-help" id="cur-help">Read from your Stripe account — these are the currencies it can be paid out in.</span></label>
+              <p class="cur-note" id="cur-note" hidden></p>
+              <p class="field-err" id="err-cur" role="alert"></p>`,
+            foot: `<button class="btn-secondary" id="cur-save">Save</button>`,
+          })
+        : ''
+    }
+    ${
+      !store.isDefault
+        ? setCard({
             title: 'Sale notifications',
             sub: 'Every order is posted to a channel in your server the moment payment clears.',
             body: `
@@ -2061,6 +2103,9 @@ async function viewStore(slug) {
     return;
   }
   const store = data.stores.find((s) => s.slug === slug) ?? data.stores[0];
+  // Before a single figure is formatted: every price, total and axis label
+  // below is denominated in this store's currency.
+  STORE_CURRENCY = String(store?.currency ?? 'usd').toLowerCase();
   const link = `${location.origin}/${store.slug}`;
   const section = location.hash.split('/')[3] ?? 'overview';
   // Saved dashboard preferences: the accent recolors every chart and active
@@ -2319,7 +2364,10 @@ async function viewStore(slug) {
     $('#tx-status').onchange = apply;
     $('#tx-export').onclick = () => {
       const rows = filtered();
-      const head = 'date,username,discord_id,store,product,amount_usd,status,provider';
+      // amount_usd kept as the column name so existing spreadsheets and
+      // imports do not break; `currency` beside it says what the number
+      // actually is, which is the part that was previously a guess.
+      const head = 'date,username,discord_id,store,product,amount_usd,currency,status,provider';
       // Quote every cell AND neutralize spreadsheet formula injection: a value
       // that starts with = + - @ or a control char (e.g. a buyer username the
       // buyer chose) would otherwise run as a formula when the CSV is opened in
@@ -2330,7 +2378,7 @@ async function viewStore(slug) {
         return `"${s.replace(/"/g, '""')}"`;
       };
       const csv = [head, ...rows.map((p) =>
-        [new Date(p.createdAt * 1000).toISOString(), p.username ?? '', p.discordId, p.storeSlug, p.planName, p.amountUsd.toFixed(2), p.status, p.provider].map(cell).join(','),
+        [new Date(p.createdAt * 1000).toISOString(), p.username ?? '', p.discordId, p.storeSlug, p.planName, p.amountUsd.toFixed(curDp(p.currency)), (p.currency ?? 'usd').toUpperCase(), p.status, p.provider].map(cell).join(','),
       )].join('\n');
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -2366,6 +2414,7 @@ async function viewStore(slug) {
           fieldErr('pm', err.message);
         }
       };
+    wireCurrency(store, slug);
     wireReceiptSettings(store, slug);
   }
 }
@@ -3338,6 +3387,93 @@ async function wireSaleNotifications(store, slug) {
     sel.innerHTML = `<option value="">Couldn’t load channels</option>`;
     fieldErr('nc', err.message);
   }
+}
+
+// The currency card. Everything it offers comes from the seller's OWN Stripe
+// account: Dues asks for no bank details, holds none, and cannot add a
+// currency on the seller's behalf. Adding one means adding a bank account in
+// Stripe, and then it appears here. Skipping is the default — a seller who
+// never opens this card keeps pricing in the currency they already were.
+function wireCurrency(store, slug) {
+  const sel = $('#cur-select');
+  const save = $('#cur-save');
+  const note = $('#cur-note');
+  const help = $('#cur-help');
+  if (!sel || !save) return;
+  const current = String(store.currency ?? 'usd').toLowerCase();
+  // Intl carries every currency's name in the reader's own language, so there
+  // is no list of 133 names to ship, translate or let drift.
+  let names = null;
+  try { names = new Intl.DisplayNames(undefined, { type: 'currency' }); } catch { /* older browser */ }
+  const label = (c) => {
+    const code = c.toUpperCase();
+    const full = names?.of(code);
+    return full && full !== code ? `${code} — ${full}` : code;
+  };
+  const only = (c, why) => {
+    sel.innerHTML = `<option value="${esc(c)}">${esc(label(c))}</option>`;
+    sel.value = c;
+    sel.disabled = true;
+    save.disabled = true;
+    if (help) help.textContent = why;
+  };
+
+  (async () => {
+    let info;
+    try {
+      info = await api('/api/admin/store', { store: slug, action: 'payout-currencies' });
+    } catch {
+      only(current, 'Stripe did not answer just now — reload to pick a different currency.');
+      return;
+    }
+    if (!info.connected) {
+      only(current, 'Connect your Stripe account first, then the currencies it can be paid out in show up here.');
+      return;
+    }
+    const options = info.currencies?.length ? info.currencies : [current];
+    sel.innerHTML = options.map((c) => `<option value="${esc(c)}">${esc(label(c))}</option>`).join('');
+    sel.value = options.includes(current) ? current : options[0];
+    if (help) {
+      help.textContent = options.length > 1
+        ? 'Read from your Stripe account — these are the currencies it can be paid out in.'
+        : 'This is the only currency your Stripe account can be paid out in. Add a bank account in Stripe to get more.';
+    }
+    if (note) {
+      // Two separate truths, and conflating them is how a seller ends up
+      // thinking Dues holds their money. Buyers get local currency because
+      // STRIPE converts at checkout; the seller is still paid in the one
+      // currency chosen above, into their own account.
+      note.innerHTML = 'Buyers in 150+ countries are shown the price in their own currency at checkout and can pay in it. '
+        + 'Stripe does the conversion and you are still paid in ' + esc(sel.value.toUpperCase()) + '. '
+        + 'It costs you nothing — the conversion fee sits in the rate the buyer is quoted, and they can switch back to '
+        + esc(sel.value.toUpperCase()) + ' on the payment page. '
+        + '<a href="https://dashboard.stripe.com/settings/money-management" target="_blank" rel="noopener">Add another payout currency in Stripe</a>.';
+      note.hidden = false;
+      sel.onchange = () => { wireCurrency.refreshNote?.(); };
+      wireCurrency.refreshNote = () => {
+        note.innerHTML = note.innerHTML.replace(/paid in [A-Z]{3}\./, `paid in ${sel.value.toUpperCase()}.`);
+      };
+    }
+  })();
+
+  save.onclick = async () => {
+    fieldErr('cur', '');
+    const next = sel.value;
+    if (!next || next === current) { save.textContent = 'Saved ✓'; setTimeout(() => { save.textContent = 'Save'; }, 1400); return; }
+    save.disabled = true;
+    save.textContent = 'Saving…';
+    try {
+      await api('/api/admin/store', { store: slug, currency: next });
+      save.textContent = 'Saved ✓';
+      // Every price on screen is denominated in the currency that just
+      // changed, so re-read rather than leave old numbers with a new label.
+      setTimeout(() => location.reload(), 700);
+    } catch (err) {
+      save.disabled = false;
+      save.textContent = 'Save';
+      fieldErr('cur', err.message);
+    }
+  };
 }
 
 function wireReceiptSettings(store, slug) {

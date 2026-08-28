@@ -25,7 +25,26 @@ const loginStoreQ = STORE_SLUG ? `&store=${encodeURIComponent(STORE_SLUG)}` : ''
 
 const fmtDate = (unix) =>
   new Date(unix * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-const fmtPrice = (usd) => `$${usd.toFixed(2)}`;
+// The store's currency, learned from /api/plans. Until that lands there is
+// nothing to show a price for, so the initial value is only a safety net.
+let PAGE_CURRENCY = 'usd';
+// Zero-decimal currencies: ¥1500 has no cents to print, and toFixed(2) on one
+// invents a precision the currency does not have. Intl knows the rest —
+// symbol, placement, grouping — so there is no table of those to keep.
+const ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga',
+  'pyg', 'rwf', 'vnd', 'vuv', 'xaf', 'xof', 'xpf', 'isk', 'ugx']);
+const fmtPrice = (amount, cur = PAGE_CURRENCY) => {
+  const c = String(cur ?? PAGE_CURRENCY).toLowerCase();
+  const dp = ZERO_DECIMAL.has(c) ? 0 : 2;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency', currency: c.toUpperCase(),
+      minimumFractionDigits: dp, maximumFractionDigits: dp,
+    }).format(Number(amount));
+  } catch {
+    return `${c.toUpperCase()} ${Number(amount).toFixed(dp)}`;
+  }
+};
 // Product names and usernames are other people's text — escape everything
 // that rides into innerHTML, no exceptions.
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -198,7 +217,7 @@ function renderBrand() {
   }
   $('#plan-name').textContent = parentOf(plan).name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
-  $('#price').textContent = fmtPrice(plan.priceUsd);
+  $('#price').textContent = fmtPrice(plan.priceUsd, plan.currency);
   // Roles the buyer receives, as blurple chips — Discord's own concept in
   // Discord's own color.
   const rolesBox = $('#roles-box');
@@ -345,7 +364,7 @@ function renderTotals(plan, applied, payable) {
     return;
   }
   box.hidden = false;
-  $('#tot-sub').textContent = fmtPrice(plan.priceUsd);
+  $('#tot-sub').textContent = fmtPrice(plan.priceUsd, plan.currency);
   const saveRow = $('#tot-save-row');
   if (applied) {
     saveRow.hidden = false;
@@ -1318,6 +1337,10 @@ async function main() {
   }
   const plansBody = await plansRes.json();
   state.plans = plansBody.plans;
+  // Learn the store's currency before anything renders a price. Every plan in
+  // a store shares it, so the first plan answers for the page; the store-level
+  // value is the fallback for a store with nothing for sale yet.
+  PAGE_CURRENCY = String(plansBody.plans?.[0]?.currency ?? plansBody.currency ?? 'usd').toLowerCase();
   state.capabilities = plansBody.capabilities;
   state.server = plansBody.server;
   state.store = plansBody.store ?? null;

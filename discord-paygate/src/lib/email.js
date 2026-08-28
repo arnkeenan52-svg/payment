@@ -5,6 +5,7 @@
 import { config } from '../config.js';
 import { getAppSecret } from '../db.js';
 import { openSecret } from './secretbox.js';
+import { formatAmount, normalize as normalizeCurrency } from './currency.js';
 
 const apiBase = () => process.env.RESEND_API_BASE || 'https://api.resend.com';
 
@@ -69,8 +70,11 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 
 // The site's own palette, in email-safe solid hex: near-black ground,
 // hairline borders, the green accent for the good news.
-export function receiptHtml({ storeName, planName, amountUsd, lifetime, discordUsername, reference, dateIso }) {
-  const amount = `$${Number(amountUsd).toFixed(2)} USD`;
+export function receiptHtml({ storeName, planName, amountUsd, currency = 'usd', lifetime, discordUsername, reference, dateIso }) {
+  // Naming the code next to the amount is deliberate: $ is ambiguous across a
+  // dozen currencies, and a receipt is the one place that has to be unarguable.
+  const cur = normalizeCurrency(currency);
+  const amount = `${formatAmount(amountUsd, cur)} ${cur.toUpperCase()}`;
   const row = (k, v) => `
     <tr>
       <td style="padding:9px 0;color:#9a9f98;font-size:13px;border-bottom:1px solid #232323;">${esc(k)}</td>
@@ -115,7 +119,7 @@ export function receiptHtml({ storeName, planName, amountUsd, lifetime, discordU
 }
 
 // Fire-and-forget: resolves true when Resend accepted the email.
-export async function sendReceiptEmail({ to, storeName, planName, amountUsd, lifetime, discordUsername, reference }) {
+export async function sendReceiptEmail({ to, storeName, planName, amountUsd, currency = 'usd', lifetime, discordUsername, reference }) {
   try {
     const key = await resendApiKey();
     if (!key || !to) return false;
@@ -131,6 +135,7 @@ export async function sendReceiptEmail({ to, storeName, planName, amountUsd, lif
           storeName,
           planName,
           amountUsd,
+          currency,
           lifetime,
           discordUsername,
           reference,

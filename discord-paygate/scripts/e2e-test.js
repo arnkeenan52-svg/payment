@@ -43,6 +43,7 @@ const CRON_SECRET = 'cron_e2e_secret_1'; // ≥16 chars so the doctor's own chec
 const BOT_ID = '600000000000000001';
 const G2 = '900000000000000002';           // second tenant guild (VIP Signals)
 const G3 = '900000000000000003';           // third guild — draft-store slug-guard scenario
+const G4 = '900000000000000004';           // fourth guild — the multi-currency store, owned by nothing else
 const R2_VIP = '2200000000000000101';      // grantable role in G2
 const R2_BOT = '2200000000000000999';      // the bot's role in G2
 const OWNER2_KEY = 'rk_test_owner2';       // second owner's own Stripe key — restricted, the kind Stripe recommends
@@ -279,6 +280,10 @@ async function discordHandler(req, res) {
       json(res, 200, { id: G3, name: 'Trade Hub', icon: null });
       return;
     }
+    if (m[1] === G4) {
+      json(res, 200, { id: G4, name: 'Tokyo Desk', icon: null });
+      return;
+    }
     // Any other guild: the bot is not a member — exactly like real Discord.
     json(res, 404, { message: 'Unknown Guild' });
     return;
@@ -338,14 +343,28 @@ async function stripeHandler(req, res) {
   let m;
   if (url.pathname === '/v1/account' && req.method === 'GET') {
     if (req.headers.authorization === 'Bearer sk_test_e2e') {
-      json(res, 200, { id: 'acct_e2e' });
+      json(res, 200, { id: 'acct_e2e', default_currency: 'usd' });
       return;
     }
     if (req.headers.authorization === `Bearer ${OWNER2_KEY}`) {
-      json(res, 200, { id: 'acct_owner2' });
+      // A real multi-currency seller: settles in USD by default and holds a
+      // DKK and a JPY bank account too. This is what the currency picker is
+      // read from — Dues never asks for these details, it reports them.
+      json(res, 200, { id: 'acct_owner2', default_currency: 'usd' });
       return;
     }
     json(res, 401, { error: { message: 'Invalid API Key' } });
+    return;
+  }
+  if ((m = url.pathname.match(/^\/v1\/accounts\/([^/]+)\/external_accounts$/)) && req.method === 'GET') {
+    const banks = m[1] === 'acct_owner2'
+      ? [
+          { object: 'bank_account', currency: 'usd', last4: '6789', bank_name: 'STRIPE TEST BANK', country: 'US', status: 'new', default_for_currency: true },
+          { object: 'bank_account', currency: 'dkk', last4: '4242', bank_name: 'DANSKE TEST', country: 'DK', status: 'new', default_for_currency: true },
+          { object: 'bank_account', currency: 'jpy', last4: '1010', bank_name: 'MIZUHO TEST', country: 'JP', status: 'new', default_for_currency: true },
+        ]
+      : [{ object: 'bank_account', currency: 'usd', last4: '0000', bank_name: 'STRIPE TEST BANK', country: 'US', status: 'new', default_for_currency: true }];
+    json(res, 200, { object: 'list', data: banks, has_more: false });
     return;
   }
   if (url.pathname === '/v1/products' && req.method === 'POST') {
@@ -750,7 +769,10 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   const diagBody = await diagPage.text();
   assert.doesNotMatch(diagBody, /Setup diagnostics/, 'the diagnostics tool must be gone');
   assert.match(diagBody, /Confirm Order/, 'unclaimed slugs serve the storefront shell');
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
+  // `currency` rides beside priceUsd on every plan: the number alone cannot
+  // say whether 1500 is $1,500.00 or ¥1,500, and the storefront formats from it.
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
+  assert.equal(plans[0].currency, 'usd', 'a store that never picked a currency prices in USD, exactly as before');
 });
 
 test('the iOS status-bar strip is on every themed page, with both of its colours', async () => {
@@ -3259,6 +3281,146 @@ test('pricing options: one product sold at several prices, same role, same page'
   const after = await (await onboard({ step: 'products', storeId })).json();
   assert.ok(!after.products.some((p) => p.planKey === parent.planKey || p.planKey === opt.planKey), 'options never outlive their product');
   await call(u7Cookie, '/api/admin/discounts', { store: 'vip-signals', action: 'delete', code: 'MENT10' });
+});
+
+test('multi-currency: a store prices in its own currency, and the minor-unit maths holds', async () => {
+  // The whole point of this scenario is the divisor. Stripe wants amounts in a
+  // currency's MINOR unit, and that unit is not always 1/100: ¥1500 is sent as
+  // 1500, not 150000. A hundredfold overcharge is invisible in every test that
+  // only ever uses dollars, which is what this suite used to be.
+  const U15 = '514400000000000015';
+  discord.oauthUsers.code_u15 = { id: U15, username: 'tokyo_owner' };
+  discord.userGuilds[U15] = [{ id: G4, name: 'Tokyo Desk', icon: null, owner: true, permissions: '8' }];
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=code_u15&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  const cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  const call = (path, body) =>
+    fetch(`${appUrl}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify(body),
+    });
+  const dash = async () => (await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie } })).json());
+
+  const madeStore = await call('/api/onboard', { step: 'store', guildId: G4, name: 'Tokyo Desk', stripeKey: OWNER2_KEY });
+  assert.equal(madeStore.status, 200, await madeStore.clone().text());
+  const store = (await madeStore.json()).store;
+  const slug = store.slug;
+  const storeId = store.id;
+
+  // A brand-new store prices in USD. Every store that existed before this
+  // feature must land exactly here, which is what the column default buys.
+  assert.equal((await dash()).stores.find((x) => x.slug === slug).currency, 'usd',
+    'a store that never chose a currency is a USD store');
+
+  // The picker offers what the SELLER'S OWN Stripe account can be paid out in,
+  // read from the bank accounts already on it. Dues asks for no bank details,
+  // stores none, and invents no options.
+  const avail = await (await call('/api/admin/store', { store: slug, action: 'payout-currencies' })).json();
+  assert.deepEqual([...avail.currencies].sort(), ['dkk', 'jpy', 'usd'], "the picker mirrors the seller's own payout accounts");
+  assert.equal(avail.defaultCurrency, 'usd');
+  assert.equal(avail.connected, true);
+
+  // A currency with no bank account behind it is refused: saving it would
+  // strand the seller's money at Stripe.
+  const nope = await call('/api/admin/store', { store: slug, currency: 'gbp' });
+  assert.equal(nope.status, 400, 'a currency the account cannot be paid out in is refused');
+  assert.match((await nope.json()).error, /GBP/);
+  assert.equal((await call('/api/admin/store', { store: slug, currency: 'zzz' })).status, 400, 'a non-currency is refused');
+
+  // Switch to yen and sell at ¥1500.
+  assert.equal((await call('/api/admin/store', { store: slug, currency: 'jpy' })).status, 200);
+  const made = await call('/api/onboard', { step: 'product', storeId, name: 'Tokyo Pass', priceUsd: 1500, lifetime: true });
+  const body = await made.text();
+  assert.equal(made.status, 200, body);
+  const plan = JSON.parse(body).plan;
+  assert.equal(plan.currency, 'jpy', 'the product is stamped with the currency it was priced in');
+  assert.equal(plan.priceUsd, 1500);
+
+  // THE assertion. What actually reached Stripe: 1500, not 150000.
+  const jpyPrice = MOCK_PRICES[plan.stripePriceId];
+  assert.ok(jpyPrice, 'a Stripe price was provisioned');
+  assert.equal(jpyPrice.currency, 'jpy', 'the Stripe price is denominated in the store currency');
+  assert.equal(jpyPrice.unit_amount, 1500, 'a zero-decimal currency is sent as-is — 1500, never 150000');
+
+  // The storefront must carry the currency beside the number, or the page has
+  // no way to tell ¥1,500 from $1,500.00.
+  const shown = (await (await fetch(`${appUrl}/api/plans?store=${slug}`)).json()).plans.find((p) => p.id === plan.planKey);
+  assert.equal(shown.currency, 'jpy');
+  assert.equal(shown.priceUsd, 1500);
+
+  // Stripe's own per-currency floor, enforced where the seller can still fix
+  // it rather than at the buyer's card form. ¥50 is the JPY minimum.
+  assert.equal((await call('/api/onboard', { step: 'product', storeId, name: 'Too Cheap', priceUsd: 10, lifetime: true })).status, 400,
+    'a price under the JPY minimum is refused at the form, not at the card');
+  // ...and the old flat $1–$10,000 ceiling is gone: ¥40,000 is about $260.
+  assert.equal((await call('/api/onboard', { step: 'product', storeId, name: 'Tokyo Pro', priceUsd: 40000, lifetime: true })).status, 200,
+    'a price that only looked absurd in dollars is ordinary in yen');
+
+  // The dashboard is told which currency every figure on it is in.
+  assert.equal((await dash()).stores.find((x) => x.slug === slug).currency, 'jpy');
+
+  // Switching again re-mints the Stripe prices rather than reinterpreting the
+  // old ones: a Stripe price object carries its currency forever, so leaving a
+  // yen price pinned under a krone label would sell at the wrong money.
+  const oldPriceId = plan.stripePriceId;
+  assert.equal((await call('/api/admin/store', { store: slug, currency: 'dkk' })).status, 200);
+  const afterSwitch = (await (await fetch(`${appUrl}/api/plans?store=${slug}`)).json()).plans.find((p) => p.id === plan.planKey);
+  assert.equal(afterSwitch.currency, 'dkk', 'products follow the store to its new currency');
+  assert.notEqual(afterSwitch.stripePriceId, oldPriceId, 'the yen price is unpinned, not relabelled');
+
+  // And once a store has sold something the currency locks. Dues never touches
+  // the Stripe price an existing subscriber is billed on, so a mid-life switch
+  // would bill old members in one currency and new ones in another while the
+  // dashboard added the two together. vip-signals has real payment history by
+  // this point in the suite, so it is the store that proves it.
+  const u7 = await (async () => {
+    const lg = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const s7 = new URL(lg.headers.get('location')).searchParams.get('state');
+    const c7 = lg.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const done = await fetch(`${appUrl}/auth/callback?code=code_u7&state=${s7}`, {
+      redirect: 'manual', headers: { cookie: c7.split(';')[0] },
+    });
+    return done.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  })();
+  const locked = await fetch(`${appUrl}/api/admin/store`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u7 },
+    body: JSON.stringify({ store: 'vip-signals', currency: 'dkk' }),
+  });
+  assert.equal(locked.status, 409, 'a store that has sold something cannot change what it sold in');
+  assert.match((await locked.json()).error, /USD/);
+});
+
+test('every checkout asks Stripe to show the buyer their own currency', async () => {
+  // Adaptive Pricing is what turns "one store currency" into "buyers in 150+
+  // countries pay in theirs". It is a per-session override of the seller's
+  // dashboard toggle, so it must ride on EVERY session Dues creates — a seller
+  // who never opens their Stripe settings still gets it.
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const st = new URL(login.headers.get('location')).searchParams.get('state');
+  const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=code_u1&state=${st}`, {
+    redirect: 'manual',
+    headers: { cookie: sc.split(';')[0] },
+  });
+  const cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  const before = stripe.checkoutSessions.length;
+  const res = await fetch(`${appUrl}/api/checkout/stripe`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie },
+    body: JSON.stringify({ planId: 'insider' }),
+  });
+  assert.equal(res.status, 200, await res.text());
+  const form = stripe.checkoutSessions[stripe.checkoutSessions.length - 1];
+  assert.ok(stripe.checkoutSessions.length > before, 'a session was created');
+  assert.equal(form['adaptive_pricing[enabled]'], 'true',
+    'every Checkout Session opts the buyer into local-currency presentment');
 });
 
 test('gated + limited-time products: only role holders buy, expiry ends the sale', async () => {

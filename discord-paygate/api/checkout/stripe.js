@@ -3,6 +3,7 @@ import { storeBySlug, planOf } from '../../src/services/stores.js';
 import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { createCheckoutSession, stripeFetch } from '../../src/lib/stripe.js';
+import { fromMinor, normalize as normalizeCurrency } from '../../src/lib/currency.js';
 import { memberLimitBlocks } from '../../src/services/billing.js';
 import { getGuildMember } from '../../src/lib/discord.js';
 import * as db from '../../src/db.js';
@@ -137,7 +138,13 @@ export default guard(async function handler(req, res) {
       planId: plan.id,
       discordId: uid,
       sessionId: session.id,
-      amountUsd: typeof session.amount_total === 'number' ? session.amount_total / 100 : (plan.priceUsd ?? 0),
+      // amount_total comes back in MINOR units, and the divisor is not always
+      // 100 — a ¥1500 sale reports 1500, which /100 would log as ¥15.
+      // session.currency is the currency Stripe actually charged in.
+      amountUsd: typeof session.amount_total === 'number'
+        ? fromMinor(session.amount_total, session.currency ?? plan.currency)
+        : (plan.priceUsd ?? 0),
+      currency: normalizeCurrency(session.currency ?? plan.currency),
       discountCode,
     });
   } catch (err) {

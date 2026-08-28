@@ -1,5 +1,21 @@
 const $ = (sel) => document.querySelector(sel);
-const fmtPrice = (usd) => `$${usd.toFixed(2)}`;
+// Same rule as the storefront: the amount carries its own currency, and a
+// zero-decimal one must not be printed with cents it does not have.
+let PAGE_CURRENCY = 'usd';
+const ZERO_DECIMAL = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga',
+  'pyg', 'rwf', 'vnd', 'vuv', 'xaf', 'xof', 'xpf', 'isk', 'ugx']);
+const fmtPrice = (amount, cur = PAGE_CURRENCY) => {
+  const c = String(cur ?? PAGE_CURRENCY).toLowerCase();
+  const dp = ZERO_DECIMAL.has(c) ? 0 : 2;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency', currency: c.toUpperCase(),
+      minimumFractionDigits: dp, maximumFractionDigits: dp,
+    }).format(Number(amount));
+  } catch {
+    return `${c.toUpperCase()} ${Number(amount).toFixed(dp)}`;
+  }
+};
 
 // Success is only claimed once the role has actually landed: we poll /api/me
 // until the plan's subscription shows up entitled (the webhook grants it
@@ -60,7 +76,8 @@ async function main() {
   // The charged amount (discounts applied) beats the list price the moment
   // the buyer's subscription row lands; until then the list price stands in.
   const paidFor = (m) => (m.subscriptions ?? []).find((s) => s.planId === plan.id && s.paidUsd !== null && s.paidUsd !== undefined);
-  const renderTotal = (m) => { $('#r-total').textContent = fmtPrice(paidFor(m)?.paidUsd ?? plan.priceUsd); };
+  PAGE_CURRENCY = String(plan.currency ?? PAGE_CURRENCY).toLowerCase();
+  const renderTotal = (m) => { $('#r-total').textContent = fmtPrice(paidFor(m)?.paidUsd ?? plan.priceUsd, plan.currency); };
   renderTotal(me);
   $('#open-discord-label').textContent = server.name ? `Open ${server.name} on Discord` : 'Open Discord';
   if (server.guildId) $('#open-discord').href = `https://discord.com/channels/${server.guildId}`;

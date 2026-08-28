@@ -86,12 +86,16 @@ export default guard(async function handler(req, res) {
     // Guild id is public (it's in every invite link); the receipt page needs
     // it for the "Open on Discord" deep link.
     server: { name, guildId: store.guildId, iconUrl },
+    currency: store.currency ?? 'usd',
     capabilities: store.isDefault ? capabilities() : { stripe: Boolean(store.stripeKey), crypto: false },
     plans: plans.map((p) => ({
       id: p.id,
       name: p.name,
       description: p.description,
       priceUsd: p.priceUsd,
+      // What that number is denominated in. Without this the page has no way
+      // to know whether 1500 means $1,500.00 or ¥1,500 and would guess wrong.
+      currency: p.currency ?? 'usd',
       interval: p.interval,
       lifetime: Boolean(p.lifetime),
       imageUrl: p.imageUrl ?? null,

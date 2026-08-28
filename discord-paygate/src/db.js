@@ -30,6 +30,7 @@ const ddl = (dialect) => {
     provider      TEXT NOT NULL,
     provider_ref  TEXT NOT NULL,
     status        TEXT NOT NULL,
+    currency      TEXT NOT NULL DEFAULT 'usd',
     current_period_end ${int},
     grace_until   ${int},
     cancels_at    ${int},               -- set when the buyer cancels; access runs to here
@@ -65,6 +66,7 @@ const ddl = (dialect) => {
     notify_channel_id TEXT,
     theme            TEXT,               -- JSON of validated storefront design tokens
     discoverable     ${int} NOT NULL DEFAULT 0,  -- owner opted in to /discover
+    currency         TEXT NOT NULL DEFAULT 'usd',  -- what this store prices in
     category         TEXT,               -- one of the fixed discover categories
     status           TEXT NOT NULL DEFAULT 'draft',
     created_at       ${int} NOT NULL,
@@ -82,7 +84,8 @@ const ddl = (dialect) => {
     plan_id       TEXT NOT NULL,
     discord_id    TEXT NOT NULL,
     session_id    TEXT NOT NULL,        -- Stripe cs_… ; the completion webhook matches on it
-    amount_usd    REAL NOT NULL DEFAULT 0,
+    amount_usd    REAL NOT NULL DEFAULT 0,   -- denominated in the currency column, not always USD
+    currency      TEXT NOT NULL DEFAULT 'usd',
     discount_code TEXT,
     status        TEXT NOT NULL,        -- 'started' | 'completed'
     created_at    ${int} NOT NULL,
@@ -98,7 +101,8 @@ const ddl = (dialect) => {
     name            TEXT NOT NULL,
     description     TEXT,
     image_url       TEXT,
-    price_usd       REAL NOT NULL,
+    price_usd       REAL NOT NULL,           -- denominated in the currency column, not always USD
+    currency        TEXT NOT NULL DEFAULT 'usd',
     lifetime        ${int} NOT NULL DEFAULT 1,
     duration_days   ${int},
     stripe_price_id TEXT,
@@ -335,6 +339,18 @@ function db() {
       await driver.exec('ALTER TABLE stores ADD COLUMN creator_name TEXT').catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN team TEXT').catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN team_heading TEXT').catch(() => {});
+      // The currency the store prices in — one per store, because it has to be
+      // a settlement currency of the seller's own Stripe account for Stripe to
+      // convert anything for the buyer. Defaulting to 'usd' is what makes this
+      // migration free: every existing row keeps meaning exactly what it meant.
+      await driver.exec("ALTER TABLE stores ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
+      // Money columns carry the currency they were denominated in AT THE TIME,
+      // not the store's current one. Without this a seller who switches from
+      // USD to DKK turns their own history into a lie, and every SUM() over
+      // these tables silently adds dollars to kroner.
+      await driver.exec("ALTER TABLE checkout_attempts ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
+      await driver.exec("ALTER TABLE subscriptions ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
+      await driver.exec("ALTER TABLE store_plans ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -485,10 +501,10 @@ export async function getSubscriptionByRef(provider, providerRef) {
   return rows[0] ?? null;
 }
 
-export async function upsertSubscription({ discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil = null, storeId = null, paidUsd = null }) {
+export async function upsertSubscription({ discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil = null, storeId = null, paidUsd = null, currency = 'usd' }) {
   await q(
-    `INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, current_period_end, grace_until, paid_usd, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, current_period_end, grace_until, paid_usd, currency, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (provider, provider_ref) DO UPDATE SET
        store_id = excluded.store_id,
        discord_id = excluded.discord_id,
@@ -497,8 +513,9 @@ export async function upsertSubscription({ discordId, planId, provider, provider
        current_period_end = excluded.current_period_end,
        grace_until = excluded.grace_until,
        paid_usd = COALESCE(excluded.paid_usd, subscriptions.paid_usd),
+       currency = excluded.currency,
        updated_at = excluded.updated_at`,
-    [storeId, discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil, paidUsd, now(), now()],
+    [storeId, discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil, paidUsd, currency, now(), now()],
   );
   return getSubscriptionByRef(provider, providerRef);
 }
@@ -529,13 +546,13 @@ export async function markSubscriptionCancelling(id, cancelsAt) {
 // A checkout was started. Recorded before the buyer ever sees Stripe's page,
 // so an abandoned one still shows up. Re-clicking Pay makes a new session and
 // therefore a new row — that repetition is itself the signal.
-export async function recordCheckoutAttempt({ storeId = null, planId, discordId, sessionId, amountUsd = 0, discountCode = null }) {
+export async function recordCheckoutAttempt({ storeId = null, planId, discordId, sessionId, amountUsd = 0, discountCode = null, currency = 'usd' }) {
   const t = now();
   await q(
-    `INSERT INTO checkout_attempts (store_id, plan_id, discord_id, session_id, amount_usd, discount_code, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'started', ?)
+    `INSERT INTO checkout_attempts (store_id, plan_id, discord_id, session_id, amount_usd, currency, discount_code, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'started', ?)
      ON CONFLICT (session_id) DO NOTHING`,
-    [storeId, planId, discordId, sessionId, amountUsd, discountCode, t],
+    [storeId, planId, discordId, sessionId, amountUsd, currency, discountCode, t],
   );
 }
 
@@ -648,6 +665,7 @@ export async function updateStore(id, fields) {
     creatorName: 'creator_name',
     team: 'team',
     teamHeading: 'team_heading',
+    currency: 'currency',
   };
   const sets = [];
   const params = [];
@@ -873,6 +891,7 @@ const planRow = (r) =>
         description: r.description,
         imageUrl: r.image_url,
         priceUsd: Number(r.price_usd),
+        currency: r.currency ?? 'usd',
         lifetime: Number(r.lifetime) === 1,
         durationDays: r.duration_days === null ? null : Number(r.duration_days),
         stripePriceId: r.stripe_price_id,
@@ -910,6 +929,7 @@ export async function updateStorePlan(storeId, planKey, fields) {
     description: 'description',
     imageUrl: 'image_url',
     priceUsd: 'price_usd',
+    currency: 'currency',
     lifetime: 'lifetime',
     durationDays: 'duration_days',
     stripePriceId: 'stripe_price_id',
@@ -993,15 +1013,15 @@ export async function incrementDiscountUse(storeId, code) {
   await q('UPDATE discounts SET uses = uses + 1 WHERE store_id = ? AND code = ?', [storeId, code]);
 }
 
-export async function createStorePlan({ storeId, planKey, name, description, imageUrl, priceUsd, lifetime, durationDays, stripePriceId, variantOf }) {
+export async function createStorePlan({ storeId, planKey, name, description, imageUrl, priceUsd, lifetime, durationDays, stripePriceId, variantOf, currency = 'usd' }) {
   await q(
-    `INSERT INTO store_plans (store_id, plan_key, name, description, image_url, price_usd, lifetime, duration_days, stripe_price_id, variant_of, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO store_plans (store_id, plan_key, name, description, image_url, price_usd, currency, lifetime, duration_days, stripe_price_id, variant_of, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (store_id, plan_key) DO UPDATE SET
        name = excluded.name, description = excluded.description, image_url = excluded.image_url,
-       price_usd = excluded.price_usd, lifetime = excluded.lifetime, duration_days = excluded.duration_days,
+       price_usd = excluded.price_usd, currency = excluded.currency, lifetime = excluded.lifetime, duration_days = excluded.duration_days,
        stripe_price_id = excluded.stripe_price_id, variant_of = excluded.variant_of`,
-    [storeId, planKey, name, description ?? null, imageUrl ?? null, priceUsd, lifetime ? 1 : 0, durationDays ?? null, stripePriceId ?? null, variantOf ?? null, now()],
+    [storeId, planKey, name, description ?? null, imageUrl ?? null, priceUsd, currency, lifetime ? 1 : 0, durationDays ?? null, stripePriceId ?? null, variantOf ?? null, now()],
   );
   return getStorePlan(storeId, planKey);
 }

@@ -7,6 +7,7 @@ import { sendReceiptEmail } from '../lib/email.js';
 import { postChannelMessage } from '../lib/discord.js';
 import { getUser } from '../db.js';
 import { activatePlatformPlan, applyPlatformSubscriptionEvent, isPlatformSubscription } from './billing.js';
+import { fromMinor, formatAmount, normalize as normalizeCurrency } from '../lib/currency.js';
 
 // Which store an event belongs to. SECURITY: a per-store endpoint verified
 // this delivery with that store's OWN signing secret, so the event provably
@@ -59,7 +60,10 @@ export async function processStripeEvent(event, routeStore = null) {
       }
       // What Stripe actually charged (discounts included). The plan's list
       // price is only a fallback for events without an amount.
-      const paidUsd = typeof obj.amount_total === 'number' ? obj.amount_total / 100 : null;
+      // amount_total is in MINOR units and the divisor is not always 100 — a
+      // ¥1500 sale reports 1500, which /100 would record and announce as ¥15.
+      const paidCurrency = normalizeCurrency(obj.currency ?? store?.currency);
+      const paidUsd = typeof obj.amount_total === 'number' ? fromMinor(obj.amount_total, paidCurrency) : null;
       // Sale ping to the owner's chosen channel (best-effort): every order
       // posts an embed the moment the grant lands.
       const notifySale = async () => {
@@ -73,7 +77,7 @@ export async function processStripeEvent(event, routeStore = null) {
             title: '🎉 New Subscriber!',
             description:
               `**${buyer}** just subscribed to **${plan?.name ?? planId}**` +
-              `${plan?.lifetime ? ' (lifetime)' : ''}.\n\nPayment received: **$${Number(amount).toFixed(2)}**`,
+              `${plan?.lifetime ? ' (lifetime)' : ''}.\n\nPayment received: **${formatAmount(amount, plan?.currency ?? paidCurrency)}**`,
             // Blurple, not white. A white embed stripe is invisible against
             // Discord's light theme -- the accent bar renders #ffffff on an
             // #f2f3f5 embed, so every seller whose members run light mode has
@@ -97,6 +101,7 @@ export async function processStripeEvent(event, routeStore = null) {
           storeName: store?.name ?? config.brand,
           planName: plan?.name ?? planId,
           amountUsd: paidUsd ?? plan?.priceUsd ?? 0,
+          currency: plan?.currency ?? paidCurrency,
           lifetime: Boolean(plan?.lifetime),
           discordUsername: user?.username ?? null,
           reference: obj.id,

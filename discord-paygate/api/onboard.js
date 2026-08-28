@@ -9,6 +9,7 @@ import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember, get
 import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache, isStripeKey, stripeKeyMode } from '../src/lib/stripe.js';
 import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf, rebaseImageUrl } from '../src/services/stores.js';
 import { parseUploadDataUrl, UPLOAD_BODY_LIMIT } from '../src/lib/upload.js';
+import { validateAmount, roundAmount, toMinor, formatAmount, minCharge, maxCharge, normalize as normalizeCurrency } from '../src/lib/currency.js';
 
 const ADMINISTRATOR = 1n << 3n;
 const MANAGE_GUILD = 1n << 5n;
@@ -157,12 +158,18 @@ export default guard(async function handler(req, res) {
       if (!row) return sendJson(res, 403, { error: 'not your store' });
       const name = String(body.name ?? '').trim().slice(0, 80);
       const description = String(body.description ?? '').trim().slice(0, 300);
-      const priceUsd = Math.round(Number(body.priceUsd) * 100) / 100;
+      // Priced in the store's own currency, and checked against Stripe's real
+      // limits for it. A 500 JPY product and a 20,000,000 IDR one are both
+      // ordinary, and the old flat $1–$10,000 rule refused each of them.
+      const currency = normalizeCurrency(row.currency);
+      const priceUsd = roundAmount(Number(body.priceUsd), currency);
       const lifetime = body.lifetime !== false;
       const durationDays = lifetime ? null : Math.max(1, Math.min(366, Math.round(Number(body.durationDays ?? 31))));
       if (!name) return sendJson(res, 400, { error: 'Name your product.' });
-      if (!Number.isFinite(priceUsd) || priceUsd < 1 || priceUsd > 10000) {
-        return sendJson(res, 400, { error: 'Price must be between $1 and $10,000.' });
+      if (!validateAmount(priceUsd, currency).ok) {
+        return sendJson(res, 400, {
+          error: `Price must be between ${formatAmount(minCharge(currency), currency)} and ${formatAmount(maxCharge(currency), currency)}.`,
+        });
       }
       // Photo: an uploaded data URL (dashboard photo picker) wins over a
       // pasted link. It is stored on the row and served from /api/img.
@@ -198,8 +205,8 @@ export default guard(async function handler(req, res) {
             ...(description ? { description } : {}),
             ...(imageUrl?.startsWith('https://') ? { images: [imageUrl] } : {}),
             default_price_data: {
-              currency: 'usd',
-              unit_amount: Math.round(priceUsd * 100),
+              currency,
+              unit_amount: toMinor(priceUsd, currency),
               ...(lifetime ? {} : { recurring: { interval: 'month' } }),
             },
           },
@@ -215,6 +222,7 @@ export default guard(async function handler(req, res) {
         description,
         imageUrl,
         priceUsd,
+        currency,
         lifetime,
         durationDays,
         stripePriceId: typeof product.default_price === 'string' ? product.default_price : product.default_price?.id ?? null,
@@ -243,9 +251,12 @@ export default guard(async function handler(req, res) {
       }
       const lifetime = body.lifetime !== false;
       const durationDays = lifetime ? null : Math.max(1, Math.min(366, Math.round(Number(body.durationDays ?? 31))));
-      const priceUsd = Math.round(Number(body.priceUsd) * 100) / 100;
-      if (!Number.isFinite(priceUsd) || priceUsd < 1 || priceUsd > 10000) {
-        return sendJson(res, 400, { error: 'Price must be between $1 and $10,000.' });
+      const currency = normalizeCurrency(row.currency);
+      const priceUsd = roundAmount(Number(body.priceUsd), currency);
+      if (!validateAmount(priceUsd, currency).ok) {
+        return sendJson(res, 400, {
+          error: `Price must be between ${formatAmount(minCharge(currency), currency)} and ${formatAmount(maxCharge(currency), currency)}.`,
+        });
       }
       const label = String(body.label ?? '').trim().slice(0, 40) || (lifetime ? 'Lifetime' : 'Monthly');
       let planKey = `${parentKey}-${slugify(label)}`.slice(0, 60);
@@ -269,8 +280,8 @@ export default guard(async function handler(req, res) {
             name: `${parent.name} — ${label}`,
             ...(parent.description ? { description: parent.description } : {}),
             default_price_data: {
-              currency: 'usd',
-              unit_amount: Math.round(priceUsd * 100),
+              currency,
+              unit_amount: toMinor(priceUsd, currency),
               ...(lifetime ? {} : { recurring: { interval: 'month' } }),
             },
           },
@@ -286,6 +297,7 @@ export default guard(async function handler(req, res) {
         description: null,
         imageUrl: null,
         priceUsd,
+        currency,
         lifetime,
         durationDays,
         stripePriceId: typeof product.default_price === 'string' ? product.default_price : product.default_price?.id ?? null,
@@ -504,9 +516,12 @@ export default guard(async function handler(req, res) {
         }
       }
       if (body.priceUsd !== undefined) {
-        const priceUsd = Math.round(Number(body.priceUsd) * 100) / 100;
-        if (!Number.isFinite(priceUsd) || priceUsd < 1 || priceUsd > 10000) {
-          return sendJson(res, 400, { error: 'Price must be between $1 and $10,000.' });
+        const currency = normalizeCurrency(existing.currency);
+        const priceUsd = roundAmount(Number(body.priceUsd), currency);
+        if (!validateAmount(priceUsd, currency).ok) {
+          return sendJson(res, 400, {
+            error: `Price must be between ${formatAmount(minCharge(currency), currency)} and ${formatAmount(maxCharge(currency), currency)}.`,
+          });
         }
         if (priceUsd !== existing.priceUsd) {
           fields.priceUsd = priceUsd;

@@ -10,6 +10,7 @@ import { config } from '../config.js';
 import * as db from '../db.js';
 import { openSecret } from '../lib/secretbox.js';
 import { uploadKind } from '../lib/upload.js';
+import { normalize as normalizeCurrency } from '../lib/currency.js';
 
 // The built-in store is NOT special to buyers: it lives at its own slug
 // derived from its brand name (e.g. /tradeleaks), exactly like every other
@@ -41,6 +42,7 @@ export function defaultStore() {
     creatorName: null,
     team: null,
     teamHeading: null,
+    currency: 'usd',
     isDefault: true,
   };
 }
@@ -72,6 +74,10 @@ function hydrate(row) {
     category: row.category ?? null,
     reviewsOn: Boolean(Number(row.reviews_on ?? 0)),
     creatorName: row.creator_name ?? null,
+    // The currency this store prices in. Normalised on the way out so a row
+    // written before the column existed, or hand-edited to something Stripe
+    // does not accept, degrades to USD rather than reaching the charge path.
+    currency: normalizeCurrency(row.currency),
     // Seller-authored, same storage idiom as links. A row written before this
     // column existed parses as null, not as a crash.
     team: row.team ? JSON.parse(row.team) : null,
@@ -240,6 +246,10 @@ export async function plansOf(store) {
     mediaKind: p.mediaKind ?? null,
     roleNames: p.roleNames,
     priceUsd: p.priceUsd,
+    // The currency the price is in. Read off the plan row, not the store, so a
+    // store that changes currency cannot retroactively re-denominate the
+    // products it already sold under the old one.
+    currency: normalizeCurrency(p.currency ?? store.currency),
     interval: p.lifetime ? 'lifetime' : 'month',
     lifetime: p.lifetime,
     durationDays: p.durationDays,

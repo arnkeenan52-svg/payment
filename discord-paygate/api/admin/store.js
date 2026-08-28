@@ -10,6 +10,8 @@ import { canCustomise } from '../../src/services/billing.js';
 import { isStoreCategory } from '../../src/services/stores.js';
 import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
 import { parseUploadDataUrl, uploadKind, UPLOAD_BODY_LIMIT } from '../../src/lib/upload.js';
+import { payoutCurrencies, invalidatePriceCache } from '../../src/lib/stripe.js';
+import { isSupported, normalize as normalizeCurrency } from '../../src/lib/currency.js';
 
 // Store identity settings: name, description, banner, custom link (slug).
 // Tenant stores only — the built-in store is env-configured.
@@ -47,7 +49,74 @@ export default guard(async function handler(req, res) {
     return;
   }
 
+  // Which currencies can this seller actually be paid in? Read straight off
+  // their own Stripe account — Dues never asks for bank details and has none
+  // to give. Adding a currency means adding a bank account for it in Stripe;
+  // this endpoint only reports what is already there.
+  if (body.action === 'payout-currencies') {
+    if (!store.stripeKey) {
+      sendJson(res, 200, { currencies: [], accounts: [], defaultCurrency: null, connected: false });
+      return;
+    }
+    try {
+      const info = await payoutCurrencies(store.stripeKey);
+      sendJson(res, 200, { ...info, connected: true, current: store.currency });
+    } catch (err) {
+      console.error(`[store] payout currencies for ${store.slug} failed: ${err.message}`);
+      sendJson(res, 502, { error: 'Stripe would not answer just now — try again shortly.' });
+    }
+    return;
+  }
+
   const fields = {};
+  // The store's pricing currency. Constrained to what the seller can settle,
+  // because Stripe will only convert for a buyer when the price is already in
+  // one of the account's settlement currencies — offering all 133 here would
+  // let a seller pick one their own payouts cannot land in.
+  //
+  // Locked once a subscription exists. Dues pins a Stripe price per product
+  // and never touches a price a subscriber is already billed on, so a store
+  // that switched currency mid-life would bill its old members in the old one
+  // and its new members in the new one, with a single number on the dashboard
+  // adding the two together. Refusing is the honest answer; silently mixing
+  // them is not.
+  if (body.currency !== undefined) {
+    const next = String(body.currency ?? '').trim().toLowerCase();
+    if (!isSupported(next)) {
+      return sendJson(res, 400, { error: 'Stripe does not accept that currency.' });
+    }
+    if (next !== normalizeCurrency(store.currency)) {
+      if ((await db.countStoreSubscriptions(store.id)) > 0) {
+        return sendJson(res, 409, {
+          error: 'This store has already sold in ' + normalizeCurrency(store.currency).toUpperCase()
+            + '. Changing currency now would bill existing members in the old one and new members in the new one, so it is locked.',
+        });
+      }
+      if (store.stripeKey) {
+        let settleable = [];
+        try {
+          settleable = (await payoutCurrencies(store.stripeKey)).currencies;
+        } catch {
+          settleable = []; // Stripe unreachable: fall through and let them save
+        }
+        if (settleable.length && !settleable.includes(next)) {
+          return sendJson(res, 400, {
+            error: `Your Stripe account cannot be paid out in ${next.toUpperCase()} yet. Add a ${next.toUpperCase()} bank account in Stripe first, then pick it here.`,
+          });
+        }
+      }
+      fields.currency = next;
+      // Prices already minted on Stripe are denominated in the OLD currency.
+      // Repoint every product at a fresh one rather than selling in a currency
+      // the dashboard no longer claims. Safe here, and only here, because this
+      // branch is unreachable once anyone has subscribed.
+      const plans = await db.storePlansFor(store.id);
+      for (const p of plans) {
+        await db.updateStorePlan(store.id, p.planKey, { currency: next, stripePriceId: null });
+      }
+      invalidatePriceCache();
+    }
+  }
   // Rotate the Stripe key: validated against Stripe before anything is saved.
   if (body.stripeKey !== undefined && String(body.stripeKey).trim() !== '') {
     const key = String(body.stripeKey).trim();
