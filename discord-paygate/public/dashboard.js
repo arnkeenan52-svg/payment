@@ -687,7 +687,11 @@ function renderLive(g, slug) {
 function deltaChip(delta) {
   if (delta === null || delta === undefined) return '';
   const n = Math.abs(delta) >= 100 ? Math.round(Math.abs(delta)) : Math.abs(delta).toFixed(Math.abs(delta) < 10 ? 1 : 0);
-  return `<span class="delta ${delta >= 0 ? 'up' : 'down'}"><span aria-hidden="true">${delta >= 0 ? '▲' : '▼'}</span>${n}%</span>`;
+  // No change is not growth. `delta >= 0 ? up : down` put 0 in the up bucket,
+  // so a day that matched yesterday exactly reported a green ▲0.0% — an
+  // invented result on the one number a seller checks first. Flat says flat.
+  if (Number(n) === 0) return '<span class="delta flat">0%</span>';
+  return `<span class="delta ${delta > 0 ? 'up' : 'down'}"><span aria-hidden="true">${delta > 0 ? '▲' : '▼'}</span>${n}%</span>`;
 }
 
 function statCard(label, value, icon, delta = null, sub = '', spark = '') {
@@ -1247,7 +1251,16 @@ async function renderChecklist(store, slug) {
       }
     }
     const checks = [
-      { ok: true, label: 'Payment method connected — Stripe' },
+      // Was a literal `true`. A seller with no key got a green tick, and
+      // because the panel hides itself once every check passes, the store
+      // that could not take a single payment was the one shown no checklist
+      // at all. The built-in store rides on the platform's own key.
+      {
+        ok: Boolean(store.isDefault || store.hasStripeKey),
+        label: 'Payment method connected — Stripe',
+        href: `#/store/${slug}/settings`,
+        hint: 'Add your Stripe secret key in Settings — until then no one can pay you.',
+      },
       { ok: products.length > 0, label: 'First product created', href: `#/store/${slug}/products` },
       { ok: store.status === 'live' && withRoles.length > 0, label: 'Store published with a role to deliver', href: `#/store/${slug}/products` },
       { ok: rolesOk, label: 'Bot role sits above the roles it delivers', href: null, hint: 'Drag the Dues role higher in Server Settings → Roles.' },
@@ -2303,7 +2316,7 @@ async function viewStore(slug) {
       )].join('\n');
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-      a.download = `ripley-transactions-${slug}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `dues-transactions-${slug}-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(a.href);
     };

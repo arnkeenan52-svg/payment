@@ -1076,10 +1076,20 @@ export async function countLiveMembers(storeIds) {
     params.push(...concrete);
   }
   if (!parts.length) return 0;
+  // The predicate here MUST be isEntitled() expressed in SQL. It used to be
+  // `status IN ('active','past_due')` with no expiry test, so a cancelled-at-
+  // period-end row that had already lapsed, or a past_due row whose grace had
+  // run out, still counted against the owner's plan. Those members hold no
+  // role and have no access — but they filled the seller's allowance and
+  // paused their checkouts. Measured on one seeded store: 175 counted here
+  // against 102 the Members screen calls active, a gap of 73 dead rows.
+  const at = now();
+  const live = "((status = 'active' AND (current_period_end IS NULL OR current_period_end > ?))"
+    + " OR (status = 'past_due' AND grace_until IS NOT NULL AND grace_until > ?))";
   const { rows } = await q(
     `SELECT COUNT(DISTINCT discord_id) AS n FROM subscriptions
-     WHERE status IN ('active', 'past_due') AND (${parts.join(' OR ')})`,
-    params,
+     WHERE ${live} AND (${parts.join(' OR ')})`,
+    [at, at, ...params],
   );
   return Number(rows[0]?.n ?? 0);
 }
