@@ -128,6 +128,47 @@ export default guard(async function handler(req, res) {
     }
     fields.theme = clean ? JSON.stringify(clean) : null;
   }
+  // Reviews: one switch, and it is the whole of a seller's power over them.
+  // There is no per-review control here and there must never be one — see the
+  // header of api/reviews.js for why.
+  if (body.reviewsOn !== undefined) fields.reviewsOn = body.reviewsOn ? 1 : 0;
+
+  // Who is behind the store. A claim by the seller about the seller, in the
+  // same class as `about` — stored and rendered, never verified, and never
+  // presented with any marker that would imply the platform checked it.
+  if (body.creatorName !== undefined) {
+    const v = String(body.creatorName).trim();
+    if (v.length > 40) return sendJson(res, 400, { error: 'A creator name tops out at 40 characters.' });
+    fields.creatorName = v || null;
+  }
+  if (body.teamHeading !== undefined) {
+    const v = String(body.teamHeading).trim();
+    if (v.length > 30) return sendJson(res, 400, { error: 'A team heading tops out at 30 characters.' });
+    fields.teamHeading = v || null;
+  }
+  if (body.team !== undefined) {
+    if (body.team !== null && !Array.isArray(body.team)) return sendJson(res, 400, { error: 'The team must be a list.' });
+    const raw = body.team ?? [];
+    if (raw.length > 12) return sendJson(res, 400, { error: 'A team tops out at 12 people.' });
+    const team = [];
+    for (const m of raw) {
+      if (!m || typeof m !== 'object') return sendJson(res, 400, { error: 'Each team member must be a name and an optional handle and title.' });
+      const name = String(m.name ?? '').trim();
+      if (!name) return sendJson(res, 400, { error: 'Every team member needs a name.' });
+      if (name.length > 40) return sendJson(res, 400, { error: 'A team member name tops out at 40 characters.' });
+      // The @ is stripped once, here at the edge, so the storefront never has
+      // to guess whether it is rendering "@@alex".
+      const handle = String(m.handle ?? '').trim().replace(/^@+/, '');
+      if (handle && !/^[A-Za-z0-9._-]{1,32}$/.test(handle)) {
+        return sendJson(res, 400, { error: 'A handle can use letters, numbers, dots, dashes and underscores.' });
+      }
+      const title = String(m.title ?? '').trim();
+      if (title.length > 40) return sendJson(res, 400, { error: 'A team member title tops out at 40 characters.' });
+      team.push({ name, handle: handle || null, title: title || null });
+    }
+    fields.team = team.length ? JSON.stringify(team) : null;
+  }
+
   if (body.bannerUrl !== undefined) {
     const u = String(body.bannerUrl).trim();
     if (u && !/^https:\/\/\S+$/.test(u)) return sendJson(res, 400, { error: 'The banner URL must start with https:// (1600×533 works best).' });
@@ -220,6 +261,10 @@ export default guard(async function handler(req, res) {
       theme: row.theme ? JSON.parse(row.theme) : null,
       discoverable: Boolean(Number(row.discoverable ?? 0)),
       category: row.category ?? null,
+      reviewsOn: Boolean(Number(row.reviews_on ?? 0)),
+      creatorName: row.creator_name ?? null,
+      team: row.team ? JSON.parse(row.team) : null,
+      teamHeading: row.team_heading ?? null,
     },
   });
 });

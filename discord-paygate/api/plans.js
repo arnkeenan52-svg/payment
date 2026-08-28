@@ -4,7 +4,7 @@ import { getGuild, guildIconUrl } from '../src/lib/discord.js';
 import { effectiveRoleMap } from '../src/services/plan-config.js';
 import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.js';
 import { DEMO_SLUG, demoPlansPayload } from '../src/services/demo-store.js';
-import { countLiveMembers, countStoreFollowers } from '../src/db.js';
+import { countLiveMembers, countStoreFollowers, reviewSummary } from '../src/db.js';
 
 // The server's own identity fronts every checkout: name and icon come from
 // the live guild lookup via the bot (animated icons surface as .gif).
@@ -49,6 +49,11 @@ export default guard(async function handler(req, res) {
   const banner = await bannerFor(store);
   // The built-in store is virtual (id null): no row, so no follow ledger.
   const followable = store.id !== null && store.id !== undefined;
+  // Reviews are all-or-nothing. With the switch off the storefront is told the
+  // section does not exist, rather than being handed a subset to draw — there
+  // is no shape of this payload that carries SOME of a store's reviews.
+  const reviewsPublic =
+    followable && store.reviewsOn ? { ...(await reviewSummary(store.id)), on: true } : { count: 0, average: null, on: false };
   sendJson(res, 200, {
     brand: store.isDefault ? config.brand : store.name,
     platform: { name: config.platform },
@@ -65,6 +70,17 @@ export default guard(async function handler(req, res) {
       // rounded. A store nobody can follow reports null rather than 0.
       followers: followable ? await countStoreFollowers(store.id) : null,
       followable,
+      // Seller-authored identity — the store's own claim about itself, in the
+      // same class as `about` and `links`. The platform stores and renders
+      // these; it does not verify them and must never imply that it has.
+      creatorName: store.creatorName ?? null,
+      team: Array.isArray(store.team) && store.team.length ? store.team : null,
+      teamHeading: store.teamHeading ?? null,
+      // The rating, and the only shape of it there is: COUNT(*) and the mean
+      // over published rows. `reviewsOn` false reports zero/null rather than
+      // the real figures, because the seller's switch hides the score and the
+      // reviews together — it never hides SOME of them.
+      reviews: reviewsPublic,
     },
     // Guild id is public (it's in every invite link); the receipt page needs
     // it for the "Open on Discord" deep link.

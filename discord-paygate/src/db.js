@@ -140,6 +140,36 @@ const ddl = (dialect) => {
   );
   CREATE INDEX IF NOT EXISTS idx_store_follows_follower ON store_follows (follower_discord_id);
 
+  -- One review per (store, buyer), and only from an account the payments
+  -- ledger proves paid this store. store_id is NOT NULL for exactly the
+  -- reason store_follows is: NULL is DISTINCT from NULL inside a UNIQUE
+  -- constraint on both dialects, which would silently break the
+  -- one-review-per-buyer rule this constraint IS.
+  --
+  -- Nothing in here is ever seeded, sampled or generated. A store's rating is
+  -- COUNT and mean over exactly these rows. status moves for one reason and a
+  -- SELLER CANNOT REACH IT: the platform owner removing abuse. A seller who
+  -- can subtract a row they dislike has authored the average, and an average
+  -- a seller authored is not a rating.
+  CREATE TABLE IF NOT EXISTS store_reviews (
+    ${id},
+    store_id          ${int} NOT NULL,
+    author_discord_id TEXT NOT NULL,
+    rating            ${int} NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    body              TEXT,                             -- NULL = stars only
+    status            TEXT NOT NULL DEFAULT 'published', -- published | removed
+    purchase_at       ${int} NOT NULL,   -- frozen: revoking access later must
+                                         -- not unmake the purchase that earned
+                                         -- the right to say something
+    reply_body        TEXT,              -- the seller's public answer
+    reply_at          ${int},
+    created_at        ${int} NOT NULL,
+    updated_at        ${int} NOT NULL,   -- > created_at means "edited"
+    UNIQUE (store_id, author_discord_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_store_reviews_store ON store_reviews (store_id, status, id);
+  CREATE INDEX IF NOT EXISTS idx_store_reviews_author ON store_reviews (author_discord_id);
+
   -- Discount codes, scoped per store and optionally per product. uses counts
   -- completed checkouts (incremented by the webhook, not at session time).
   CREATE TABLE IF NOT EXISTS discounts (
@@ -291,6 +321,20 @@ function db() {
       await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
       await driver.exec(`ALTER TABLE stores ADD COLUMN discoverable ${intType} NOT NULL DEFAULT 0`).catch(() => {});
       await driver.exec('ALTER TABLE stores ADD COLUMN category TEXT').catch(() => {});
+      // Reviews are per store and ALL-OR-NOTHING: on shows the average, the
+      // count and every published review; off shows none of the three. The
+      // seller flips this switch; the seller never touches which reviews it
+      // contains. Default 0 — publishing strangers' opinions on someone's
+      // business without asking them first is not a default we get to pick,
+      // the same reasoning as `discoverable` above.
+      await driver.exec(`ALTER TABLE stores ADD COLUMN reviews_on ${intType} NOT NULL DEFAULT 0`).catch(() => {});
+      // Seller-authored identity: who is behind the store, and the people who
+      // run it (JSON array, same storage idiom as `links`). Both are CLAIMS by
+      // the seller about their own business, exactly like `about` — the
+      // platform stores and renders them, and vouches for neither.
+      await driver.exec('ALTER TABLE stores ADD COLUMN creator_name TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN team TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN team_heading TEXT').catch(() => {});
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -600,6 +644,10 @@ export async function updateStore(id, fields) {
     links: 'links',
     showMembers: 'show_members',
     dashboardPrefs: 'dashboard_prefs',
+    reviewsOn: 'reviews_on',
+    creatorName: 'creator_name',
+    team: 'team',
+    teamHeading: 'team_heading',
   };
   const sets = [];
   const params = [];
@@ -628,6 +676,7 @@ export async function deleteStore(storeId) {
   await q('DELETE FROM store_plans WHERE store_id = ?', [storeId]);
   await q('DELETE FROM store_media WHERE store_id = ?', [storeId]);
   await q('DELETE FROM store_follows WHERE store_id = ?', [storeId]);
+  await q('DELETE FROM store_reviews WHERE store_id = ?', [storeId]);
   await q('DELETE FROM stores WHERE id = ?', [storeId]);
 }
 
@@ -706,6 +755,111 @@ export async function storesFollowedBy(discordId) {
 // to drift, and a repeat follow (which inserts nothing) costs nothing.
 export async function countRecentFollowsBy(discordId, since) {
   const { rows } = await q('SELECT COUNT(*) AS n FROM store_follows WHERE follower_discord_id = ? AND created_at >= ?', [discordId, since]);
+  return Number(rows[0]?.n ?? 0);
+}
+
+// ── store reviews ─────────────────────────────────────────────────────────────
+// The right to review is bought, not granted: this returns the timestamp of the
+// caller's FIRST payment to this store, or null. It deliberately ignores
+// `status` — a membership that lapsed, was cancelled, or was revoked by the
+// seller still happened, and a seller who could silence a critic by removing
+// them would be editing their own rating by the back door.
+export async function firstPurchaseAt(storeId, discordId) {
+  const { rows } = await q(
+    'SELECT MIN(created_at) AS at FROM subscriptions WHERE store_id = ? AND discord_id = ?',
+    [storeId, discordId],
+  );
+  const at = rows[0]?.at;
+  return at === null || at === undefined ? null : Number(at);
+}
+
+const reviewRow = (r) =>
+  r
+    ? {
+        id: Number(r.id),
+        storeId: Number(r.store_id),
+        authorDiscordId: String(r.author_discord_id),
+        rating: Number(r.rating),
+        body: r.body ?? null,
+        status: String(r.status),
+        purchaseAt: Number(r.purchase_at),
+        replyBody: r.reply_body ?? null,
+        replyAt: r.reply_at === null || r.reply_at === undefined ? null : Number(r.reply_at),
+        createdAt: Number(r.created_at),
+        updatedAt: Number(r.updated_at),
+      }
+    : null;
+
+// COUNT(*) and the mean over published rows. Nothing else. A store with no
+// reviews reports { count: 0, average: null } — never an average of 0, which
+// would render as a one-star store that nobody has actually rated.
+export async function reviewSummary(storeId) {
+  if (storeId === null || storeId === undefined) return { count: 0, average: null };
+  const { rows } = await q(
+    "SELECT COUNT(*) AS n, AVG(rating) AS avg FROM store_reviews WHERE store_id = ? AND status = 'published'",
+    [storeId],
+  );
+  const count = Number(rows[0]?.n ?? 0);
+  return { count, average: count > 0 ? Number(rows[0].avg) : null };
+}
+
+export async function listReviews(storeId, { limit = 20, before = null } = {}) {
+  const params = [storeId];
+  let where = "store_id = ? AND status = 'published'";
+  if (before) {
+    where += ' AND id < ?';
+    params.push(before);
+  }
+  params.push(limit);
+  const { rows } = await q(`SELECT * FROM store_reviews WHERE ${where} ORDER BY id DESC LIMIT ?`, params);
+  return rows.map(reviewRow);
+}
+
+export async function getReviewByAuthor(storeId, discordId) {
+  const { rows } = await q('SELECT * FROM store_reviews WHERE store_id = ? AND author_discord_id = ?', [storeId, discordId]);
+  return reviewRow(rows[0]);
+}
+
+export async function getReviewById(id) {
+  const { rows } = await q('SELECT * FROM store_reviews WHERE id = ?', [id]);
+  return reviewRow(rows[0]);
+}
+
+// Write-or-replace the caller's own review. created_at is preserved on an edit
+// so "reviewed in March, edited in May" stays true; updated_at moving past it
+// is what the storefront reads to label a review as edited.
+export async function upsertReview({ storeId, discordId, rating, body, purchaseAt }) {
+  const ts = now();
+  await q(
+    `INSERT INTO store_reviews (store_id, author_discord_id, rating, body, status, purchase_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'published', ?, ?, ?)
+     ON CONFLICT (store_id, author_discord_id)
+     DO UPDATE SET rating = EXCLUDED.rating, body = EXCLUDED.body, updated_at = EXCLUDED.updated_at`,
+    [storeId, discordId, rating, body, purchaseAt, ts, ts],
+  );
+  return getReviewByAuthor(storeId, discordId);
+}
+
+// A reviewer withdrawing their OWN words. This is the only DELETE on this
+// table reachable from the product, and only the author can reach it.
+export async function deleteOwnReview(storeId, discordId) {
+  const { changes } = await q('DELETE FROM store_reviews WHERE store_id = ? AND author_discord_id = ?', [storeId, discordId]);
+  return Number(changes ?? 0) > 0;
+}
+
+// The seller's public answer. Note what this cannot do: it cannot touch
+// rating, body or status. Reply is the whole of a seller's power here.
+export async function setReviewReply(id, storeId, body) {
+  const { changes } = await q(
+    'UPDATE store_reviews SET reply_body = ?, reply_at = ? WHERE id = ? AND store_id = ?',
+    [body, body === null ? null : now(), id, storeId],
+  );
+  return Number(changes ?? 0) > 0;
+}
+
+// The rate limiter's window, same trick as countRecentFollowsBy.
+export async function countRecentReviewsBy(discordId, since) {
+  const { rows } = await q('SELECT COUNT(*) AS n FROM store_reviews WHERE author_discord_id = ? AND updated_at >= ?', [discordId, since]);
   return Number(rows[0]?.n ?? 0);
 }
 

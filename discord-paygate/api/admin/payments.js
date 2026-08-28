@@ -2,7 +2,7 @@ import { sendJson, guard } from '../../src/lib/http.js';
 import { ownerAuthorized } from '../../src/lib/authz.js';
 import { cronAuthorized } from '../cron/reconcile.js';
 import { sessionUserId } from '../../src/lib/session.js';
-import { allSubscriptionsWithUsers, isEntitled, checkoutAttempts, getUser, countStoreFollowers, getStoreMediaMeta } from '../../src/db.js';
+import { allSubscriptionsWithUsers, isEntitled, checkoutAttempts, getUser, countStoreFollowers, getStoreMediaMeta, reviewSummary } from '../../src/db.js';
 import { storesOwnedBy, everyStore, plansOf, defaultStore, bannerFor } from '../../src/services/stores.js';
 
 // Payments timeline + totals, scoped to the stores the caller owns. The
@@ -127,6 +127,15 @@ export default guard(async function handler(req, res) {
         about: s.about ?? null, links: s.links ?? null, showMembers: Boolean(s.showMembers),
         dashboardPrefs: s.dashboardPrefs ?? null,
         followers: managed ? await countStoreFollowers(s.id) : null,
+        reviewsOn: Boolean(s.reviewsOn),
+        creatorName: s.creatorName ?? null,
+        team: s.team ?? null,
+        teamHeading: s.teamHeading ?? null,
+        // The seller's own rating, and the real one: this is the same COUNT
+        // and mean the storefront draws, reported even while the switch is
+        // off, because turning the display off must not blind the seller to
+        // what their buyers actually said.
+        reviews: managed ? await reviewSummary(s.id) : { count: 0, average: null },
       };
     }),
   );

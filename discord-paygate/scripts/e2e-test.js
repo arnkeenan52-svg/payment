@@ -3245,6 +3245,181 @@ test('store banners: uploaded media serves from /api/img, beats a pasted link, s
   assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals`)).status, 400, 'a plan-less, kind-less request is still a bad request');
 });
 
+test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch, honest aggregates', async () => {
+  const U7 = '507700000000000007'; // the vip-signals owner
+  const U8 = '508800000000000008'; // a real buyer of vip-signals
+  const U14 = '514400000000000014'; // never bought anything here
+  const u7Cookie = await loginAsUser('code_u7');
+  const u8Cookie = await loginAsUser('code_u8');
+  const u14Cookie = await loginAsUser('code_u14');
+  const post = (cookie, body) =>
+    fetch(`${appUrl}/api/reviews`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
+      body: JSON.stringify(body),
+    });
+  const list = async (cookie) =>
+    (await (await fetch(`${appUrl}/api/reviews?store=vip-signals`, { headers: cookie ? { cookie } : {} })).json());
+  const publicStore = async (slug) => (await (await fetch(`${appUrl}/api/plans?store=${slug}`)).json()).store;
+  const storeCall = (body) =>
+    fetch(`${appUrl}/api/admin/store`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u7Cookie },
+      body: JSON.stringify({ store: 'vip-signals', ...body }),
+    });
+  const storeId = Number((await tq("SELECT id FROM stores WHERE slug = 'vip-signals'")).rows[0].id);
+  const rowCount = async () => Number((await tq('SELECT COUNT(*) AS n FROM store_reviews WHERE store_id = ?', [storeId])).rows[0].n);
+
+  // Signed out cannot write; an unknown action is refused.
+  assert.equal((await post(null, { store: 'vip-signals', rating: 5 })).status, 401);
+  assert.equal((await post(u8Cookie, { store: 'vip-signals', action: 'sabotage' })).status, 400);
+
+  // THE GATE. U14 has never paid this store, so no rating they submit exists.
+  const stranger = await post(u14Cookie, { store: 'vip-signals', rating: 5, body: 'amazing!!' });
+  assert.equal(stranger.status, 403, 'a non-customer cannot review');
+  assert.match((await stranger.json()).error, /bought from this store/);
+  assert.equal(await rowCount(), 0, 'and nothing was written');
+
+  // A brand-new purchase is still inside the cooling window.
+  await tq('INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [storeId, U8, 'vip-access', 'stripe', 'sub_review_e2e', 'active', Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000)]);
+  assert.equal((await post(u8Cookie, { store: 'vip-signals', rating: 5 })).status, 403, 'reviews open after a cooling period');
+
+  // Age that purchase past the window and the same buyer may speak.
+  const old = Math.floor(Date.now() / 1000) - 10 * 24 * 60 * 60;
+  await tq('UPDATE subscriptions SET created_at = ? WHERE provider_ref = ?', [old, 'sub_review_e2e']);
+  assert.equal((await post(u8Cookie, { store: 'vip-signals', rating: 9 })).status, 400, 'a rating outside 1-5 is not a rating');
+  const wrote = await post(u8Cookie, { store: 'vip-signals', rating: 2, body: 'Signals were fine, pace was not for me.' });
+  assert.equal(wrote.status, 200);
+  const w = await wrote.json();
+  assert.equal(w.count, 1);
+  assert.equal(w.average, 2);
+  assert.equal(w.review.mine, true);
+  assert.equal(w.review.author, 'vip_buyer', 'the reviewer is a display name the storefront can print');
+
+  // One review per buyer: writing again EDITS, it does not stack. Timestamps
+  // are whole seconds, so age the row first — an edit inside the same second
+  // is indistinguishable from the original write, which is true and harmless.
+  await tq('UPDATE store_reviews SET created_at = created_at - 60, updated_at = updated_at - 60 WHERE store_id = ?', [storeId]);
+  const edited = await post(u8Cookie, { store: 'vip-signals', rating: 4, body: 'Revisited — it clicked.' });
+  assert.equal((await edited.json()).count, 1, 'a second write is an edit, not a second vote');
+  assert.equal(await rowCount(), 1);
+  assert.equal((await list(u8Cookie)).reviews[0].edited, true, 'an edited review says so');
+
+  // A seller cannot review their own store.
+  assert.equal((await post(u7Cookie, { store: 'vip-signals', rating: 5 })).status, 409);
+
+  // THE ALL-OR-NOTHING SWITCH. Off by default: the storefront is told the
+  // section does not exist, and is handed no subset to draw.
+  let pub = await publicStore('vip-signals');
+  assert.deepEqual(pub.reviews, { count: 0, average: null, on: false }, 'reviews off reports nothing, not a filtered list');
+  assert.deepEqual((await list(null)).reviews, [], 'and the public list is empty while off');
+  assert.equal((await list(u14Cookie)).reviews.length, 0, 'a signed-in stranger sees none of it either');
+  assert.equal((await list(u8Cookie)).reviews.length, 1, 'but the reviewer can still reach their own words');
+  // The seller still sees their own reviews while the display is off — hiding
+  // them from the storefront must not hide them from the person they are about.
+  assert.equal((await list(u7Cookie)).reviews.length, 1, 'the seller can always read what buyers said');
+
+  assert.equal((await storeCall({ reviewsOn: true })).status, 200);
+  pub = await publicStore('vip-signals');
+  assert.equal(pub.reviews.on, true);
+  assert.equal(pub.reviews.count, 1);
+  assert.equal(pub.reviews.average, 4);
+
+  // THE CENTRAL RULE: there is no request a seller can make that removes,
+  // hides or reorders ONE review. Every shape of the attempt is refused.
+  for (const attempt of [
+    { action: 'delete', id: 1 },
+    { action: 'remove', id: 1 },
+    { action: 'hide', id: 1 },
+    { action: 'withdraw', id: 1 },
+  ]) {
+    await post(u7Cookie, { store: 'vip-signals', ...attempt });
+  }
+  assert.equal(await rowCount(), 1, 'no seller action of any name subtracts a review');
+  assert.equal((await publicStore('vip-signals')).reviews.count, 1);
+  // Nor through the settings endpoint.
+  await storeCall({ reviews: [], reviewIds: [1], deleteReview: 1 });
+  assert.equal(await rowCount(), 1, 'the settings endpoint has no review scalpel either');
+
+  // What a seller CAN do: reply, in public, under the review.
+  const replied = await post(u7Cookie, { store: 'vip-signals', action: 'reply', id: (await list(u7Cookie)).reviews[0].id, body: 'Fair — we have split the pace into two channels since.' });
+  assert.equal(replied.status, 200);
+  assert.match((await list(null)).reviews[0].reply.body, /two channels/);
+  // A reply from someone who does not own the store is a 403.
+  assert.equal((await post(u8Cookie, { store: 'vip-signals', action: 'reply', id: 1, body: 'nope' })).status, 403);
+
+  // The AUTHOR may withdraw their own words — the one delete that exists.
+  assert.equal((await post(u8Cookie, { store: 'vip-signals', action: 'withdraw' })).status, 200);
+  assert.equal(await rowCount(), 0);
+  const empty = await publicStore('vip-signals');
+  assert.equal(empty.reviews.count, 0);
+  assert.equal(empty.reviews.average, null, 'no reviews is an average of null, never 0');
+
+  // Nothing without a row of its own is reviewable, and no payload anywhere
+  // carries the reviewer's Discord id.
+  for (const slug of ['demo', 'tradeleaks', 'no-such-store']) {
+    assert.equal((await post(u8Cookie, { store: slug, rating: 5 })).status, 404);
+  }
+  await post(u8Cookie, { store: 'vip-signals', rating: 5, body: 'back again' });
+  const feed = await list(null);
+  assert.ok(!JSON.stringify(feed).includes(U8), 'a reviewer is a display name, never a Discord id');
+  assert.ok(!JSON.stringify(await publicStore('vip-signals')).includes(U8));
+
+  // The seller's dashboard gets the real aggregate even while the switch is off.
+  assert.equal((await storeCall({ reviewsOn: false })).status, 200);
+  const dash = await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals`, { headers: { cookie: u7Cookie } })).json();
+  const dstore = dash.stores.find((s) => s.slug === 'vip-signals');
+  assert.equal(dstore.reviews.count, 1, 'the seller sees the true count regardless of the switch');
+  assert.equal(dstore.reviews.average, 5);
+  assert.equal(dstore.reviewsOn, false, 'and the dashboard payload carries the switch back to the form');
+});
+
+test('store creator and team: seller-authored, validated, and round-tripped to both payloads', async () => {
+  const u7Cookie = await loginAsUser('code_u7');
+  const storeCall = (body) =>
+    fetch(`${appUrl}/api/admin/store`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: u7Cookie },
+      body: JSON.stringify({ store: 'vip-signals', ...body }),
+    });
+
+  assert.equal((await storeCall({ team: [{ name: '' }] })).status, 400, 'a team member needs a name');
+  assert.equal((await storeCall({ team: Array.from({ length: 13 }, (_, i) => ({ name: `M${i}` })) })).status, 400, 'the roster is capped');
+  assert.equal((await storeCall({ team: [{ name: 'Alex', handle: 'not a handle!' }] })).status, 400, 'handles are handle-shaped');
+  assert.equal((await storeCall({ creatorName: 'x'.repeat(41) })).status, 400);
+
+  const saved = await storeCall({
+    creatorName: 'Harshill M',
+    teamHeading: 'The desk',
+    team: [{ name: 'Alex Rivera', handle: '@alex', title: 'Head of research' }, { name: 'Sam Okoye' }],
+  });
+  assert.equal(saved.status, 200);
+  const echo = (await saved.json()).store;
+  assert.equal(echo.creatorName, 'Harshill M');
+  assert.equal(echo.team[0].handle, 'alex', 'the @ is stripped once, at the edge');
+  assert.equal(echo.team[1].handle, null);
+  assert.equal(echo.teamHeading, 'The desk');
+
+  // The storefront payload carries them, and the ORDER the seller chose.
+  const pub = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).store;
+  assert.deepEqual(pub.team.map((m) => m.name), ['Alex Rivera', 'Sam Okoye']);
+  assert.equal(pub.creatorName, 'Harshill M');
+
+  // And so does the payload the dashboard re-renders its form from — the
+  // field-wipe trap: a field missing here comes back blank and the next save
+  // erases it.
+  const dash = await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals`, { headers: { cookie: u7Cookie } })).json();
+  const d = dash.stores.find((s) => s.slug === 'vip-signals');
+  assert.equal(d.creatorName, 'Harshill M');
+  assert.equal(d.team.length, 2);
+  assert.equal(d.teamHeading, 'The desk');
+
+  // Clearing is explicit and works.
+  assert.equal((await storeCall({ team: [], creatorName: '' })).status, 200);
+  assert.equal((await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).store.team, null, 'an empty team is absent, not an empty block');
+});
+
 test('following a store: signed-in only, idempotent, counts only, owner refused, rate-limited', async () => {
   const U7 = '507700000000000007'; // the vip-signals owner
   const U8 = '508800000000000008'; // a buyer

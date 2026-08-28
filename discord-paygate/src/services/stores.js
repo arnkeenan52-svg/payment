@@ -34,6 +34,13 @@ export function defaultStore() {
     links: null,
     showMembers: false,
     dashboardPrefs: null,
+    // The built-in store has no row, so it has no review ledger to aggregate
+    // and no seller to author an identity. Every one of these must be present
+    // and falsy: a missing key here reads as `undefined` everywhere downstream.
+    reviewsOn: false,
+    creatorName: null,
+    team: null,
+    teamHeading: null,
     isDefault: true,
   };
 }
@@ -58,6 +65,12 @@ function hydrate(row) {
     dashboardPrefs: row.dashboard_prefs ? JSON.parse(row.dashboard_prefs) : null,
     discoverable: Boolean(Number(row.discoverable ?? 0)),
     category: row.category ?? null,
+    reviewsOn: Boolean(Number(row.reviews_on ?? 0)),
+    creatorName: row.creator_name ?? null,
+    // Seller-authored, same storage idiom as links. A row written before this
+    // column existed parses as null, not as a crash.
+    team: row.team ? JSON.parse(row.team) : null,
+    teamHeading: row.team_heading ?? null,
     status: row.status,
     createdAt: row.created_at ? Number(row.created_at) : null,
     isDefault: false,

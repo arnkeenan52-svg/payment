@@ -40,6 +40,7 @@ import invite from '../api/invite.js';
 import discount from '../api/discount.js';
 import storePage from '../api/store-page.js';
 import follow from '../api/follow.js';
+import reviews from '../api/reviews.js';
 
 const PUBLIC_DIR = path.join(config.root, 'public');
 const MIME = {
@@ -104,6 +105,7 @@ const routes = {
   '/api/invite': invite,
   '/api/discount': discount,
   '/api/follow': follow,
+  '/api/reviews': reviews,
 };
 
 const server = http.createServer(async (req, res) => {
