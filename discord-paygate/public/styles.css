@@ -94,6 +94,20 @@ html[data-theme='light'] {
 }
 html[data-theme='light'] body { background: var(--bg); color: var(--ink); }
 
+/* ── iOS status-bar tint ──────────────────────────────────────────────────
+   Safari 26 no longer reads <meta name="theme-color">: it paints the status
+   bar from the background-color of a fixed element pinned within a few px of
+   the viewport edge, sampled live. This 4px band is that sample point. It
+   sits behind every layer, so it is never visible; --ui-tint falls back to
+   the page's own --bg, which already flips with the theme. WebKit only. ── */
+.ui-tint {
+  position: fixed; top: 0; left: 0; width: 100%; height: 4px;
+  z-index: -2147483647; pointer-events: none; display: none;
+  background-color: var(--ui-tint, var(--bg));
+}
+@supports (-webkit-touch-callout: none) { .ui-tint { display: block; } }
+
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {

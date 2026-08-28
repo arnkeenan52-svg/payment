@@ -753,6 +753,29 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   assert.deepEqual(Object.keys(plans[0]).sort(), ['description', 'descriptionHighlight', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
 });
 
+test('the iOS status-bar strip is on every themed page, with both of its colours', async () => {
+  // Safari 26 stopped reading <meta name="theme-color">: it paints the status
+  // bar from the background-color of a fixed element pinned to the viewport
+  // edge. .ui-tint is that element. If the strip or either colour token goes
+  // missing, the top of the phone screen silently stops following the
+  // day/night toggle — a bug with no symptom anywhere else, hence this guard.
+  for (const path of ['/', '/pricing']) {
+    const html = await (await fetch(`${appUrl}${path}`)).text();
+    assert.match(html, /<i class="ui-tint" aria-hidden="true"><\/i>/, `${path} must carry the tint strip`);
+    assert.match(html, /--ui-tint:#131b2d/, `${path} must define the night tint`);
+    assert.match(html, /--ui-tint:#70a3e6/, `${path} must define the day tint`);
+    assert.match(
+      html,
+      /\.ui-tint\{[^}]*position:fixed[^}]*background-color:var\(--ui-tint\)/,
+      `${path} tint must be a fixed strip that carries the colour`,
+    );
+  }
+  // Buyer storefronts get it too — there --ui-tint falls back to --bg, which
+  // the seller's own theme sets, so the strip follows their store colour.
+  const store = await (await fetch(`${appUrl}/tradeleaks`)).text();
+  assert.match(store, /<i class="ui-tint" aria-hidden="true"><\/i>/, 'store pages must carry the tint strip');
+});
+
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
   assert.equal((await hitCron({ omitHeader: true })).status, 401);
   assert.equal((await hitCron({ secret: 'wrong-secret' })).status, 401);
