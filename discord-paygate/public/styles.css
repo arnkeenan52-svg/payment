@@ -390,7 +390,12 @@ body {
 .option .opt-price { font-family: var(--font-head); font-weight: 700; font-size: 18px; }
 
 /* ── payment method tiles ─────────────────────────────────────────────────── */
-.methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+/* One per row, stacked. auto-fit put Card and Crypto side by side, which
+   halved each tile's width the moment a store enabled both — so the store
+   that offers MORE ways to pay was the one whose buttons got smaller and
+   tighter. A payment method is a decision, not a pair of chips: full width
+   each, in the order they are offered. */
+.methods { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .method {
   display: flex;
   align-items: center;
@@ -1639,15 +1644,16 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .order-roles .chip { background: rgba(88, 101, 242, 0.1); }
 .order-card .tagline { margin: 0; font-size: 13.5px; }
 .order-card .label { font-size: 13.5px; font-weight: 700; margin: 4px 0 0; }
-.order-card .methods { grid-template-columns: repeat(auto-fill, 120px); }
-.order-card .method { flex-direction: column; gap: 8px; justify-content: center; min-height: 84px; font-size: 13.5px; font-weight: 600; }
-/* one payment method (the usual case): the tile owns the whole row — a
-   card glyph with the label beneath it, centered */
-.order-card .methods:has(.method:only-child) { grid-template-columns: 1fr; }
-.order-card .method:only-child {
-  grid-column: 1 / -1;
-  min-height: 96px;
-  font-size: 15px;
+/* One method per row, stacked, whatever the count. The grid used to lay
+   fixed 120px tiles across a row and give the full-width treatment only to a
+   lone tile via :only-child — so a store that enabled BOTH card and crypto
+   was punished for it: two cramped 120px chips instead of the tall, legible
+   button a single-method store got. The look that was reserved for one is now
+   simply the look, and a second method appears beneath the first. */
+.order-card .methods { grid-template-columns: minmax(0, 1fr); }
+.order-card .method {
+  flex-direction: column; gap: 8px; justify-content: center;
+  min-height: 96px; font-size: 15px; font-weight: 600;
 }
 .order-card .method:only-child svg { width: 30px; height: 30px; }
 .order-card .pay-panel { border: none; padding: 4px 0 0; display: flex; flex-direction: column; gap: 8px; }
