@@ -1232,6 +1232,16 @@ html[data-theme="light"]{
 
 /* --- shared header language (ugc.foundable) --- */
 .sec-eyebrow{font:500 15.5px/1.4 var(--sans);color:var(--gl-blue);margin-bottom:14px}
+/* Text that lands directly on the day sky, with no panel under it. These
+   colours were picked against --paper (#f4f7fd) and are fine there, but the
+   sections carrying them have no background, so they resolve against
+   html[data-theme="light"]{background:#70a3e6}: the eyebrows measured 1.77:1
+   and the payment captions 1.80:1. Darkened only for the light face, only
+   where the sky is what is behind. */
+html[data-theme="light"] .sec-eyebrow{color:#1b2c57}      /* was #5865f2 — 1.77:1, now 5.2:1 */
+html[data-theme="light"] .pay-cap,
+html[data-theme="light"] .pay-note{color:#22314f}         /* was #67748f — 1.80:1, now 5.0:1 */
+html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.96:1, now 5.0:1 */
 h2.sec-display{
   font-family:var(--grotesk);font-weight:700;letter-spacing:-.02em;
   font-size:clamp(32px,4vw,52px);line-height:1.08;color:var(--gl-ink);max-width:24ch;

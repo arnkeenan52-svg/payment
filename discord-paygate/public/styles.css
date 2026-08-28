@@ -808,9 +808,20 @@ footer {
 
 .site-footer.cols { align-items: flex-start; gap: 40px; text-align: left; }
 /* the SEO-mesh footer carries five link columns — grid keeps them tidy */
+/* width:100% is what makes auto-fit work here. body is a COLUMN flex container,
+   and `margin: 0 auto` on a flex item absorbs the free space in the cross axis
+   — which also stops the item stretching to the line. So the footer sized to
+   its own content instead of to the viewport: a fixed 1052px (6 x 150 + 5 x 24
+   gap + 32 padding) that auto-fit had no reason to reduce, because as far as
+   the grid was concerned it always had room for six tracks. Every width from
+   641px, where the 2-column rule ends, up to 1051px scrolled the whole page
+   sideways — +28px at 1024, +392px at 660. Give it the line's width and
+   auto-fit sheds tracks again; max-width and the auto margins still centre it
+   on a wide screen. */
 .site-footer.seo-footer {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 28px 24px; max-width: 1100px; margin: 0 auto; justify-items: start;
+  min-width: 0; width: 100%;
 }
 .site-footer.seo-footer .footer-disclaimer { grid-column: 1 / -1; }
 @media (max-width: 640px) { .site-footer.seo-footer { grid-template-columns: 1fr 1fr; } }

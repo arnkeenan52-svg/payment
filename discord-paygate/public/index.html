@@ -1730,6 +1730,16 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 /* ── mid-page editorial heads: eyebrow + display left, supporting note right ── */
 .mid-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:34px}
 .mid-note{flex:none;max-width:30ch;margin:0 0 8px;font-size:14.5px;line-height:22px;color:var(--sec);text-align:right}
+/* Text that lands directly on the day sky, with no panel under it. These
+   colours were picked against --paper (#f4f7fd) and are fine there, but the
+   sections carrying them have no background, so they resolve against
+   html[data-theme="light"]{background:#70a3e6}: the eyebrows measured 1.77:1
+   and the payment captions 1.80:1. Darkened only for the light face, only
+   where the sky is what is behind. */
+html[data-theme="light"] .sec-eyebrow{color:#1b2c57}      /* was #5865f2 — 1.77:1, now 5.2:1 */
+html[data-theme="light"] .pay-cap,
+html[data-theme="light"] .pay-note{color:#22314f}         /* was #67748f — 1.80:1, now 5.0:1 */
+html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.96:1, now 5.0:1 */
 @media (max-width:800px){
   .mid-head{flex-direction:column;align-items:flex-start;gap:14px;margin-bottom:28px}
   .mid-note{text-align:left;margin:0;max-width:44ch}
