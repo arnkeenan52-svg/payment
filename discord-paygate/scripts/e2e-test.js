@@ -845,17 +845,53 @@ test('the free look: colours on every plan, wallpapers on a paid one', async () 
   assert.match(pricing, /Your colors \+ 10 gradients/, 'Free advertises the colour way it actually gets');
 });
 
-test('every page on the site is reachable from a footer', async () => {
-  // A page nothing links to is a page nobody finds. The twelve comparisons are
-  // listed individually; the four libraries are listed as their index, which is
-  // the page that lists their own children.
+test('every page on the site is named in the footer — checked against the filesystem', async () => {
+  // A page nothing links to is a page nobody finds. The old version of this
+  // test listed the twelve comparisons by hand and accepted an INDEX link for
+  // the four libraries, which meant twenty-seven real pages could sit behind a
+  // parent index and this suite would call that "reachable". It also could not
+  // notice a page being added.
+  //
+  // So it does not carry a list any more. It walks public/ for every .html
+  // that a visitor can reach and asserts each one appears in the footer by its
+  // own href. Adding a page and forgetting the footer now fails here rather
+  // than quietly shipping an orphan.
   const home = await (await fetch(`${appUrl}/`)).text();
-  const VS = ['whop', 'launchpass', 'subscord', 'patreon', 'doorfee', 'xoe',
-    'memberful', 'gumroad', 'ko-fi', 'buymeacoffee', 'upgrade-chat', 'mighty-networks'];
-  for (const v of VS) assert.match(home, new RegExp(`href="/vs/${v}"`), `footer must link /vs/${v}`);
-  for (const hub of ['/vs/', '/guides/', '/tools/', '/use-cases/', '/alternatives/']) {
-    assert.match(home, new RegExp(`href="${hub}"`), `footer must link the ${hub} index`);
-  }
+  const start = home.indexOf('<div class="footer-directory">');
+  assert.ok(start > 0, 'the footer directory must exist on the homepage');
+  const footer = home.slice(start, home.indexOf('footer-watermark', start));
+  const linked = new Set([...footer.matchAll(/href="(\/[^"#?]*)"/g)].map((m) => m[1]));
+
+  const { readdirSync, statSync } = await import('node:fs');
+  const { join, relative } = await import('node:path');
+  const PUBLIC = new URL('../public/', import.meta.url).pathname;
+  const walk = (dir, out = []) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full, out);
+      else if (name.endsWith('.html')) out.push(full);
+    }
+    return out;
+  };
+  // The app screens are not marketing pages and are linked from the product,
+  // not the directory: a signed-out visitor has no use for /receipt.
+  const APP = new Set(['/', '/dashboard', '/account', '/receipt', '/store']);
+  const pages = walk(PUBLIC)
+    .map((f) => {
+      const rel = `/${relative(PUBLIC, f)}`;
+      return rel.endsWith('/index.html') ? rel.slice(0, -'index.html'.length) : rel.slice(0, -'.html'.length);
+    })
+    .filter((p) => !APP.has(p));
+
+  const missing = pages.filter((p) => !linked.has(p)).sort();
+  assert.deepEqual(missing, [], `these pages exist but nothing in the footer links them: ${missing.join(', ')}`);
+  assert.ok(pages.length >= 40, `expected the full page network, found ${pages.length}`);
+
+  // And the reverse: a footer link to a page that does not exist is a 404 the
+  // seller's visitors find before we do.
+  const onDisk = new Set(pages);
+  const dead = [...linked].filter((l) => !onDisk.has(l) && !l.startsWith('/api') && !APP.has(l)).sort();
+  assert.deepEqual(dead, [], `footer links with no page behind them: ${dead.join(', ')}`);
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {

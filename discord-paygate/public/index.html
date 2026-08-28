@@ -2433,10 +2433,19 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
         <a href="/discover">Discover stores</a>
         <a href="/api/invite">Invite Dues</a>
       </div>
-      <!-- Every page on the site is reachable from here. The twelve
-           comparisons are listed one by one because each is a page someone
-           arrives on; the four libraries are listed as their index, which is
-           the page that lists their children. Nothing is orphaned. -->
+      <!-- EVERY page on the site is listed here by name, one link each: 12
+           comparisons, 9 guides, 6 use cases, 5 calculators, 7 alternatives,
+           their 5 indexes, and the top-level pages. Nothing is orphaned and
+           nothing is reachable only through a parent index.
+
+           On a phone the .f-deep ones fold away behind their section's index
+           link, and that is not a preference — the footer reveal only exists
+           while the whole footer fits a phone showing its toolbars, and forty
+           extra rows do not fit. Desktop shows the lot; every folded link is
+           one tap away on the index above it.
+
+           There is no blog. public/posts/*.json are Discord message bodies for
+           the community server, not articles, so there is nothing to list. -->
       <div class="fcol">
         <b>Compare</b>
         <a href="/vs/">All comparisons</a>
@@ -2454,11 +2463,47 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
         <a class="f-deep" href="/vs/mighty-networks">Dues vs Mighty Networks</a>
       </div>
       <div class="fcol">
-        <b>Learn</b>
-        <a href="/guides/">Guides</a>
-        <a href="/tools/">Fee calculators</a>
-        <a href="/use-cases/">Use cases</a>
-        <a href="/alternatives/">Alternatives</a>
+        <b>Guides</b>
+        <a href="/guides/">All guides</a>
+        <a class="f-deep" href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
+        <a class="f-deep" href="/guides/how-to-sell-discord-roles">Sell Discord roles</a>
+        <a class="f-deep" href="/guides/discord-paywall">Put up a paywall</a>
+        <a class="f-deep" href="/guides/paid-discord-server">Make a paid server</a>
+        <a class="f-deep" href="/guides/sell-discord-server-access">Sell server access</a>
+        <a class="f-deep" href="/guides/discord-subscription-bot">Subscription bots</a>
+        <a class="f-deep" href="/guides/discord-membership-bot">Membership bots</a>
+        <a class="f-deep" href="/guides/discord-monetization-ideas">Monetization ideas</a>
+        <a class="f-deep" href="/guides/best-discord-monetization-platform">Choosing a platform</a>
+      </div>
+      <div class="fcol">
+        <b>Use cases</b>
+        <a href="/use-cases/">All use cases</a>
+        <a class="f-deep" href="/use-cases/trading">Trading</a>
+        <a class="f-deep" href="/use-cases/sports-betting">Sports picks</a>
+        <a class="f-deep" href="/use-cases/reselling">Cook groups</a>
+        <a class="f-deep" href="/use-cases/fitness">Coaching</a>
+        <a class="f-deep" href="/use-cases/ecommerce">Ecommerce mentorship</a>
+        <a class="f-deep" href="/use-cases/exclusive-content">Exclusive content</a>
+      </div>
+      <div class="fcol">
+        <b>Fee calculators</b>
+        <a href="/tools/">All calculators</a>
+        <a class="f-deep" href="/tools/discord-fee-calculator">Compare every platform</a>
+        <a class="f-deep" href="/tools/whop-fee-calculator">Whop fees</a>
+        <a class="f-deep" href="/tools/launchpass-fee-calculator">LaunchPass fees</a>
+        <a class="f-deep" href="/tools/patreon-fee-calculator">Patreon fees</a>
+        <a class="f-deep" href="/tools/doorfee-fee-calculator">DoorFee fees</a>
+      </div>
+      <div class="fcol">
+        <b>Alternatives</b>
+        <a href="/alternatives/">All alternatives</a>
+        <a class="f-deep" href="/alternatives/whop-alternatives">Whop alternatives</a>
+        <a class="f-deep" href="/alternatives/launchpass-alternatives">LaunchPass alternatives</a>
+        <a class="f-deep" href="/alternatives/patreon-alternatives-for-discord">Patreon alternatives</a>
+        <a class="f-deep" href="/alternatives/subscord-alternatives">Subscord alternatives</a>
+        <a class="f-deep" href="/alternatives/doorfee-alternatives">DoorFee alternatives</a>
+        <a class="f-deep" href="/alternatives/xoe-alternatives">XOE alternatives</a>
+        <a class="f-deep" href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
       </div>
       <div class="fcol">
         <b>Resources</b>
