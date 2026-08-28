@@ -929,10 +929,26 @@ test('the free look: colours on every plan, wallpapers on a paid one', async () 
   assert.deepEqual(flagged, [...theme.FREE_BG_PRESETS].sort(),
     'dashboard BG_CATALOG free flags must match FREE_BG_PRESETS');
 
-  // And the price page must not promise the old all-or-nothing deal.
+  // And the price page must advertise the deal Free actually gets. Pinned to
+  // the NUMBERS rather than a sentence: the old assertion matched one exact
+  // marketing string, so it failed on a copy edit that changed nothing about
+  // what a seller receives, while it would have sat green through the free
+  // preset list doubling. What must not drift is the count.
   const pricing = fs.readFileSync(new URL('../public/pricing.html', import.meta.url), 'utf8');
-  assert.doesNotMatch(pricing, /Custom store look<\/span><b>Signature black/, 'Free is no longer black-only');
-  assert.match(pricing, /Your colors \+ 10 gradients/, 'Free advertises the colour way it actually gets');
+  const total = Object.keys(theme.BG_PRESETS).length;
+  const freeCount = theme.FREE_BG_PRESETS.length;
+  // Split on the card openings rather than trying to match balanced divs — a
+  // non-greedy </div></div> stops at the first NESTED pair, which silently
+  // truncated every card before its .plan-look line.
+  const cards = pricing.split(/<div class="plan(?: plan-pop)?">/).slice(1);
+  const freeCard = cards.find((c) => /<b>Free<\/b>/.test(c));
+  assert.ok(freeCard, 'the pricing page must still have a Free card');
+  const freeLook = freeCard.match(/class="plan-look">([^<]*)</)?.[1] ?? '';
+  assert.match(freeLook, new RegExp(`\\b${freeCount}\\b`), `Free must advertise its ${freeCount} backgrounds, not a different number`);
+  assert.doesNotMatch(freeLook, new RegExp(`\\b${total}\\b`), 'Free must not be promised the full catalogue');
+  const paid = cards.filter((c) => !/<b>Free<\/b>/.test(c)).map((c) => c.match(/class="plan-look">([^<]*)</)?.[1] ?? '');
+  assert.ok(paid.length >= 2 && paid.every((t) => new RegExp(`\\b${total}\\b`).test(t)),
+    `every paid plan must advertise all ${total} backgrounds`);
 });
 
 test('every page on the site is named in the footer — checked against the filesystem', async () => {
