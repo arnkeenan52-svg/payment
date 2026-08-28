@@ -1538,11 +1538,35 @@ html[data-theme="light"] .footer{
   letter-spacing:-.025em;text-align:center;text-wrap:balance;
 }
 .footer-cta{display:flex;justify-content:center;align-items:center;margin-bottom:32px}
+/* Identity on the left, every link column packed into one multi-column block
+   on the right.
+
+   This was a five-column grid holding nine items, which wrapped to two rows —
+   and a grid row is as tall as its tallest cell. Compare carries thirteen
+   links, so row one stood 432px tall and row two began 456px below it,
+   leaving a field of dead space under Product, Guides and Use cases while
+   Fee calculators sat marooned at the bottom left. Nothing was misaligned;
+   the layout was simply the wrong instrument. A link directory wants columns
+   that PACK, and that is what CSS columns do: sections flow one after another
+   and the browser balances the heights. */
 .footer-directory{
-  display:grid;grid-template-columns:1.6fr repeat(4,minmax(0,1fr));
-  gap:clamp(12px,2.4vh,24px);width:min(100%,1080px);margin:clamp(16px,4vh,64px) auto auto;
-  padding-bottom:clamp(10px,2vh,32px);
+  display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,3.2fr);
+  gap:clamp(16px,3vh,40px);width:min(100%,1080px);margin:clamp(16px,4vh,64px) auto auto;
+  padding-bottom:clamp(10px,2vh,32px);align-items:start;
 }
+.f-links{
+  column-count:4;column-gap:clamp(14px,2vw,28px);
+}
+/* A section must never be split down the middle of its own list. */
+.f-links .fcol{break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;
+  display:block;margin:0 0 clamp(16px,2.4vh,26px)}
+.f-links .fcol:last-child{margin-bottom:0}
+@media (max-width:1100px){ .f-links{column-count:3} }
+@media (max-width:860px){
+  .footer-directory{grid-template-columns:minmax(0,1fr)}
+  .f-links{column-count:3}
+}
+@media (max-width:639px){ .f-links{column-count:2;column-gap:18px} }
 .f-identity{align-self:start}
 .f-brand{display:inline-flex;align-items:center;gap:9px;min-height:32px;color:#fff;font-family:var(--grotesk);font-size:20px;font-weight:600;letter-spacing:-.02em}
 .f-brand .glyph{width:18px;height:18px;background:#fff}
@@ -1606,8 +1630,14 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 
 @media (max-width:639px){
   .footer-title{font-size:clamp(34px,9vw,48px)}
-  .footer-directory{grid-template-columns:1fr 1fr}
-  .f-identity{grid-column:1 / -1}
+  /* One column, and the link block does its own packing inside it. This used
+     to say `1fr 1fr` with the identity spanning both, which was right when the
+     directory held the link columns directly — but it now holds .f-links, and
+     a two-column grid handed that block half the width. The lanes inside came
+     out 86px wide and every label with two words in it wrapped: "Discover
+     stores", "All comparisons", "All calculators", "All alternatives", and the
+     "Fee calculators" heading. */
+  .footer-directory{grid-template-columns:minmax(0,1fr)}
   .footer-watermark{--wm-h:calc(100vw * .2)}
 }
 
@@ -2426,6 +2456,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
           <a class="soc-tile" href="https://x.com/duesdiscord" rel="noopener" aria-label="Dues on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zM17.083 19.77h1.833L7.084 4.126H5.117z"/></svg></a>
         </div>
       </div>
+      <div class="f-links">
       <div class="fcol">
         <b>Product</b>
         <a href="/pricing">Plans</a>
@@ -2515,6 +2546,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
         <b>Legal</b>
         <a href="/terms">Terms</a>
         <a href="/privacy">Privacy</a>
+      </div>
       </div>
     </div>
     <div class="footer-watermark" aria-hidden="true">
