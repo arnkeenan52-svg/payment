@@ -7,6 +7,7 @@ import { purchaseBlocked, resolveDiscount } from '../../src/services/purchase-gu
 import { publicPaymentView } from '../../src/services/nowpayments-events.js';
 import { createPayment, getPayment, merchantCoins, minimumFor } from '../../src/lib/nowpayments.js';
 import { normalize as normalizeCurrency, formatAmount, minCharge } from '../../src/lib/currency.js';
+import { qrForPayment } from '../../src/lib/qr.js';
 import * as db from '../../src/db.js';
 
 // The crypto rail (NOWPayments).
@@ -238,5 +239,9 @@ export default guard(async function handler(req, res) {
     // misses a required memo loses the payment, so it is never optional
     // where it exists.
     payExtraId: payment.payin_extra_id ?? null,
+    // Rendered server-side so there is one implementation of it and the
+    // browser cannot get it wrong. Null on memo chains by design — see
+    // src/lib/qr.js for why scanning is the unsafe option there.
+    qrSvg: qrForPayment({ address: payment.pay_address, extraId: payment.payin_extra_id ?? null, size: 208 }),
   });
 });

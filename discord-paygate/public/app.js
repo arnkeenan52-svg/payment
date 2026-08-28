@@ -552,31 +552,114 @@ function renderCryptoPay() {
   const o = state.cryptoOrder;
   if (!o) {
     box.hidden = true;
+    stopCryptoClock();
     return;
   }
   box.hidden = false;
-  $('#cryptopay-amount').textContent = `${o.payAmount} ${o.payCurrency}`;
+
+  // The QR arrives as SVG markup from our own server — no third-party script
+  // on a payment page, and one implementation rather than one per client.
+  const qr = $('#cryptopay-qr');
+  if (qr) {
+    if (o.qrSvg && qr.dataset.for !== o.orderId) {
+      qr.innerHTML = o.qrSvg;
+      qr.dataset.for = o.orderId;
+    }
+    qr.hidden = !o.qrSvg;
+  }
+
+  const coin = String(o.payCurrency ?? '').toUpperCase();
+  // NOT the usual "any other token is lost forever" line, because on this
+  // account it would be false: wrong-asset deposits are auto-converted, so a
+  // different coin arrives as money — just less of it than the order needs.
+  // The wrong NETWORK is the unrecoverable mistake, and saying both things
+  // accurately is more use to a buyer than one scary sentence that is half
+  // wrong.
+  const warn = $('#cryptopay-warn');
+  if (warn) {
+    warn.innerHTML =
+      `<b>Send ${esc(coin)} on the ${esc(coin)} network only.</b> A transfer sent over a different network cannot be recovered. ` +
+      'Another coin sent to this address is converted at the current rate, which usually leaves the order short of the total.';
+  }
+
   $('#cryptopay-address').textContent = o.payAddress;
-  // A memo/tag exists only on some chains, and on those chains a payment
-  // without it cannot be matched to an order at all — so it is never styled
-  // as an optional extra.
+  $('#cryptopay-coin').textContent = coin;
+  $('#cryptopay-amount').textContent = String(o.payAmount);
+
+  // A memo/tag exists only on some chains, and on those a payment without it
+  // cannot be matched to an order at all — so it is never styled as an
+  // optional extra, and those chains get no QR to scan past it.
   const memo = $('#cryptopay-memo');
-  if (o.payExtraId) {
-    memo.hidden = false;
-    $('#cryptopay-memo-value').textContent = o.payExtraId;
-  } else memo.hidden = true;
-  $('#cryptopay-note').textContent =
-    `Send exactly this amount on the ${o.payCurrency} network. Your roles arrive automatically once the network confirms it.`;
-  const copy = $('#cryptopay-copy');
-  copy.onclick = async () => {
+  if (memo) {
+    memo.hidden = !o.payExtraId;
+    if (o.payExtraId) $('#cryptopay-memo-value').textContent = o.payExtraId;
+  }
+
+  wireCopy('#cryptopay-copy', () => o.payAddress);
+  wireCopy('#cryptopay-copy-amount', () => String(o.payAmount));
+  startCryptoClock(o.expiresAt);
+}
+
+// Copy buttons swap to a tick for a moment. Falls back to selecting the text
+// when the clipboard is refused (an insecure origin, or a denied permission) —
+// silently doing nothing on a page whose whole job is "copy this exactly" is
+// the one outcome worth ruling out.
+function wireCopy(sel, value) {
+  const btn = $(sel);
+  if (!btn) return;
+  btn.onclick = async () => {
     try {
-      await navigator.clipboard.writeText(o.payAddress);
-      copy.textContent = 'Copied';
-      setTimeout(() => (copy.textContent = 'Copy'), 1600);
+      await navigator.clipboard.writeText(value());
+      btn.classList.add('done');
+      setTimeout(() => btn.classList.remove('done'), 1600);
     } catch {
-      copy.textContent = 'Select it';
+      const target = btn.parentElement?.querySelector('code');
+      if (target) {
+        const range = document.createRange();
+        range.selectNodeContents(target);
+        const sel2 = window.getSelection();
+        sel2.removeAllRanges();
+        sel2.addRange(range);
+      }
     }
   };
+}
+
+// The quoted coin amount is fixed-rate, so it has an expiry. Counting down to
+// it is the difference between "this number is still good" and a buyer sending
+// against a rate that lapsed twenty minutes ago and landing short.
+let cryptoClock = null;
+function stopCryptoClock() {
+  if (cryptoClock) clearInterval(cryptoClock);
+  cryptoClock = null;
+}
+function startCryptoClock(expiresAt) {
+  stopCryptoClock();
+  const el = $('#cryptopay-clock');
+  if (!el) return;
+  const until = expiresAt ? Date.parse(expiresAt) : NaN;
+  if (!Number.isFinite(until)) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  const tick = () => {
+    const left = Math.max(0, Math.floor((until - Date.now()) / 1000));
+    const hh = String(Math.floor(left / 3600)).padStart(2, '0');
+    const mm = String(Math.floor((left % 3600) / 60)).padStart(2, '0');
+    const ss = String(left % 60).padStart(2, '0');
+    el.textContent = `${hh}:${mm}:${ss}`;
+    el.classList.toggle('out', left === 0);
+    if (left === 0) {
+      stopCryptoClock();
+      const t = $('#cryptopay-status-text');
+      // Not "cancelled": the address still works. What lapsed is the quoted
+      // amount, and sending the old figure now is how a buyer underpays.
+      if (t) t.textContent = 'The quoted rate has expired — start the payment again for a fresh amount.';
+    }
+  };
+  tick();
+  cryptoClock = setInterval(tick, 1000);
 }
 
 function watchCryptoPayment() {
@@ -588,11 +671,12 @@ function watchCryptoPayment() {
       const res = await fetch(`/api/checkout/crypto?store=${encodeURIComponent(STORE_SLUG)}&order=${encodeURIComponent(order)}`);
       if (!res.ok) return;
       const data = await res.json();
-      const el = $('#cryptopay-status');
+      const el = $('#cryptopay-status-text');
       if (el) el.textContent = data.message ?? 'Waiting for your payment…';
       if (data.state === 'paid') {
         clearInterval(cryptoPoll);
         cryptoPoll = null;
+        stopCryptoClock();
         // Reload rather than patch the page: the roles, the owned-plan badge
         // and the account chip all change at once, and the server already
         // knows the new truth.
@@ -601,6 +685,7 @@ function watchCryptoPayment() {
       if (data.state === 'dead') {
         clearInterval(cryptoPoll);
         cryptoPoll = null;
+        stopCryptoClock();
       }
     } catch {
       /* a dropped poll is not an error worth showing — the next one retries */

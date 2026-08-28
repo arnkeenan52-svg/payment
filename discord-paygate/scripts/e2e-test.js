@@ -4255,6 +4255,50 @@ test('crypto: checkout creates a payment carrying the payout address and its own
   npOrder = order;
 });
 
+test('crypto: the pay QR decodes back to the exact payment address', async () => {
+  // A QR is the one control on this page nobody proofreads. If it encodes
+  // anything but the address, a scan sends the money somewhere unrecoverable
+  // and the address printed underneath it looks perfectly fine. So the check
+  // is a real decode by an independent library, not a "did we render an svg".
+  const [{ qrSvg, qrForPayment }, jsQR, { PNG }] = await Promise.all([
+    import('../src/lib/qr.js'),
+    import('jsqr').then((m) => m.default ?? m),
+    import('pngjs'),
+  ]);
+  const addr = '9Wscg7HtjJtGxqqTRzXJEVX2NFJcaDSoWnztEVSV3hBQ';
+
+  // Rasterise the SVG's own module grid rather than shelling out to a
+  // renderer: same bits the browser paints, no image toolchain in the suite.
+  const decode = (text) => {
+    const svg = qrSvg(text);
+    const span = Number(svg.match(/viewBox="0 0 (\d+)/)[1]);
+    const S = 4;
+    const W = span * S;
+    const png = new PNG({ width: W, height: W });
+    png.data.fill(255);
+    for (const seg of svg.match(/M[\d.]+ [\d.]+h\d+v1h-\d+z/g) ?? []) {
+      const [, x, y, run] = seg.match(/M([\d.]+) ([\d.]+)h(\d+)/).map(Number.parseFloat ? (v, i) => (i ? Number(v) : v) : Number);
+      for (let dy = 0; dy < S; dy += 1) {
+        for (let dx = 0; dx < run * S; dx += 1) {
+          const i = ((y * S + dy) * W + (x * S + dx)) << 2;
+          png.data[i] = png.data[i + 1] = png.data[i + 2] = 0;
+          png.data[i + 3] = 255;
+        }
+      }
+    }
+    return jsQR(new Uint8ClampedArray(png.data), W, W)?.data ?? null;
+  };
+
+  assert.equal(decode(addr), addr, 'a Solana address must survive the round trip byte for byte');
+  assert.equal(decode('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'), '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa');
+  assert.equal(decode('0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'), '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed', 'mixed case must not be mangled — an EIP-55 address is case-significant');
+
+  // Memo chains get no QR at all: a scan hands over the address and silently
+  // drops the tag, and without the tag the payment cannot be credited.
+  assert.equal(qrForPayment({ address: addr, extraId: '4821990' }), null);
+  assert.equal(typeof qrForPayment({ address: addr, extraId: null }), 'string');
+});
+
 test('crypto: an unsigned or wrongly signed IPN grants nothing', async () => {
   const payload = { payment_id: 'npid_1', payment_status: 'finished', order_id: npOrder.orderId };
   assert.equal((await deliverNow(payload, { signature: 'deadbeef' })).status, 400);

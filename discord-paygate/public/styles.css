@@ -56,6 +56,11 @@
   --good: #3ddc84;
   --money: #3ddc84;
   --bad: #f87171;
+  /* Caution, not failure. The network warning on the crypto pay screen is the
+     one piece of copy that prevents an unrecoverable mistake, so it needed a
+     colour of its own rather than borrowing --bad, which everywhere else on
+     the site means "something already went wrong". */
+  --warn: #f0b429;
   --font-head: 'Space Grotesk', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   /* Motion tokens (Emil Kowalski's curves — built-in easings are too weak). */
@@ -81,6 +86,7 @@ html[data-theme='light'] {
   --good: #177245;
   --money: #177245;
   --bad: #b91c1c;   /* was #c43c3c, which only just cleared AA on white */
+  --warn: #8a5a00;  /* amber has to be darkened this far to clear AA on white */
   --blurple-text: #4753c9;
   --well: #e9f1fa;
   --raised: #f1f6fc;
@@ -446,29 +452,80 @@ body {
 
 .cryptopay {
   display: flex; flex-direction: column; gap: 10px;
-  border: 1px solid var(--edge); border-radius: 14px; padding: 16px;
+  border: 1px solid var(--edge); border-radius: 14px; padding: 18px 16px;
   background: color-mix(in srgb, var(--ink) 3%, transparent);
 }
-.cryptopay-head { font-size: 14.5px; }
-.cryptopay-head b { font-weight: 700; }
-.cryptopay-addr { display: flex; align-items: center; gap: 8px; }
-.cryptopay-addr code {
-  /* An address is one unbroken token far wider than a phone. It has to wrap
-     inside its own box, not push the order card sideways. */
+.cryptopay[hidden] { display: none; }
+/* The QR sits on its own white plate. The SVG paints its own quiet zone, but
+   the plate is what keeps a dark page from swallowing the code's edges — a
+   scanner needs the contrast to find the finder patterns at all. */
+.cpay-qr { align-self: center; background: #fff; border-radius: 12px; padding: 10px; line-height: 0; }
+.cpay-qr[hidden] { display: none; }
+.cpay-qr svg { display: block; width: 208px; height: 208px; }
+
+/* Amber, not red: this is the instruction that prevents the mistake, so it
+   has to be read before the address is copied rather than dismissed as an
+   error that already happened. */
+.cpay-warn {
+  margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; text-align: center;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  color: color-mix(in srgb, var(--warn) 74%, var(--ink));
+  border-radius: 10px; padding: 10px 12px;
+}
+.cpay-warn b { font-weight: 700; }
+.cpay-memo { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--bad); }
+.cpay-memo code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+
+.cpay-lab { margin: 6px 0 0; text-align: center; font-size: 13px; font-weight: 700; color: var(--ink); }
+.cpay-lab-left { text-align: left; }
+
+.cpay-box {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--edge); border-radius: 10px; background: var(--panel);
+  padding: 9px 8px 9px 12px; min-height: 44px;
+}
+.cpay-box code {
+  /* An address is one unbreakable 40+ character token, far wider than a
+     phone. It wraps inside its own box rather than widening the order card. */
   flex: 1 1 auto; min-width: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12.5px; line-height: 1.5;
-  overflow-wrap: anywhere; word-break: normal;
-  background: var(--panel); border: 1px solid var(--edge); border-radius: 8px;
-  padding: 9px 10px;
+  font-size: 13px; line-height: 1.5; overflow-wrap: anywhere;
 }
-.cryptopay-memo { font-size: 12.5px; color: var(--bad); }
-.cryptopay-memo code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  overflow-wrap: anywhere;
+.cpay-amt code { text-align: left; }
+.cpay-coin {
+  flex: none; font-size: 11.5px; font-weight: 800; letter-spacing: 0.04em;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 6px; padding: 4px 7px;
 }
-.cryptopay-note { font-size: 12.5px; color: var(--dim); }
-.cryptopay-status { font-size: 13px; font-weight: 600; }
+.cpay-copy {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+  background: transparent; border: 1px solid var(--edge); color: var(--dim);
+}
+.cpay-copy:hover { color: var(--ink); border-color: var(--dim); }
+.cpay-copy .cc-done, .cpay-copy.done .cc-copy { display: none; }
+.cpay-copy.done .cc-done { display: block; color: var(--accent); }
+
+.cpay-status {
+  display: flex; align-items: center; gap: 9px;
+  border: 1px solid var(--edge); border-radius: 10px; padding: 10px 12px;
+  font-size: 13px; min-height: 44px;
+}
+.cpay-spin {
+  flex: none; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  border-top-color: var(--accent); animation: cpay-spin 0.9s linear infinite;
+}
+@keyframes cpay-spin { to { transform: rotate(360deg); } }
+/* A spinner that never stops is noise to anyone who has motion turned down,
+   and this one runs for up to an hour. */
+@media (prefers-reduced-motion: reduce) { .cpay-spin { animation: none; } }
+.cpay-clock {
+  margin-left: auto; font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; color: var(--dim);
+}
+.cpay-clock.out { color: var(--bad); }
 
 /* ── pay panel (XOE pattern) ──────────────────────────────────────────────── */
 .pay-panel { display: flex; flex-direction: column; gap: 12px; }

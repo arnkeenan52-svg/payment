@@ -198,14 +198,37 @@
         </div>
         <div id="cta-area"></div>
         <div class="cryptopay" id="cryptopay" hidden>
-          <p class="cryptopay-head">Send <b id="cryptopay-amount"></b> to this address</p>
-          <div class="cryptopay-addr">
+          <!-- The QR is rendered by the server (src/lib/qr.js) and encodes the
+               bare address, never a URI with the amount folded in — wallets
+               disagree about those and a misparsed amount is a short payment.
+               It is deliberately absent on memo chains, where a scan would
+               drop the tag and the payment could not be credited. -->
+          <div class="cpay-qr" id="cryptopay-qr" hidden></div>
+          <p class="cpay-warn" id="cryptopay-warn"></p>
+          <p class="cpay-memo" id="cryptopay-memo" hidden>This network needs a memo/tag. Send it with the payment or it cannot be matched to your order: <code id="cryptopay-memo-value"></code></p>
+          <p class="cpay-lab">Address</p>
+          <div class="cpay-box">
             <code id="cryptopay-address"></code>
-            <button type="button" class="apply-btn" id="cryptopay-copy">Copy</button>
+            <button type="button" class="cpay-copy" id="cryptopay-copy" aria-label="Copy the payment address">
+              <svg class="cc-copy" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <svg class="cc-done" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>
+            </button>
           </div>
-          <p class="cryptopay-memo" id="cryptopay-memo" hidden>Include this memo/tag or the payment cannot be matched: <code id="cryptopay-memo-value"></code></p>
-          <p class="cryptopay-note" id="cryptopay-note"></p>
-          <p class="cryptopay-status" id="cryptopay-status" role="status">Waiting for your payment…</p>
+          <p class="cpay-lab">Amount to send</p>
+          <div class="cpay-box cpay-amt">
+            <span class="cpay-coin" id="cryptopay-coin"></span>
+            <code id="cryptopay-amount"></code>
+            <button type="button" class="cpay-copy" id="cryptopay-copy-amount" aria-label="Copy the amount to send">
+              <svg class="cc-copy" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <svg class="cc-done" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>
+            </button>
+          </div>
+          <p class="cpay-lab cpay-lab-left">Status</p>
+          <div class="cpay-status" id="cryptopay-status">
+            <span class="cpay-spin" aria-hidden="true"></span>
+            <span id="cryptopay-status-text" role="status">Waiting for your payment&#8230;</span>
+            <b class="cpay-clock" id="cryptopay-clock" hidden></b>
+          </div>
         </div>
         <p class="redirect-note" id="redirect-note"></p>
         <div class="trust-row" id="trust-row"></div>
