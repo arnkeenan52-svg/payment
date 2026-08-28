@@ -1277,8 +1277,16 @@ async function renderChecklist(store, slug) {
   } catch { /* checklist is best-effort */ }
 }
 
+// The word has to come from the number, not sit next to it contradicting it:
+// this printed "Monthly · 365d" and "Monthly · 7d" for terms the onboarding
+// API happily accepts (1-366 days). Anything without a common name keeps the
+// plain day count rather than being called a month.
+const TERM_WORDS = { 7: 'Weekly', 14: 'Fortnightly', 30: 'Monthly', 31: 'Monthly', 90: 'Quarterly', 180: 'Half-yearly', 365: 'Yearly', 366: 'Yearly' };
 function billingLabel(p) {
-  return p.lifetime ? 'One-time · lifetime' : `Monthly${p.durationDays && p.durationDays !== 31 ? ` · ${p.durationDays}d` : ''}`;
+  if (p.lifetime) return 'One-time · lifetime';
+  const d = p.durationDays;
+  if (!d || d === 31) return 'Monthly';
+  return TERM_WORDS[d] ?? `Every ${d} days`;
 }
 
 function sectionProductsDefault(data) {
@@ -2808,6 +2816,17 @@ function wireDiscounts(store, slug) {
 }
 
 function wireAppearance(store, slug) {
+  // pointer-events:none stops a mouse and nothing else. Tab still reached all
+  // six theme tiles and the material and type buttons, Enter still applied
+  // them, and the live preview still repainted — then Save was disabled and
+  // the work vanished with no explanation. A control that cannot be saved
+  // must be honestly disabled, not merely unclickable.
+  document
+    .querySelectorAll('.th-locked button, .th-locked input, .th-locked select, .th-locked summary')
+    .forEach((el) => {
+      if (el.tagName === 'SUMMARY') { el.setAttribute('tabindex', '-1'); el.setAttribute('aria-disabled', 'true'); return; }
+      el.disabled = true;
+    });
   const read = () => ({
     bg: $('#th-bg').value,
     panel: $('#th-panel').value,
