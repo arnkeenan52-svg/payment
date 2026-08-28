@@ -2943,6 +2943,14 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-mlink:hover { color: var(--ink); }
 .shop-mitem { display: inline-flex; align-items: center; gap: 6px; }
 .shop-mdot { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); }
+/* Narrow screens: the line wraps, and a dot that lands at the head of the
+   second row reads as a bullet for nothing. Drop the separators and let the
+   row gap do the separating instead — there is nothing to punctuate once the
+   facts are on separate lines. */
+@media (max-width: 560px) {
+  .shop-metaline { gap: 10px 16px; }
+  .shop-mdot { display: none; }
+}
 .shop-joined { display: flex; gap: 24px; margin: 18px 0 0; font-size: 16px; color: var(--dim); }
 .shop-joined b { color: var(--ink); font-weight: 700; }
 /* Real roles in the idiom the reference uses for member faces — we will not
@@ -2959,10 +2967,23 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-roleline b { color: var(--ink); font-weight: 600; }
 
 /* ── tabs: rail to rail, exact fractions, pill underline on the divider ── */
+/* Two sections at most now (Products · About), so the no-JS fallback is 2. */
 .shop-tabs {
-  display: grid; grid-template-columns: repeat(var(--shop-tabn, 3), 1fr);
+  display: grid; grid-template-columns: repeat(var(--shop-tabn, 2), 1fr);
   border-bottom: 1px solid var(--hairline-2);
 }
+/* The bar is hidden outright for a store with no About — one tab is not a tab
+   bar. `display: grid` above would beat the UA's [hidden] rule, so say it
+   here, the same way .shop[hidden] has to. */
+.shop-tabs[hidden] { display: none; }
+/* The bar carried the only hairline between the identity block and the pane
+   below it. With the bar gone that rule has to come from somewhere, or the
+   store bio and the Products heading run together.
+   Keyed off the shop element, NOT off `+ .shop-pane`: a browser can be running
+   this stylesheet against a cached store.html whose next sibling is still the
+   retired Home pane, and an adjacency selector would silently put the hairline
+   on a hidden element. A hidden pane cannot show a border either way. */
+.shop[data-tabs="off"] .shop-pane { border-top: 1px solid var(--hairline-2); }
 .shop-tab {
   height: 56px; background: none; border: 0; cursor: pointer; position: relative;
   font: 500 15px var(--font-body, inherit); color: var(--dim);
@@ -2977,13 +2998,6 @@ body[data-material='solid'].has-bg .shop-col {
 /* ── panes ── */
 .shop-pane { padding: 21px var(--shop-gutter) 0; }
 .shop-sec { font: 600 17px var(--font-head); letter-spacing: -0.01em; color: var(--ink); margin: 0 0 30px; }
-.shop-sec-2 { margin-top: 34px; }
-.shop-facts { display: flex; flex-direction: column; gap: 14px; }
-.shop-fact { display: flex; align-items: flex-start; gap: 10px; font-size: 16px; line-height: 1.45; color: var(--dim); }
-.shop-fact svg { flex: none; margin-top: 2px; color: var(--accent); }
-.shop-fact b { color: var(--ink); font-weight: 600; }
-.shop-home-about { margin-top: 30px; }
-.shop-featured { margin-bottom: 4px; }
 
 /* ── product cards: image flush to the card edge, title ON the image,
    price alone in a bare footer strip ── */
@@ -3024,9 +3038,6 @@ body[data-material='solid'].has-bg .shop-col {
 .prod-from { font-weight: 500; font-size: 13px; color: var(--faint); margin-right: 2px; }
 .prod-meta { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; color: var(--faint); }
 .prod-meta svg { flex: none; }
-.prod-card--wide { width: 100%; }
-.prod-card--wide .prod-shot, .prod-card--wide .prod-ph { aspect-ratio: 16 / 9; }
-
 @media (max-width: 640px) {
   .shop-col { border-inline: 0; min-height: 0; }
 }
@@ -3053,33 +3064,13 @@ body[data-material='solid'].has-bg .shop-col {
 /* the hidden attribute must win over the layout display rules above */
 .order-card[hidden], .shop[hidden] { display: none !important; }
 
-/* ── shop page: trust chips, social links, about, empty state ─────────────── */
-/* Quiet metadata under the store name — icon + text, no pill borders, so
-   two or three facts read as one line instead of a stack of buttons. */
-.shop-trust {
-  display: flex; flex-wrap: wrap; align-items: center;
-  column-gap: 18px; row-gap: 7px; margin-top: -4px;
-}
-.shop-chip {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 12.5px; font-weight: 650; color: var(--dim); letter-spacing: 0.01em;
-}
-.shop-chip svg { flex: none; opacity: 0.75; }
-.shop-chip strong { color: var(--ink); font-weight: 750; }
-.shop-links { display: flex; flex-wrap: wrap; gap: 8px; }
-.shop-link {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px; border: 1px solid var(--edge); border-radius: 10px;
-  color: var(--dim); background: var(--panel); transition: color 140ms ease-out, border-color 140ms ease-out;
-}
-.shop-link:hover { color: var(--ink); border-color: var(--edge-selected, var(--accent)); }
-.shop-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* ── shop page: about, empty state ────────────────────────────────────────── */
+/* NOTE: `.prod-roles` is still declared here as a flex row, but the storefront
+   no longer emits it — the only element carrying that class now is a dashboard
+   product row (dashboard.js), which declares its own `.prod-roles` at line 1421
+   and is being overridden from here by source order. Left alone deliberately:
+   deleting it changes how the dashboard renders, which is not this change. */
 .prod-roles { display: flex; flex-wrap: wrap; gap: 5px; }
-.prod-role {
-  font-size: 10.5px; font-weight: 750; color: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 999px; padding: 2px 8px;
-}
 .shop-about { padding-top: 2px; }
 .shop-about p { margin: 0 0 10px; color: var(--dim); font-size: 14px; line-height: 1.65; max-width: 62ch; }
 .shop-about p:last-child { margin-bottom: 0; }
@@ -3795,7 +3786,7 @@ body[data-material='solid'] .panel, body[data-material='solid'] .prod-card, body
    ═══════════════════════════════════════════════════════════════════════════ */
 .btn-fill, .btn-pill, .btn-secondary, .btn-ghost, .btn-blurple, .btn-danger, .btn-login,
 .pay-btn, .apply-btn, .seg-btn, .menu-btn, .theme-btn, .tab, .apptab, .nav-link,
-.side-item, .st-subnav-btn, .shop-tab, .shop-btn, .shop-icon-btn, .shop-link, .shop-back,
+.side-item, .st-subnav-btn, .shop-tab, .shop-btn, .shop-icon-btn, .shop-back,
 .shop-desc-more, .disc-chip, .option, .method, .g-row, .role-row, .link-quiet,
 .th-seg-btn, .th-dev-btn, .th-tile-thumb, .bgp-thumb, .admin-link, .dc-open,
 input, select, textarea {
@@ -3824,7 +3815,7 @@ input, select, textarea {
 @keyframes tab-ink { from { opacity: 0; transform: translateX(-50%) scaleX(0.4); } }
 .shop-tab.active::after { animation: tab-ink 220ms var(--ease-out); }
 /* display:none → block re-runs the animation, so every un-hide fades in:
-   Home ↔ Products panes, and the shop ↔ checkout view switch. */
+   Products ↔ About panes, and the shop ↔ checkout view switch. */
 @keyframes pane-in { from { opacity: 0; transform: translateY(6px); } }
 .shop-pane { animation: pane-in 260ms var(--ease-out); }
 .checkout .order-card, .shop { animation: pane-in 260ms var(--ease-out); }
@@ -3859,8 +3850,6 @@ input, select, textarea {
 .pay-assure { margin: 0; text-align: center; color: var(--dim); font-size: 12.75px; }
 
 /* ── pleasing details ─────────────────────────────────────────────────────── */
-/* The active tab already says "Products"; the pane needn't repeat it. The
-   heading returns when the tab bar is hidden (stores with no About). */
 /* discover: skeletons the shape of the cards they become — no layout jump */
 .disc-grid .sk-row { height: 172px; border-radius: 18px; }
 /* dashboard rows: a hover you can actually see */

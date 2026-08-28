@@ -21,15 +21,15 @@
   <!-- og:end -->
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=181" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=181" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=182" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=182" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=181" />
+  <link rel="stylesheet" href="/styles.css?v=182" />
 </head>
 <body>
   <header class="top">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=181" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=182" alt="Dues" height="20" /></a>
     </div>
     <div id="account" class="account"></div>
   </header>
@@ -74,20 +74,13 @@
           <div class="shop-roleline" id="shop-roleline" hidden></div>
         </div>
 
+        <!-- Two sections, and the bar only earns its place when both exist:
+             app.js hides the whole nav for a store with no About, because a
+             lone "Products" tab is a control with nothing to switch to. -->
         <nav class="shop-tabs" id="shop-tabs" aria-label="Store sections">
-          <button type="button" class="shop-tab" data-tab="home">Home</button>
           <button type="button" class="shop-tab active" data-tab="products">Products</button>
           <button type="button" class="shop-tab" data-tab="about" id="shop-tab-about" hidden>About</button>
         </nav>
-
-        <div class="shop-pane" id="shop-pane-home" hidden>
-          <h2 class="shop-sec">Featured</h2>
-          <div class="shop-featured" id="shop-featured"></div>
-          <h2 class="shop-sec shop-sec-2">What you get</h2>
-          <div class="shop-facts" id="shop-facts"></div>
-          <div class="shop-links" id="shop-links"></div>
-          <div class="shop-home-about" id="shop-home-about" hidden></div>
-        </div>
 
         <div class="shop-pane" id="shop-pane-products">
           <h2 class="shop-sec">Products</h2>
@@ -165,10 +158,10 @@
 
   <footer>
     <span class="powered-label">Checkout powered by:</span>
-    <img class="powered-mark" src="/dues.png?v=181" alt="Dues" height="18" />
+    <img class="powered-mark" src="/dues.png?v=182" alt="Dues" height="18" />
     <a class="powered-community" href="https://discord.gg/G6yjsX5qbB" rel="noopener">Join the Dues community</a>
   </footer>
 
-  <script src="/app.js?v=181"></script>
+  <script src="/app.js?v=182"></script>
 </body>
 </html>

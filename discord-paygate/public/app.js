@@ -713,15 +713,25 @@ function render() {
 }
 
 // ── shop view: the store's overall page, every product a card ────────────────
-// Module-level so the Home pane's "Read more" and the Join button can reach it.
+// Module-level so the Join button can reach it.
 function setTab(tab) {
   const shopEl = $('#shop');
   if (!shopEl) return;
+  // Anything that is not About lands on Products. A browser can still be
+  // running this script against a CACHED store.html that has the retired Home
+  // button in it; without this normalisation that click would set a tab no
+  // pane answers to and hide the whole storefront.
   const hasAbout = Boolean((state.store?.about ?? '').trim());
-  if (tab === 'about' && !hasAbout) tab = 'products';
+  if (tab !== 'about' || !hasAbout) tab = 'products';
   shopEl.dataset.tab = tab;
-  $('#shop-tabs')?.querySelectorAll('.shop-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
-  $('#shop-pane-home').hidden = tab !== 'home';
+  // aria-current, not just a class: the underline is the only thing that says
+  // which section you are in, and a screen reader cannot see an underline.
+  $('#shop-tabs')?.querySelectorAll('.shop-tab').forEach((b) => {
+    const on = b.dataset.tab === tab;
+    b.classList.toggle('active', on);
+    if (on) b.setAttribute('aria-current', 'true');
+    else b.removeAttribute('aria-current');
+  });
   $('#shop-pane-products').hidden = tab !== 'products';
   $('#shop-about-box').hidden = tab !== 'about';
 }
@@ -734,7 +744,6 @@ const SHOP_ICONS = {
   lock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
   bolt: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg>',
   people: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 20v-2a4 4 0 0 0-3-3.87"/></svg>',
-  card: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>',
   gear: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 8 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H2a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3.7 8a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H8a1.6 1.6 0 0 0 1-1.5V2a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V8a1.6 1.6 0 0 0 1.5 1H22a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',
   discord: '<svg width="16" height="12" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>',
 };
@@ -751,11 +760,11 @@ const socialLinks = () => {
   return Object.keys(LINK_ICONS).filter((k) => typeof links[k] === 'string' && /^https:\/\//.test(links[k]));
 };
 
-// One card, shared by the Products grid and the Home pane's featured slot.
-function productCard(plan, { wide = false } = {}) {
+// One card, one shape — the Products grid is the only thing that builds these.
+function productCard(plan) {
   const card = document.createElement('button');
   card.type = 'button';
-  card.className = wide ? 'prod-card prod-card--wide' : 'prod-card';
+  card.className = 'prod-card';
   const group = groupFor(plan);
   const minUsd = Math.min(...group.map((g) => g.priceUsd));
   const priceHtml =
@@ -851,6 +860,15 @@ function renderShop() {
   const metaBits = [`<span class="shop-mitem">${SHOP_ICONS.lock}Secured by Stripe</span>`];
   if (linkHtml) metaBits.push(`<span class="shop-mgroup">${linkHtml}</span>`);
   metaBits.push(`<span class="shop-mitem">${SHOP_ICONS.bolt}Instant role delivery</span>`);
+  // What happens AFTER the payment. This used to be the third fact in the Home
+  // pane; the meta line is where it lives now that Home is gone, because it is
+  // the only thing on the page that answers "am I stuck with this?".
+  const sellable = state.plans.filter((p) => !p.variantOf);
+  const allLifetime = sellable.length > 0 && sellable.every((p) => groupFor(p).every((g) => g.lifetime));
+  // "Cancel any time" would be a lie about the lifetime product in a mixed
+  // catalogue, so only an all-lifetime store gets the stronger claim; every
+  // other store gets the one sentence that is true of all of them.
+  metaBits.push(`<span class="shop-mitem">${SHOP_ICONS.gear}${allLifetime ? 'One-time payment' : 'Manage from your account'}</span>`);
   $('#shop-metaline').innerHTML = metaBits.join('<i class="shop-mdot" aria-hidden="true"></i>');
 
   // Counts are whatever the server counted. Followers stay hidden below ten:
@@ -884,14 +902,19 @@ function renderShop() {
   const about = (state.store?.about ?? '').trim();
   if (about) $('#shop-about').innerHTML = about.split(/\n+/).map((line) => `<p>${esc(line.trim())}</p>`).join('');
 
-  // Tabs: Home · Products · About. The bar is always visible; About appears
-  // only when the owner wrote one, and the column count follows so the labels
-  // always land on exact fractions.
+  // Tabs: Products · About. About appears only when the owner wrote one — and
+  // when they did not, the whole bar goes with it, because a single tab is a
+  // switch with one position. The Products pane shows either way: setTab runs
+  // below regardless of whether the bar is on screen.
   const tabs = $('#shop-tabs');
   const aboutTab = $('#shop-tab-about');
   if (aboutTab) aboutTab.hidden = !about;
   if (tabs) {
-    tabs.style.setProperty('--shop-tabn', about ? 3 : 2);
+    tabs.hidden = !about;
+    // Tells the stylesheet to put the identity/pane hairline back when the bar
+    // is not there to draw it.
+    $('#shop').dataset.tabs = about ? 'on' : 'off';
+    tabs.style.setProperty('--shop-tabn', 2);
     if (!tabs.dataset.wired) {
       tabs.dataset.wired = '1';
       tabs.querySelectorAll('.shop-tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
@@ -903,8 +926,6 @@ function renderShop() {
   const grid = $('#shop-grid');
   grid.innerHTML = '';
   for (const plan of products) grid.append(productCard(plan));
-
-  renderHome(products, about);
 
   // The one blue button on the page used to do nothing. With a single product
   // it opens that checkout; otherwise it takes you to the grid.
@@ -957,43 +978,6 @@ function renderShop() {
   setTab($('#shop')?.dataset.tab || 'products');
 }
 
-// The Home pane is built only from things we already know, so it never reads
-// as a placeholder waiting for the owner to fill it in.
-function renderHome(products, about) {
-  const featured = $('#shop-featured');
-  featured.innerHTML = '';
-  if (products.length) featured.append(productCard(products[0], { wide: true }));
-
-  const allLifetime = products.length > 0 && products.every((p) => groupFor(p).every((g) => g.lifetime));
-  const facts = [
-    [SHOP_ICONS.bolt, 'Instant role delivery', 'the bot assigns your roles the moment payment clears.'],
-    [SHOP_ICONS.card, 'Secure card payment', 'processed by Stripe — Dues never sees your card.'],
-    allLifetime
-      ? [SHOP_ICONS.gear, 'One-time payment', 'yours for good, with nothing to renew.']
-      : [SHOP_ICONS.gear, 'Manage from your account', 'cancel or resync any time.'],
-  ];
-  $('#shop-facts').innerHTML = facts
-    .map(([ic, lead, rest]) => `<span class="shop-fact">${ic}<span><b>${lead}</b> — ${rest}</span></span>`)
-    .join('');
-
-  const links = state.store?.links ?? {};
-  $('#shop-links').innerHTML = socialLinks()
-    .map((k) => `<a class="shop-link" href="${esc(links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
-    .join('');
-
-  const homeAbout = $('#shop-home-about');
-  if (about) {
-    const first = about.split(/\n+/)[0].trim();
-    homeAbout.innerHTML = `<h2 class="shop-sec shop-sec-2">About</h2><p class="shop-desc">${esc(first)}</p>`;
-    homeAbout.hidden = false;
-    const readMore = document.createElement('button');
-    readMore.type = 'button';
-    readMore.className = 'shop-desc-more';
-    readMore.textContent = 'Read more';
-    readMore.onclick = () => setTab('about');
-    homeAbout.append(readMore);
-  } else homeAbout.hidden = true;
-}
 
 // Following: the count shown is always the server's COUNT(*). The button flips
 // optimistically because that is the user's own state, but the NUMBER never
