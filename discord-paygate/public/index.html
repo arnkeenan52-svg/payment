@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Dues — Sell Discord access" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=177" />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=178" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -40,12 +40,12 @@
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=177" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=178" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline &#39;Monetize your community.&#39; and a field for claiming a store link" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=177" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=177" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=178" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=178" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -68,7 +68,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=177') format('woff2');
+  src:url('/jakarta-latin.woff2?v=178') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -369,7 +369,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=177') center/cover;
+  background:url('/hero-poster.webp?v=178') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1863,7 +1863,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 .comm{padding:26px 24px 56px}
 .comm-card{
   position:relative;overflow:hidden;
-  display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);align-items:center;gap:clamp(28px,4vw,52px);
+  display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;gap:clamp(28px,4vw,52px);
   padding:clamp(28px,4vw,46px) clamp(22px,4.5vw,48px);border-radius:26px;
   background:var(--glass);border:1px solid var(--glass-brd);
   box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
@@ -1876,32 +1876,17 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 .comm-txt{position:relative;z-index:1;min-width:0}
 .comm-txt h2{font-family:var(--jakarta);font-weight:600;font-size:clamp(24px,3vw,34px);letter-spacing:-.02em;line-height:1.14;color:var(--ink)}
 .comm-txt>p{margin-top:12px;max-width:56ch;font-size:15.5px;line-height:25px;color:var(--sec)}
-.comm-checks{margin-top:18px;padding:0;list-style:none;display:grid;gap:10px}
+.comm-txt{max-width:62ch}
+/* the card is one centred column now, but a checklist still has to read
+   as a list — so the items align left inside the centred block */
+.comm-checks{margin-top:18px;padding:0;list-style:none;display:inline-flex;flex-direction:column;align-items:flex-start;text-align:left;gap:10px}
 .comm-checks li{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--ink)}
 .comm-checks svg{width:18px;height:18px;color:#1f9d5b;flex:none}
 html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 .comm-cta-row{margin-top:24px;display:flex;align-items:center;gap:16px}
 .comm-btn{flex:none;min-height:48px;padding:13px 26px;font-size:15.5px}
-.comm-mock{
-  position:relative;z-index:1;min-width:0;border-radius:18px;overflow:hidden;
-  background:var(--gl-card-solid);border:1px solid var(--gl-border-strong);
-  box-shadow:0 24px 54px -26px rgba(4,8,18,.6);
-}
-.cm-head{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--gl-border)}
-.cm-hash{font:700 16px/1 var(--grotesk);color:var(--gl-micro)}
-.cm-head b{font:600 13.5px/1 var(--sans);color:var(--gl-ink)}
-.cm-presence{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font:600 10.5px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gl-green)}
-.cm-presence i{width:7px;height:7px;border-radius:50%;background:var(--gl-green);font-style:normal;box-shadow:0 0 0 3px rgba(74,222,128,.16)}
-.cm-body{padding:15px 16px 16px;display:grid;gap:14px}
-.cm-msg{display:grid;grid-template-columns:34px 1fr;gap:11px;align-items:start}
-.cm-av{width:34px;height:34px;border-radius:50%;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
-.cm-av i{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:#23a55a;border:2px solid var(--gl-card-solid);font-style:normal}
-.cm-lines{display:grid;gap:6px;padding-top:3px;min-width:0}
-.cm-lines i{display:block;height:8px;border-radius:99px;background:var(--gl-track);font-style:normal}
-.cm-lines .ln-name{height:9px;background:rgba(126,162,255,.5)}
-html[data-theme="light"] .cm-lines .ln-name{background:rgba(88,101,242,.35)}
 @media (max-width:900px){
-  .comm-card{grid-template-columns:1fr;gap:26px;align-items:stretch}
+  .comm-card{gap:26px}
   .comm-cta-row{flex-direction:column;align-items:stretch}
   .comm-btn{justify-content:center}
 }
@@ -2221,23 +2206,6 @@ html[data-theme="light"] .cm-lines .ln-name{background:rgba(88,101,242,.35)}
         <a class="btn btn-primary comm-btn" href="/api/community">Join our Discord</a>
       </div>
     </div>
-    <div class="comm-mock" aria-hidden="true">
-      <div class="cm-head"><span class="cm-hash">#</span><b>owners-lounge</b><span class="cm-presence"><i></i>online</span></div>
-      <div class="cm-body">
-        <div class="cm-msg">
-          <span class="cm-av" style="background:linear-gradient(135deg,#23262e,#4b5162)"><i></i></span>
-          <span class="cm-lines"><i class="ln-name" style="width:27%"></i><i style="width:82%"></i><i style="width:58%"></i></span>
-        </div>
-        <div class="cm-msg">
-          <span class="cm-av" style="background:linear-gradient(135deg,#b8860b,#ffd23f)"><i></i></span>
-          <span class="cm-lines"><i class="ln-name" style="width:34%"></i><i style="width:46%"></i></span>
-        </div>
-        <div class="cm-msg">
-          <span class="cm-av" style="background:linear-gradient(135deg,#5865f2,#7ea2ff)"><i></i></span>
-          <span class="cm-lines"><i class="ln-name" style="width:21%"></i><i style="width:74%"></i></span>
-        </div>
-      </div>
-    </div>
   </div>
 </section>
 
@@ -2330,7 +2298,7 @@ html[data-theme="light"] .cm-lines .ln-name{background:rgba(88,101,242,.35)}
   </div>
 </footer>
 
-<script src="/sky.js?v=177" defer></script>
+<script src="/sky.js?v=178" defer></script>
 <script>
 (function(){
   'use strict';
