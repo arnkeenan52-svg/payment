@@ -1532,6 +1532,10 @@ const THEME_DEFAULTS = { bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4', accen
 // Mirror of BG_PRESETS in src/lib/theme.js — ids, tones and how each one
 // paints its picker thumbnail. `thumb` (an image) covers photo presets and
 // stands in for the live cloud shader; css presets thumbnail themselves.
+// free: true marks a plain gradient ground — no photograph, no animation.
+// Those are the colour way, and the colour way is free. Everything else here
+// is a wallpaper and needs a plan. src/lib/theme.js FREE_BG_PRESETS is the
+// server's copy of the same ten; a scenario in the suite holds them together.
 const BG_CATALOG = [
   { id: 'clouds-day', label: 'Clouds · day', tone: 'light', thumb: '/sky-day-tall.jpg', live: true },
   { id: 'clouds-night', label: 'Clouds · night', tone: 'dark', thumb: '/sky-night-tall.jpg', live: true },
@@ -1567,16 +1571,16 @@ const BG_CATALOG = [
   { id: 'confetti', label: 'Confetti', tone: 'dark' },
   { id: 'smoke', label: 'Smoke', tone: 'dark' },
   { id: 'golddust', label: 'Gold dust', tone: 'dark' },
-  { id: 'midnight', label: 'Midnight', tone: 'dark' },
-  { id: 'denim', label: 'Denim', tone: 'dark' },
-  { id: 'royal', label: 'Royal', tone: 'dark' },
-  { id: 'emerald', label: 'Emerald', tone: 'dark' },
-  { id: 'rose', label: 'Rose', tone: 'dark' },
-  { id: 'gold', label: 'Gold', tone: 'dark' },
-  { id: 'slate', label: 'Slate', tone: 'dark' },
-  { id: 'lavender', label: 'Lavender', tone: 'light' },
-  { id: 'mint', label: 'Mint', tone: 'light' },
-  { id: 'ember', label: 'Ember', tone: 'dark' },
+  { id: 'midnight', label: 'Midnight', tone: 'dark' , free: true},
+  { id: 'denim', label: 'Denim', tone: 'dark' , free: true},
+  { id: 'royal', label: 'Royal', tone: 'dark' , free: true},
+  { id: 'emerald', label: 'Emerald', tone: 'dark' , free: true},
+  { id: 'rose', label: 'Rose', tone: 'dark' , free: true},
+  { id: 'gold', label: 'Gold', tone: 'dark' , free: true},
+  { id: 'slate', label: 'Slate', tone: 'dark' , free: true},
+  { id: 'lavender', label: 'Lavender', tone: 'light' , free: true},
+  { id: 'mint', label: 'Mint', tone: 'light' , free: true},
+  { id: 'ember', label: 'Ember', tone: 'dark' , free: true},
 ];
 const THEME_PRESETS = [
   ['Midnight', THEME_DEFAULTS],
@@ -1626,7 +1630,7 @@ function contrastRatio(a, b) {
   return (x + 0.05) / (y + 0.05);
 }
 
-function appearanceBody(store) {
+function appearanceBody(store, paid) {
   const t = { ...THEME_DEFAULTS, ...(store.theme ?? {}) };
   const ink = (hex) => {
     const n = parseInt(hex.slice(1), 16);
@@ -1669,17 +1673,17 @@ function appearanceBody(store) {
         <div class="bgp-grid" role="group" aria-label="Store background">
           <button type="button" class="bgp" data-bgp=""><span class="bgp-thumb bgp-none">&times;</span><span class="bgp-name">None</span></button>
           ${BG_CATALOG.map((b) =>
-            `<button type="button" class="bgp" data-bgp="${b.id}">
+            `<button type="button" class="bgp${b.free || paid ? '' : ' bgp-locked'}" data-bgp="${b.id}">
                <span class="bgp-thumb">${
                  b.thumb
-                   ? `<img src="${b.thumb}" alt="" loading="lazy" />${b.live ? '<span class="bgp-live">LIVE</span>' : ''}`
-                   : `<span class="store-bg sbg-thumb" data-bg="${b.id}"><span class="sbg-a"></span><span class="sbg-b"></span><span class="sbg-c"></span></span>`
+                   ? `<img src="${b.thumb}" alt="" loading="lazy" />${b.live ? '<span class="bgp-live">LIVE</span>' : ''}${b.free || paid ? '' : '<span class="bgp-lock">Pro</span>'}`
+                   : `<span class="store-bg sbg-thumb" data-bg="${b.id}"><span class="sbg-a"></span><span class="sbg-b"></span><span class="sbg-c"></span></span>${b.free || paid ? '' : '<span class="bgp-lock">Pro</span>'}`
                }</span>
                <span class="bgp-name">${b.label}</span>
              </button>`).join('')}
         </div>
-        <label class="bgp-url-row">
-          <span class="th-sw-name">Or import your own — a GIF, image, or MP4/WebM video URL</span>
+        <label class="bgp-url-row${paid ? '' : ' bgp-locked'}">
+          <span class="th-sw-name">Or import your own — a GIF, image, or MP4/WebM video URL${paid ? '' : ' · Pro'}</span>
           <input type="url" id="th-bgurl" placeholder="https://…/background.gif" value="${esc(t.bgUrl ?? '')}" spellcheck="false" />
         </label>
           </div>
@@ -1858,16 +1862,14 @@ function sectionStore(store, link, paid = true) {
     ${setCard({
       id: 'st-card-theme',
       title: 'Appearance',
-      sub: paid
-        ? 'Make the store yours — colors, corners and type. Buyers see it instantly.'
-        : 'A custom look is on Pro and up. Your store wears the signature black until then.',
+      sub: 'Make the store yours — colors, corners and type. Buyers see it instantly.',
       // Locked rather than hidden: an owner deciding whether to upgrade should
       // be able to SEE what they would get. Anything they set here is refused
       // by the server anyway, so the controls are disabled rather than merely
       // discouraged, and Reset stays live — undoing never needs a plan.
-      body: (paid ? '' : `<div class="lock-note">${I.lock ?? ''}<span><b>Included from Pro.</b> Every colour, all 46 backgrounds, glass and liquid cards, corners and type. Your saved colours are kept while you are on Free — they come straight back when you upgrade.</span><a class="btn-pill" href="#/store/${esc(store.slug)}/billing">See plans</a></div>`)
-        + `<div class="th-wrap${paid ? '' : ' th-locked'}">${appearanceBody(store)}</div>`,
-      foot: `<span class="appearance-foot"><button class="btn-pill" id="th-save"${paid ? '' : ' disabled'}>Save appearance</button>
+      body: (paid ? '' : `<div class="lock-note">${I.lock ?? ''}<span><b>Colours are yours on every plan</b> — all six themes, your own colours, corners, type, and the ten plain gradient grounds. The photo and animated wallpapers, and importing your own, are on Pro and up.</span><a class="btn-pill" href="#/store/${esc(store.slug)}/billing">See plans</a></div>`)
+        + `<div class="th-wrap">${appearanceBody(store, paid)}</div>`,
+      foot: `<span class="appearance-foot"><button class="btn-pill" id="th-save">Save appearance</button>
         <button class="btn-ghost" id="th-reset">Reset to default</button>
         <span class="note-help" id="th-note" role="status"></span></span>`,
     })}
@@ -2829,12 +2831,12 @@ function wireAppearance(store, slug) {
   // them, and the live preview still repainted — then Save was disabled and
   // the work vanished with no explanation. A control that cannot be saved
   // must be honestly disabled, not merely unclickable.
-  document
-    .querySelectorAll('.th-locked button, .th-locked input, .th-locked select, .th-locked summary')
-    .forEach((el) => {
-      if (el.tagName === 'SUMMARY') { el.setAttribute('tabindex', '-1'); el.setAttribute('aria-disabled', 'true'); return; }
-      el.disabled = true;
-    });
+  // pointer-events:none stops a mouse and nothing else — Tab still reached
+  // these, Enter still applied them, the preview still repainted, and then the
+  // save was refused with nothing said. A control that cannot be used must be
+  // honestly disabled. Only the paid wallpapers are locked now; every colour
+  // control on this card is live on every plan.
+  document.querySelectorAll('.bgp-locked, .bgp-locked input').forEach((el) => { el.disabled = true; });
   const read = () => ({
     bg: $('#th-bg').value,
     panel: $('#th-panel').value,

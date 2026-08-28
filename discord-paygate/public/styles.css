@@ -4101,3 +4101,15 @@ html[data-theme='light'] .callout:not(.pending) {
 .lock-note b { color: var(--ink); font-weight: 600; }
 .lock-note .btn-pill { flex: none; }
 .th-locked { opacity: 0.5; pointer-events: none; filter: saturate(0.6); }
+
+/* A wallpaper a free store cannot use: dimmed, genuinely disabled, and marked.
+   The rest of the picker — the ten plain gradient grounds — stays live, as do
+   every colour, corner and typeface on the card. Colours are not a paid
+   feature; the photographs and the animated grounds are. */
+.bgp-locked { opacity: 0.45; cursor: not-allowed; }
+.bgp-locked:hover { opacity: 0.45; }
+.bgp-lock {
+  position: absolute; right: 4px; bottom: 4px;
+  font: 700 9px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase;
+  color: #ffffff; background: rgba(10, 16, 30, 0.72); border-radius: 4px; padding: 3px 5px;
+}

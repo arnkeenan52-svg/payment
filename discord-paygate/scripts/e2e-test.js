@@ -787,6 +787,55 @@ test('the iOS status-bar strip is on every themed page, with both of its colours
   );
 });
 
+test('the free look: colours on every plan, wallpapers on a paid one', async () => {
+  const theme = await import('../src/lib/theme.js');
+  // The split has to mean the same thing in three places or it is not a split:
+  // the server that strips a look, the picker that offers one, and the page
+  // that sells the difference.
+  assert.equal(theme.FREE_BG_PRESETS.length, 10, 'ten plain gradient grounds are free');
+  for (const id of theme.FREE_BG_PRESETS) {
+    assert.equal(theme.usesPaidLook({ bgPreset: id }), false, `${id} must be free`);
+  }
+  for (const id of ['starfield', 'aurora', 'clouds-day', 'mountains', 'rain']) {
+    assert.equal(theme.usesPaidLook({ bgPreset: id }), true, `${id} is a wallpaper and must need a plan`);
+  }
+  assert.equal(theme.usesPaidLook({ bgUrl: 'https://example.com/a.gif' }), true, 'an import is a wallpaper');
+  assert.equal(theme.usesPaidLook({ bg: '#0a0a0a', accent: '#ededed', radius: 4 }), false, 'colours alone are free');
+
+  // Stripping keeps everything a free store is entitled to and nothing more.
+  const stripped = theme.freeLook({ bg: '#123456', panel: '#222222', text: '#ffffff', accent: '#ff0000',
+    pay: '#5865f2', radius: 8, font: 'serif', material: 'liquid', bgPreset: 'starfield', bgUrl: 'https://e.com/x.mp4' });
+  assert.deepEqual(stripped, { bg: '#123456', panel: '#222222', text: '#ffffff', accent: '#ff0000',
+    pay: '#5865f2', radius: 8, font: 'serif', material: 'liquid' }, 'colours survive, wallpapers do not');
+  assert.deepEqual(theme.freeLook({ bg: '#000000', bgPreset: 'denim' }), { bg: '#000000', bgPreset: 'denim' },
+    'a free gradient ground is left alone');
+
+  // The picker's copy of the list must not drift from the server's.
+  const dash = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
+  const catalogue = dash.match(/const BG_CATALOG = \[[\s\S]*?\n\];/)[0];
+  const flagged = [...catalogue.matchAll(/\{ id: '([a-z0-9-]+)'[^}]*free: true/g)].map((m) => m[1]).sort();
+  assert.deepEqual(flagged, [...theme.FREE_BG_PRESETS].sort(),
+    'dashboard BG_CATALOG free flags must match FREE_BG_PRESETS');
+
+  // And the price page must not promise the old all-or-nothing deal.
+  const pricing = fs.readFileSync(new URL('../public/pricing.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(pricing, /Custom store look<\/span><b>Signature black/, 'Free is no longer black-only');
+  assert.match(pricing, /Your colors \+ 10 gradients/, 'Free advertises the colour way it actually gets');
+});
+
+test('every page on the site is reachable from a footer', async () => {
+  // A page nothing links to is a page nobody finds. The twelve comparisons are
+  // listed individually; the four libraries are listed as their index, which is
+  // the page that lists their own children.
+  const home = await (await fetch(`${appUrl}/`)).text();
+  const VS = ['whop', 'launchpass', 'subscord', 'patreon', 'doorfee', 'xoe',
+    'memberful', 'gumroad', 'ko-fi', 'buymeacoffee', 'upgrade-chat', 'mighty-networks'];
+  for (const v of VS) assert.match(home, new RegExp(`href="/vs/${v}"`), `footer must link /vs/${v}`);
+  for (const hub of ['/vs/', '/guides/', '/tools/', '/use-cases/', '/alternatives/']) {
+    assert.match(home, new RegExp(`href="${hub}"`), `footer must link the ${hub} index`);
+  }
+});
+
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
   assert.equal((await hitCron({ omitHeader: true })).status, 401);
   assert.equal((await hitCron({ secret: 'wrong-secret' })).status, 401);
@@ -2657,14 +2706,26 @@ test('store themes: validated tokens in, server-rendered CSS out', async () => {
       body: JSON.stringify({ store: 'vip-signals', theme }),
     });
 
-  // A CUSTOM LOOK IS A PAID FEATURE, so before anything else: on the free plan
-  // a valid theme is refused outright, and the storefront renders the platform
-  // black rather than whatever is on the row.
+  // THE COLOUR WAY IS FREE, THE WALLPAPER IS NOT. A free store may save every
+  // colour, corner, typeface and material, and the ten plain gradient grounds;
+  // it may not save a photograph, an animated ground, or an imported URL.
   const U7ID = '507700000000000007';
   await tq('DELETE FROM platform_billing WHERE owner_discord_id = ?', [U7ID]);
-  const freeTry = await setTheme({ bg: '#071209' });
-  assert.equal(freeTry.status, 402, 'a free store cannot buy itself a custom look');
+  assert.equal((await setTheme({ bg: '#071209', accent: '#22c55e', radius: 20 })).status, 200,
+    'a free store may set its own colours');
+  assert.equal((await setTheme({ bg: '#071209', bgPreset: 'denim' })).status, 200,
+    'a free store may use a plain gradient ground');
+  const freeTry = await setTheme({ bg: '#071209', bgPreset: 'starfield' });
+  assert.equal(freeTry.status, 402, 'a free store cannot save an animated wallpaper');
   assert.equal((await freeTry.json()).upgrade, true, 'and the refusal points at the plan');
+  assert.equal((await setTheme({ bgUrl: 'https://example.com/bg.gif' })).status, 402,
+    'nor import one of its own');
+  // What a free store DID save must survive on the storefront — the gate takes
+  // the wallpaper off a look, it does not throw the whole look away.
+  assert.equal((await setTheme({ bg: '#071209', accent: '#22c55e' })).status, 200);
+  const freePub = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  assert.equal(freePub.store.theme?.bg, '#071209', 'a free store keeps the colours it chose');
+  assert.equal(freePub.store.theme?.bgPreset, undefined, 'and carries no wallpaper');
   // Clearing is NOT gated — undoing must never need a subscription.
   assert.equal((await setTheme(null)).status, 200, 'anyone may reset to the default look');
 
@@ -2711,14 +2772,13 @@ test('store themes: validated tokens in, server-rendered CSS out', async () => {
   // platform's own black on BOTH render paths. A write-time gate alone would
   // let an owner theme a store, cancel, and keep the look for nothing.
   await tq('DELETE FROM platform_billing WHERE owner_discord_id = ?', [U7ID]);
-  assert.equal(
-    (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).store.theme,
-    null,
-    'a free storefront is handed no custom theme',
-  );
+  const lapsedTheme = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).store.theme;
+  assert.equal(lapsedTheme.bgPreset, undefined, 'a lapsed store loses the wallpaper it was renting');
+  assert.equal(lapsedTheme.bgUrl, undefined, 'and any import with it');
+  assert.equal(lapsedTheme.material, 'liquid', 'but keeps the look it set, which was never rented');
   const lapsed = await (await fetch(`${appUrl}/vip-signals`)).text();
-  assert.ok(!/id="store-theme"/.test(lapsed), 'and none is server-rendered either');
-  assert.ok(!/class="store-bg"/.test(lapsed), 'nor the custom background layer');
+  assert.match(lapsed, /id="store-theme"/, 'the colour way is still server-rendered');
+  assert.ok(!/class="store-bg"/.test(lapsed), 'the wallpaper layer is not');
   // The row still holds them, so re-subscribing restores the exact look.
   const stillStored = (await tq("SELECT theme FROM stores WHERE slug = 'vip-signals'")).rows[0].theme;
   assert.match(String(stillStored), /aurora/, 'the tokens are parked, not deleted');

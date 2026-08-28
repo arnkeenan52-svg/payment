@@ -11,6 +11,7 @@ import { config } from '../config.js';
 import * as db from '../db.js';
 import { stripeFetch, subscriptionPeriodEnd, getSubscription } from '../lib/stripe.js';
 import { storesOwnedBy } from './stores.js';
+import { freeLook } from '../lib/theme.js';
 
 // yearlyUsd = 10 months — two months free on yearly, like the reference.
 export const TIERS = [
@@ -64,7 +65,12 @@ export async function themeIfPaid(store) {
   // The built-in store IS the platform — its look is not a customer's.
   if (store.isDefault) return store.theme;
   const { tier, exempt } = await billingFor(store.ownerDiscordId);
-  return exempt || (tier && tier.id !== 'free') ? store.theme : null;
+  if (exempt || (tier && tier.id !== 'free')) return store.theme;
+  // A free store used to be sent back the signature black wholesale, which
+  // threw away colours the seller had chosen and could keep. It keeps the
+  // whole colour way now — presets, custom colours, corners, type, material —
+  // and loses only the wallpapers, which is what the plan is actually for.
+  return freeLook(store.theme);
 }
 
 // The same question, for the dashboard and the settings endpoint.

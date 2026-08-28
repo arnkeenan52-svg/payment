@@ -5,7 +5,7 @@ import * as db from '../../src/db.js';
 import { adminStoreBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
 import { stripeFetch, isStripeKey } from '../../src/lib/stripe.js';
-import { validateTheme } from '../../src/lib/theme.js';
+import { validateTheme, usesPaidLook } from '../../src/lib/theme.js';
 import { canCustomise } from '../../src/services/billing.js';
 import { isStoreCategory } from '../../src/services/stores.js';
 import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
@@ -132,9 +132,15 @@ export default guard(async function handler(req, res) {
     // undo something, and a free owner whose plan lapsed must still be able
     // to tidy up. The rendering gate in billing.js is what actually decides
     // what a visitor sees; this only stops a free owner filling the field.
-    if (clean && !(await canCustomise(store.ownerDiscordId))) {
+    // Colours are free — every preset, every custom colour, corners, type,
+    // material, and the ten plain gradient grounds. Only the wallpapers (the
+    // photographs, the animated grounds, an imported URL) need a plan, so only
+    // a theme that reaches for one is refused. Clearing back to the platform's
+    // black stays open to everyone: nobody should need a subscription to undo
+    // something, and an owner whose plan lapsed must still be able to tidy up.
+    if (clean && usesPaidLook(clean) && !(await canCustomise(store.ownerDiscordId))) {
       return sendJson(res, 402, {
-        error: 'Custom store colours and backgrounds are on the Pro plan and up. Your store keeps the signature black until then.',
+        error: 'Photo and animated backgrounds are on the Pro plan and up. Colours, corners and type are yours on every plan, including the plain gradient grounds.',
         upgrade: true,
       });
     }

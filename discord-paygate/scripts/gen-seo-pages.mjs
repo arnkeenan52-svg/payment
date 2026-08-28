@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://dues.gg';
-const V = '192'; // keep in step with the ?v= asset version on index.html
+const V = '193'; // keep in step with the ?v= asset version on index.html
 // Describes the shared link-preview card (public/og-card.jpg), which is a
 // render of the homepage hero — see scripts/build-og-card.mjs.
 const OG_ALT =
@@ -359,7 +359,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=192" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=193" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/discover">Discover</a>
@@ -376,7 +376,7 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=192" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=193" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -387,8 +387,13 @@ export const footerHtml = `
       <a href="/vs/whop">Dues vs Whop</a><a href="/vs/launchpass">Dues vs LaunchPass</a>
       <a href="/vs/subscord">Dues vs Subscord</a><a href="/vs/doorfee">Dues vs DoorFee</a>
       <a href="/vs/xoe">Dues vs XOE</a><a href="/vs/patreon">Dues vs Patreon</a>
+      <a href="/vs/memberful">Dues vs Memberful</a><a href="/vs/gumroad">Dues vs Gumroad</a>
+      <a href="/vs/ko-fi">Dues vs Ko-fi</a><a href="/vs/buymeacoffee">Dues vs Buy Me a Coffee</a>
+      <a href="/vs/upgrade-chat">Dues vs Upgrade.Chat</a><a href="/vs/mighty-networks">Dues vs Mighty Networks</a>
+      <a href="/vs/">All comparisons</a>
       <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
-      <a href="/alternatives/whop-alternatives">Whop alternatives</a></nav>
+      <a href="/alternatives/whop-alternatives">Whop alternatives</a>
+      <a href="/alternatives/">All alternatives</a></nav>
     <nav class="footer-col"><span class="footer-head">Guides</span>
       <a href="/guides/best-discord-monetization-platform">Best platform to use</a>
       <a href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
@@ -434,7 +439,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta property="og:type" content="website" />
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
-  <meta property="og:image" content="${BASE}/og-card.jpg?v=192" />
+  <meta property="og:image" content="${BASE}/og-card.jpg?v=193" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -448,7 +453,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
-  <meta name="twitter:image" content="${BASE}/og-card.jpg?v=192" />
+  <meta name="twitter:image" content="${BASE}/og-card.jpg?v=193" />
   <meta name="twitter:image:alt" content="${esc(OG_ALT)}" />
   <!-- Icons. favicon.ico stays at a stable, UNVERSIONED url on purpose: Google
        caches the search-result favicon by URL, and a moving ?v= resets it.
@@ -462,7 +467,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   <style>${DAY_CSS}</style>
   ${ld}
-  <script src="/theme.js?v=192"></script>
+  <script src="/theme.js?v=193"></script>
 </head>
 <body class="home seo-page">
 ${nav}

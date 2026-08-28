@@ -23,6 +23,42 @@ export const THEME_FONTS = {
 
 export const THEME_KEYS = ['bg', 'panel', 'text', 'accent', 'pay', 'radius', 'font', 'bgPreset', 'bgUrl', 'material'];
 
+// Where the paid line falls inside a store's look.
+//
+// The COLOUR WAY is free: every preset, every custom colour, corners, type and
+// material. So is a plain gradient ground — these ten are flat CSS gradients
+// with no animation and no photograph behind them, which is the cheap half of
+// the catalogue in every sense.
+//
+// The WALLPAPERS are paid: the sixteen photographs, the eighteen animated
+// grounds, and any URL a seller imports. Those are the ones that make a store
+// look like it cost something, and they are what a plan buys.
+//
+// public/dashboard.js carries the same ten on its BG_CATALOG entries as
+// `free: true`. The two lists must agree; a scenario in the suite asserts it,
+// because a picker that offers what the server strips is worse than either.
+export const FREE_BG_PRESETS = Object.freeze([
+  'denim', 'ember', 'emerald', 'gold', 'lavender', 'midnight', 'mint', 'rose', 'royal', 'slate',
+]);
+const FREE_BG = new Set(FREE_BG_PRESETS);
+
+// Does this theme reach past what a free store may show?
+export function usesPaidLook(theme) {
+  if (!theme) return false;
+  if (theme.bgUrl) return true;
+  return Boolean(theme.bgPreset && !FREE_BG.has(theme.bgPreset));
+}
+
+// The same theme with the paid parts taken out — colours intact.
+export function freeLook(theme) {
+  if (!theme) return theme;
+  if (!usesPaidLook(theme)) return theme;
+  const out = { ...theme };
+  delete out.bgUrl;
+  if (out.bgPreset && !FREE_BG.has(out.bgPreset)) delete out.bgPreset;
+  return out;
+}
+
 // The background catalog. Every preset is served from this origin — CSS
 // scenes, the live cloud shader, or a JPG under /bg — so picking one can
 // never point a buyer's browser anywhere but dues.gg. `tone: 'light'`
