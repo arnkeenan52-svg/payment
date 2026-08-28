@@ -19,7 +19,7 @@ import { config } from '../config.js';
 import { getAppSecret, setAppSecret } from '../db.js';
 
 // Bump when the shipped cards change — that is what re-arms the refresh.
-const BRAND_VERSION = 'sky-158';
+const BRAND_VERSION = 'sky-188-links';
 const API = (process.env.DISCORD_API_BASE ?? 'https://discord.com/api/v10').replace(/\/$/, '');
 
 // Mirrors [marker] + [channel] in content/<name>.txt.
@@ -51,19 +51,41 @@ const fetchAsset = async (path) => {
   return Buffer.from(await res.arrayBuffer());
 };
 
+// The rendered body for a standing post, published to public/posts/ by
+// scripts/gen-post-bodies.mjs. null when it cannot be fetched or parsed —
+// callers keep the text already on the message rather than risk blanking it.
+async function shippedBody(name) {
+  try {
+    const res = await fetch(`${config.publicBaseUrl}/posts/${name}.json`, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) return null;
+    const body = (await res.json())?.description;
+    return typeof body === 'string' && body.trim() && body.length <= 4096 ? body : null;
+  } catch {
+    return null;
+  }
+}
+
 async function refreshStandingPost(me, { name, channel, marker }) {
   const png = await fetchAsset(`/cards/${name}.png`);
   const messages = await call(`/channels/${channel}/messages?limit=50`);
   const mine = messages.find((m) => m.author?.id === me.id && m.embeds?.some((e) => e.footer?.text === marker));
   if (!mine) return 'not found';
   const old = mine.embeds.find((e) => e.footer?.text === marker);
-  // The text stays exactly as posted — only the picture changes. Rebuilt
-  // minimal (Discord decorates fetched embeds with proxy fields it would
-  // reject back), attachments:[] drops the old card, the multipart part
+  // The picture AND the words. content/*.txt is the source of truth for what
+  // these messages say, but it is only read when a human runs post-message.mjs
+  // with the bot token — so a wording fix could sit correct in the repo and
+  // wrong in Discord indefinitely, which is exactly how a dead Threads link
+  // outlived its removal. The shipped body arrives over https from public/,
+  // the same way the card does, and a fetch that fails leaves the existing
+  // text alone: this may correct a message, never blank one.
+  const shipped = await shippedBody(name);
+  const description = shipped ?? old.description;
+  // Rebuilt minimal (Discord decorates fetched embeds with proxy fields it
+  // would reject back), attachments:[] drops the old card, the multipart part
   // re-adds the new one under the same name.
   const embed = {
     ...(old.title ? { title: old.title } : {}),
-    ...(old.description ? { description: old.description } : {}),
+    ...(description ? { description } : {}),
     ...(typeof old.color === 'number' ? { color: old.color } : {}),
     footer: { text: marker },
     image: { url: `attachment://${name}.png` },
@@ -72,7 +94,7 @@ async function refreshStandingPost(me, { name, channel, marker }) {
   form.set('payload_json', JSON.stringify({ embeds: [embed], attachments: [], allowed_mentions: { parse: [] } }));
   form.set('files[0]', new Blob([png], { type: 'image/png' }), `${name}.png`);
   await call(`/channels/${channel}/messages/${mine.id}`, { method: 'PATCH', body: form });
-  return 'updated';
+  return shipped && shipped !== old.description ? 'updated (text + card)' : 'updated';
 }
 
 // The pinned #welcome post from setup-community.mjs is text-only and has no
