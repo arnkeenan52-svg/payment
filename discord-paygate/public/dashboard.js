@@ -309,7 +309,7 @@ async function viewAdmin() {
 
       <section class="panel table-panel">
         <div class="card-head"><div><h3>Stores</h3><p class="card-sub">Everyone who set up the bot — live and still in setup.</p></div></div>
-        <div class="table-scroll"><table class="data-table t-pay"><thead><tr>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-pay"><thead><tr>
           <th>Store</th><th>Owner</th><th>Status</th><th>Plan</th><th class="num">Members</th><th class="num">Revenue</th><th>Created</th>
         </tr></thead><tbody>${d.stores.map(storeRow).join('') || '<tr><td colspan="7" class="dim">No stores yet.</td></tr>'}</tbody></table></div>
         <p class="rows-note">${d.stores.length} store(s) · ${t.sellers} seller(s)</p>
@@ -323,7 +323,7 @@ async function viewAdmin() {
             <option value="">Everyone</option><option value="seller">Sellers</option><option value="member">Active members</option>
           </select>
         </div>
-        <div class="table-scroll"><table class="data-table t-pay"><thead><tr>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-pay"><thead><tr>
           <th>User</th><th>Roles</th><th class="num">Purchases</th><th class="num">Spent</th><th>First seen</th><th>Last seen</th>
         </tr></thead><tbody id="au-body">${d.users.map(userRow).join('')}</tbody></table></div>
         <p class="rows-note" id="au-count">${d.users.length} account(s)</p>
@@ -893,8 +893,15 @@ function niceCeil(v) {
 // area beneath it, the previous period as a dashed muted line on the same
 // scale, hairline gridlines with clean tick labels. Hover (wired after
 // render) adds a crosshair, a dot on each line and a two-period tooltip.
+// One geometry, read by both the renderer and the hover handler. They used to
+// declare these five independently — revenueChart at its top, wireChartHover
+// again ~96 lines later — and a drift between the two copies does not throw
+// and does not look broken: it puts every crosshair and dot at a fixed offset
+// from the line it is supposed to be tracking.
+const CHART = { W: 920, H: 190, padL: 44, padB: 20, padT: 8 };
+
 function revenueChart(series) {
-  const W = 920, H = 190, padL = 44, padB = 20, padT = 8;
+  const { W, H, padL, padB, padT } = CHART;
   const { curVals, prevVals, labels } = series;
   const n = curVals.length || 1;
   const plotW = W - padL - 6, plotH = H - padB - padT;
@@ -919,9 +926,23 @@ function revenueChart(series) {
     .map((f) => {
       const gy = y(max * f);
       const baselineRow = f === 0;
-      return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - 6}" y2="${gy.toFixed(1)}" stroke="var(--edge)" stroke-width="1"${baselineRow ? '' : ' stroke-dasharray="3 5" opacity="0.6"'} />
-        <text x="${padL - 8}" y="${(gy + 3.5).toFixed(1)}" text-anchor="end" class="tick">${money(max * f)}</text>`;
+      return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - 6}" y2="${gy.toFixed(1)}" stroke="var(--edge)" stroke-width="1"${baselineRow ? '' : ' stroke-dasharray="3 5" opacity="0.6"'} />`;
     })
+    .join('');
+  // The axis labels are HTML, not SVG <text>, and this is the whole reason.
+  // The viewBox is 920 units wide and the chart renders at the container's
+  // width, so everything inside is scaled by (rendered / 920). A label
+  // declared at 10.5px therefore rendered at 2.9px on a 360px phone and 8.1px
+  // on a 1440px desktop — it never once appeared at its declared size, and no
+  // amount of raising that number fixes the ratio.
+  //
+  // Positions are percentages computed from the SAME geometry the line uses,
+  // because padL is 4.8% of the viewBox: a naive flex row or a plain
+  // i/(n-1) spread misregisters every label against the gridline it annotates.
+  const pctX = (i) => `${((x(i) / W) * 100).toFixed(3)}%`;
+  const pctY = (v) => `${((y(v) / H) * 100).toFixed(3)}%`;
+  const yLabels = [0, 0.5, 1]
+    .map((f) => `<span style="top:${pctY(max * f)}">${esc(money(max * f))}</span>`)
     .join('');
 
   const curPts = curVals.map((v, i) => [x(i), y(v)]);
@@ -952,28 +973,43 @@ function revenueChart(series) {
   const peakY = y(curVals[peak]) - 8;
   const peakLabel =
     curVals[peak] > 0 && peakY >= padT + 9
-      ? `<circle cx="${x(peak).toFixed(1)}" cy="${y(curVals[peak]).toFixed(1)}" r="3" fill="var(--accent)" />
-         <text x="${x(peak).toFixed(1)}" y="${peakY.toFixed(1)}" text-anchor="middle" class="peak">${usd(curVals[peak])}</text>`
+      ? `<circle cx="${x(peak).toFixed(1)}" cy="${y(curVals[peak]).toFixed(1)}" r="3" fill="var(--accent)" />`
+      : '';
+  const peakHtml =
+    curVals[peak] > 0 && peakY >= padT + 9
+      ? `<b class="rev-peak" style="left:${pctX(peak)};top:${pctY(curVals[peak])}">${esc(usd(curVals[peak]))}</b>`
       : '';
 
-  const xt = [0, Math.floor((n - 1) / 4), Math.floor((n - 1) / 2), Math.floor((3 * (n - 1)) / 4), n - 1].filter(
-    (v, i, a) => a.indexOf(v) === i,
-  );
+  // Five dates fit a desktop chart and collide on a phone, so a narrow one
+  // gets the two that carry the range: first and last.
+  const narrow = typeof window !== 'undefined' && window.innerWidth < 640;
+  const xt = (narrow
+    ? [0, n - 1]
+    : [0, Math.floor((n - 1) / 4), Math.floor((n - 1) / 2), Math.floor((3 * (n - 1)) / 4), n - 1]
+  ).filter((v, i, a) => a.indexOf(v) === i);
   const xLabels = xt
-    .map((i) => `<text x="${x(i).toFixed(1)}" y="${H - 5}" text-anchor="middle" class="tick">${esc(labels[i] ?? '')}</text>`)
+    .map((i) => `<span style="left:${pctX(i)}">${esc(labels[i] ?? '')}</span>`)
     .join('');
 
-  return `<svg class="rev-chart" viewBox="0 0 ${W} ${H}" data-max="${max}" role="img" aria-label="Revenue over time with previous-period comparison">
+  // A positioning context that is exactly the SVG's box. .chart-card is also
+  // position:relative but it contains the card header too, so percentages
+  // measured against it would be offset by the header's height.
+  return `<div class="rev-wrap">
+  <svg class="rev-chart" viewBox="0 0 ${W} ${H}" data-max="${max}" role="img" aria-label="Revenue over time with previous-period comparison">
     <defs><linearGradient id="rev-fade" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" style="stop-color:var(--accent);stop-opacity:0.2" />
       <stop offset="0.55" style="stop-color:var(--accent);stop-opacity:0.06" />
       <stop offset="1" style="stop-color:var(--accent);stop-opacity:0" />
     </linearGradient></defs>
-    ${grid}${area}${prevLine}${line}${endDot}${peakLabel}${xLabels}
+    ${grid}${area}${prevLine}${line}${endDot}${peakLabel}
     <line class="xhairline" x1="0" y1="${padT}" x2="0" y2="${base}" stroke="var(--ink)" stroke-width="1" opacity="0" />
     <circle class="dot-prev" r="3" fill="var(--dim)" opacity="0" />
     <circle class="dot-cur" r="4" fill="var(--accent)" stroke="var(--panel)" stroke-width="1.5" opacity="0" />
-  </svg>`;
+  </svg>
+  <div class="rev-y" aria-hidden="true">${yLabels}</div>
+  <div class="rev-x" aria-hidden="true">${xLabels}</div>
+  ${peakHtml}
+  </div>`;
 }
 
 // Crosshair, a dot riding each line, and one tooltip reading BOTH series at
@@ -990,7 +1026,7 @@ function wireChartHover(card, series) {
   const dotPrev = svg.querySelector('.dot-prev');
   const { curVals, prevVals, labels } = series;
   const n = curVals.length;
-  const padL = 44, W = 920, H = 190, padT = 8, padB = 20;
+  const { W, H, padL, padB, padT } = CHART;
   const plotH = H - padB - padT;
   const max = Number(svg.dataset.max) || 1;
   const yFor = (v) => padT + plotH - (v / max) * plotH;
@@ -1243,7 +1279,7 @@ function sectionOverview(data, store, slug) {
         <a class="btn-secondary" href="#/store/${esc(slug)}/payments">View all ${I.arrow}</a></div>
         ${
           data.payments.length
-            ? `<div class="table-scroll"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>${paymentsRows(data.payments.slice(0, 8))}</tbody></table></div>`
+            ? `<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>${paymentsRows(data.payments.slice(0, 8))}</tbody></table></div>`
             : `<div class="empty-chart">No transactions yet — share your store link from the Store section.</div>`
         }
       </section>
@@ -1448,7 +1484,7 @@ function sectionProducts(products, data, slug) {
       </form>
       ${
         products.length
-          ? `<div class="table-scroll"><table class="data-table t-products"><thead><tr><th>Product</th><th class="num">Price</th><th>Billing</th><th class="num">Members</th><th class="num">Revenue</th><th>Active</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+          ? `<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-products"><thead><tr><th>Product</th><th class="num">Price</th><th>Billing</th><th class="num">Members</th><th class="num">Revenue</th><th>Active</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
           : '<div class="empty-chart">No products yet. <button class="btn-pill" id="prod-new-2">Add your first product</button></div>'
       }
       <p class="field-err" id="err-products" role="alert"></p>
@@ -1495,7 +1531,7 @@ function sectionDiscounts(discounts, products, slug) {
       </form>
       ${
         discounts.length
-          ? `<div class="table-scroll"><table class="data-table t-disc"><thead><tr><th>Code</th><th>Discount</th><th>Scope</th><th class="num">Uses</th><th>Expires</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+          ? `<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-disc"><thead><tr><th>Code</th><th>Discount</th><th>Scope</th><th class="num">Uses</th><th>Expires</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
           : '<div class="empty-chart">No discount codes yet.</div>'
       }
       <p class="field-err" id="err-discounts" role="alert"></p>
@@ -2169,7 +2205,7 @@ async function viewStore(slug) {
             <option value="">Status: all</option><option value="lifetime">Lifetime</option><option value="active">Active</option><option value="ended">Ended</option>
           </select>
         </div>
-        <div class="table-scroll"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="tx-body">${paymentsRows(data.payments)}</tbody></table></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead><tbody id="tx-body">${paymentsRows(data.payments)}</tbody></table></div>
         <p class="rows-note" id="tx-count">${data.payments.length} row(s)</p>
       </section>
 
@@ -2187,7 +2223,7 @@ async function viewStore(slug) {
             <option value="">Status: all</option><option value="completed">Paid</option><option value="started">Not finished</option>
           </select>
         </div>
-        <div class="table-scroll"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Started</th><th>Paid</th></tr></thead><tbody id="ck-body">${checkoutRows(checkouts)}</tbody></table></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-pay"><thead><tr><th>Customer</th><th>Product</th><th class="num">Amount</th><th>Status</th><th>Started</th><th>Paid</th></tr></thead><tbody id="ck-body">${checkoutRows(checkouts)}</tbody></table></div>
         <p class="rows-note" id="ck-count">${checkouts.length} row(s)</p>
       </section>`;
   } else if (section === 'members') {
@@ -2235,7 +2271,7 @@ async function viewStore(slug) {
         </form>
         ${
           members.length
-            ? `<div class="table-scroll"><table class="data-table t-members"><thead><tr><th>Member</th><th>Products</th><th class="num">Total spent</th><th>Status</th><th></th></tr></thead><tbody>${memberRows}</tbody></table></div>
+            ? `<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-members"><thead><tr><th>Member</th><th>Products</th><th class="num">Total spent</th><th>Status</th><th></th></tr></thead><tbody>${memberRows}</tbody></table></div>
                <p class="rows-note">${members.length} member(s)</p>`
             : '<div class="empty-chart">No members yet.</div>'
         }
@@ -2391,6 +2427,7 @@ async function viewStore(slug) {
     };
   }
 
+  wireTableScroll();
   if (section === 'members') wireMembers(slug);
   if (section === 'products' && !store.isDefault) wireProducts(store, slug, products);
   if (section === 'discounts' && !store.isDefault) wireDiscounts(store, slug);
@@ -2420,6 +2457,21 @@ async function viewStore(slug) {
     wireCurrency(store, slug);
     wireReceiptSettings(store, slug);
   }
+}
+
+// The sideways-scroll affordance on every data table. Same idiom as the
+// section nav: a fade on the right edge while there is more to reach, gone
+// once you are at the end. Called after every section render, and idempotent —
+// a table that already has its listener is skipped.
+function wireTableScroll() {
+  document.querySelectorAll('.table-scroll').forEach((el) => {
+    if (el.dataset.fade === '1') return;
+    el.dataset.fade = '1';
+    const upd = () => el.classList.toggle('scroll-more', el.scrollWidth - el.clientWidth - el.scrollLeft > 8);
+    el.addEventListener('scroll', upd, { passive: true });
+    window.addEventListener('resize', upd);
+    upd();
+  });
 }
 
 function wireMembers(slug) {

@@ -107,7 +107,121 @@
     html:not([data-theme='light']) .th-dev-btn:focus-visible { outline-color: #5865f2; }
     html:not([data-theme='light']) .th-range input,
     html:not([data-theme='light']) .disc-toggle input { accent-color: #5865f2; }
+
+    /* ── the design system's ramps ─────────────────────────────────────────
+       Sizes, spacing, radii and control heights, taken as a SYSTEM from the
+       reference pack. No colour here and no theme: these are the same numbers
+       on both faces, which is the whole point of a ramp.
+
+       The tracking matters as much as the sizes — copying 14px without
+       -0.005625em gives you the size and not the typeface's rhythm — so it
+       rides along with every step.
+
+       Nothing above this line is edited. This block ships after the <link> to
+       styles.css, which is the only reason the flat-white light face wins over
+       that stylesheet's blue day-sky palette. Nothing may re-open that. */
+    :root {
+      --fs-0: 10px; --lh-0: 12px; --ls-0:  0.00625em;
+      --fs-1: 12px; --lh-1: 16px; --ls-1:  0.000625em;
+      --fs-2: 14px; --lh-2: 20px; --ls-2: -0.005625em;
+      --fs-3: 16px; --lh-3: 24px; --ls-3: -0.01125em;
+      --fs-4: 18px; --lh-4: 26px; --ls-4: -0.01625em;
+      --fs-5: 20px; --lh-5: 28px; --ls-5: -0.020625em;
+      --fs-6: 24px; --lh-6: 30px; --ls-6: -0.029375em;
+      --fs-8: 32px; --lh-8: 38px; --ls-8: -0.043125em;
+      --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600;
+
+      --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 24px;
+      --s-6: 32px; --s-7: 40px; --s-8: 48px; --s-9: 64px;
+
+      --r-1: 3px; --r-2: 4px; --r-3: 6px; --r-4: 8px; --r-5: 12px; --r-6: 16px;
+      /* control radius is height / 3.4, which is what keeps a 32px button and
+         a 32px input reading as the same family rather than as near-misses */
+      --rc-1: 6px; --rc-2: 8px; --rc-3: 10px; --rc-4: 14px;
+      --h-1: 24px; --h-2: 32px; --h-3: 40px; --h-4: 48px;
+
+      --d-header: 57px; --d-rail: 240px;
+    }
+
+    /* ── night: the pack's anatomy on Dues' own navy ───────────────────────
+       An achromatic alpha ramp over the navy ground, so every surface is the
+       SAME hue as the page and only its lightness moves. Alpha rather than
+       solid hexes because these sit over a gradient. */
+    html:not([data-theme='light']) {
+      --d-fill:    rgba(255, 255, 255, 0.045);
+      --d-hover:   rgba(255, 255, 255, 0.070);
+      --d-press:   rgba(255, 255, 255, 0.095);
+      --d-stroke:  rgba(255, 255, 255, 0.106);
+      --d-stroke-strong: rgba(255, 255, 255, 0.170);
+      --d-a9:  rgba(255, 255, 255, 0.48);
+      --d-a11: rgba(255, 255, 255, 0.72);
+      --d-a12: rgba(255, 255, 255, 0.94);
+      --d-muted: rgba(255, 255, 255, 0.56);
+      --d-seg-thumb: rgba(255, 255, 255, 0.10);
+      --d-table-border: rgba(255, 255, 255, 0.08);
+
+      /* Blurple is a FILL, never text: #5865f2 measures 4.61:1 on white and
+         only 3.41:1 on the #182338 panel, so a label in it fails on the face
+         it would most often appear on. Accent TEXT is step 11 instead, which
+         reads 7.35:1 on the navy ground. */
+      --acc-9:  #5865f2;
+      --acc-10: #4752c4;
+      --acc-11: #97a0f7;
+      --acc-contrast: #ffffff;
+      --acc-surface: rgba(88, 101, 242, 0.16);
+
+      --ok-9: #177245; --ok-11: #4ade80; --ok-surface: rgba(23, 114, 69, 0.20);
+      --bad-9: #b91c1c; --bad-11: #f87171; --bad-surface: rgba(185, 28, 28, 0.20);
+      --warn-9: #8a5a00; --warn-11: #fbbf24; --warn-surface: rgba(138, 90, 0, 0.22);
+
+      /* elevation, six levels, each already carrying our 1px border as its
+         ring layer — see the note on rings vs borders below */
+      --el-1: 0 1px 2px rgba(0, 0, 0, 0.28);
+      --el-2: 0 2px 4px rgba(0, 0, 0, 0.26);
+      --el-3: 0 6px 16px rgba(0, 0, 0, 0.34);
+      --el-4: 0 12px 32px rgba(0, 0, 0, 0.40);
+    }
+
+    /* ── day: the same roles, on the flat white face ──────────────────────
+       Black alphas over white. Step 10 DARKENS on both faces, which is a
+       deliberate break from the usual dark-hovers-lighter rule: the naive
+       lighter derivation (#6d7ee2) measures 3.66:1 against white and fails,
+       while #4752c4 — Discord's own documented hover blurple — reads 6.42:1,
+       better than rest. */
+    html[data-theme='light'] {
+      --d-fill:    rgba(16, 24, 39, 0.035);
+      --d-hover:   rgba(16, 24, 39, 0.055);
+      --d-press:   rgba(16, 24, 39, 0.080);
+      --d-stroke:  #e3e5ea;
+      --d-stroke-strong: #cdd1d9;
+      --d-a9:  rgba(16, 24, 39, 0.52);
+      --d-a11: rgba(16, 24, 39, 0.72);
+      --d-a12: rgba(16, 24, 39, 0.94);
+      --d-muted: #57606f;
+      --d-seg-thumb: #ffffff;
+      --d-table-border: #eceef2;
+
+      --acc-9:  #5865f2;
+      --acc-10: #4752c4;
+      --acc-11: #4853c6;
+      --acc-contrast: #ffffff;
+      --acc-surface: rgba(88, 101, 242, 0.10);
+
+      --ok-9: #177245; --ok-11: #146c43; --ok-surface: rgba(23, 114, 69, 0.10);
+      --bad-9: #b91c1c; --bad-11: #b91c1c; --bad-surface: rgba(185, 28, 28, 0.09);
+      --warn-9: #8a5a00; --warn-11: #8a5a00; --warn-surface: rgba(138, 90, 0, 0.11);
+
+      --el-1: 0 1px 2px rgba(16, 24, 39, 0.06);
+      --el-2: 0 1px 3px rgba(16, 24, 39, 0.07);
+      --el-3: 0 6px 16px rgba(16, 24, 39, 0.10);
+      --el-4: 0 12px 32px rgba(16, 24, 39, 0.14);
+    }
   </style>
+  <!-- The dashboard's own stylesheet. Linked here and nowhere else; every rule
+       inside is prefixed body.app so it cannot reach the 52 pages that share
+       /styles.css. It declares none of --bg/--panel/--well/--edge/--ink/--dim/
+       --accent/--ui-tint, so it cannot re-open the day-sky palette either. -->
+  <link rel="stylesheet" href="/dash.css?v=194" />
   <script src="/theme.js?v=194"></script>
 </head>
 <body class="app">
