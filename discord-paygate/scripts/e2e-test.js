@@ -772,8 +772,19 @@ test('the iOS status-bar strip is on every themed page, with both of its colours
   }
   // Buyer storefronts get it too — there --ui-tint falls back to --bg, which
   // the seller's own theme sets, so the strip follows their store colour.
+  // They carry a SECOND strip at the bottom edge: that is the bar Safari was
+  // painting platform-navy across the foot of a black storefront, on top of
+  // the pay button. And viewport-fit=cover, without which
+  // env(safe-area-inset-bottom) is zero and the page cannot reserve room for
+  // that bar at all.
   const store = await (await fetch(`${appUrl}/tradeleaks`)).text();
   assert.match(store, /<i class="ui-tint" aria-hidden="true"><\/i>/, 'store pages must carry the tint strip');
+  assert.match(store, /<i class="ui-tint-b" aria-hidden="true"><\/i>/, 'store pages must carry the bottom tint strip');
+  assert.match(
+    store,
+    /<meta name="viewport" content="[^"]*viewport-fit=cover[^"]*"/,
+    'a store page must opt into the safe area or its pay button sits under the browser bar',
+  );
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {

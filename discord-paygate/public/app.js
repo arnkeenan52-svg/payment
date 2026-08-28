@@ -1370,3 +1370,30 @@ async function main() {
 }
 
 main();
+
+// Browser chrome takes the store's colour, not the platform's.
+//
+// A store page carries no theme-color of its own, so Safari tinted its bottom
+// bar from the platform's default ground — a navy band across the foot of a
+// black storefront, sitting on top of the pay button. Safari 26 ignores this
+// tag and samples the .ui-tint-b strip instead; everything else still reads
+// it, so both paths are covered. The value comes from the body's COMPUTED
+// background, which is whatever the seller's theme resolved to, rather than a
+// second copy of the palette that could drift from it.
+(function syncChrome() {
+  const paint = () => {
+    try {
+      const bg = getComputedStyle(document.body).backgroundColor;
+      if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') return;
+      let m = document.querySelector('meta[name="theme-color"]');
+      if (!m) {
+        m = document.createElement('meta');
+        m.setAttribute('name', 'theme-color');
+        document.head.appendChild(m);
+      }
+      m.setAttribute('content', bg);
+    } catch { /* a tinted bar is never worth throwing over */ }
+  };
+  paint();
+  addEventListener('pageshow', paint);
+})();

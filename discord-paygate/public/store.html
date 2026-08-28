@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- viewport-fit=cover is what makes env(safe-area-inset-*) non-zero. Without
+       it the page cannot reserve room for Safari's bottom bar, and the pay
+       button ends up underneath it. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <!-- og:begin — replaced per store by api/store-page.js so link previews
        (Discord/Twitter/iMessage) carry the store's name and product photo.
        Unfurlers never run JS; only server-rendered tags count. -->
@@ -28,6 +31,7 @@
 </head>
 <body>
   <i class="ui-tint" aria-hidden="true"></i>
+  <i class="ui-tint-b" aria-hidden="true"></i>
   <header class="top">
     <div class="top-left">
       <a href="/"><img class="platform-mark" src="/dues.png?v=189" alt="Dues" height="20" /></a>

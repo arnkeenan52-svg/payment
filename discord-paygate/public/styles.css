@@ -100,12 +100,19 @@ html[data-theme='light'] body { background: var(--bg); color: var(--ink); }
    the viewport edge, sampled live. This 4px band is that sample point. It
    sits behind every layer, so it is never visible; --ui-tint falls back to
    the page's own --bg, which already flips with the theme. WebKit only. ── */
-.ui-tint {
-  position: fixed; top: 0; left: 0; width: 100%; height: 4px;
+.ui-tint, .ui-tint-b {
+  position: fixed; left: 0; width: 100%; height: 4px;
   z-index: -2147483647; pointer-events: none; display: none;
   background-color: var(--ui-tint, var(--bg));
 }
-@supports (-webkit-touch-callout: none) { .ui-tint { display: block; } }
+.ui-tint { top: 0; }
+/* The bottom bar is the one that was covering the pay button with a stray
+   navy: a store page carries no theme-color at all, so Safari tinted its
+   toolbar from the platform's default ground instead of the seller's. This
+   anchor is the same trick at the other edge — it reads --bg, which the
+   store's own theme sets on <body>, so the bar wears the store's colour. */
+.ui-tint-b { bottom: 0; }
+@supports (-webkit-touch-callout: none) { .ui-tint, .ui-tint-b { display: block; } }
 
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -215,7 +222,9 @@ body {
   flex: 1;
   width: min(640px, 100%);
   margin: 0 auto;
-  padding: 48px 20px 40px;
+  /* the foot clears the home indicator and Safari's bottom bar; without the
+     inset the pay button sits underneath them */
+  padding: 48px 20px calc(40px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -539,7 +548,7 @@ body {
 .btn-danger:hover { border-color: #f87171; background: rgba(248, 113, 113, 0.08); }
 
 footer {
-  padding: 26px 28px 30px;
+  padding: 26px 28px calc(30px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--edge);
   color: var(--dim);
   font-size: 13px;
@@ -2861,7 +2870,7 @@ html.menu-open .top {
    from its shop page into its checkout. */
 /* The shop page is a full-bleed framed column, so the checkout wrapper's
    640px cap and padding have to stand down while it is showing. */
-body.shop-view .checkout { width: 100%; max-width: none; padding: 0 0 64px; gap: 0; }
+body.shop-view .checkout { width: 100%; max-width: none; padding: 0 0 calc(64px + env(safe-area-inset-bottom, 0px)); gap: 0; }
 .shop {
   --shop-col: 640px;      /* rails included */
   --shop-gutter: 16px;    /* every block insets by this; banner + tabs do not */
