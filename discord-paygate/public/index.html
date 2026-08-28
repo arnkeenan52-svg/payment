@@ -259,7 +259,11 @@ h3{font-weight:500}
 html[data-footer-revealed] .nav{opacity:0;pointer-events:none}
 .nav::before{
   content:"";position:absolute;inset:0 0 -28px 0;pointer-events:none;
-  background:linear-gradient(to bottom,rgba(var(--scrim),.96) 0%,rgba(var(--scrim),.88) 62%,rgba(var(--scrim),0) 100%);
+  /* The ramp used to be down to .88 by 62% and gone by 100% — but 100% is 28px
+     BELOW the bar, so the bottom third of the bar itself was barely tinted and
+     page text read straight through it into the wordmark and the toggle. Hold
+     the scrim across the whole 64px band and fade only in the overhang. */
+  background:linear-gradient(to bottom,rgba(var(--scrim),.97) 0%,rgba(var(--scrim),.95) 70%,rgba(var(--scrim),0) 100%);
   opacity:0;transition:opacity .25s ease;
 }
 .nav.scrolled::before{opacity:1}
@@ -274,7 +278,7 @@ html[data-footer-revealed] .nav{opacity:0;pointer-events:none}
 .nav-login{font-size:14.5px;font-weight:500;color:var(--ink);opacity:.85;transition:opacity .2s ease}
 .nav-login:hover{opacity:1}
 .theme-btn{
-  width:38px;height:38px;border-radius:50%;flex:none;
+  width:44px;height:44px;border-radius:50%;flex:none;   /* 44px: the minimum a thumb can hit */
   display:flex;align-items:center;justify-content:center;color:var(--ink);
   background:var(--glass);border:1px solid var(--glass-brd);
   transition:transform 160ms cubic-bezier(.23,1,.32,1),border-color .2s ease;
@@ -1467,7 +1471,10 @@ html:not([data-theme="light"]) .calc{background:rgba(15,22,38,.55);border-color:
 .hero-foot a{color:inherit;opacity:.72;transition:opacity .2s ease;display:inline-flex;align-items:center;min-height:32px}
 .hero-foot a:hover{opacity:1}
 .hf-sep{width:1px;height:14px;background:currentColor;opacity:.28}
-.hf-ic{min-width:32px;justify-content:center}   /* 32px tap target — svg alone is 17px */
+/* qualified with the ancestor on purpose: `.hero-foot a` sets min-height:32px
+   at (0,1,1) and a bare .hf-ic at (0,1,0) loses to it, so the icons stayed
+   32px tall however large the min-height on them said they were. */
+.hero-foot a.hf-ic{min-width:44px;min-height:44px;justify-content:center}  /* the svg alone is 17px */
 .hf-ic svg{width:17px;height:17px;fill:currentColor;display:block}
 html[data-theme="light"] .hero-foot{color:#0f1626}
 html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
@@ -2341,25 +2348,40 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 
   /* theme toggle (sun/moon): html[data-theme="light"] = day, absent = night */
   var themeBtn = document.querySelector('[data-theme-toggle]');
+  var tintFrame = 0;
+  var tintWant = function(){
+    return document.documentElement.getAttribute('data-theme') === 'light' ? '#70a3e6' : '#131b2d';
+  };
   function syncThemeMeta(){
-    var light = document.documentElement.getAttribute('data-theme') === 'light';
-    var want = light ? '#70a3e6' : '#131b2d';
-    var old = document.querySelector('meta[name="theme-color"]');
-    if(old && old.getAttribute('content') === want){ return; }
+    var tags = document.querySelectorAll('meta[name="theme-color"]');
+    if(!tintFrame && tags.length === 1 && tags[0].getAttribute('content') === tintWant()){ return; }
     // iOS Safari re-reads theme-color when the tag is REMOVED and a new one
     // is inserted as a SEPARATE mutation. Editing the content attribute does
     // nothing, and replaceWith() is close enough to an edit that WebKit
     // treats it the same way — which is why the band kept the old face after
     // a toggle. Drop it, let that commit, then add the new one next frame.
-    if(old){ old.remove(); }
+    //
+    // The removal is synchronous and the insert is two frames later, so a
+    // second tap inside that gap used to find nothing to remove and schedule
+    // a SECOND insert: two tags, and browsers obey the first in document
+    // order — which was the losing one. So: cancel any insert still pending,
+    // clear EVERY tag rather than the first, and read the wanted colour at
+    // insert time so a burst of taps settles on wherever it stopped.
+    for(var i = 0; i < tags.length; i++){ tags[i].remove(); }
+    if(tintFrame && window.cancelAnimationFrame){ cancelAnimationFrame(tintFrame); }
+    tintFrame = 0;
     var add = function(){
+      tintFrame = 0;
+      var stale = document.querySelectorAll('meta[name="theme-color"]');
+      for(var j = 0; j < stale.length; j++){ stale[j].remove(); }
       var meta = document.createElement('meta');
       meta.setAttribute('name','theme-color');
-      meta.setAttribute('content', want);
+      meta.setAttribute('content', tintWant());
       document.head.appendChild(meta);
     };
-    if(window.requestAnimationFrame){ requestAnimationFrame(function(){ requestAnimationFrame(add); }); }
-    else { add(); }
+    if(window.requestAnimationFrame){
+      tintFrame = requestAnimationFrame(function(){ tintFrame = requestAnimationFrame(add); });
+    } else { add(); }
   }
   syncThemeMeta();
   window.addEventListener('pageshow', function(e){

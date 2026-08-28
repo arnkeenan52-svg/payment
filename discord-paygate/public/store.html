@@ -53,7 +53,9 @@
         <div class="shop-hero no-banner" id="shop-hero">
           <img class="shop-banner media-fade" id="shop-banner" alt="" hidden onerror="this.hidden = true" onload="this.classList.add('loaded')" />
           <video class="shop-banner media-fade" id="shop-banner-video" hidden autoplay muted loop playsinline disablepictureinpicture aria-hidden="true" onerror="this.hidden = true" onloadeddata="this.classList.add('loaded')"></video>
-          <img class="logo shop-avatar media-fade" id="shop-icon" src="" alt="" width="96" height="96" hidden onload="this.classList.add('loaded')" />
+          <!-- no src attribute: src="" resolves to the page URL, so the browser fetched
+               the whole document again as an image on every load. app.js sets it. -->
+          <img class="logo shop-avatar media-fade" id="shop-icon" alt="" width="96" height="96" hidden onload="this.classList.add('loaded')" />
           <span class="shop-avatar shop-avatar-ph" id="shop-icon-ph" hidden aria-hidden="true"></span>
         </div>
 

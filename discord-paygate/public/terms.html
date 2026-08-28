@@ -82,7 +82,13 @@ html[data-theme='light'] body.home {
 /* static day ground: sky at the top, paper below; html stays sky so iOS
    chrome and overscroll blend */
 html, html[data-theme='light'], html[data-theme='dark'] { background: #70a3e6; }
-body, body.home {
+/* styles.css carries html[data-theme='light'] body at (0,1,2), which
+   out-specifies a bare body selector however late this sheet comes. The sky
+   here was flattened to a solid --bg the moment a visitor had ever tapped
+   the toggle on the landing. Match that specificity and the ground stays.
+   No backticks in this comment: the generator emits it from inside a
+   template literal, where one would end the string. */
+body, body.home, html[data-theme='light'] body {
   background: linear-gradient(180deg, #70a3e6 0%, #adceed 420px, #f4f8fd 820px, #f4f8fd 100%);
   color: var(--ink);
 }
