@@ -25,6 +25,20 @@ tmp-film-frames*/
 scripts/_*
 probe*.mjs
 **/probe*.mjs
+
+# The same files, under the other name they get written with. A Playwright
+# script has to sit INSIDE this package — an ESM import resolves `playwright`
+# relative to the script's own location, not the working directory — so an
+# audit agent cannot keep its harness in a scratch directory the way it keeps
+# its screenshots. The leading dot is the convention that marks one throwaway.
+# `.scratch-*` is the name to reach for; the rest are prefixes already in use.
+.scratch-*
+.audit-*
+.dtaudit-*
+.pw-*
+.navcheck*
+.verify-*
+.shot-*
 tmp-hero-frames/
 tmp-film-audio.wav
 remotion/node_modules/
