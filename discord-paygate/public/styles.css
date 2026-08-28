@@ -3762,8 +3762,17 @@ body[data-material='solid'] .panel, body[data-material='solid'] .prod-card, body
 .bgp-pop {
   margin-top: 10px; padding: 12px; border-radius: 14px;
   border: 1px solid var(--hairline-2); background: var(--panel);
-  max-height: 360px; overflow: auto;
+  max-height: 360px;
+  /* Vertical only. `overflow: auto` scrolls both axes, and the thumbnail grid
+     was wide enough to drag sideways — the picker became a thing you could
+     shove off-screen while choosing a background. */
+  overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
 }
+/* ...and let the grid actually fit rather than being clipped: the labels are
+   what pushed the columns past the popup's width. */
+.bgp-pop .bgp-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+.bgp { min-width: 0; }
+.bgp-name { overflow-wrap: anywhere; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -3870,4 +3879,34 @@ html[data-theme='light'] .callout:not(.pending) {
   .disc-card:hover, .seo-card:hover { transform: none; }
   .seo-card { transition: none; }
   .data-table tbody tr, .panel.stat, .faq-item, .tier-card, .price-card { transition-duration: 0.01ms; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Phone: nothing drags sideways.
+
+   Deliberately the LAST rules in this file. An earlier attempt put these in
+   the max-width:640px block near the top, where the base .st-subnav and .seg
+   rules — declared hundreds of lines later at equal specificity — simply won
+   the cascade and the strips still dragged.
+
+   Data tables keep their own horizontal scroll: that is how the full payment
+   record stays reachable on a narrow screen, and it is contained inside its
+   own card rather than moving the page.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .st-subnav { flex-wrap: wrap; overflow-x: visible; }
+  .st-subnav.scroll-more { -webkit-mask-image: none; mask-image: none; }
+  .st-subnav-btn { flex: 0 0 auto; }
+  .seg { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); overflow-x: visible; }
+  .seg-btn { flex: initial; min-width: 0; padding-inline: 4px; font-size: 12px; }
+  .appbar-tabs { overflow-x: visible; flex-wrap: wrap; }
+  /* The picker grid fits the popup instead of being clipped by it: two even
+     columns that can shrink to nothing, and labels that may break mid-word. */
+  .bgp-pop .bgp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bgp-pop .bgp, .bgp-pop .bgp-thumb { min-width: 0; max-width: 100%; }
+  /* The custom-URL row was the last thing wider than the popup: a flex column
+     whose input and helper text both refused to shrink. */
+  .bgp-url-row, .bgp-url-row > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .bgp-pop input, .bgp-url-row input { width: 100%; box-sizing: border-box; }
+  .bgp-url-row .field-help { overflow-wrap: anywhere; }
 }
