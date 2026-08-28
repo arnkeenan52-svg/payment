@@ -2494,6 +2494,23 @@ test('store themes: validated tokens in, server-rendered CSS out', async () => {
       body: JSON.stringify({ store: 'vip-signals', theme }),
     });
 
+  // A CUSTOM LOOK IS A PAID FEATURE, so before anything else: on the free plan
+  // a valid theme is refused outright, and the storefront renders the platform
+  // black rather than whatever is on the row.
+  const U7ID = '507700000000000007';
+  await tq('DELETE FROM platform_billing WHERE owner_discord_id = ?', [U7ID]);
+  const freeTry = await setTheme({ bg: '#071209' });
+  assert.equal(freeTry.status, 402, 'a free store cannot buy itself a custom look');
+  assert.equal((await freeTry.json()).upgrade, true, 'and the refusal points at the plan');
+  // Clearing is NOT gated — undoing must never need a subscription.
+  assert.equal((await setTheme(null)).status, 200, 'anyone may reset to the default look');
+
+  // Put this owner on a paid plan for the rest of the scenario.
+  await tq(
+    'INSERT INTO platform_billing (owner_discord_id, tier, provider_ref, status, current_period_end, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [U7ID, 'starter', 'sub_theme_e2e', 'active', Math.floor(Date.now() / 1000) + 30 * 86400, Math.floor(Date.now() / 1000)],
+  );
+
   // Values are validated, not laundered: a typoed color must fail loudly.
   assert.equal((await setTheme({ bg: 'red' })).status, 400, 'a non-hex color is refused');
   assert.equal((await setTheme({ radius: 99 })).status, 400, 'an out-of-range radius is refused');
@@ -2525,6 +2542,33 @@ test('store themes: validated tokens in, server-rendered CSS out', async () => {
   const bgPage = await (await fetch(`${appUrl}/vip-signals`)).text();
   assert.match(bgPage, /<div class="store-bg" data-bg="aurora"/, 'the background layer is rendered');
   assert.match(bgPage, /<body class="has-bg" data-bg="aurora" data-material="liquid">/, 'body carries bg + material');
+
+  // THE PLAN LAPSES. The tokens stay on the row — a cancelled plan parks a
+  // store's look, it never deletes it — but the storefront goes back to the
+  // platform's own black on BOTH render paths. A write-time gate alone would
+  // let an owner theme a store, cancel, and keep the look for nothing.
+  await tq('DELETE FROM platform_billing WHERE owner_discord_id = ?', [U7ID]);
+  assert.equal(
+    (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).store.theme,
+    null,
+    'a free storefront is handed no custom theme',
+  );
+  const lapsed = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.ok(!/id="store-theme"/.test(lapsed), 'and none is server-rendered either');
+  assert.ok(!/class="store-bg"/.test(lapsed), 'nor the custom background layer');
+  // The row still holds them, so re-subscribing restores the exact look.
+  const stillStored = (await tq("SELECT theme FROM stores WHERE slug = 'vip-signals'")).rows[0].theme;
+  assert.match(String(stillStored), /aurora/, 'the tokens are parked, not deleted');
+  // Re-subscribe: the exact same look is back, with nothing re-entered.
+  await tq(
+    'INSERT INTO platform_billing (owner_discord_id, tier, provider_ref, status, current_period_end, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [U7ID, 'starter', 'sub_theme_e2e', 'active', Math.floor(Date.now() / 1000) + 30 * 86400, Math.floor(Date.now() / 1000)],
+  );
+  assert.equal(
+    (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).store.theme.bgPreset,
+    'aurora',
+    'upgrading brings the parked look straight back',
+  );
   assert.equal((await setTheme({ bgPreset: 'clouds-day' })).status, 200);
   const cloudPage = await (await fetch(`${appUrl}/vip-signals`)).text();
   assert.match(cloudPage, /<canvas data-dues-sky>/, 'live cloud preset mounts the shader canvas');
@@ -3090,9 +3134,13 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   assert.equal(plans.capabilities.demo, true, 'the client needs the demo flag to disarm pay');
   assert.equal(plans.capabilities.stripe, true, 'the checkout still renders fully');
   assert.deepEqual(plans.plans.map((p) => p.priceUsd), [49.99, 14.99, 79.99]);
-  assert.equal(plans.store.theme.bg, '#101827', 'the demo store wears the navy showroom look');
-  assert.equal(plans.store.theme.bgPreset, 'aurora', 'the demo shows off the background system');
-  assert.equal(plans.store.theme.material, 'liquid', 'liquid glass cards on the demo');
+  // The demo wears the SIGNATURE BLACK — what a Dues store looks like out of
+  // the box. Not a preset backdrop: dressing the demo in one advertised a look
+  // that a new store does not actually arrive wearing.
+  assert.equal(plans.store.theme.bg, '#0a0a0a', 'the demo store wears the signature black');
+  assert.equal(plans.store.theme.panel, '#101010');
+  assert.equal(plans.store.theme.bgPreset, '', 'the demo has no custom background');
+  assert.equal(plans.store.theme.material, 'glass');
   assert.equal(plans.store.links.website, 'https://dues.gg');
   assert.equal(plans.store.memberCount, 134);
   assert.match(plans.store.about, /invite Dues/i);

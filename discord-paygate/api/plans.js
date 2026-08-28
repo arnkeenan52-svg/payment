@@ -5,6 +5,7 @@ import { effectiveRoleMap } from '../src/services/plan-config.js';
 import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.js';
 import { DEMO_SLUG, demoPlansPayload } from '../src/services/demo-store.js';
 import { countLiveMembers, countStoreFollowers, reviewSummary } from '../src/db.js';
+import { themeIfPaid } from '../src/services/billing.js';
 
 // The server's own identity fronts every checkout: name and icon come from
 // the live guild lookup via the bot (animated icons surface as .gif).
@@ -61,7 +62,7 @@ export default guard(async function handler(req, res) {
       slug: store.slug, status: store.status, description: store.description ?? null,
       // Ready to use as-is: an uploaded banner is served from /api/img under
       // the store's CURRENT link, a pasted one passes through.
-      bannerUrl: banner.url, bannerKind: banner.kind, theme: store.theme ?? null,
+      bannerUrl: banner.url, bannerKind: banner.kind, theme: await themeIfPaid(store),
       about: store.about ?? null, links: store.links ?? null,
       // Live members, only when the owner switched the badge on — the count
       // is the same real number the dashboard bills on.

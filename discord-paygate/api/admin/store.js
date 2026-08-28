@@ -6,6 +6,7 @@ import { adminStoreBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
 import { stripeFetch, isStripeKey } from '../../src/lib/stripe.js';
 import { validateTheme } from '../../src/lib/theme.js';
+import { canCustomise } from '../../src/services/billing.js';
 import { isStoreCategory } from '../../src/services/stores.js';
 import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
 import { parseUploadDataUrl, uploadKind, UPLOAD_BODY_LIMIT } from '../../src/lib/upload.js';
@@ -125,6 +126,17 @@ export default guard(async function handler(req, res) {
       clean = validateTheme(body.theme);
     } catch (err) {
       return sendJson(res, 400, { error: err.message });
+    }
+    // A custom look is a paid feature. Clearing back to the platform's own
+    // black stays open to everyone — nobody should need a subscription to
+    // undo something, and a free owner whose plan lapsed must still be able
+    // to tidy up. The rendering gate in billing.js is what actually decides
+    // what a visitor sees; this only stops a free owner filling the field.
+    if (clean && !(await canCustomise(store.ownerDiscordId))) {
+      return sendJson(res, 402, {
+        error: 'Custom store colours and backgrounds are on the Pro plan and up. Your store keeps the signature black until then.',
+        upgrade: true,
+      });
     }
     fields.theme = clean ? JSON.stringify(clean) : null;
   }

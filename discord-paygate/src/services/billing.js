@@ -46,6 +46,33 @@ export async function billingFor(ownerDiscordId) {
   return { tier, row, exempt: false };
 }
 
+// A CUSTOM STOREFRONT LOOK IS A PAID FEATURE.
+//
+// Which is a rendering rule, not a storage rule: the tokens stay on the row
+// whichever plan the owner is on. A lapsed plan parks a store's look, it never
+// deletes it, and re-subscribing brings the exact same colours back with no
+// work — the same reasoning as the member limit above, where nobody who
+// already paid loses anything.
+//
+// Enforced HERE rather than at the write, because a write-only gate is not a
+// paid feature: an owner could theme a store, cancel, and keep the look for
+// nothing. Both storefront render paths (api/store-page.js server-side, and
+// api/plans.js for the client) go through this, so a free store shows the
+// platform's own black on both.
+export async function themeIfPaid(store) {
+  if (!store || !store.theme) return null;
+  // The built-in store IS the platform — its look is not a customer's.
+  if (store.isDefault) return store.theme;
+  const { tier, exempt } = await billingFor(store.ownerDiscordId);
+  return exempt || (tier && tier.id !== 'free') ? store.theme : null;
+}
+
+// The same question, for the dashboard and the settings endpoint.
+export async function canCustomise(ownerDiscordId) {
+  const { tier, exempt } = await billingFor(ownerDiscordId);
+  return Boolean(exempt || (tier && tier.id !== 'free'));
+}
+
 // Distinct live members across every store this owner runs — the number
 // their plan is priced on.
 export async function memberUsage(ownerDiscordId) {

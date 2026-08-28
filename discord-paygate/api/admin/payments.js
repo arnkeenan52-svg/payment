@@ -4,6 +4,7 @@ import { cronAuthorized } from '../cron/reconcile.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { allSubscriptionsWithUsers, isEntitled, checkoutAttempts, getUser, countStoreFollowers, getStoreMediaMeta, reviewSummary } from '../../src/db.js';
 import { storesOwnedBy, everyStore, plansOf, defaultStore, bannerFor } from '../../src/services/stores.js';
+import { canCustomise } from '../../src/services/billing.js';
 
 // Payments timeline + totals, scoped to the stores the caller owns. The
 // platform owner (OWNER_DISCORD_ID) and the cron secret see everything.
@@ -142,6 +143,10 @@ export default guard(async function handler(req, res) {
 
   const activeMembers = new Set(rows.filter((r) => r.entitled).map((r) => r.discordId));
   sendJson(res, 200, {
+    // Whether this owner's plan includes a custom storefront look. The Store
+    // section reads it to show the Appearance card as locked instead of
+    // letting a free owner design a theme the save would then refuse.
+    canCustomise: platformAdmin || (await canCustomise(uid)),
     // Every store the caller owns (for the dashboard's store switcher);
     // `payments` below honours the ?store filter.
     // This payload is what the dashboard's settings forms re-render from

@@ -4021,3 +4021,21 @@ html[data-theme='light'] .callout:not(.pending) {
   .bgp-pop input, .bgp-url-row input { width: 100%; box-sizing: border-box; }
   .bgp-url-row .field-help { overflow-wrap: anywhere; }
 }
+
+/* ── dashboard: a paid-plan feature shown but locked ──────────────────────── */
+/* Locked, not hidden: someone deciding whether to upgrade should be able to
+   see what they would get. The controls under .th-locked are inert because the
+   server refuses the save anyway — a live control that always fails is worse
+   than an honest disabled one. */
+.lock-note {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 14px 16px; margin-bottom: 16px;
+  border: 1px solid var(--edge); border-radius: 12px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  font-size: 14px; line-height: 1.5; color: var(--dim);
+}
+.lock-note svg { flex: none; color: var(--dim); }
+.lock-note span { flex: 1; min-width: 200px; }
+.lock-note b { color: var(--ink); font-weight: 600; }
+.lock-note .btn-pill { flex: none; }
+.th-locked { opacity: 0.5; pointer-events: none; filter: saturate(0.6); }

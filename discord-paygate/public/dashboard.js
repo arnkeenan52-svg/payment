@@ -36,6 +36,7 @@ const keyScopesHtml = () => `
   </details>`;
 
 const I = {
+  lock: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
   plus: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   arrow: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
   back: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>',
@@ -1714,7 +1715,7 @@ function appearanceBody(store) {
   </div>`;
 }
 
-function sectionStore(store, link) {
+function sectionStore(store, link, paid = true) {
   const linkRow = `<div class="share-row"><code class="share-link">${esc(link)}</code><button class="btn-secondary" id="copy-link">${I.copy} Copy</button><a class="btn-secondary st-open" href="${esc(link)}" target="_blank" rel="noopener">${I.external} Open</a></div>`;
   if (store.isDefault) {
     return `
@@ -1828,9 +1829,16 @@ function sectionStore(store, link) {
     ${setCard({
       id: 'st-card-theme',
       title: 'Appearance',
-      sub: 'Make the store yours — colors, corners and type. Buyers see it instantly.',
-      body: appearanceBody(store),
-      foot: `<span class="appearance-foot"><button class="btn-pill" id="th-save">Save appearance</button>
+      sub: paid
+        ? 'Make the store yours — colors, corners and type. Buyers see it instantly.'
+        : 'A custom look is on Pro and up. Your store wears the signature black until then.',
+      // Locked rather than hidden: an owner deciding whether to upgrade should
+      // be able to SEE what they would get. Anything they set here is refused
+      // by the server anyway, so the controls are disabled rather than merely
+      // discouraged, and Reset stays live — undoing never needs a plan.
+      body: (paid ? '' : `<div class="lock-note">${I.lock ?? ''}<span><b>Included from Pro.</b> Every colour, all 46 backgrounds, glass and liquid cards, corners and type. Your saved colours are kept while you are on Free — they come straight back when you upgrade.</span><a class="btn-pill" href="#/store/${esc(store.slug)}/billing">See plans</a></div>`)
+        + `<div class="${paid ? '' : 'th-locked'}">${appearanceBody(store)}</div>`,
+      foot: `<span class="appearance-foot"><button class="btn-pill" id="th-save"${paid ? '' : ' disabled'}>Save appearance</button>
         <button class="btn-ghost" id="th-reset">Reset to default</button>
         <span class="note-help" id="th-note" role="status"></span></span>`,
     })}
@@ -2061,7 +2069,7 @@ async function viewStore(slug) {
     body = store.isDefault
       ? '<h2 class="sec-title">Discounts</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store. Set up your server’s own store to create discount codes here.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
       : sectionDiscounts(discounts, products, slug);
-  else if (section === 'store') body = sectionStore(store, link);
+  else if (section === 'store') body = sectionStore(store, link, state.data?.canCustomise !== false);
   else if (section === 'customize')
     body = store.isDefault
       ? '<h2 class="sec-title">Dashboard</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store — its dashboard uses the platform look. Set up your server’s own store to customize.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
