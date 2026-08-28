@@ -24,7 +24,7 @@ Three. That is the whole list.
 [links]
 Website | https://dues.gg
 Dashboard | https://dues.gg/dashboard
-Threads | https://www.threads.com/@dues.gg
+X | https://x.com/duesdiscord
 
 [outro]
 These are the only official Dues links. Anything else claiming to be Dues is
