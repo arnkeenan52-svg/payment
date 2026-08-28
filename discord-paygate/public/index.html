@@ -1632,6 +1632,43 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
   background:var(--glass);border:1px solid var(--glass-brd);
   box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
 }
+/* Phone keeps the single column it always had: inputs, then the savings
+   figure, then the comparison. The two-column split is a desktop affordance
+   and nothing below opts into it. */
+.save-grid{display:block}
+.save-rows-cap{
+  margin:26px 0 14px;font:600 11.5px/1.4 var(--sans);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--sec);
+}
+/* The number beside each slider is TYPEABLE, not just a readout. Dragging a
+   range to exactly 250 members is a fiddle on a trackpad and impossible to do
+   precisely on a phone; the box and the slider are two views of one value and
+   either can drive it. */
+.save-num-wrap{display:inline-flex;align-items:center;gap:1px}
+.save-num-wrap i{font-style:normal;font-size:14px;font-weight:600;color:var(--sec)}
+.save-num{
+  width:72px;height:34px;padding:0 8px;text-align:right;
+  font-family:var(--grotesk);font-weight:700;font-size:15px;color:var(--ink);
+  background:var(--well,rgba(127,140,170,.10));
+  border:1px solid var(--glass-brd);border-radius:9px;
+  appearance:textfield;-moz-appearance:textfield;
+}
+.save-num::-webkit-outer-spin-button,
+.save-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.save-num-cur{width:64px}
+.save-num:focus-visible{outline:2px solid var(--blue);outline-offset:1px;border-color:var(--blue)}
+
+/* Desktop: one box, two columns — the controls and the figure they produce on
+   the left, the comparison they produce on the right, so a change to a slider
+   and its effect on the bars are in one glance instead of a scroll apart. */
+@media (min-width:900px){
+  .save-card{width:min(940px,100%);padding:38px 44px 30px}
+  .save-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:40px;align-items:start}
+  .save-left{display:flex;flex-direction:column}
+  .save-left .save-field:first-child{margin-top:0}
+  .save-hero{margin-top:auto}
+  .save-rows-cap{margin-top:0}
+}
 .save-card h2{font-family:var(--jakarta);font-weight:500;font-size:clamp(26px,3vw,34px);letter-spacing:-.02em;text-align:center}
 .save-sub{margin:10px 0 26px;text-align:center;font-size:15px;line-height:23px;color:var(--sec)}
 .save-field{margin-top:18px}
@@ -2105,25 +2142,41 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   <div class="save-card reveal">
     <h2>Calculate your savings</h2>
     <p class="save-sub">See what platform fees would cost at your size &#8212; and what Dues keeps flat.</p>
-    <div class="save-field">
-      <div class="save-lab"><label for="svSubs">Paying members</label><output id="svSubsVal">100</output></div>
-      <input type="range" id="svSubs" min="10" max="1000" step="10" value="100">
-    </div>
-    <div class="save-field">
-      <div class="save-lab"><label for="svPrice">Average monthly price</label><output id="svPriceVal">$19.99</output></div>
-      <input type="range" id="svPrice" min="1" max="100" step="1" value="20">
-    </div>
-    <div class="save-hero">
-      <span class="save-cap">Estimated annual savings</span>
-      <b id="svAnnual">$1,860</b>
-      <small>vs the priciest platform at your numbers</small>
-    </div>
-    <div class="save-rows" aria-live="polite">
+    <div class="save-grid">
+     <div class="save-left">
+      <div class="save-field">
+        <div class="save-lab">
+          <label for="svSubs">Paying members</label>
+          <input class="save-num" type="number" id="svSubsNum" min="10" max="1000" step="10" value="100"
+                 inputmode="numeric" aria-label="Paying members, type a number">
+        </div>
+        <input type="range" id="svSubs" min="10" max="1000" step="10" value="100">
+      </div>
+      <div class="save-field">
+        <div class="save-lab">
+          <label for="svPrice">Average monthly price</label>
+          <span class="save-num-wrap"><i aria-hidden="true">$</i>
+            <input class="save-num save-num-cur" type="number" id="svPriceNum" min="1" max="100" step="1" value="20"
+                   inputmode="numeric" aria-label="Average monthly price in dollars, type a number"></span>
+        </div>
+        <input type="range" id="svPrice" min="1" max="100" step="1" value="20">
+      </div>
+      <div class="save-hero">
+        <span class="save-cap">Estimated annual savings</span>
+        <b id="svAnnual">$1,860</b>
+        <small>vs the priciest platform at your numbers</small>
+      </div>
+     </div>
+     <div class="save-right">
+      <p class="save-rows-cap">Monthly platform cost</p>
+      <div class="save-rows" aria-live="polite">
       <div class="save-row save-dues"><span class="sv-name">Dues <em id="svDuesPlan">Max plan</em></span><b class="sv-cost" id="svDues">$44.99</b><span class="sv-bar"><i id="svBarDues" style="width:22%"></i></span></div>
       <div class="save-row"><span class="sv-name">Whop <em>3% of sales</em></span><b class="sv-cost" id="svWhop">$60</b><span class="sv-bar"><i id="svBarWhop" style="width:30%"></i></span></div>
       <div class="save-row"><span class="sv-name">LaunchPass <em>$29/mo + 3.5%</em></span><b class="sv-cost" id="svLp">$99</b><span class="sv-bar"><i id="svBarLp" style="width:50%"></i></span></div>
       <div class="save-row"><span class="sv-name">Patreon <em>8% of sales</em></span><b class="sv-cost" id="svPatreon">$160</b><span class="sv-bar"><i id="svBarPatreon" style="width:80%"></i></span></div>
       <div class="save-row"><span class="sv-name">DoorFee <em>10% of sales</em></span><b class="sv-cost" id="svDoorfee">$200</b><span class="sv-bar"><i id="svBarDoorfee" style="width:100%"></i></span></div>
+      </div>
+     </div>
     </div>
     <p class="fee-note">Monthly platform cost. Publicly listed pricing at time of writing &#8212; verify on each platform&rsquo;s site. Stripe processing applies everywhere, so it cancels out.</p>
     <div class="save-cta"><a class="btn btn-primary" href="/dashboard">Start selling &#8594;</a></div>
@@ -2824,6 +2877,17 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   var subs = document.getElementById('svSubs');
   var price = document.getElementById('svPrice');
   if(!subs || !price){ return; }
+  var subsNum = document.getElementById('svSubsNum');
+  var priceNum = document.getElementById('svPriceNum');
+  // A typed value is clamped to the slider's own range and rounded to its
+  // step, so the two controls can never disagree about what the number is.
+  var clamp = function(el, raw){
+    var lo = parseFloat(el.min), hi = parseFloat(el.max), st = parseFloat(el.step) || 1;
+    var n = parseFloat(raw);
+    if(!isFinite(n)){ return parseFloat(el.value); }
+    n = Math.round(n / st) * st;
+    return Math.min(hi, Math.max(lo, n));
+  };
   var money = function(v){ return '$' + Math.round(v).toLocaleString('en-US'); };
   var plan = function(m){
     if(m <= 10){ return {name:'Free plan', cost:0}; }
@@ -2839,8 +2903,10 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     var rev = m * p;
     var d = plan(m);
     var rows = { svWhop: rev * 0.03, svLp: 29 + rev * 0.035, svPatreon: rev * 0.08, svDoorfee: rev * 0.10 };
-    set('svSubsVal', m.toLocaleString('en-US'));
-    set('svPriceVal', '$' + p.toFixed(2));
+    // Write back to the boxes only when they are not being typed in, or a
+    // half-finished entry gets rewritten under the cursor mid-keystroke.
+    if(subsNum && document.activeElement !== subsNum){ subsNum.value = m; }
+    if(priceNum && document.activeElement !== priceNum){ priceNum.value = p; }
     set('svDuesPlan', d.name);
     set('svDues', d.cost ? '$' + d.cost.toFixed(2) : '$0');
     var max = Math.max(rows.svWhop, rows.svLp, rows.svPatreon, rows.svDoorfee, d.cost, 1);
@@ -2852,6 +2918,20 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     set('svAnnual', money(Math.max(0, (best - d.cost) * 12)));
   };
   ['input','change'].forEach(function(ev){ subs.addEventListener(ev, paint); price.addEventListener(ev, paint); });
+  var bindNum = function(box, range){
+    if(!box){ return; }
+    box.addEventListener('input', function(){
+      var raw = parseFloat(box.value);
+      if(!isFinite(raw)){ return; }          // mid-typing ("", "-", "1e") — wait
+      range.value = clamp(range, raw);
+      paint();
+    });
+    // On blur the box shows what the slider actually took, so an out-of-range
+    // entry corrects itself visibly rather than lying about what was applied.
+    box.addEventListener('blur', function(){ box.value = range.value; paint(); });
+  };
+  bindNum(subsNum, subs);
+  bindNum(priceNum, price);
   paint();
 })();
 </script>
