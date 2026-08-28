@@ -1325,17 +1325,33 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 .ov-toolbar .sec-title { margin: 0; }
 @media (max-width: 860px) {
   .appshell { grid-template-columns: 1fr; }
-  .sidebar { position: static; flex-direction: row; align-items: center; min-height: 0; border-right: none; border-bottom: 1px solid var(--edge); overflow-x: auto; gap: 6px; padding: 8px 12px; }
-  .side-nav, .side-foot { flex-direction: row; margin: 0; border: none; padding: 0; }
-  .side-item { padding: 8px; white-space: nowrap; }
-  .side-item svg { display: none; }
-  /* fade the right edge while more tabs hide off-screen — a mid-word chop
-     reads as broken, the fade reads as "scroll for more" */
-  .sidebar.scroll-more {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
+  /* The sections WRAP instead of scrolling sideways.
+     They used to sit in one overflow-x row, which cost two bugs at once: the
+     page could be dragged left and right when a swipe landed on the strip,
+     and every tap re-rendered the nav, so a strip scrolled to its end snapped
+     back to the start with the tab you just chose off-screen. A grid that
+     fits the viewport has neither failure — nine sections, three per row, all
+     reachable in one tap and nothing to scroll. */
+  .sidebar { position: static; flex-direction: column; align-items: stretch; min-height: 0; border-right: none; border-bottom: 1px solid var(--edge); overflow: visible; gap: 8px; padding: 10px 12px; }
+  .side-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0; border: none; padding: 0; }
+  .side-foot { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; margin: 0; padding: 8px 0 0; border: none; border-top: 1px solid var(--edge); }
+  .side-item {
+    justify-content: center; text-align: center; padding: 9px 6px; min-height: 38px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px;
+    border-left: none; border-radius: 8px;
   }
-  .side-store-name { display: none; }
+  .side-item.active { border-left: none; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--ink); }
+  .side-item svg { display: none; }
+  .side-foot .side-item { font-size: 12.5px; color: var(--dim); min-height: 34px; }
+  /* the scroll fade belongs to the old strip; a wrapped grid must never be
+     masked or its bottom-right section fades out */
+  .sidebar.scroll-more { -webkit-mask-image: none; mask-image: none; }
+  /* Now that the bar is a column, the store row spans it and says which store
+     you are in — it used to be a lone icon next to the tabs, and hiding the
+     name left an orphaned tile holding a whole row for nothing. */
+  .side-store { width: 100%; gap: 10px; padding: 2px 2px 0; }
+  .side-store-name { display: block; font-size: 14px; }
+  .side-store .st-switch, .side-store select { flex: 1; min-width: 0; }
 }
 
 /* ── phone (≤640px): the dashboard as a one-hand tool ──────────────────────── */

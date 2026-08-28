@@ -1874,7 +1874,7 @@ function sectionSettings(store, isPlatformOwner) {
       !store.isDefault
         ? setCard({
             title: 'Payment method',
-            sub: 'Payments land in your own Stripe account. Paste a new key to rotate it — restricted (rk_) or secret (sk_). Stripe validates it before anything is saved.',
+            sub: 'Payments go straight to your own Stripe account. Paste a new key to rotate it — Stripe checks it before anything is saved.',
             body: `
               <label class="field"><span class="field-label">Stripe API key</span>
                 <input id="pm-key" type="password" placeholder="rk_live_…" autocomplete="off" spellcheck="false" /></label>
@@ -1888,25 +1888,25 @@ function sectionSettings(store, isPlatformOwner) {
       !store.isDefault
         ? setCard({
             title: 'Sale notifications',
-            sub: 'Dues posts every order to a channel in your server the moment payment clears.',
+            sub: 'Every order is posted to a channel in your server the moment payment clears.',
             body: `
               <label class="field"><span class="field-label">Channel</span>
                 <select id="nc-channel"><option value="">Loading channels…</option></select>
-                <span class="field-help">Pick a channel the Dues bot can post in, or Off to disable.</span></label>
+                <span class="field-help">The bot needs permission to post there. Off turns them off.</span></label>
               <p class="field-err" id="err-nc" role="alert"></p>`,
             foot: `<button class="btn-secondary" id="nc-save">Save</button>`,
           })
         : ''
     }
-    ${setCard({
-      title: 'Receipt emails',
-      sub: 'Dues emails every buyer a membership confirmation after checkout. Nothing to configure.',
-    })}
+    ${/* No receipt-emails card: it said "nothing to configure" and then offered
+          nothing to configure. Settings is for decisions, and a panel that
+          only announces a behaviour is furniture. Buyers still get their
+          confirmation email — see src/services/receipts. */ ''}
     ${
       !store.isDefault
         ? setCard({
             title: 'Danger zone',
-            sub: 'Deleting removes this store, its products and discount codes. Stores with payment history cannot be deleted.',
+            sub: 'Removes this store, its products and its discount codes. A store with payment history cannot be deleted.',
             body: `<p class="field-err" id="err-delete" role="alert"></p>`,
             foot: `<button class="btn-danger" id="store-delete">Delete this store</button>`,
           })
