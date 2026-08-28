@@ -22,7 +22,7 @@
   <meta property="og:locale" content="en_US" />
   <meta property="og:title" content="Pricing — Dues" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=184" />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=185" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:url" content="https://dues.gg/pricing" />
@@ -31,11 +31,11 @@
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:title" content="Pricing — Dues" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=184" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=185" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=184" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=184" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=185" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=185" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -58,7 +58,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=184') format('woff2');
+  src:url('/jakarta-latin.woff2?v=185') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -342,7 +342,7 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=184') center/cover;
+  background:url('/hero-poster.webp?v=185') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1616,6 +1616,20 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
      top edge could enter the viewport), so it is never visible. */
   html[data-blind][data-footer-near] .footer{position:fixed;inset:auto 0 0 0;z-index:0;margin-top:0}
   html[data-blind][data-footer-near] .footer-spacer{height:var(--footH,0px)}
+  /* THE BACKSTOP, and the reason the blue bar cannot come back.
+     Cutting the sky does not uncover the footer — it uncovers whatever is
+     under the sky, and under the sky (z-index:-1) is the html element's own
+     background: #131b2d at night, #70a3e6 in daylight. THAT is the bar. Any
+     cut that reached past the pinned footer's box painted a strip of page
+     ground in a colour that belongs to neither the sky nor the footer, which
+     is exactly why it read as a bar rather than as a seam.
+     So while the blind is engaged the ground itself becomes the footer's own
+     top colour. The html background is invisible at every other moment (the
+     sky covers it), so this changes nothing that is ever deliberately seen —
+     it only decides what a mistimed clip uncovers, and the answer is now
+     "more footer" instead of "a stripe of the wrong blue". */
+  html[data-blind][data-footer-near]{background:#1c2740}
+  html[data-theme="light"][data-blind][data-footer-near]{background:#bcd5f0}
   /* compact stage so the whole footer fits a phone viewport */
   .footer-stage{padding-top:30px}
   .footer-title{font-size:clamp(27px,7.6vw,38px);margin-bottom:10px}
@@ -1807,7 +1821,7 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=184" defer></script>
+<script src="/sky.js?v=185" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2110,20 +2124,14 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
   // and keep flow height identical (spacer = measured footer px height)
   var fit = function(){
     if(!footer){ return; }
-    // THE PHONE BLIND IS OFF. It pinned the footer behind the sheet and
-    // clipped the fixed sky canvas at the sheet's lip to reveal it, and that
-    // clip is only ever as fresh as the last scroll event iOS chose to
-    // deliver. Two rounds of guards later it was still leaving a strip of
-    // bare page ground across the bottom of the screen after a visit to the
-    // footer. The reveal is a flourish; a blue bar on every visit is not a
-    // fair price for it, so on phones the footer is now an ordinary block at
-    // the end of the document. Everything below still works — it simply
-    // never engages. Remove this return to try the blind again.
-    html.removeAttribute('data-blind');
-    html.removeAttribute('data-footer-near');
-    if(sky){ sky.style.clipPath = ''; }
-    lastClip = -1;
-    return;
+    // The blind pins the footer behind the sheet and clips the fixed sky at
+    // the sheet's lip to uncover it. What used to leave a blue bar was never
+    // the clip being late — it was WHAT SITS BEHIND THE CLIP. Cutting the sky
+    // exposes the html element's own background (#131b2d night, #70a3e6 day),
+    // so any clip that ran ahead of the footer painted a strip of page
+    // ground. The footer now backstops the whole viewport (see the ::before
+    // in the phone block), so the worst a stale clip can uncover is more
+    // footer.
     if(phoneMq.matches && footer.offsetHeight <= largeVh() - 24){
       html.setAttribute('data-blind','');
       html.style.setProperty('--footH', footer.offsetHeight + 'px');
@@ -2137,17 +2145,27 @@ html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
     nav.classList.toggle('scrolled', window.scrollY > 8);
     // once the sheet's lip is on screen the blind is rising — fade the nav out
     var bottom = sheet.getBoundingClientRect().bottom;
-    var revealed = bottom <= window.innerHeight + 1;
+    // documentElement.clientHeight, NOT window.innerHeight. The clip uncovers
+    // a footer positioned by `position: fixed`, which resolves against the
+    // LAYOUT viewport; innerHeight tracks the VISUAL viewport and on iOS the
+    // two disagree for the length of a toolbar collapse. Measuring the clip in
+    // one coordinate space and painting the footer in another is what put a
+    // band of bare page ground between them.
+    var vh = document.documentElement.clientHeight || window.innerHeight;
+    var revealed = bottom <= vh + 1;
     html.toggleAttribute('data-footer-revealed', revealed);
-    // the pinned footer may only paint near the reveal (see the CSS gate)
-    html.toggleAttribute('data-footer-near', bottom <= window.innerHeight + 160);
+    // the pinned footer may only paint near the reveal (see the CSS gate).
+    // This threshold is deliberately LOOSER than the clip's below: the footer
+    // is pinned for a band before the sky is cut, never the other way round,
+    // so there is no ordering in which the cut lands on an unpinned footer.
+    html.toggleAttribute('data-footer-near', bottom <= vh + 160);
     if(sky){
       // clip the fixed sky at the sheet's lip (canvas overshoots 160px below
       // the viewport, and the lip's 40px bottom radius carries into the clip).
       // Written unconditionally from the live geometry — no cached last-value
       // guard — so no sequence of missed, coalesced or reordered events can
       // leave a stale clip standing.
-      var v = html.hasAttribute('data-blind') ? Math.max(0, Math.round(window.innerHeight - bottom)) : 0;
+      var v = html.hasAttribute('data-blind') ? Math.max(0, Math.round(vh - bottom)) : 0;
       sky.style.clipPath = v > 0 ? 'inset(0 0 ' + (v + 160) + 'px 0 round 0 0 40px 40px)' : '';
     }
   };
