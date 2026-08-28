@@ -1634,7 +1634,13 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 
 .set-head h3 { margin: 0; font-size: 15px; }
 .set-head .card-sub { margin: 0; }
-.set-card > .field, .set-card > .share-row, .set-card > .field-err, .set-card > #billing-body { margin: 12px 20px 0; }
+/* Every direct child of a settings card needs its own inset: the card itself
+   has padding 0, and .set-head/.set-foot carry theirs. A child left off this
+   list sits flush against the raw card edge, outdented 20px from everything
+   above and below it — which is exactly how the restricted-key details
+   rendered, reading as text dropped outside the card rather than part of it. */
+.set-card > .field, .set-card > .share-row, .set-card > .field-err,
+.set-card > .key-scopes, .set-card > #billing-body { margin: 12px 20px 0; }
 .set-card > .field:last-of-type { margin-bottom: 16px; }
 /* width:auto, not 100% — the row carries 20px side margins inside the card
    and 100% would push the last button past the card edge. Wrapping lets the

@@ -452,6 +452,7 @@ body.app .set-head { padding: var(--s-5) var(--s-5) 0; }
 body.app .set-card > .field,
 body.app .set-card > .share-row,
 body.app .set-card > .field-err,
+body.app .set-card > .key-scopes,
 body.app .set-card > #billing-body { margin-inline: var(--s-5); margin-top: var(--s-3); }
 body.app .set-foot { padding: var(--s-3) var(--s-5); border-top: 1px solid var(--d-stroke); background: var(--d-fill); }
 body.app .settings-stack { gap: var(--s-5); }
