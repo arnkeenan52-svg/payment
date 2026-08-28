@@ -2816,98 +2816,226 @@ html.menu-open .top {
 /* ── storefront shop view: the store's overall page, every product a card ──
    Painted entirely from the theme tokens, so a store's saved look carries
    from its shop page into its checkout. */
-.shop { width: 100%; max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; }
-/* whop-style hero: wide banner, squircle avatar overlapping its lower edge */
-.shop-hero { position: relative; margin-bottom: 54px; }
-.shop-hero.no-banner { margin-bottom: 12px; }
-.shop-hero.empty { display: none; }
-.shop-banner { width: 100%; aspect-ratio: 16 / 5; object-fit: cover; border-radius: 14px; border: 1px solid var(--edge); display: block; }
+/* The shop page is a full-bleed framed column, so the checkout wrapper's
+   640px cap and padding have to stand down while it is showing. */
+body.shop-view .checkout { width: 100%; max-width: none; padding: 0 0 64px; gap: 0; }
+.shop {
+  --shop-col: 640px;      /* rails included */
+  --shop-gutter: 16px;    /* every block insets by this; banner + tabs do not */
+  --shop-ground: var(--bg);
+  width: min(var(--shop-col), 100%); margin: 0 auto;
+}
+/* The column is a framed strip: hairline rails run its full height and every
+   block insets itself, so the banner and the tab bar can sit flush against
+   them. The store's chosen background stays visible OUTSIDE the rails — that
+   is the branded twist on the reference, and it is what keeps all 46 presets
+   meaningful on this page. */
+.shop-col {
+  border-inline: 1px solid var(--hairline-2);
+  min-height: calc(100svh - 76px);
+  display: flex; flex-direction: column;
+}
+body.has-bg .shop-col {
+  --shop-ground: color-mix(in srgb, var(--bg) 46%, transparent);
+  background: var(--shop-ground);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+body[data-material='solid'].has-bg .shop-col {
+  --shop-ground: var(--bg); background: var(--bg);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+
+/* ── banner: square, flush to the rails, always in the layout ── */
+.shop-hero { position: relative; aspect-ratio: 3 / 1; }
+.shop-hero.no-banner {
+  background:
+    radial-gradient(120% 140% at 78% 10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 62%),
+    color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.shop-banner {
+  width: 100%; height: 100%; object-fit: cover; object-position: center;
+  display: block; border-radius: 0; border: 0;
+}
 .shop-banner[hidden] { display: none; }
-.shop-icon {
-  width: 84px; height: 84px; border-radius: 22px;
-  position: absolute; left: 22px; bottom: -38px;
-  border: 4px solid var(--bg); box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.5);
-  background: var(--panel);
+
+/* ── avatar: a squircle punched half out of the banner's lower edge. The ring
+   is the COLUMN's ground, never a hardcoded colour — over a cloud preset a
+   fixed navy square is the tell that gave the old page away. ── */
+.shop-avatar {
+  position: absolute; left: var(--shop-gutter); bottom: -48px;
+  width: 96px; height: 96px; border-radius: 20px;
+  object-fit: cover; background: var(--panel);
+  outline: 5px solid var(--shop-ground); outline-offset: 0;
+  box-shadow: none; display: block;
 }
-.shop-hero.no-banner .shop-icon { position: static; border: 1px solid var(--edge); box-shadow: none; }
-.shop-head { display: flex; flex-direction: column; gap: 8px; padding: 0 4px; }
-.shop-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.shop-join {
-  flex: none; display: inline-flex; align-items: center; justify-content: center;
-  min-height: 40px; padding: 9px 24px; border-radius: 10px;
-  background: var(--blurple); color: #fff; font-weight: 700; font-size: 14.5px; text-decoration: none;
-  transition: background 140ms var(--ease-out), transform 140ms var(--ease-out);
+.shop-avatar[hidden] { display: none; }
+.shop-avatar-ph {
+  display: grid; place-items: center;
+  font: 700 34px/1 var(--font-head); color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
 }
+
+/* ── identity block ── */
+.shop-head { display: flex; flex-direction: column; padding: 65px var(--shop-gutter) 40px; }
+.shop-titlebar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.shop-name {
+  margin: 0; font-family: var(--font-head); font-size: 28px; font-weight: 700;
+  line-height: 1.12; letter-spacing: -0.02em; color: var(--ink);
+}
+.shop-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.shop-icon-btn {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border: 0; border-radius: 10px; cursor: pointer;
+  background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink);
+}
+.shop-icon-btn:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.shop-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 33px; padding: 0 18px; border: 0; border-radius: 10px; cursor: pointer;
+  font: 700 15px var(--font-body, inherit); text-decoration: none; white-space: nowrap;
+}
+/* The ONE saturated element on the page. That scarcity is the design — the
+   moment a second thing goes blurple the composition stops reading. */
+.shop-join { background: var(--blurple); color: #fff; }
 .shop-join:hover { background: #4752e8; }
 .shop-join:active { transform: scale(0.97); }
-.shop-metaline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--dim); font-size: 13.5px; margin-top: 2px; }
+.shop-follow {
+  height: 32px; padding: 0 14px;
+  background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink);
+}
+.shop-follow:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.shop-follow .f-on, .shop-follow .f-un { display: none; }
+.shop-follow[data-following='1'] {
+  background: color-mix(in srgb, var(--blurple) 18%, transparent); color: var(--blurple-text);
+}
+.shop-follow[data-following='1'] .f-off { display: none; }
+.shop-follow[data-following='1'] .f-on { display: inline; }
+.shop-follow[data-following='1']:hover .f-on { display: none; }
+.shop-follow[data-following='1']:hover .f-un { display: inline; }
+
+.shop-sub { margin: 8px 0 0; display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--dim); }
+.shop-sub svg { flex: none; }
+/* Primary ink, deliberately: in the reference the bio is the same colour as
+   the title. Demoting it to --dim is what made the old page read flat. */
+.shop-desc { margin: 16px 0 0; color: var(--ink); font-size: 16px; line-height: 20px; }
+.shop-desc.clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shop-desc-more {
+  background: none; border: 0; padding: 0 0 0 4px; cursor: pointer;
+  color: var(--dim); font: inherit;
+}
+.shop-desc-more:hover { color: var(--ink); }
+.shop-metaline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 15px; color: var(--dim); font-size: 16px; }
 .shop-mgroup { display: inline-flex; align-items: center; gap: 14px; }
 .shop-mlink { color: var(--dim); display: inline-flex; }
 .shop-mlink:hover { color: var(--ink); }
 .shop-mitem { display: inline-flex; align-items: center; gap: 6px; }
 .shop-mdot { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); }
-.shop-joined { margin: 4px 0 0; font-size: 14px; color: var(--dim); }
-.shop-joined b { color: var(--ink); font-weight: 750; font-size: 15.5px; }
-.shop-sec { font-family: var(--font-head); font-size: 19px; font-weight: 750; letter-spacing: -0.01em; margin: 0 0 14px; }
-.shop-name { margin: 0; font-family: var(--font-head); font-size: 30px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.12; }
-.shop-desc { margin: 0; color: var(--dim); font-size: 14.5px; line-height: 1.55; max-width: 72ch; }
-.shop-desc.clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.shop-desc-more {
-  display: inline; background: none; border: 0; padding: 0; margin-left: 3px; cursor: pointer;
-  color: var(--dim); font: inherit; font-size: 14.5px;
+.shop-joined { display: flex; gap: 24px; margin: 18px 0 0; font-size: 16px; color: var(--dim); }
+.shop-joined b { color: var(--ink); font-weight: 700; }
+/* Real roles in the idiom the reference uses for member faces — we will not
+   invent people, and the roles are what a buyer actually receives. */
+.shop-roleline { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 16px; color: var(--dim); }
+.shop-rolestack { display: inline-flex; flex: none; }
+.shop-rolechip {
+  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 10px/1 var(--font-body, inherit); color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  box-shadow: 0 0 0 1.5px var(--shop-ground);
 }
-.shop-desc-more:hover { color: var(--ink); }
-.shop-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 4px; }
-/* whop-style tab bar under the head */
+.shop-rolechip + .shop-rolechip { margin-left: -8px; }
+.shop-roleline b { color: var(--ink); font-weight: 600; }
+
+/* ── tabs: rail to rail, exact fractions, pill underline on the divider ── */
 .shop-tabs {
-  display: grid; grid-template-columns: repeat(2, 1fr); margin-top: 24px; border-bottom: 1px solid var(--hairline-2);
+  display: grid; grid-template-columns: repeat(var(--shop-tabn, 3), 1fr);
+  border-bottom: 1px solid var(--hairline-2);
 }
 .shop-tab {
-  position: relative; background: none; border: 0; cursor: pointer; font: inherit;
-  padding: 11px 2px 13px; color: var(--dim); font-size: 15px; font-weight: 600; text-align: center;
+  height: 56px; background: none; border: 0; cursor: pointer; position: relative;
+  font: 500 15px var(--font-body, inherit); color: var(--dim);
 }
-.shop-tab:hover { color: var(--ink); }
+.shop-tab:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 4%, transparent); }
 .shop-tab.active { color: var(--ink); }
 .shop-tab.active::after {
-  content: ""; position: absolute; left: 50%; transform: translateX(-50%); bottom: -1px;
-  width: 72px; height: 3px; border-radius: 99px 99px 0 0; background: var(--blurple);
+  content: ""; position: absolute; left: 50%; translate: -50% 0; bottom: 0;
+  width: 56px; height: 5px; border-radius: 99px; background: var(--blurple);
 }
-.shop-pane { margin-top: 20px; }
-.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+
+/* ── panes ── */
+.shop-pane { padding: 21px var(--shop-gutter) 0; }
+.shop-sec { font: 600 17px var(--font-head); letter-spacing: -0.01em; color: var(--ink); margin: 0 0 30px; }
+.shop-sec-2 { margin-top: 34px; }
+.shop-facts { display: flex; flex-direction: column; gap: 14px; }
+.shop-fact { display: flex; align-items: flex-start; gap: 10px; font-size: 16px; line-height: 1.45; color: var(--dim); }
+.shop-fact svg { flex: none; margin-top: 2px; color: var(--accent); }
+.shop-fact b { color: var(--ink); font-weight: 600; }
+.shop-home-about { margin-top: 30px; }
+.shop-featured { margin-bottom: 4px; }
+
+/* ── product cards: image flush to the card edge, title ON the image,
+   price alone in a bare footer strip ── */
+.shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 13px; }
 .prod-card {
-  display: flex; flex-direction: column; gap: 10px; text-align: left; cursor: pointer;
-  background: var(--panel); border: 1px solid var(--edge); border-radius: 14px; padding: 14px;
-  color: var(--ink); font: inherit;
-  transition: border-color 180ms var(--ease-out), translate 180ms var(--ease-out);
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 12px;
+  padding: 0; overflow: hidden; display: flex; flex-direction: column;
+  text-align: left; cursor: pointer; width: 100%;
 }
 .prod-card:hover { border-color: var(--edge-selected, var(--accent)); translate: 0 -2px; }
 .prod-card:active { translate: 0 0; }
 .prod-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.prod-shot {
-  width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px;
-  border: 1px solid var(--edge); background: color-mix(in srgb, var(--ink) 6%, transparent);
+.prod-media { position: relative; display: block; }
+/* the scrim is not optional: the reference only looks scrim-less because that
+   artwork is black at the bottom */
+.prod-media::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 62%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  pointer-events: none;
+}
+.prod-shot, .prod-ph {
+  width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block;
+  border-radius: 0; border: 0;
 }
 .prod-ph {
-  width: 100%; aspect-ratio: 16 / 9; border-radius: 8px; border: 1px solid var(--edge);
-  display: grid; place-items: center; font-family: var(--font-head); font-weight: 700; font-size: 30px;
-  background: color-mix(in srgb, var(--accent) 12%, var(--panel)); color: var(--accent);
+  display: grid; place-items: center;
+  font: 700 34px/1 var(--font-head); color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
 }
-.prod-name { font-weight: 700; font-size: 15.5px; font-family: var(--font-head); letter-spacing: -0.01em; }
-.prod-price { color: var(--blurple-text); font-weight: 750; }
-.prod-desc {
-  margin: 0; color: var(--dim); font-size: 13px; line-height: 1.5;
+.prod-name {
+  position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 1;
+  color: #fff; font: 600 15px var(--font-head); line-height: 1.25; letter-spacing: -0.01em;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.prod-foot { margin-top: auto; display: flex; align-items: baseline; gap: 6px; border-top: 1px solid var(--hairline-2); padding-top: 10px; }
-.prod-price { font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; }
-.prod-from { font-weight: 500; font-size: 13px; color: var(--muted, #8a8a84); margin-right: 2px; }
-.prod-per { color: var(--dim); font-size: 12.5px; }
+.prod-foot { min-height: 31px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.prod-price { font: 600 15px var(--font-body, inherit); color: var(--blurple-text); font-variant-numeric: tabular-nums; }
+.prod-per { color: inherit; font-size: inherit; font-weight: inherit; }
+.prod-from { font-weight: 500; font-size: 13px; color: var(--faint); margin-right: 2px; }
+.prod-meta { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; color: var(--faint); }
+.prod-meta svg { flex: none; }
+.prod-card--wide { width: 100%; }
+.prod-card--wide .prod-shot, .prod-card--wide .prod-ph { aspect-ratio: 16 / 9; }
+
+@media (max-width: 640px) {
+  .shop-col { border-inline: 0; min-height: 0; }
+}
+@media (max-width: 560px) {
+  .shop-avatar { width: 80px; height: 80px; bottom: -40px; outline-width: 4px; }
+  .shop-head { padding: 54px 16px 32px; }
+  .shop-name { font-size: 24px; }
+  .shop-titlebar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .shop-actions { gap: 8px; }
+  .shop-icon-btn { width: 40px; height: 40px; flex: none; }
+  .shop-btn { flex: 1; height: 40px; }
+  .shop-tab { height: 52px; font-size: 14px; }
+  .shop-tab.active::after { width: 48px; }
+}
+@media (max-width: 520px) {
+  .shop-grid { grid-template-columns: 1fr; }
+}
 .shop-back {
   background: none; border: none; align-self: flex-start; cursor: pointer;
   color: var(--dim); font: 650 13.5px var(--font-body, inherit); padding: 0 0 12px;
 }
 .shop-back:hover { color: var(--ink); }
-@media (max-width: 560px) { .shop-grid { grid-template-columns: 1fr; } }
 
 /* the hidden attribute must win over the layout display rules above */
 .order-card[hidden], .shop[hidden] { display: none !important; }
@@ -2948,10 +3076,6 @@ html.menu-open .top {
   color: var(--dim); font-size: 14px;
 }
 /* banner + avatar overlap, the classic profile composition */
-.shop-banner:not([hidden]) + .shop-head { margin-top: -30px; }
-.shop-banner:not([hidden]) + .shop-head .shop-icon {
-  border: 3px solid var(--bg); background: var(--bg);
-}
 
 /* overview: customize panel (accent, stat cards, default period) */
 .set-card > .dc-body { margin: 14px 20px 0; display: flex; flex-direction: column; gap: 16px; }
@@ -3649,7 +3773,7 @@ body[data-material='solid'] .panel, body[data-material='solid'] .prod-card, body
    ═══════════════════════════════════════════════════════════════════════════ */
 .btn-fill, .btn-pill, .btn-secondary, .btn-ghost, .btn-blurple, .btn-danger, .btn-login,
 .pay-btn, .apply-btn, .seg-btn, .menu-btn, .theme-btn, .tab, .apptab, .nav-link,
-.side-item, .st-subnav-btn, .shop-tab, .shop-join, .shop-share, .shop-link, .shop-back,
+.side-item, .st-subnav-btn, .shop-tab, .shop-btn, .shop-icon-btn, .shop-link, .shop-back,
 .shop-desc-more, .disc-chip, .option, .method, .g-row, .role-row, .link-quiet,
 .th-seg-btn, .th-dev-btn, .th-tile-thumb, .bgp-thumb, .admin-link, .dc-open,
 input, select, textarea {
@@ -3663,7 +3787,7 @@ input, select, textarea {
 }
 
 /* ── focus-visible: the storefront controls that were missing a ring ──────── */
-.shop-join:focus-visible, .shop-share:focus-visible {
+.shop-btn:focus-visible, .shop-icon-btn:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px color-mix(in srgb, var(--accent) 55%, transparent);
 }
@@ -3689,18 +3813,15 @@ input, select, textarea {
 
 /* ── store page: share button beside Join ─────────────────────────────────── */
 .shop-actions { display: flex; align-items: center; gap: 8px; flex: none; }
-.shop-share {
-  position: relative; display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; flex: none; padding: 0; border-radius: 10px;
-  border: 1px solid var(--edge); background: var(--panel); color: var(--dim); cursor: pointer;
-  transition: color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
-}
-.shop-share:hover { color: var(--ink); border-color: var(--edge-hot); }
-.shop-share:active { transform: scale(0.94); }
-.shop-share .ss-check { display: none; }
-.shop-share.copied { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
-.shop-share.copied .ss-share { display: none; }
-.shop-share.copied .ss-check { display: block; }
+/* Geometry lives on .shop-icon-btn with the rest of the store-page chrome;
+   what stays here is only the copied-state machine, retargeted to the id so
+   it survives the button's class changing. */
+#shop-share { transition: color 140ms var(--ease-out), background 140ms var(--ease-out), transform 140ms var(--ease-out); }
+#shop-share:active { transform: scale(0.94); }
+#shop-share .ss-check { display: none; }
+#shop-share.copied { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+#shop-share.copied .ss-share { display: none; }
+#shop-share.copied .ss-check { display: block; }
 /* the confirmation floats under the button — no layout shift */
 .shop-share-tip {
   position: absolute; top: calc(100% + 8px); right: 0; z-index: 5;
@@ -3710,7 +3831,7 @@ input, select, textarea {
   opacity: 0; translate: 0 -3px; pointer-events: none;
   transition: opacity 180ms var(--ease-out), translate 180ms var(--ease-out);
 }
-.shop-share.copied .shop-share-tip { opacity: 1; translate: 0 0; }
+#shop-share.copied .shop-share-tip { opacity: 1; translate: 0 0; }
 
 /* ── checkout: the quiet reassurance under the pay button ─────────────────── */
 .pay-assure { margin: 0; text-align: center; color: var(--dim); font-size: 12.75px; }
@@ -3718,7 +3839,6 @@ input, select, textarea {
 /* ── pleasing details ─────────────────────────────────────────────────────── */
 /* The active tab already says "Products"; the pane needn't repeat it. The
    heading returns when the tab bar is hidden (stores with no About). */
-.shop-tabs:not([hidden]) + .shop-pane .shop-sec { display: none; }
 /* discover: skeletons the shape of the cards they become — no layout jump */
 .disc-grid .sk-row { height: 172px; border-radius: 18px; }
 /* dashboard rows: a hover you can actually see */
@@ -3739,8 +3859,8 @@ html[data-theme='light'] .callout:not(.pending) {
   .shop-pane, .checkout .order-card, .shop, .shop-tab.active::after { animation: none; }
   .media-fade { opacity: 1; transition: none; }
   .shop-share-tip { transition: none; translate: 0 0; }
-  .shop-join, .shop-share, .prod-card { transition: none; }
-  .shop-join:active, .shop-share:active { transform: none; }
+  .shop-btn, .shop-icon-btn, .prod-card { transition: none; }
+  .shop-btn:active, .shop-icon-btn:active { transform: none; }
   .prod-card:hover, .prod-card:active { translate: 0 0; }
   .disc-card { transition: none; }
   .disc-card:hover, .seo-card:hover { transform: none; }

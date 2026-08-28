@@ -1095,7 +1095,7 @@ const SECTIONS = [
   ['payments', 'Transactions', 'cart'],
   ['discounts', 'Discounts', 'tag'],
   ['store', 'Store', 'shop'],
-  ['customize', 'Customize', 'palette'],
+  ['customize', 'Dashboard', 'palette'],
   ['billing', 'Billing', 'card'],
   ['settings', 'Settings', 'gear'],
 ];
@@ -1666,7 +1666,10 @@ function appearanceBody(store) {
                  </div>
                </div>
                <div class="th-viewport" id="th-viewport">
-                 <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}?view=checkout" title="Store preview" loading="lazy"></iframe>
+                 <!-- The STORE page, not ?view=checkout: an owner picking
+                      colours and a background was being shown the checkout,
+                      so the thing being themed was never the thing on screen. -->
+                 <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}" title="Store preview" loading="lazy"></iframe>
                </div>
              </div>`
           : '<div class="th-stage-empty"><p class="note-help">Publish your store to see the live preview here.</p></div>'
@@ -1769,7 +1772,10 @@ function sectionStore(store, link) {
     </div>`;
 }
 
-// ── customize: the dashboard's own look, a full section of its own ───────────
+// ── dashboard: this dashboard's OWN look. It used to be called Customize,
+// which read as "customize my store" — the store's colours, background, type
+// and live preview live under Store. Naming each for what it changes is the
+// whole fix.
 function sectionCustomize(store) {
   const prefs = store.dashboardPrefs ?? {};
   const cards = { revenue: true, sales: true, members: true, mrr: true, ...(prefs.cards ?? {}) };
@@ -1779,11 +1785,11 @@ function sectionCustomize(store) {
   ];
   const curAccent = /^#[0-9a-f]{6}$/i.test(String(prefs.accent ?? '')) ? prefs.accent : '';
   return `
-    <h2 class="sec-title">Customize</h2>
+    <h2 class="sec-title">Dashboard</h2>
     <div class="settings-stack">
     ${setCard({
       id: 'dash-custom',
-      title: 'Dashboard',
+      title: 'Appearance',
       sub: 'Your dashboard, your way — saved for this store, on every device.',
       body: `<div class="dc-body">
         <div class="dc-row"><span class="dc-lab">Accent</span>
@@ -1976,7 +1982,7 @@ async function viewStore(slug) {
   else if (section === 'store') body = sectionStore(store, link);
   else if (section === 'customize')
     body = store.isDefault
-      ? '<h2 class="sec-title">Customize</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store — its dashboard uses the platform look. Set up your server’s own store to customize.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
+      ? '<h2 class="sec-title">Dashboard</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store — its dashboard uses the platform look. Set up your server’s own store to customize.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
       : sectionCustomize(store);
   else if (section === 'billing') body = sectionBilling();
   else if (section === 'settings') body = sectionSettings(store, isPlatformOwner);

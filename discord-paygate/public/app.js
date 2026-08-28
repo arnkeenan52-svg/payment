@@ -698,6 +698,9 @@ function render() {
   const multi = state.plans.length > 1;
   if (shop) shop.hidden = state.view !== 'shop';
   if (card) card.hidden = state.view === 'shop';
+  // The checkout wrapper caps itself at 640px with its own padding; the shop
+  // page is a full-bleed framed column and has to shed that shaping.
+  document.body.classList.toggle('shop-view', state.view === 'shop');
   const back = $('#back-to-shop');
   if (back) back.hidden = !(multi && state.view === 'checkout');
   if (state.view === 'shop') {
@@ -709,31 +712,120 @@ function render() {
   renderPayPanel();
 }
 
-// ── shop view: the store's overall page, every product as a card ─────────────
+// ── shop view: the store's overall page, every product a card ────────────────
+// Module-level so the Home pane's "Read more" and the Join button can reach it.
+function setTab(tab) {
+  const shopEl = $('#shop');
+  if (!shopEl) return;
+  const hasAbout = Boolean((state.store?.about ?? '').trim());
+  if (tab === 'about' && !hasAbout) tab = 'products';
+  shopEl.dataset.tab = tab;
+  $('#shop-tabs')?.querySelectorAll('.shop-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+  $('#shop-pane-home').hidden = tab !== 'home';
+  $('#shop-pane-products').hidden = tab !== 'products';
+  $('#shop-about-box').hidden = tab !== 'about';
+}
+
+// Exact below ten thousand, then abbreviated: a follower count is a claim, and
+// "12.4K" is only honest because the real number is still what was counted.
+const fmtCount = (n) => (n < 10000 ? String(n) : `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`);
+
+const SHOP_ICONS = {
+  lock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+  bolt: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg>',
+  people: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 20v-2a4 4 0 0 0-3-3.87"/></svg>',
+  card: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>',
+  gear: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 8 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H2a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3.7 8a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H8a1.6 1.6 0 0 0 1-1.5V2a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V8a1.6 1.6 0 0 0 1.5 1H22a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',
+  discord: '<svg width="16" height="12" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>',
+};
+const LINK_ICONS = {
+  discord: SHOP_ICONS.discord,
+  x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.2l7.3-8.3L1.2 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L7.1 3.9H5.3L17.8 20z"/></svg>',
+  youtube: '<svg width="18" height="13" viewBox="0 0 24 17" fill="currentColor" aria-hidden="true"><path d="M23.5 2.7A3 3 0 0 0 21.4.5C19.6 0 12 0 12 0S4.4 0 2.6.5A3 3 0 0 0 .5 2.7 31.2 31.2 0 0 0 0 8.5a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.2c1.8.5 9.4.5 9.4.5s7.6 0 9.4-.5a3 3 0 0 0 2.1-2.2 31.2 31.2 0 0 0 .5-5.8 31.2 31.2 0 0 0-.5-5.8zM9.6 12.1V4.9l6.3 3.6-6.3 3.6z"/></svg>',
+  instagram: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none"/></svg>',
+  tiktok: '<svg width="15" height="17" viewBox="0 0 20 23" fill="currentColor" aria-hidden="true"><path d="M15.5 0h-3.8v15.1a3.3 3.3 0 1 1-3.3-3.3c.3 0 .7 0 1 .1V8a7.2 7.2 0 0 0-1-.1 7.1 7.1 0 1 0 7.1 7.1V7.6a9 9 0 0 0 4.8 1.4V5.2A5.2 5.2 0 0 1 15.5 0z"/></svg>',
+  website: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.6 2.6 3.9 5.8 3.9 9.2s-1.3 6.6-3.9 9.2c-2.6-2.6-3.9-5.8-3.9-9.2s1.3-6.6 3.9-9.2z"/></svg>',
+};
+const socialLinks = () => {
+  const links = state.store?.links ?? {};
+  return Object.keys(LINK_ICONS).filter((k) => typeof links[k] === 'string' && /^https:\/\//.test(links[k]));
+};
+
+// One card, shared by the Products grid and the Home pane's featured slot.
+function productCard(plan, { wide = false } = {}) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = wide ? 'prod-card prod-card--wide' : 'prod-card';
+  const group = groupFor(plan);
+  const minUsd = Math.min(...group.map((g) => g.priceUsd));
+  const priceHtml =
+    group.length > 1 ? `<span class="prod-from">from</span> ${fmtPrice(minUsd)}` : fmtPrice(plan.priceUsd);
+  // The interval is the same weight and colour as the amount: "$49.99 / month"
+  // has to read as one string, not a number with a footnote.
+  const per = plan.lifetime ? ' lifetime' : ` / ${esc(plan.interval ?? 'month')}`;
+  const now = Math.floor(Date.now() / 1000);
+  const roleCount = Array.isArray(plan.roleNames) ? plan.roleNames.length : 0;
+  const meta =
+    group.length > 1 ? `${group.length} options`
+    : plan.expiresAt && plan.expiresAt > now ? 'Limited'
+    : roleCount ? `${SHOP_ICONS.people}${roleCount} role${roleCount > 1 ? 's' : ''}`
+    : '';
+  const media = plan.imageUrl
+    ? (isVideoMedia(plan)
+        ? `<video class="prod-shot media-fade" src="${esc(plan.imageUrl)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true" onerror="this.remove()" onloadeddata="this.classList.add('loaded')"></video>`
+        : `<img class="prod-shot media-fade" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" onload="this.classList.add('loaded')" />`)
+    : `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`;
+  card.innerHTML =
+    `<span class="prod-media">${media}<span class="prod-name">${esc(plan.name)}</span></span>` +
+    `<span class="prod-foot"><span class="prod-price">${priceHtml}<span class="prod-per">${per}</span></span>` +
+    `<span class="prod-meta">${meta}</span></span>`;
+  card.onclick = () => openCheckout(plan.id);
+  return card;
+}
+
 function renderShop() {
   // Restore the store-level title (a product page may have set its own).
   if (state.server?.name)
     document.title = `${state.server.name} — ${state.capabilities?.demo ? 'Demo Store' : 'Membership'}`;
-  const banner = $('#shop-banner');
-  if (state.store?.bannerUrl) {
-    banner.src = state.store.bannerUrl;
-    banner.hidden = false;
-  } else banner.hidden = true;
+
+  // Banner: image or video, and the slot never collapses — the identity block
+  // hangs off its lower edge, so an absent banner still needs its height.
+  const bImg = $('#shop-banner');
+  const bVid = $('#shop-banner-video');
+  const bUrl = state.store?.bannerUrl ?? null;
+  const bVideo = state.store?.bannerKind === 'video';
+  bImg.hidden = !bUrl || bVideo;
+  bVid.hidden = !bUrl || !bVideo;
+  if (bUrl && bVideo) { if (bVid.src !== bUrl) bVid.src = bUrl; }
+  else if (bUrl) { if (bImg.src !== bUrl) bImg.src = bUrl; }
+  $('#shop-hero')?.classList.toggle('no-banner', !bUrl);
+
+  const name = state.brand ?? state.server?.name ?? '';
   const icon = $('#shop-icon');
+  const iconPh = $('#shop-icon-ph');
   if (state.server?.iconUrl) {
     icon.src = state.server.iconUrl;
     icon.hidden = false;
-  } else icon.hidden = true;
-  // The hero block collapses when there is neither banner nor icon, and the
-  // icon only overlaps when it has a banner to overlap.
-  $('#shop-hero')?.classList.toggle('no-banner', banner.hidden);
-  $('#shop-hero')?.classList.toggle('empty', banner.hidden && icon.hidden);
-  $('#shop-name').textContent = state.brand ?? state.server?.name ?? '';
+    iconPh.hidden = true;
+  } else {
+    icon.hidden = true;
+    iconPh.hidden = false;
+    iconPh.textContent = (name || '?').slice(0, 1).toUpperCase();
+  }
+  $('#shop-name').textContent = name;
+
+  // The reference puts a star rating here. We have no reviews and will not
+  // invent them, so the slot carries the true equivalent: which server this is.
+  const sub = $('#shop-sub');
+  const serverName = state.server?.name ?? '';
+  const showSub = Boolean(serverName) && serverName !== name;
+  sub.innerHTML = showSub ? `${SHOP_ICONS.discord}<span>${esc(serverName)}</span>` : '';
+  sub.hidden = !showSub;
+
   const desc = (state.store?.description ?? '').trim();
   const descEl = $('#shop-desc');
   $('#shop-desc-text').textContent = desc;
   descEl.hidden = !desc;
-  // Long descriptions clamp to two lines with an inline "… see more".
   const more = $('#shop-desc-more');
   if (more) {
     const long = desc.length > 140;
@@ -745,65 +837,85 @@ function renderShop() {
       more.innerHTML = nowClamped ? '&#8230; see more' : 'see less';
     };
   }
-  // One quiet meta line, dot-separated: social icons, then the two platform
-  // facts that hold for every Dues store. The member count gets its own
-  // "N joined" line beneath, the way community pages read.
-  const ICON_LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
-  const ICON_BOLT = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg>';
-  const LINK_ICONS = {
-    discord: '<svg width="17" height="13" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>',
-    x: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.2l7.3-8.3L1.2 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L7.1 3.9H5.3L17.8 20z"/></svg>',
-    youtube: '<svg width="16" height="12" viewBox="0 0 24 17" fill="currentColor" aria-hidden="true"><path d="M23.5 2.7A3 3 0 0 0 21.4.5C19.6 0 12 0 12 0S4.4 0 2.6.5A3 3 0 0 0 .5 2.7 31.2 31.2 0 0 0 0 8.5a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.2c1.8.5 9.4.5 9.4.5s7.6 0 9.4-.5a3 3 0 0 0 2.1-2.2 31.2 31.2 0 0 0 .5-5.8 31.2 31.2 0 0 0-.5-5.8zM9.6 12.1V4.9l6.3 3.6-6.3 3.6z"/></svg>',
-    instagram: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none"/></svg>',
-    tiktok: '<svg width="13" height="15" viewBox="0 0 20 23" fill="currentColor" aria-hidden="true"><path d="M15.5 0h-3.8v15.1a3.3 3.3 0 1 1-3.3-3.3c.3 0 .7 0 1 .1V8a7.2 7.2 0 0 0-1-.1 7.1 7.1 0 1 0 7.1 7.1V7.6a9 9 0 0 0 4.8 1.4V5.2A5.2 5.2 0 0 1 15.5 0z"/></svg>',
-    website: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.6 2.6 3.9 5.8 3.9 9.2s-1.3 6.6-3.9 9.2c-2.6-2.6-3.9-5.8-3.9-9.2s1.3-6.6 3.9-9.2z"/></svg>',
-  };
-  const links = state.store?.links ?? {};
-  const linkHtml = Object.keys(LINK_ICONS)
-    .filter((k) => typeof links[k] === 'string' && /^https:\/\//.test(links[k]))
-    .map((k) => `<a class="shop-mlink" href="${esc(links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
+
+  // One quiet meta line, dot-separated: the two platform facts that hold for
+  // every Dues store, with the store's own socials between them.
+  const linkHtml = socialLinks()
+    .map((k) => `<a class="shop-mlink" href="${esc(state.store.links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
     .join('');
-  const metaBits = [];
+  const metaBits = [`<span class="shop-mitem">${SHOP_ICONS.lock}Secured by Stripe</span>`];
   if (linkHtml) metaBits.push(`<span class="shop-mgroup">${linkHtml}</span>`);
-  metaBits.push(`<span class="shop-mitem">${ICON_LOCK}Secured by Stripe</span>`);
-  metaBits.push(`<span class="shop-mitem">${ICON_BOLT}Automatic role delivery</span>`);
+  metaBits.push(`<span class="shop-mitem">${SHOP_ICONS.bolt}Instant role delivery</span>`);
   $('#shop-metaline').innerHTML = metaBits.join('<i class="shop-mdot" aria-hidden="true"></i>');
+
+  // Counts are whatever the server counted. Followers stay hidden below ten:
+  // "1 follower" reads worse than no number, and hiding is not lying.
   const joined = $('#shop-joined');
+  const bits = [];
   const count = state.store?.memberCount;
-  if (Number.isFinite(count) && count > 0) {
-    joined.innerHTML = `<b>${count}</b> joined`;
-    joined.hidden = false;
-  } else joined.hidden = true;
+  if (Number.isFinite(count) && count > 0) bits.push(`<span><b>${count}</b> members</span>`);
+  const followers = state.store?.followers;
+  if (Number.isFinite(followers) && followers >= 10) bits.push(`<span><b>${fmtCount(followers)}</b> followers</span>`);
+  joined.innerHTML = bits.join('');
+  joined.hidden = bits.length === 0;
+
+  // Where the reference stacks member faces, we stack the roles a buyer
+  // actually receives — real data in the same visual idiom.
+  const roleLine = $('#shop-roleline');
+  const roles = [...new Set(state.plans.filter((p) => !p.variantOf).flatMap((p) => p.roleNames ?? []))].filter(Boolean);
+  if (roles.length) {
+    const chips = roles.slice(0, 3)
+      .map((r) => `<span class="shop-rolechip">${esc(String(r).replace(/^@/, '').slice(0, 2).toUpperCase())}</span>`)
+      .join('');
+    const shown = roles.slice(0, 2).map((r) => esc(String(r).startsWith('@') ? r : `@${r}`)).join(', ');
+    const rest = roles.length - Math.min(2, roles.length);
+    roleLine.innerHTML =
+      `<span class="shop-rolestack" aria-hidden="true">${chips}</span>` +
+      `<span>Includes <b>${shown}</b>${rest > 0 ? ` and ${rest} more role${rest > 1 ? 's' : ''}` : ''}</span>`;
+    roleLine.hidden = false;
+  } else roleLine.hidden = true;
+
   // About: plain text, escaped, split into paragraphs.
   const about = (state.store?.about ?? '').trim();
-  const aboutBox = $('#shop-about-box');
+  if (about) $('#shop-about').innerHTML = about.split(/\n+/).map((line) => `<p>${esc(line.trim())}</p>`).join('');
+
+  // Tabs: Home · Products · About. The bar is always visible; About appears
+  // only when the owner wrote one, and the column count follows so the labels
+  // always land on exact fractions.
   const tabs = $('#shop-tabs');
-  if (about) {
-    $('#shop-about').innerHTML = about.split(/\n+/).map((line) => `<p>${esc(line.trim())}</p>`).join('');
-  }
-  // Whop-style tabs: Products is home; About appears only when written.
-  const shopEl = $('#shop');
-  const setTab = (tab) => {
-    shopEl.dataset.tab = tab;
-    tabs?.querySelectorAll('.shop-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
-    $('#shop-pane-products').hidden = tab !== 'products';
-    aboutBox.hidden = tab !== 'about' || !about;
-  };
+  const aboutTab = $('#shop-tab-about');
+  if (aboutTab) aboutTab.hidden = !about;
   if (tabs) {
-    tabs.hidden = !about;
+    tabs.style.setProperty('--shop-tabn', about ? 3 : 2);
     if (!tabs.dataset.wired) {
       tabs.dataset.wired = '1';
-      tabs.querySelectorAll('.shop-tab').forEach((b) => {
-        b.addEventListener('click', () => setTab(b.dataset.tab));
-      });
+      tabs.querySelectorAll('.shop-tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
     }
   }
-  setTab('products');
+
+  const products = state.plans.filter((p) => !p.variantOf);
+  $('#shop-empty').hidden = products.length > 0;
+  const grid = $('#shop-grid');
+  grid.innerHTML = '';
+  for (const plan of products) grid.append(productCard(plan));
+
+  renderHome(products, about);
+
+  // The one blue button on the page used to do nothing. With a single product
+  // it opens that checkout; otherwise it takes you to the grid.
   const join = $('#shop-join');
   if (join && !join.dataset.wired) {
     join.dataset.wired = '1';
-    join.addEventListener('click', () => setTab('products'));
+    join.addEventListener('click', () => {
+      const only = state.plans.filter((p) => !p.variantOf);
+      if (only.length === 1) { openCheckout(only[0].id); return; }
+      setTab('products');
+      $('#shop-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
+
+  wireFollow();
+
   // Share: copies the store's canonical link (desktop) or opens the native
   // share sheet (touch). Frontend-only — no network, nothing invented.
   const share = $('#shop-share');
@@ -836,34 +948,97 @@ function renderShop() {
       });
     }
   }
-  const grid = $('#shop-grid');
-  // One card per PRODUCT: price options ride inside their product's page,
-  // never as sibling cards.
-  const products = state.plans.filter((p) => !p.variantOf);
-  $('#shop-empty').hidden = products.length > 0;
-  grid.innerHTML = '';
-  for (const plan of products) {
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'prod-card';
-    const group = groupFor(plan);
-    const minUsd = Math.min(...group.map((g) => g.priceUsd));
-    const priceHtml =
-      group.length > 1 ? `<span class="prod-from">from</span> ${fmtPrice(minUsd)}` : fmtPrice(plan.priceUsd);
-    const per =
-      group.length > 1
-        ? `${group.length} options`
-        : plan.lifetime ? 'lifetime' : `/ ${esc(plan.interval ?? 'month')}`;
-    card.innerHTML =
-      (plan.imageUrl
-        ? (isVideoMedia(plan)
-            ? `<video class="prod-shot media-fade" src="${esc(plan.imageUrl)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true" onerror="this.remove()" onloadeddata="this.classList.add('loaded')"></video>`
-            : `<img class="prod-shot media-fade" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" onload="this.classList.add('loaded')" />`)
-        : `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`) +
-      `<span class="prod-name">${esc(plan.name)}</span>` +
-      `<span class="prod-foot"><span class="prod-price">${priceHtml}</span><span class="prod-per">${per}</span></span>`;
-    card.onclick = () => openCheckout(plan.id);
-    grid.append(card);
+
+  setTab($('#shop')?.dataset.tab || 'products');
+}
+
+// The Home pane is built only from things we already know, so it never reads
+// as a placeholder waiting for the owner to fill it in.
+function renderHome(products, about) {
+  const featured = $('#shop-featured');
+  featured.innerHTML = '';
+  if (products.length) featured.append(productCard(products[0], { wide: true }));
+
+  const allLifetime = products.length > 0 && products.every((p) => groupFor(p).every((g) => g.lifetime));
+  const facts = [
+    [SHOP_ICONS.bolt, 'Instant role delivery', 'the bot assigns your roles the moment payment clears.'],
+    [SHOP_ICONS.card, 'Secure card payment', 'processed by Stripe — Dues never sees your card.'],
+    allLifetime
+      ? [SHOP_ICONS.gear, 'One-time payment', 'yours for good, with nothing to renew.']
+      : [SHOP_ICONS.gear, 'Manage from your account', 'cancel or resync any time.'],
+  ];
+  $('#shop-facts').innerHTML = facts
+    .map(([ic, lead, rest]) => `<span class="shop-fact">${ic}<span><b>${lead}</b> — ${rest}</span></span>`)
+    .join('');
+
+  const links = state.store?.links ?? {};
+  $('#shop-links').innerHTML = socialLinks()
+    .map((k) => `<a class="shop-link" href="${esc(links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
+    .join('');
+
+  const homeAbout = $('#shop-home-about');
+  if (about) {
+    const first = about.split(/\n+/)[0].trim();
+    homeAbout.innerHTML = `<h2 class="shop-sec shop-sec-2">About</h2><p class="shop-desc">${esc(first)}</p>`;
+    homeAbout.hidden = false;
+    const readMore = document.createElement('button');
+    readMore.type = 'button';
+    readMore.className = 'shop-desc-more';
+    readMore.textContent = 'Read more';
+    readMore.onclick = () => setTab('about');
+    homeAbout.append(readMore);
+  } else homeAbout.hidden = true;
+}
+
+// Following: the count shown is always the server's COUNT(*). The button flips
+// optimistically because that is the user's own state, but the NUMBER never
+// moves until the server says what it is.
+function wireFollow() {
+  const btn = $('#shop-follow');
+  if (!btn) return;
+  if (!state.store?.followable) { btn.hidden = true; return; }
+  btn.hidden = false;
+  const following = Boolean(state.me?.following?.includes(STORE_SLUG));
+  btn.dataset.following = following ? '1' : '0';
+  btn.setAttribute('aria-pressed', following ? 'true' : 'false');
+  if (btn.dataset.wired) return;
+  btn.dataset.wired = '1';
+  btn.addEventListener('click', async () => {
+    if (!state.me?.loggedIn) {
+      // Come back and finish the follow the visitor actually asked for.
+      try { sessionStorage.setItem('dues.follow', STORE_SLUG); } catch { /* private mode */ }
+      location.href = `/auth/login?store=${encodeURIComponent(STORE_SLUG)}`;
+      return;
+    }
+    const was = btn.dataset.following === '1';
+    btn.dataset.following = was ? '0' : '1';
+    btn.setAttribute('aria-pressed', was ? 'false' : 'true');
+    const ok = await postFollow(was ? 'unfollow' : 'follow');
+    if (!ok) {
+      btn.dataset.following = was ? '1' : '0';
+      btn.setAttribute('aria-pressed', was ? 'true' : 'false');
+    }
+  });
+}
+
+async function postFollow(action) {
+  try {
+    const res = await fetch('/api/follow', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ store: STORE_SLUG, action }),
+    });
+    if (!res.ok) return false;
+    const body = await res.json();
+    if (state.store) state.store.followers = body.followers;
+    state.me = state.me ?? {};
+    const set = new Set(state.me.following ?? []);
+    if (body.following) set.add(STORE_SLUG); else set.delete(STORE_SLUG);
+    state.me.following = [...set];
+    if (state.view === 'shop') renderShop();
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -924,6 +1099,18 @@ async function main() {
   state.brand = plansBody.brand ?? null;
   state.platform = plansBody.platform ?? state.platform;
   state.me = await meRes.json();
+
+  // Finish a follow that sent the visitor through Discord login: they already
+  // asked for it, so completing it on return is the answer to their click, not
+  // a new action taken on their behalf.
+  try {
+    if (sessionStorage.getItem('dues.follow') === STORE_SLUG) {
+      sessionStorage.removeItem('dues.follow');
+      if (state.me?.loggedIn && state.store?.followable && !state.me.following?.includes(STORE_SLUG)) {
+        postFollow('follow');
+      }
+    }
+  } catch { /* private mode: the follow is simply not resumed */ }
 
   // Back from the OAuth round trip (or a shared link): land on that plan,
   // scrolled to the pay button, instead of the top of the page.

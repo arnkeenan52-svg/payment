@@ -218,12 +218,16 @@ export function themeCss(theme) {
   }
   if (t.radius !== undefined) {
     const small = Math.min(t.radius, 12);
-    lines.push(`.checkout .panel, .checkout .order-product, .checkout .order-roles, .checkout .pay-panel, .checkout .order-extra, .prod-card, .shop-banner { border-radius: ${t.radius}px; }`);
-    lines.push(`.checkout .pay-btn, .checkout .apply-btn, .checkout .method, .checkout input, .checkout .op-thumb, .prod-shot, .prod-ph { border-radius: ${small}px; }`);
+    // .shop-banner is deliberately absent: it runs flush to the column rails
+    // with hard corners, and rounding it reopens the gap the frame closes.
+    // .prod-shot/.prod-ph are absent for the same reason — the card clips
+    // them, and an inner radius leaves a double-rounded sliver at the corner.
+    lines.push(`.checkout .panel, .checkout .order-product, .checkout .order-roles, .checkout .pay-panel, .checkout .order-extra, .prod-card, .shop-avatar { border-radius: ${t.radius}px; }`);
+    lines.push(`.checkout .pay-btn, .checkout .apply-btn, .checkout .method, .checkout input, .checkout .op-thumb, .shop-btn, .shop-icon-btn { border-radius: ${small}px; }`);
   }
   if (t.font && THEME_FONTS[t.font]) {
     lines.push(`body, .checkout button, .checkout input { font-family: ${THEME_FONTS[t.font]}; }`);
-    lines.push(`.order-title, .op-price, .pay-panel h2, .shop-name, .prod-name, .prod-price { font-family: ${THEME_FONTS[t.font]}; }`);
+    lines.push(`.order-title, .op-price, .pay-panel h2, .shop-name, .shop-sec, .prod-name, .prod-price { font-family: ${THEME_FONTS[t.font]}; }`);
   }
   return lines.join('\n');
 }
