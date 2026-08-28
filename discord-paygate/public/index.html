@@ -2007,9 +2007,32 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
      dies the moment the footer outgrows the viewport, and it dies SILENTLY —
      no error, the effect just stops existing. Tagging links by hand only holds
      until someone adds an untagged one. Six rows per column is the ceiling on a
-     phone whatever the markup does: today every column is already under it, so
-     this changes nothing visible and bounds every future addition. */
-  .footer .fcol a:nth-of-type(n+7){display:none}
+     phone whatever the markup does, and it is FOUR rather than six because the
+     arithmetic below demands it: the reveal only exists while the whole footer
+     fits a phone that is showing its toolbars, and four rows per column is what
+     buys that on a small handset. Every hidden link is still one tap away in
+     the section it belongs to. */
+  .footer .fcol a:nth-of-type(n+5){display:none}
+  /* Vertical compaction, and the reason for it is arithmetic rather than taste.
+     Measured at 390x844 the footer ran 758px. Against 100lvh (toolbars
+     collapsed, 844) that fits and the blind armed. Against 100svh — the height
+     the phone actually has while you are scrolling, with the toolbars showing —
+     it does not, so the effect armed and then had nowhere to land. The probe
+     now measures svh, which is correct but on its own would simply switch the
+     reveal off. This is the other half: take the footer under the smaller
+     budget so it can arm honestly.
+
+     Every number here is padding and rhythm. No link, column or line of copy is
+     removed — the fold above already decides what a phone shows. */
+  .footer-stage{padding-top:18px}
+  .footer-title{margin-bottom:6px}
+  .footer-cta{margin-bottom:8px}
+  .footer-cta .btn-gloss{margin-top:18px}
+  .footer-directory{margin-top:2px;padding-bottom:0;row-gap:10px}
+  .footer .fcol{gap:5px}
+  .footer .fcol a{line-height:1.45}
+  .f-identity{gap:6px}
+  .f-identity p{margin:0;line-height:1.4}
   /* the footer is pinned ONLY while the reveal is near. Everywhere else it
      is an ordinary in-flow footer at the end of the document, so there is
      simply nothing at the viewport bottom to peek through when an iOS
@@ -2810,9 +2833,20 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   // to the viewport that the old innerHeight-based check could flip mid-
   // gesture and reflow the footer under the visitor's thumb. Falls back to
   // innerHeight where lvh is unsupported (the probe measures 0).
+  // svh, NOT lvh. This is the whole bug in one unit. 100lvh is the viewport
+  // with iOS Safari's toolbars COLLAPSED — the most generous number the device
+  // will ever report. The reveal, though, happens while someone is scrolling,
+  // which is exactly when the toolbars are SHOWING and the usable height is
+  // ~90px smaller. Measuring the fit against lvh armed the blind for a footer
+  // that then could not fit on screen: it pinned, and its top sat above the
+  // visible area, so the reveal never completed. It worked in every desktop
+  // emulator, where lvh and svh are the same number, and only ever failed on a
+  // real phone.
   var lvhProbe = document.createElement('div');
-  lvhProbe.style.cssText = 'position:fixed;left:-9px;top:0;width:1px;height:100lvh;pointer-events:none;visibility:hidden';
+  lvhProbe.style.cssText = 'position:fixed;left:-9px;top:0;width:1px;height:100svh;pointer-events:none;visibility:hidden';
   (document.body || html).appendChild(lvhProbe);
+  // A browser without svh leaves the height at 0 and falls through to
+  // innerHeight, which tracks the visual viewport and is the right answer there.
   var largeVh = function(){ var h = lvhProbe.getBoundingClientRect().height; return h > 0 ? h : window.innerHeight; };
   // phone blind: engage only when the whole footer fits the large viewport,
   // and keep flow height identical (spacer = measured footer px height)
