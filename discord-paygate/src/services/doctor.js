@@ -409,6 +409,94 @@ export async function runDoctor() {
     add('coinbase:partial', 'Coinbase capability', 'pass', capabilities().crypto ? 'crypto enabled' : 'Stripe-only (coinbase dormant)');
   }
 
+  // ── NOWPayments: the crypto rail ────────────────────────────────────────────
+  //
+  // Checked LIVE, for the same reason the Stripe section is: the difference
+  // between "the code is written" and "a buyer can pay in crypto and the seller
+  // receives it" is four external preconditions, and none of them live in this
+  // repository. Asserting readiness from the presence of code is how a rail
+  // gets called live while every payment settles somewhere nobody intended.
+  const np = config.nowpayments;
+  if (!np.apiKey && !np.ipnSecret) {
+    add('nowpayments:off', 'NOWPayments capability', 'skip',
+      'NOWPAYMENTS_API_KEY and NOWPAYMENTS_IPN_SECRET are both unset — the crypto rail is dormant, its endpoints answer 501 and the storefront hides the option.');
+  } else if (!np.apiKey || !np.ipnSecret) {
+    // Half-configured is the dangerous state: with a key but no secret, the
+    // checkout would create real payments the webhook can never verify.
+    add('nowpayments:partial', 'NOWPayments configured fully or not at all', 'fail',
+      `only one of NOWPAYMENTS_API_KEY / NOWPAYMENTS_IPN_SECRET is set (${mask(np.apiKey)} / ${mask(np.ipnSecret)})`,
+      'Set both, or clear both. The IPN secret is generated in the NOWPayments dashboard under Settings → IPN and is shown ONCE — with a key but no secret, buyers could start real payments that no delivery can be verified against, and no role would ever be granted.');
+  } else {
+    // 1. Is the provider reachable at all, and does the key work?
+    try {
+      const res = await fetch(`${np.apiBase}/merchant/coins`, {
+        headers: { 'x-api-key': np.apiKey },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res.status === 401 || res.status === 403) {
+        add('nowpayments:key', 'NOWPayments API key accepted', 'fail', `the provider rejected the key (${res.status})`,
+          'Check NOWPAYMENTS_API_KEY against the key in the NOWPayments dashboard → Settings → API keys.');
+      } else if (!res.ok) {
+        add('nowpayments:key', 'NOWPayments reachable', 'warn', `GET /merchant/coins answered ${res.status}`,
+          'Transient provider errors are normal; a persistent non-200 means checkout will fail to list coins.');
+      } else {
+        const body = await res.json().catch(() => ({}));
+        const coins = (body?.selectedCurrencies ?? body?.currencies ?? []).map((c) => String(c).toLowerCase());
+        if (!coins.length) {
+          add('nowpayments:coins', 'At least one coin is enabled', 'fail', 'the merchant account has no coins enabled',
+            'Enable the coins you want to accept in the NOWPayments dashboard → Coins. With none enabled the coin picker is empty and no crypto payment can be created.');
+        } else {
+          add('nowpayments:coins', 'NOWPayments key works and coins are enabled', 'pass',
+            `${coins.length} coin(s) enabled: ${coins.slice(0, 8).join(', ')}${coins.length > 8 ? '…' : ''}`);
+        }
+      }
+    } catch (err) {
+      add('nowpayments:key', 'NOWPayments reachable', 'warn', err.message,
+        'Could not reach the provider from here. If this persists, crypto checkout will fail to start.');
+    }
+
+    // 2. The callback the provider will be told to hit on every payment. There
+    //    is no IPN URL field in their dashboard, so this string IS the config.
+    const ipnUrl = `${config.publicBaseUrl.replace(/\/$/, '')}/api/webhooks/nowpayments`;
+    if (!ipnUrl.startsWith('https://')) {
+      add('nowpayments:ipn-url', 'IPN callback URL is https', 'fail', ipnUrl,
+        'NOWPayments will not call a non-https callback. Fix PUBLIC_BASE_URL — every payment carries this URL and without it no payment is ever reported.');
+    } else {
+      add('nowpayments:ipn-url', 'IPN callback URL', 'pass', `${ipnUrl} (sent on every payment; there is no dashboard field for it)`);
+    }
+  }
+
+  // 3. Payout wallets. This is the custody guarantee, and it is per store: a
+  //    payment created without one settles into the platform balance, which is
+  //    the single thing this architecture exists to prevent.
+  if (capabilities().nowpayments) {
+    try {
+      const { allStores } = await import('../db.js');
+      const rows = await allStores();
+      const live = rows.filter((r) => r.status === 'live');
+      const withWallet = live.filter((r) => String(r.crypto_wallet ?? '').trim());
+      if (!live.length) {
+        add('nowpayments:wallets', 'Seller payout wallets', 'skip', 'no live stores yet');
+      } else if (!withWallet.length) {
+        add('nowpayments:wallets', 'Seller payout wallets', 'warn',
+          `0 of ${live.length} live store(s) have set a crypto payout wallet`,
+          'Crypto stays hidden on those storefronts until a seller sets one under Settings → Crypto payouts. Checkout refuses to create a payment without it, so nothing can settle into the platform balance — but no store can take crypto either.');
+      } else {
+        add('nowpayments:wallets', 'Seller payout wallets', 'pass',
+          `${withWallet.length} of ${live.length} live store(s) can take crypto`);
+      }
+    } catch (err) {
+      add('nowpayments:wallets', 'Seller payout wallets', 'warn', err.message);
+    }
+
+    // 4. The one precondition no API exposes. Stated as a check rather than
+    //    left in a commit message, because it is the difference between
+    //    forwarding and holding, and it can only be read off the dashboard.
+    add('nowpayments:custody', 'Custody switched OFF on the merchant account', 'warn',
+      'cannot be read through the API — verify by hand in the NOWPayments dashboard',
+      'Target state is Custody OFF. Until then every payment relies on the per-payment payout_address to forward, which this code always sends and refuses to omit. Turning custody off requires a payout wallet on the account first.');
+  }
+
   return {
     ok: !checks.some((c) => c.status === 'fail'),
     generatedAt: new Date().toISOString(),
