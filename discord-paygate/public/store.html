@@ -187,7 +187,26 @@
           <div class="tot-div" aria-hidden="true"></div>
           <div class="tot-row tot-final"><span>Total</span><strong id="tot-final"></strong></div>
         </div>
+        <!-- Crypto: the coin picker, then the address the buyer sends to.
+             Both live inside the order card rather than on a hosted page —
+             the money goes straight to the seller's wallet, so there is no
+             third-party checkout to hand the buyer off to. -->
+        <div class="coinpick" id="coinpick" hidden>
+          <p class="coinpick-label">Pay with</p>
+          <div class="coinpick-grid" id="coinpick-grid"></div>
+          <p class="coinpick-msg" id="coinpick-msg" role="status"></p>
+        </div>
         <div id="cta-area"></div>
+        <div class="cryptopay" id="cryptopay" hidden>
+          <p class="cryptopay-head">Send <b id="cryptopay-amount"></b> to this address</p>
+          <div class="cryptopay-addr">
+            <code id="cryptopay-address"></code>
+            <button type="button" class="apply-btn" id="cryptopay-copy">Copy</button>
+          </div>
+          <p class="cryptopay-memo" id="cryptopay-memo" hidden>Include this memo/tag or the payment cannot be matched: <code id="cryptopay-memo-value"></code></p>
+          <p class="cryptopay-note" id="cryptopay-note"></p>
+          <p class="cryptopay-status" id="cryptopay-status" role="status">Waiting for your payment…</p>
+        </div>
         <p class="redirect-note" id="redirect-note"></p>
         <div class="trust-row" id="trust-row"></div>
       </section>

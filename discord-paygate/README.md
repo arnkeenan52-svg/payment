@@ -289,10 +289,53 @@ on purpose — a mempool sighting is not money), and copy the shared secret →
 `COINBASE_WEBHOOK_SECRET`. Crypto can't auto-renew, so term plans grant a
 fixed `durationDays`; the lifetime plan is lifetime either way.
 
+## NOWPayments (the crypto rail sellers use)
+
+Two env vars, both required — `NOWPAYMENTS_API_KEY` and
+`NOWPAYMENTS_IPN_SECRET`. The key alone cannot verify a delivery, and an
+unverified delivery is an anonymous request claiming somebody paid, so with
+either missing the crypto CTA is hidden and
+`POST /webhooks/nowpayments` answers 501.
+
+The IPN secret is generated in the NOWPayments dashboard (shown once). There
+is **no IPN URL field** there, so the callback rides on every payment we
+create — nothing to configure on their side.
+
+**Dues never holds the money.** Every payment is created with the seller's own
+`payout_address`, set per store under Settings → Crypto payouts, and no code
+path anywhere reads an account balance. That matters because the account still
+has Custody enabled: a payment created *without* a payout address would settle
+into the platform balance, so `createPayment` throws rather than build one.
+Custody-off is the target state, and turning it off changes nothing here.
+
+Three provider behaviours the code is built around:
+
+- **Payment covering (2%)** — a deposit within 2% of the price is finished by
+  NOWPayments itself. The tolerance is not re-implemented here; trusting their
+  status means changing it in the dashboard needs no deploy.
+- **Short payments default to Partially Paid** — `partially_paid` is a buyer
+  who still owes money. Roles are granted on `finished` and nothing else; the
+  buyer is shown what is outstanding.
+- **Wrong-asset auto-processing is on** — a buyer who sends the wrong coin has
+  it converted at the current rate, so `pay_currency` is not necessarily what
+  arrived. Shortfalls are therefore computed in the order's own fiat currency
+  (`actually_paid_at_fiat`), and the coin figure is quoted only when the
+  deposit really was in the coin the buyer picked.
+
+The IPN carries no timestamp or nonce, so there is nothing to bound a replay
+against: the webhook re-reads the payment from the API and acts on its current
+state, and claims idempotency on `payment_id:payment_status` (keying on the id
+alone would let the first `waiting` delivery swallow the `finished` one).
+Payout addresses are checksum-validated per chain — EIP-55, base58check with
+version bytes, bech32/bech32m — and typed twice before they will save.
+
 ## Hardening summary
 
 - Stripe's `stripe-signature` and Coinbase's `x-cc-webhook-signature`
-  verified with HMAC-SHA256 + `crypto.timingSafeEqual`; events outside
+  verified with HMAC-SHA256 + `crypto.timingSafeEqual`; NOWPayments'
+  `x-nowpayments-sig` with HMAC-SHA512 over the payload re-serialised with its
+  keys sorted **recursively** (the documented replacer-array one-liner only
+  sorts top-level keys and fails on nested payloads); events outside
   `WEBHOOK_TOLERANCE_SECONDS` (default 300) are rejected — a captured
   delivery is useless later.
 - Idempotency: PRIMARY KEY claim, released on failure (see above).

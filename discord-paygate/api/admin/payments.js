@@ -143,6 +143,12 @@ export default guard(async function handler(req, res) {
         // denominated in it, so it has to arrive with the payload rather than
         // be assumed.
         currency: s.currency ?? 'usd',
+        // The crypto payout wallet, in full. It is a PUBLIC address — the
+        // thing a buyer would send to — not a secret, and the settings form
+        // has to be able to show the seller what is currently saved. What is
+        // never sent anywhere is the private key, which Dues has never had.
+        cryptoWallet: s.cryptoWallet ?? null,
+        cryptoChain: s.cryptoChain ?? null,
         // The seller's own rating, and the real one: this is the same COUNT
         // and mean the storefront draws, reported even while the switch is
         // off, because turning the display off must not blind the seller to

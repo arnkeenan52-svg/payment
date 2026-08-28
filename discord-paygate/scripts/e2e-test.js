@@ -100,6 +100,11 @@ const stripe = {
 const AUTO_ENDPOINT_SECRET = 'whsec_auto_e2e_secret_1';
 
 const coinbase = { charges: [] };
+// NOWPayments: the crypto rail. `payments` is mutable so a test can advance a
+// payment through its statuses the way the real provider would.
+const nowpayments = { created: [], payments: new Map(), n: 0 };
+const NOW_KEY = 'np_key_e2e';
+const NOW_IPN_SECRET = 'np_ipn_secret_e2e';
 const resend = { emails: [] };
 
 async function resendHandler(req, res) {
@@ -521,6 +526,62 @@ async function stripeHandler(req, res) {
   }
 }
 
+async function nowpaymentsHandler(req, res) {
+  const url = new URL(req.url, 'http://mock');
+  // Every call carries the merchant key; a request without it is the bug
+  // where the key never reached the fetch at all.
+  if (req.headers['x-api-key'] !== NOW_KEY) {
+    json(res, 401, { message: 'invalid api key' });
+    return;
+  }
+  if (url.pathname === '/merchant/coins' && req.method === 'GET') {
+    // Deliberately UPPERCASE: tickers are compared lowercase everywhere, and
+    // the provider is not consistent about which it sends.
+    json(res, 200, { selectedCurrencies: ['BTC', 'SOL', 'USDTSOL', 'ETH'] });
+    return;
+  }
+  if (url.pathname === '/min-amount' && req.method === 'GET') {
+    json(res, 200, { min_amount: 0.004, currency_from: url.searchParams.get('currency_from') });
+    return;
+  }
+  if (url.pathname === '/payment' && req.method === 'POST') {
+    const body = JSON.parse(await readBody(req));
+    if (Number(body.price_amount) < 1) {
+      json(res, 400, { message: 'Amount is too small: minimal amount is 1' });
+      return;
+    }
+    nowpayments.created.push(body);
+    const id = `npid_${++nowpayments.n}`;
+    const payment = {
+      payment_id: id,
+      payment_status: 'waiting',
+      pay_address: `ADDR_${id}`,
+      pay_amount: 0.5,
+      pay_currency: body.pay_currency,
+      price_amount: body.price_amount,
+      price_currency: body.price_currency,
+      order_id: body.order_id,
+      actually_paid: 0,
+      payin_extra_id: null,
+      expiration_estimate_date: new Date(Date.now() + 20 * 60_000).toISOString(),
+    };
+    nowpayments.payments.set(id, payment);
+    json(res, 201, payment);
+    return;
+  }
+  const m = url.pathname.match(/^\/payment\/(.+)$/);
+  if (m && req.method === 'GET') {
+    const payment = nowpayments.payments.get(m[1]);
+    if (!payment) {
+      json(res, 404, { message: 'not found' });
+      return;
+    }
+    json(res, 200, payment);
+    return;
+  }
+  json(res, 404, { message: 'no route' });
+}
+
 async function coinbaseHandler(req, res) {
   if (new URL(req.url, 'http://mock').pathname === '/charges' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req));
@@ -599,6 +660,35 @@ function signStripe(payload, t = nowSec(), secret = STRIPE_SECRET) {
 }
 
 const signCoinbase = (payload) => crypto.createHmac('sha256', COINBASE_SECRET).update(payload).digest('hex');
+
+// NOWPayments signs a RE-SERIALISATION of the payload with its keys sorted,
+// not the bytes on the wire. Implemented independently here on purpose: if the
+// test reused the app's own sorter, a bug in it would sign and verify
+// identically and the suite would prove nothing.
+function npSorted(v) {
+  if (Array.isArray(v)) return `[${v.map(npSorted).join(',')}]`;
+  if (v && typeof v === 'object') {
+    return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${npSorted(v[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(v === undefined ? null : v);
+}
+const signNow = (obj, secret = NOW_IPN_SECRET) =>
+  crypto.createHmac('sha512', secret).update(npSorted(obj)).digest('hex');
+
+async function deliverNow(payload, { signature, base = appUrl } = {}) {
+  const res = await fetch(`${base}/webhooks/nowpayments`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-nowpayments-sig': signature ?? signNow(payload),
+    },
+    // The bytes are deliberately NOT key-sorted: a verifier that hashed the
+    // raw body instead of re-serialising would pass in a test that sent them
+    // sorted, and fail in production where the provider does not.
+    body: JSON.stringify(payload),
+  });
+  return { status: res.status, body: await res.text() };
+}
 
 async function deliverStripe(event, { header, path: whPath = '/webhooks/stripe', base = appUrl } = {}) {
   const payload = JSON.stringify(event);
@@ -755,7 +845,7 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   assert.equal(bySlug.brand, 'Tradeleaks', 'the built-in store resolves at its brand slug');
   const { plans, capabilities, server } = await (await fetch(`${appUrl}/api/plans`)).json();
   assert.equal(plans.length, PLANS.length);
-  assert.deepEqual(capabilities, { stripe: true, crypto: true }); // coinbase configured in this phase
+  assert.deepEqual(capabilities, { stripe: true, crypto: true, nowpayments: false }); // coinbase configured; the built-in store has no payout wallet
   assert.equal(
     server.iconUrl,
     `https://cdn.discordapp.com/icons/${GUILD}/a_e2eicon.gif?size=128`,
@@ -4007,17 +4097,275 @@ test('following a store: signed-in only, idempotent, counts only, owner refused,
   assert.deepEqual((await me(u8Cookie)).following, ['vip-signals'], 'the deleted store drops out of the follower list');
 });
 
+test('crypto address validation refuses a plausible address on the wrong chain', async () => {
+  const { validateAddress } = await import('../src/lib/crypto-address.js');
+  // A real EIP-55 address, and the same address with one character re-cased.
+  assert.equal(validateAddress('0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed', 'eth').ok, true);
+  assert.equal(validateAddress('0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAeD', 'eth').ok, false);
+  // Bitcoin's own genesis address is not a Litecoin address: same encoding,
+  // different version byte, and paying out to it would be unrecoverable.
+  assert.equal(validateAddress('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 'btc').ok, true);
+  assert.equal(validateAddress('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 'ltc').ok, false);
+  assert.equal(validateAddress('bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4', 'btc').ok, true);
+  assert.equal(validateAddress('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE', 'usdttrc20').ok, true);
+  assert.equal(validateAddress('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSF', 'usdttrc20').ok, false);
+  // A chain nobody here can check is stored, but never CLAIMED as checked —
+  // that difference is what the settings form turns into a confirm step.
+  const unknown = validateAddress('0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed', 'somenewchain');
+  assert.deepEqual({ ok: unknown.ok, verified: unknown.verified }, { ok: true, verified: false });
+});
+
+// The crypto rail, end to end: the seller sets a payout wallet, a buyer pays
+// in a coin they picked, and roles land only when the money actually finished.
+let npCookie; // the vip-signals owner
+let npBuyerCookie;
+let npOrder;
+const NP_BUYER = '515000000000000015';
+const SOL_WALLET = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
+
+async function signInAs(code, uid, username) {
+  discord.oauthUsers[code] = { id: uid, username };
+  const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const state = new URL(login.headers.get('location')).searchParams.get('state');
+  const stateCookie = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+  const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${state}`, {
+    redirect: 'manual',
+    headers: { cookie: stateCookie.split(';')[0] },
+  });
+  return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+}
+
+const npStore = (body, cookie) =>
+  fetch(`${appUrl}/api/admin/store`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie },
+    body: JSON.stringify({ store: 'vip-signals', ...body }),
+  });
+
+test('crypto: a store with no payout wallet offers no crypto and refuses to start one', async () => {
+  npCookie = await signInAs('code_u7_np', '507700000000000007', 'vip_owner');
+  npBuyerCookie = await signInAs('code_u15', NP_BUYER, 'crypto_buyer');
+
+  const caps = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).capabilities;
+  assert.equal(caps.nowpayments, false, 'credentials alone must not offer a rail with nowhere to send the money');
+  const coins = await (await fetch(`${appUrl}/api/checkout/crypto?coins=1&store=vip-signals`)).json();
+  assert.deepEqual(coins, { ready: false, coins: [] });
+
+  const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  const planId = plans.plans[0].id;
+  const start = await fetch(`${appUrl}/api/checkout/crypto`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: npBuyerCookie },
+    body: JSON.stringify({ store: 'vip-signals', planId, payCurrency: 'sol' }),
+  });
+  assert.equal(start.status, 409, 'no wallet, no payment — never a payment into the platform balance');
+  assert.equal(nowpayments.created.length, 0, 'the provider must not have been called at all');
+});
+
+test('crypto: the payout wallet is checksum-checked and has to be typed twice', async () => {
+  // Wrong chain for the address: a Solana address in an unrelated field.
+  const wrongChain = await npStore({ cryptoWallet: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', cryptoChain: 'sol' }, npCookie);
+  assert.equal(wrongChain.status, 400);
+  assert.match((await wrongChain.json()).error, /Solana/);
+
+  // A coin the merchant account does not have enabled.
+  const offCoin = await npStore({ cryptoWallet: SOL_WALLET, cryptoChain: 'doge' }, npCookie);
+  assert.equal(offCoin.status, 400, 'payouts can only go out in a coin the account can actually send');
+
+  // Right address, right chain, no confirmation: refused, and told why.
+  const unconfirmed = await npStore({ cryptoWallet: SOL_WALLET, cryptoChain: 'sol' }, npCookie);
+  assert.equal(unconfirmed.status, 409);
+  assert.equal((await unconfirmed.json()).needsConfirm, true);
+
+  // Confirmation that does not match is exactly the typo this step exists for.
+  const mistyped = await npStore(
+    { cryptoWallet: SOL_WALLET, cryptoChain: 'sol', cryptoWalletConfirm: `${SOL_WALLET.slice(0, -1)}N` },
+    npCookie,
+  );
+  assert.equal(mistyped.status, 409);
+
+  const saved = await npStore(
+    { cryptoWallet: SOL_WALLET, cryptoChain: 'sol', cryptoWalletConfirm: SOL_WALLET },
+    npCookie,
+  );
+  assert.equal(saved.status, 200, await saved.clone().text());
+  const echoed = (await saved.json()).store;
+  assert.deepEqual(
+    { cryptoWallet: echoed.cryptoWallet, cryptoChain: echoed.cryptoChain },
+    { cryptoWallet: SOL_WALLET, cryptoChain: 'sol' },
+    'the settings form repopulates from this response — a field missing here gets wiped on the next save',
+  );
+
+  // Only a store owner may point their own payouts somewhere else.
+  const notMine = await npStore({ cryptoWallet: SOL_WALLET, cryptoChain: 'sol', cryptoWalletConfirm: SOL_WALLET }, npBuyerCookie);
+  assert.equal(notMine.status, 403, 'a payout address is the one field a stranger must never be able to move');
+});
+
+test('crypto: checkout creates a payment carrying the payout address and its own callback url', async () => {
+  const caps = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).capabilities;
+  assert.equal(caps.nowpayments, true, 'a wallet plus credentials is what turns the rail on');
+
+  const coins = await (await fetch(`${appUrl}/api/checkout/crypto?coins=1&store=vip-signals`)).json();
+  assert.equal(coins.ready, true);
+  assert.deepEqual(coins.coins, ['sol', 'usdtsol', 'btc', 'eth'], 'tickers arrive lowercased and cheapest chains first');
+
+  const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  const plan = plans.plans[0];
+
+  // A coin the merchant has not enabled never reaches the provider.
+  const offCoin = await fetch(`${appUrl}/api/checkout/crypto`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: npBuyerCookie },
+    body: JSON.stringify({ store: 'vip-signals', planId: plan.id, payCurrency: 'doge' }),
+  });
+  assert.equal(offCoin.status, 400);
+
+  // Logged out, there is nobody to give the roles to.
+  const anon = await fetch(`${appUrl}/api/checkout/crypto`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ store: 'vip-signals', planId: plan.id, payCurrency: 'sol' }),
+  });
+  assert.equal(anon.status, 401);
+
+  const res = await fetch(`${appUrl}/api/checkout/crypto`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: npBuyerCookie },
+    body: JSON.stringify({ store: 'vip-signals', planId: plan.id, payCurrency: 'sol' }),
+  });
+  assert.equal(res.status, 200, await res.clone().text());
+  const order = await res.json();
+  assert.match(order.orderId, /^np_[0-9a-f]{32}$/);
+  assert.equal(order.payAddress, 'ADDR_npid_1');
+  assert.equal(order.payCurrency, 'SOL');
+
+  const sent = nowpayments.created.at(-1);
+  assert.equal(sent.payout_address, SOL_WALLET, 'every payment must name the seller wallet — this is the custody guarantee');
+  assert.equal(sent.payout_currency, 'sol');
+  assert.equal(sent.ipn_callback_url, 'https://tradeleaks.e2e/api/webhooks/nowpayments', 'there is no IPN field in the dashboard, so it rides on every create');
+  assert.equal(sent.price_amount, plan.priceUsd);
+  assert.equal(sent.order_id, order.orderId);
+
+  // The order row exists BEFORE any money can move — it is the only mapping
+  // back from an IPN to which buyer bought what.
+  const { rows } = await tq('SELECT * FROM checkout_attempts WHERE session_id = ?', [order.orderId]);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].discord_id, NP_BUYER);
+  assert.equal(rows[0].provider_ref, 'npid_1');
+  npOrder = order;
+});
+
+test('crypto: an unsigned or wrongly signed IPN grants nothing', async () => {
+  const payload = { payment_id: 'npid_1', payment_status: 'finished', order_id: npOrder.orderId };
+  assert.equal((await deliverNow(payload, { signature: 'deadbeef' })).status, 400);
+  assert.equal((await deliverNow(payload, { signature: signNow(payload, 'the-wrong-secret') })).status, 400);
+  assert.equal(await subRow('nowpayments', 'npid_1'), null, 'nothing may be granted on an unverified delivery');
+});
+
+test('crypto: waiting and partially_paid show progress and grant nothing', async () => {
+  const payment = nowpayments.payments.get('npid_1');
+  assert.equal((await deliverNow({ payment_id: 'npid_1', payment_status: 'waiting', order_id: npOrder.orderId })).status, 200);
+  assert.equal(await subRow('nowpayments', 'npid_1'), null);
+
+  // Short by more than the account's covering tolerance: NOWPayments reports
+  // partially_paid, and partially_paid is a buyer who still owes money.
+  payment.payment_status = 'partially_paid';
+  payment.actually_paid = 0.35;
+  payment.actually_paid_at_fiat = Number((payment.price_amount * 0.7).toFixed(2));
+  assert.equal((await deliverNow({ payment_id: 'npid_1', payment_status: 'partially_paid', order_id: npOrder.orderId })).status, 200);
+  assert.equal(await subRow('nowpayments', 'npid_1'), null, 'a short payment is not a sale');
+
+  // The buyer's own pay screen tells them the shortfall in the money the
+  // order is priced in, which is true whichever coin actually turned up.
+  const view = await (await fetch(`${appUrl}/api/checkout/crypto?store=vip-signals&order=${npOrder.orderId}`, {
+    headers: { cookie: npBuyerCookie },
+  })).json();
+  assert.equal(view.state, 'short');
+  assert.match(view.message, /still outstanding/);
+  assert.match(view.message, /SOL/, 'same-coin shortfalls can also be quoted in the coin');
+
+  // Somebody else's order is not readable, however guessable the id is.
+  const other = await fetch(`${appUrl}/api/checkout/crypto?store=vip-signals&order=${npOrder.orderId}`, {
+    headers: { cookie: npCookie },
+  });
+  assert.equal(other.status, 404);
+});
+
+test('crypto: a wrong-asset deposit is judged on fiat, never on the coin that was asked for', async () => {
+  const payment = nowpayments.payments.get('npid_1');
+  // Wrong-asset auto-processing is ON for this account: what arrived is not
+  // pay_currency, so actually_paid and actually_paid_at_fiat disagree.
+  payment.actually_paid = 0.35;
+  payment.actually_paid_at_fiat = Number((payment.price_amount * 0.4).toFixed(2));
+  const { describeStatus, settledFiat } = await import('../src/lib/nowpayments.js');
+  const short = describeStatus(payment, { currency: 'usd' });
+  assert.equal(short.state, 'short');
+  assert.doesNotMatch(
+    short.message,
+    /SOL/,
+    'telling someone who paid in another coin to send more SOL is worse than saying nothing',
+  );
+  assert.equal(settledFiat(payment), payment.actually_paid_at_fiat);
+});
+
+test('crypto: finished grants a fixed term, and the same IPN twice grants once', async () => {
+  const payment = nowpayments.payments.get('npid_1');
+  payment.payment_status = 'finished';
+  payment.actually_paid = 0.5;
+  payment.actually_paid_at_fiat = payment.price_amount;
+  const ipn = { payment_id: 'npid_1', payment_status: 'finished', order_id: npOrder.orderId, actually_paid: 0.5 };
+
+  const first = await deliverNow(ipn);
+  assert.equal(first.status, 200);
+  await waitFor('the crypto grant to land', async () => (await subRow('nowpayments', 'npid_1')) !== null);
+  const row = await subRow('nowpayments', 'npid_1');
+  assert.equal(row.status, 'active');
+  assert.equal(row.discord_id, NP_BUYER);
+  assert.ok(memberRoles(NP_BUYER).has(R2_VIP), 'the role is the product — it has to be on the member');
+  assert.equal(
+    (await tq('SELECT status FROM checkout_attempts WHERE session_id = ?', [npOrder.orderId])).rows[0].status,
+    'completed',
+  );
+
+  // Replayed byte-for-byte: NOWPayments has no replay protection of its own,
+  // so the claim is what stops a captured delivery being replayed forever.
+  const again = await deliverNow(ipn);
+  assert.equal(again.status, 200);
+  assert.equal(again.body, 'duplicate');
+
+  // A term that renews itself is the one thing crypto cannot do.
+  const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  if (!plans.plans[0].lifetime) {
+    assert.notEqual(row.current_period_end, null, 'a crypto term must expire — nothing will charge again');
+  }
+});
+
+test('crypto: an IPN whose order is not ours is answered, and grants nothing', async () => {
+  nowpayments.payments.set('npid_stranger', {
+    payment_id: 'npid_stranger',
+    payment_status: 'finished',
+    order_id: 'np_ffffffffffffffffffffffffffffffff',
+    price_amount: 49.99,
+    price_currency: 'usd',
+    pay_currency: 'sol',
+  });
+  const res = await deliverNow({ payment_id: 'npid_stranger', payment_status: 'finished', order_id: 'np_ffffffffffffffffffffffffffffffff' });
+  assert.equal(res.status, 200);
+  assert.equal(await subRow('nowpayments', 'npid_stranger'), null);
+});
+
 // ═══ runner ═══════════════════════════════════════════════════════════════════
 
 async function main() {
   await initTestDb();
-  const [discordMock, stripeMock, coinbaseMock, resendMock] = await Promise.all([
+  const [discordMock, stripeMock, coinbaseMock, resendMock, nowMock] = await Promise.all([
     startMock('discord', discordHandler),
     startMock('stripe', stripeHandler),
     startMock('coinbase', coinbaseHandler),
     startMock('resend', resendHandler),
+    startMock('nowpayments', nowpaymentsHandler),
   ]);
-  const mocks = { discord: discordMock, stripe: stripeMock, coinbase: coinbaseMock, resend: resendMock };
+  const mocks = { discord: discordMock, stripe: stripeMock, coinbase: coinbaseMock, resend: resendMock, nowpayments: nowMock };
 
   // Phase 1: full configuration (Stripe + Coinbase) — the main scenario ladder.
   phase1Env = {
@@ -4025,6 +4373,9 @@ async function main() {
     COINBASE_API_KEY: 'cb_key_e2e',
     COINBASE_WEBHOOK_SECRET: COINBASE_SECRET,
     COINBASE_API_BASE: coinbaseMock.url,
+    NOWPAYMENTS_API_KEY: NOW_KEY,
+    NOWPAYMENTS_IPN_SECRET: NOW_IPN_SECRET,
+    NOWPAYMENTS_API_BASE: nowMock.url,
   };
   const app = await spawnApp(phase1Env);
   appUrl = app.url;
@@ -4052,7 +4403,11 @@ async function main() {
     });
     try {
       const { capabilities } = await (await fetch(`${solo.url}/api/plans`)).json();
-      assert.deepEqual(capabilities, { stripe: true, crypto: false });
+      assert.deepEqual(capabilities, { stripe: true, crypto: false, nowpayments: false });
+      const npSolo = await fetch(`${solo.url}/api/checkout/crypto?coins=1&store=tradeleaks`);
+      assert.equal(npSolo.status, 501, 'the crypto rail must be dormant without NOWPayments credentials');
+      const npWh = await deliverNow({ payment_id: 'npid_solo', payment_status: 'finished' }, { base: solo.url });
+      assert.equal(npWh.status, 501, 'the nowpayments webhook must be dormant without credentials');
       const co = await fetch(`${solo.url}/api/checkout/coinbase`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -4084,7 +4439,7 @@ async function main() {
         }),
     ),
   );
-  for (const { server } of [discordMock, stripeMock, coinbaseMock]) server.close();
+  for (const { server } of [discordMock, stripeMock, coinbaseMock, resendMock, nowMock]) server.close();
 
   if (failed) {
     console.error(`\n${failed} scenario failed. App output tail:\n${(appLog ?? []).join('').split('\n').slice(-30).join('\n')}`);

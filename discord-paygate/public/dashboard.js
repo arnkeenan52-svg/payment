@@ -146,7 +146,14 @@ function renderNav() {
     $('#login').onclick = () => (window.location.href = '/auth/login');
     return;
   }
-  el.innerHTML = `<a class="nav-link" href="/account">Account</a><span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
+  // `??` falls through on null and undefined only, so an account whose username
+  // is an empty string rendered a lone "@" in the header — a stray glyph at the
+  // same size and weight as the two real nav links, sitting between them and
+  // meaning nothing. Emit the handle only when there is one.
+  const handle = String(me.username ?? '').trim() || String(me.discordId ?? '').trim();
+  el.innerHTML = `<a class="nav-link" href="/account">Account</a>`
+    + (handle ? `<span class="nav-user">@${esc(handle)}</span>` : '')
+    + `<button class="btn-ghost" id="logout">Sign out</button>`;
   $('#logout').onclick = () => (window.location.href = '/auth/logout');
 }
 
@@ -2100,6 +2107,27 @@ function sectionSettings(store, isPlatformOwner) {
     ${
       !store.isDefault
         ? setCard({
+            id: 'cw-card',
+            title: 'Crypto payouts',
+            sub: 'Optional. Buyers can pay in crypto and it forwards straight to this wallet — Dues never holds it and cannot recover a payment sent to the wrong address.',
+            body: `
+              <label class="field"><span class="field-label">Pay me in</span>
+                <select id="cw-chain"><option value="">Loading coins…</option></select>
+                <span class="field-help">The coin and network your wallet is on. Read live from the payment provider.</span></label>
+              <label class="field"><span class="field-label">Wallet address</span>
+                <input id="cw-addr" type="text" placeholder="Paste your wallet address" autocomplete="off" spellcheck="false" />
+                <span class="field-help" id="cw-check">Checked against the rules of the network you pick.</span></label>
+              <label class="field"><span class="field-label">Type it again to confirm</span>
+                <input id="cw-confirm" type="text" placeholder="Retype the same address" autocomplete="off" spellcheck="false" />
+                <span class="field-help">Crypto payouts cannot be reversed, so this one is typed twice on purpose.</span></label>
+              <p class="field-err" id="err-cw" role="alert"></p>`,
+            foot: `<button class="btn-secondary" id="cw-save">Save wallet</button><button class="btn-ghost" id="cw-clear">Turn crypto off</button>`,
+          })
+        : ''
+    }
+    ${
+      !store.isDefault
+        ? setCard({
             title: 'Sale notifications',
             sub: 'Every order is posted to a channel in your server the moment payment clears.',
             body: `
@@ -2315,7 +2343,14 @@ async function viewStore(slug) {
   // off-screen, and drop it at the end of the scroll.
   const sb = document.querySelector('.sidebar');
   if (sb) {
-    const updFade = () => sb.classList.toggle('scroll-more', sb.scrollWidth - sb.clientWidth - sb.scrollLeft > 8);
+    // Both ends, not just the right. The strip auto-centres the active tab, so
+    // it is usually scrolled AWAY from the start — and a word chopped at the
+    // left edge at full opacity does not read as "scrolled", it reads as a nav
+    // item genuinely labelled "hboard".
+    const updFade = () => {
+      sb.classList.toggle('scroll-more', sb.scrollWidth - sb.clientWidth - sb.scrollLeft > 8);
+      sb.classList.toggle('scroll-back', sb.scrollLeft > 8);
+    };
     sb.addEventListener('scroll', updFade, { passive: true });
     addEventListener('resize', updFade, { passive: true });
     // Choosing a section re-renders this bar, and a fresh element starts at
@@ -2460,6 +2495,7 @@ async function viewStore(slug) {
         }
       };
     wireCurrency(store, slug);
+    wireCryptoWallet(store, slug);
     wireReceiptSettings(store, slug);
   }
 }
@@ -3534,6 +3570,147 @@ function wireCurrency(store, slug) {
       fieldErr('cur', err.message);
     }
   };
+}
+
+// The crypto payout wallet.
+//
+// Everything about this card is shaped by one fact: a payout is an on-chain
+// transfer and there is no way to undo one. Dues holds nothing, so a wrong
+// address is not a support ticket — it is the seller's money, gone. Hence a
+// live check against the real rules of the chain, and a second typing before
+// it will save.
+function wireCryptoWallet(store, slug) {
+  const chain = $('#cw-chain');
+  const addr = $('#cw-addr');
+  const confirm = $('#cw-confirm');
+  const save = $('#cw-save');
+  const clear = $('#cw-clear');
+  const check = $('#cw-check');
+  if (!chain || !addr || !save) return;
+
+  const LABEL = {
+    btc: 'Bitcoin (BTC)', eth: 'Ethereum (ETH)', sol: 'Solana (SOL)', trx: 'Tron (TRX)',
+    ltc: 'Litecoin (LTC)', doge: 'Dogecoin (DOGE)', xrp: 'XRP', ada: 'Cardano (ADA)',
+    bnb: 'BNB Chain (BNB)', matic: 'Polygon (MATIC)', pol: 'Polygon (POL)',
+    usdterc20: 'USDT on Ethereum', usdttrc20: 'USDT on Tron', usdtsol: 'USDT on Solana',
+    usdtbsc: 'USDT on BNB Chain', usdtmatic: 'USDT on Polygon',
+    usdcerc20: 'USDC on Ethereum', usdcsol: 'USDC on Solana', usdcmatic: 'USDC on Polygon',
+    usdcbase: 'USDC on Base', usdcbsc: 'USDC on BNB Chain',
+  };
+  const label = (t) => LABEL[t] ?? t.toUpperCase();
+
+  addr.value = store.cryptoWallet ?? '';
+
+  // Live validation as they type: the same check the server runs, so nobody
+  // discovers a wrong-chain address only after pressing Save.
+  let checking = null;
+  const revalidate = async () => {
+    if (check) check.classList.remove('ok', 'bad');
+    if (!addr.value.trim() || !chain.value) {
+      if (check) check.textContent = 'Checked against the rules of the network you pick.';
+      return;
+    }
+    clearTimeout(checking);
+    checking = setTimeout(async () => {
+      try {
+        const r = await api('/api/admin/store', {
+          store: slug, action: 'crypto-check', cryptoWallet: addr.value.trim(), cryptoChain: chain.value,
+        });
+        if (!check) return;
+        if (!r.ok) {
+          check.textContent = r.error;
+          check.classList.add('bad');
+        } else if (r.verified) {
+          check.textContent = `Valid ${chain.options[chain.selectedIndex].text} address.`;
+          check.classList.add('ok');
+        } else {
+          check.textContent = 'Dues cannot check addresses on this network yet — make sure it is right before you save.';
+        }
+      } catch { /* the save still validates; a failed preview is not an error */ }
+    }, 300);
+  };
+  addr.oninput = revalidate;
+  chain.onchange = revalidate;
+
+  (async () => {
+    let info;
+    try {
+      info = await api('/api/admin/store', { store: slug, action: 'crypto-coins' });
+    } catch {
+      chain.innerHTML = '<option value="">Could not load coins — reload to try again</option>';
+      chain.disabled = true;
+      save.disabled = true;
+      return;
+    }
+    if (!info.enabled) {
+      // The platform has no crypto credentials configured. Saying so is
+      // better than a dead dropdown a seller keeps poking at.
+      chain.innerHTML = '<option value="">Crypto payments are not switched on for this deployment</option>';
+      chain.disabled = true;
+      addr.disabled = true;
+      confirm.disabled = true;
+      save.disabled = true;
+      return;
+    }
+    const coins = info.coins ?? [];
+    const current = String(store.cryptoChain ?? '').toLowerCase();
+    chain.innerHTML = ['<option value="">Choose a coin…</option>']
+      .concat(coins.map((c) => `<option value="${esc(c)}">${esc(label(c))}</option>`))
+      .join('');
+    if (current && coins.includes(current)) chain.value = current;
+    // Re-check what is already saved. A seller opening this card should be
+    // told the wallet on file is still valid for the chain on file, not be
+    // shown generic copy that says nothing about their own address.
+    revalidate();
+  })();
+
+  save.onclick = async () => {
+    fieldErr('cw', '');
+    const address = addr.value.trim();
+    if (!address) return fieldErr('cw', 'Paste your wallet address, or use “Turn crypto off”.');
+    if (!chain.value) return fieldErr('cw', 'Pick which coin and network you want to be paid in.');
+    if (confirm.value.trim() !== address) {
+      return fieldErr('cw', 'The two addresses do not match. Payouts cannot be reversed, so they have to be identical.');
+    }
+    save.disabled = true;
+    save.textContent = 'Saving…';
+    try {
+      await api('/api/admin/store', {
+        store: slug,
+        cryptoWallet: address,
+        cryptoChain: chain.value,
+        cryptoWalletConfirm: confirm.value.trim(),
+      });
+      store.cryptoWallet = address;
+      store.cryptoChain = chain.value;
+      confirm.value = '';
+      save.textContent = 'Saved ✓';
+      setTimeout(() => { save.textContent = 'Save wallet'; save.disabled = false; }, 1400);
+    } catch (err) {
+      save.disabled = false;
+      save.textContent = 'Save wallet';
+      fieldErr('cw', err.message);
+    }
+  };
+
+  if (clear) {
+    clear.onclick = async () => {
+      if (!store.cryptoWallet) return fieldErr('cw', 'There is no wallet saved.');
+      if (!window.confirm('Turn crypto payments off for this store? Buyers will only see the card option.')) return;
+      clear.disabled = true;
+      try {
+        await api('/api/admin/store', { store: slug, cryptoWallet: '' });
+        store.cryptoWallet = null;
+        store.cryptoChain = null;
+        addr.value = '';
+        confirm.value = '';
+        chain.value = '';
+      } catch (err) {
+        fieldErr('cw', err.message);
+      }
+      clear.disabled = false;
+    };
+  }
 }
 
 function wireReceiptSettings(store, slug) {

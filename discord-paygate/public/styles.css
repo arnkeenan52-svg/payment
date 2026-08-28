@@ -410,6 +410,66 @@ body {
   letter-spacing: 0.01em;
 }
 
+/* ── crypto: coin picker + the address the buyer sends to ─────────────────── */
+.coinpick { display: flex; flex-direction: column; gap: 9px; }
+/* `[hidden]` is a UA rule with NO specificity, so the `display: flex` above
+   beats it and the element stays on screen with .hidden === true. Every
+   JS-toggled block in this file needs its own [hidden] rule or the toggle is
+   a lie — here it would leave the coin picker sitting above a payment that
+   has already been created, one click from a second invoice. */
+.coinpick[hidden], .cryptopay[hidden] { display: none; }
+.coinpick-label { color: var(--dim); font-size: 13px; font-weight: 600; }
+.coinpick-grid {
+  /* Auto-fit rather than a fixed count: the list is however many coins the
+     seller enabled, which is anywhere from one to a couple of dozen. */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+}
+.coin {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  border: 1px solid var(--edge); border-radius: 12px; background: var(--panel);
+  padding: 11px 13px; min-height: 58px; cursor: pointer; font: inherit; color: var(--ink);
+  text-align: left;
+}
+.coin:hover { background: var(--panel-hover); }
+.coin.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.coin b { font-size: 14px; font-weight: 700; }
+.coin span {
+  font-size: 11.5px; color: var(--dim); font-weight: 500;
+  /* A coin label is one line; the grid cell is fixed, so a long one truncates
+     rather than pushing the tile taller than its neighbours. */
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.coinpick-msg { font-size: 13px; color: var(--dim); }
+.coinpick-msg:empty { display: none; }
+
+.cryptopay {
+  display: flex; flex-direction: column; gap: 10px;
+  border: 1px solid var(--edge); border-radius: 14px; padding: 16px;
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+.cryptopay-head { font-size: 14.5px; }
+.cryptopay-head b { font-weight: 700; }
+.cryptopay-addr { display: flex; align-items: center; gap: 8px; }
+.cryptopay-addr code {
+  /* An address is one unbroken token far wider than a phone. It has to wrap
+     inside its own box, not push the order card sideways. */
+  flex: 1 1 auto; min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; line-height: 1.5;
+  overflow-wrap: anywhere; word-break: normal;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 8px;
+  padding: 9px 10px;
+}
+.cryptopay-memo { font-size: 12.5px; color: var(--bad); }
+.cryptopay-memo code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+.cryptopay-note { font-size: 12.5px; color: var(--dim); }
+.cryptopay-status { font-size: 13px; font-weight: 600; }
+
 /* ── pay panel (XOE pattern) ──────────────────────────────────────────────── */
 .pay-panel { display: flex; flex-direction: column; gap: 12px; }
 .pay-head { display: flex; align-items: center; gap: 10px; }
@@ -1584,7 +1644,7 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
   display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;
   padding: 12px 20px; border-top: 1px solid var(--edge); background: color-mix(in srgb, var(--ink) 2%, transparent);
 }
-.set-foot .btn-pill, .set-foot .btn-secondary { width: auto; min-height: 38px; padding: 9px 16px; font-size: 13.5px; }
+.set-foot .btn-pill, .set-foot .btn-secondary, .set-foot .btn-ghost { width: auto; min-height: 38px; padding: 9px 16px; font-size: 13.5px; }
 .set-card #billing-body { margin-bottom: 16px; }
 .set-card .tier-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
 
@@ -3335,6 +3395,13 @@ html[data-theme='light'] .st-status.draft .st-dot { background: #9a6700; box-sha
 }
 .field textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .field-help { margin: 6px 0 0; font-size: 12px; color: var(--dim); }
+/* The live address check. Green and red are never the only signal — the
+   sentence beside them says what is actually wrong. */
+.field-help.ok { color: var(--accent); }
+.field-help.bad { color: var(--bad); }
+/* A wallet address is one unbreakable 40+ character token; it has to wrap
+   inside its field rather than widen the settings card. */
+#cw-addr, #cw-confirm { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Front-page accent — Discord blurple → violet. The product chrome stays

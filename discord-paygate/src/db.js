@@ -67,6 +67,8 @@ const ddl = (dialect) => {
     theme            TEXT,               -- JSON of validated storefront design tokens
     discoverable     ${int} NOT NULL DEFAULT 0,  -- owner opted in to /discover
     currency         TEXT NOT NULL DEFAULT 'usd',  -- what this store prices in
+    crypto_wallet    TEXT,               -- seller's own payout address (never Dues')
+    crypto_chain     TEXT,               -- which network that address is on
     category         TEXT,               -- one of the fixed discover categories
     status           TEXT NOT NULL DEFAULT 'draft',
     created_at       ${int} NOT NULL,
@@ -87,6 +89,7 @@ const ddl = (dialect) => {
     amount_usd    REAL NOT NULL DEFAULT 0,   -- denominated in the currency column, not always USD
     currency      TEXT NOT NULL DEFAULT 'usd',
     discount_code TEXT,
+    provider_ref  TEXT,                 -- crypto: the NOWPayments payment id
     status        TEXT NOT NULL,        -- 'started' | 'completed'
     created_at    ${int} NOT NULL,
     completed_at  ${int},
@@ -351,6 +354,18 @@ function db() {
       await driver.exec("ALTER TABLE checkout_attempts ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
       await driver.exec("ALTER TABLE subscriptions ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
       await driver.exec("ALTER TABLE store_plans ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
+      // Crypto payouts forward straight to the seller's own wallet: Dues has
+      // no custodial balance and no code path that needs one. The network is
+      // stored alongside the address because the same string can be a valid
+      // address on more than one chain, and paying out on the wrong one is
+      // unrecoverable.
+      await driver.exec('ALTER TABLE stores ADD COLUMN crypto_wallet TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN crypto_chain TEXT').catch(() => {});
+      // The provider's own id for an attempt. Stripe puts its cs_… id straight
+      // in session_id; a crypto attempt is keyed by an order id we mint
+      // ourselves, so the payment id it maps to needs somewhere to live —
+      // it is what the buyer's pay screen re-reads status from.
+      await driver.exec('ALTER TABLE checkout_attempts ADD COLUMN provider_ref TEXT').catch(() => {});
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -556,6 +571,19 @@ export async function recordCheckoutAttempt({ storeId = null, planId, discordId,
   );
 }
 
+export async function setCheckoutAttemptRef(sessionId, providerRef) {
+  await q('UPDATE checkout_attempts SET provider_ref = ? WHERE session_id = ?', [providerRef, sessionId]);
+}
+
+// The order behind a crypto payment. NOWPayments' IPN carries only our own
+// order_id, so this row is the whole mapping from "money arrived" back to
+// which buyer bought which product in which store — there is nothing else to
+// recover it from.
+export async function getCheckoutAttempt(sessionId) {
+  const { rows } = await q('SELECT * FROM checkout_attempts WHERE session_id = ?', [sessionId]);
+  return rows[0] ?? null;
+}
+
 // The completion webhook is the only thing that flips a row. It is replayed by
 // Stripe on retries, so completed_at is written once and never moved.
 export async function markCheckoutCompleted(sessionId, at = now()) {
@@ -666,6 +694,8 @@ export async function updateStore(id, fields) {
     team: 'team',
     teamHeading: 'team_heading',
     currency: 'currency',
+    cryptoWallet: 'crypto_wallet',
+    cryptoChain: 'crypto_chain',
   };
   const sets = [];
   const params = [];

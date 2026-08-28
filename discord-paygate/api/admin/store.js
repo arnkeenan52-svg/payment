@@ -12,6 +12,9 @@ import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
 import { parseUploadDataUrl, uploadKind, UPLOAD_BODY_LIMIT } from '../../src/lib/upload.js';
 import { payoutCurrencies, invalidatePriceCache } from '../../src/lib/stripe.js';
 import { isSupported, normalize as normalizeCurrency } from '../../src/lib/currency.js';
+import { validateAddress, chainFamily } from '../../src/lib/crypto-address.js';
+import { merchantCoins } from '../../src/lib/nowpayments.js';
+import { capabilities } from '../../src/config.js';
 
 // Store identity settings: name, description, banner, custom link (slug).
 // Tenant stores only — the built-in store is env-configured.
@@ -46,6 +49,39 @@ export default guard(async function handler(req, res) {
     }
     await db.deleteStore(store.id);
     sendJson(res, 200, { ok: true, deleted: true });
+    return;
+  }
+
+  // Address checker for the settings form: same validation the save runs, but
+  // it writes nothing. It exists so a seller finds out they pasted a Bitcoin
+  // address into the Solana field while they can still fix it, rather than
+  // after their first sale has already been forwarded into the void.
+  if (body.action === 'crypto-check') {
+    const chain = String(body.cryptoChain ?? '').trim().toLowerCase();
+    const v = validateAddress(body.cryptoWallet, chain);
+    sendJson(res, 200, {
+      ok: v.ok,
+      verified: v.verified,
+      family: v.family,
+      error: v.error,
+      chainKnown: Boolean(chainFamily(chain)),
+    });
+    return;
+  }
+
+  // Which coins can this account actually be paid out in? Read live, never
+  // hardcoded — enabled coins are a per-merchant setting.
+  if (body.action === 'crypto-coins') {
+    if (!capabilities().nowpayments) {
+      sendJson(res, 200, { enabled: false, coins: [] });
+      return;
+    }
+    try {
+      sendJson(res, 200, { enabled: true, coins: await merchantCoins() });
+    } catch (err) {
+      console.error(`[store] nowpayments coin list for ${store.slug} failed: ${err.message}`);
+      sendJson(res, 502, { error: 'Could not load the coin list just now — try again shortly.' });
+    }
     return;
   }
 
@@ -117,6 +153,60 @@ export default guard(async function handler(req, res) {
       invalidatePriceCache();
     }
   }
+  // The seller's crypto payout wallet.
+  //
+  // Every crypto sale is forwarded straight here — Dues holds nothing and has
+  // no balance to correct a mistake out of. An on-chain transfer to a wrong
+  // address is final, so this save is deliberately the most obstructive one
+  // in the whole dashboard: the address is checked against the real rules of
+  // the chain it claims to be on, and then it has to be typed a second time.
+  if (body.cryptoWallet !== undefined) {
+    const addr = String(body.cryptoWallet ?? '').trim();
+    if (!addr) {
+      // Clearing the wallet turns crypto off for this store. The checkout
+      // refuses to start rather than fall back to anything.
+      fields.cryptoWallet = null;
+      fields.cryptoChain = null;
+    } else {
+      const chain = String(body.cryptoChain ?? store.cryptoChain ?? '').trim().toLowerCase();
+      if (!/^[a-z0-9]{2,20}$/.test(chain)) {
+        return sendJson(res, 400, { error: 'Pick which coin and network you want to be paid in.' });
+      }
+      const v = validateAddress(addr, chain);
+      if (!v.ok) return sendJson(res, 400, { error: v.error });
+      // The coin has to be one this merchant account can actually pay out in.
+      // Advisory only: if NOWPayments cannot be reached the save still goes
+      // through, because a provider outage is not a reason to lock a seller
+      // out of their own settings.
+      if (capabilities().nowpayments) {
+        try {
+          const coins = await merchantCoins();
+          if (coins.length && !coins.includes(chain)) {
+            return sendJson(res, 400, { error: `${chain.toUpperCase()} is not one of the coins available for payouts right now — pick another.` });
+          }
+        } catch (err) {
+          console.warn(`[store] could not verify payout coin ${chain}: ${err.message}`);
+        }
+      }
+      // The confirm step. Retyping is not ceremony: it is the only check that
+      // catches an address which is structurally perfect and belongs to
+      // somebody else — a clipboard hijack, or the wrong wallet of your own.
+      const confirm = String(body.cryptoWalletConfirm ?? '').trim();
+      if (confirm !== addr) {
+        return sendJson(res, 409, {
+          error: v.verified
+            ? 'Type the address a second time to confirm it. Crypto payouts cannot be reversed.'
+            : `Dues cannot check addresses on ${chain.toUpperCase()} yet, so type it a second time to confirm it. Crypto payouts cannot be reversed.`,
+          needsConfirm: true,
+          verified: v.verified,
+          family: v.family,
+        });
+      }
+      fields.cryptoWallet = addr;
+      fields.cryptoChain = chain;
+    }
+  }
+
   // Rotate the Stripe key: validated against Stripe before anything is saved.
   if (body.stripeKey !== undefined && String(body.stripeKey).trim() !== '') {
     const key = String(body.stripeKey).trim();
@@ -352,6 +442,8 @@ export default guard(async function handler(req, res) {
       creatorName: row.creator_name ?? null,
       team: row.team ? JSON.parse(row.team) : null,
       teamHeading: row.team_heading ?? null,
+      cryptoWallet: row.crypto_wallet ?? null,
+      cryptoChain: row.crypto_chain ?? null,
     },
   });
 });

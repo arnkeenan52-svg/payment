@@ -4,8 +4,7 @@ import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { createCheckoutSession, stripeFetch } from '../../src/lib/stripe.js';
 import { fromMinor, toMinor, normalize as normalizeCurrency } from '../../src/lib/currency.js';
-import { memberLimitBlocks } from '../../src/services/billing.js';
-import { getGuildMember } from '../../src/lib/discord.js';
+import { purchaseBlocked, resolveDiscount } from '../../src/services/purchase-guard.js';
 import * as db from '../../src/db.js';
 
 export default guard(async function handler(req, res) {
@@ -33,64 +32,33 @@ export default guard(async function handler(req, res) {
     sendJson(res, 400, { error: 'unknown plan' });
     return;
   }
-  if (plan.active === false) {
-    sendJson(res, 409, { error: 'This product is not for sale right now.' });
+  // Every rule that can stop this sale — inactive, expired, role-gated,
+  // sold out, or the owner's member cap — lives in one shared guard so the
+  // card and crypto rails cannot enforce different ones.
+  const blocked = await purchaseBlocked({ store, plan, uid });
+  if (blocked) {
+    sendJson(res, blocked.status, { error: blocked.error });
     return;
-  }
-  // Limited-time products refuse new purchases past their end date — the
-  // storefront hides them, but the link may be cached or shared.
-  if (plan.expiresAt && plan.expiresAt <= Math.floor(Date.now() / 1000)) {
-    sendJson(res, 409, { error: 'This product is no longer available.' });
-    return;
-  }
-  // Gated products: the buyer must already hold the required role in the
-  // store's server. Verified against Discord at purchase time — a chip on
-  // the page is advice, this is the enforcement.
-  if (plan.requiredRoleId) {
-    const member = await getGuildMember(uid, store.guildId).catch(() => null);
-    if (!member || !(member.roles ?? []).includes(plan.requiredRoleId)) {
-      sendJson(res, 403, {
-        error: `This product is for ${plan.requiredRoleName ?? 'members with a specific role'} members only — unlock that first, then come back.`,
-      });
-      return;
-    }
-  }
-  // Purchase limit: caps total distinct buyers, never a returning one.
-  if (plan.purchaseLimit !== null && plan.purchaseLimit !== undefined) {
-    const own = (await db.subscriptionsForMember(uid)).some((s) => {
-      const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
-      return sid === (store.id ?? null) && s.plan_id === plan.id;
-    });
-    if (!own && (await db.countBuyersOfPlan(store.id ?? null, plan.id)) >= plan.purchaseLimit) {
-      sendJson(res, 409, { error: 'This product is sold out.' });
-      return;
-    }
   }
   // Discount code → a one-shot Stripe coupon on the store's own account.
   // Validated here; the completed-checkout webhook counts the use.
   let couponId = null;
   let discountCode = null;
-  const codeRaw = typeof body?.discountCode === 'string' ? body.discountCode.trim().toUpperCase() : '';
-  if (codeRaw) {
-    const now = Math.floor(Date.now() / 1000);
-    const d = store.id !== null && store.id !== undefined ? await db.getDiscount(store.id, codeRaw) : null;
-    const valid =
-      d &&
-      // A product-scoped code covers the product's price options too.
-      (d.planKey === null || d.planKey === plan.id || d.planKey === plan.variantOf) &&
-      (d.expiresAt === null || d.expiresAt > now) &&
-      (d.maxUses === null || d.uses < d.maxUses);
-    if (!valid) {
-      sendJson(res, 400, { error: 'That discount code is not valid for this product.' });
+  const wanted = typeof body?.discountCode === 'string' ? body.discountCode : '';
+  if (wanted.trim()) {
+    const applied = await resolveDiscount({ store, plan, code: wanted });
+    if (applied.error) {
+      sendJson(res, 400, { error: applied.error });
       return;
     }
+    const d = applied.row;
     try {
       const coupon = await stripeFetch('/v1/coupons', {
         method: 'POST',
         key: store.stripeKey,
         form: {
           duration: 'once',
-          name: codeRaw,
+          name: applied.code,
           ...(d.kind === 'percent'
             ? { percent_off: Math.min(100, Math.max(1, d.amount)) }
             // A fixed discount is money, so it carries the plan's currency and
@@ -104,21 +72,12 @@ export default guard(async function handler(req, res) {
         },
       });
       couponId = coupon.id;
-      discountCode = codeRaw;
+      discountCode = applied.code;
     } catch (err) {
-      console.error(`[checkout] coupon for ${codeRaw} on ${store.slug} failed: ${err.message}`);
+      console.error(`[checkout] coupon for ${applied.code} on ${store.slug} failed: ${err.message}`);
       sendJson(res, 502, { error: 'Could not apply that discount — try again shortly.' });
       return;
     }
-  }
-  // The owner's Dues plan caps how many members their stores can hold.
-  // Existing members are never blocked — only brand-new signups wait until
-  // the owner upgrades.
-  if (await memberLimitBlocks(store, uid)) {
-    sendJson(res, 409, {
-      error: 'This store is at its member limit right now. The owner has been shown an upgrade prompt — please try again soon.',
-    });
-    return;
   }
   // Optional buyer note — rides into Stripe metadata so the owner sees it on
   // the payment in the Stripe dashboard.

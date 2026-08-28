@@ -87,7 +87,17 @@ export default guard(async function handler(req, res) {
     // it for the "Open on Discord" deep link.
     server: { name, guildId: store.guildId, iconUrl },
     currency: store.currency ?? 'usd',
-    capabilities: store.isDefault ? capabilities() : { stripe: Boolean(store.stripeKey), crypto: false },
+    // What this particular store can actually take money with. A tenant
+    // store's crypto rail needs BOTH the platform's NOWPayments credentials
+    // and that seller's own payout wallet — the platform half alone would
+    // offer a button whose only outcome is the custody refusal at checkout.
+    capabilities: store.isDefault
+      ? { ...capabilities(), nowpayments: capabilities().nowpayments && Boolean(store.cryptoWallet) }
+      : {
+          stripe: Boolean(store.stripeKey),
+          crypto: false,
+          nowpayments: capabilities().nowpayments && Boolean(store.cryptoWallet),
+        },
     plans: plans.map((p) => ({
       id: p.id,
       name: p.name,

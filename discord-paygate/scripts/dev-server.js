@@ -17,8 +17,10 @@ import authCallback from '../api/auth/callback.js';
 import authLogout from '../api/auth/logout.js';
 import checkoutStripe from '../api/checkout/stripe.js';
 import checkoutCoinbase from '../api/checkout/coinbase.js';
+import checkoutCrypto from '../api/checkout/crypto.js';
 import webhookStripe from '../api/webhooks/stripe.js';
 import webhookCoinbase from '../api/webhooks/coinbase.js';
+import webhookNowpayments from '../api/webhooks/nowpayments.js';
 import cronReconcile from '../api/cron/reconcile.js';
 import setupCheck from '../api/setup-check.js';
 import adminRoles from '../api/admin/roles.js';
@@ -81,10 +83,13 @@ const routes = {
   '/auth/logout': authLogout,
   '/api/checkout/stripe': checkoutStripe,
   '/api/checkout/coinbase': checkoutCoinbase,
+  '/api/checkout/crypto': checkoutCrypto,
   '/api/webhooks/stripe': webhookStripe,
   '/webhooks/stripe': webhookStripe,
   '/api/webhooks/coinbase': webhookCoinbase,
   '/webhooks/coinbase': webhookCoinbase,
+  '/api/webhooks/nowpayments': webhookNowpayments,
+  '/webhooks/nowpayments': webhookNowpayments,
   '/api/cron/reconcile': cronReconcile,
   '/api/setup-check': setupCheck,
   '/api/admin/roles': adminRoles,

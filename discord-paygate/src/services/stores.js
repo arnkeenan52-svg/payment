@@ -43,6 +43,11 @@ export function defaultStore() {
     team: null,
     teamHeading: null,
     currency: 'usd',
+    // The built-in store has no row, so it has no seller wallet. Present and
+    // null on purpose: `undefined` here reads as "not set" everywhere
+    // downstream by accident rather than by decision.
+    cryptoWallet: null,
+    cryptoChain: null,
     isDefault: true,
   };
 }
@@ -78,6 +83,12 @@ function hydrate(row) {
     // written before the column existed, or hand-edited to something Stripe
     // does not accept, degrades to USD rather than reaching the charge path.
     currency: normalizeCurrency(row.currency),
+    // The seller's OWN crypto payout address and the network it is on. Null
+    // is the honest answer for a store that has not set one, and the crypto
+    // checkout refuses to start rather than let a payment settle anywhere
+    // but here.
+    cryptoWallet: row.crypto_wallet ?? null,
+    cryptoChain: row.crypto_chain ?? null,
     // Seller-authored, same storage idiom as links. A row written before this
     // column existed parses as null, not as a crash.
     team: row.team ? JSON.parse(row.team) : null,

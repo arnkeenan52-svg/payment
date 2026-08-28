@@ -109,6 +109,20 @@ export const config = {
     webhookSecret: env('COINBASE_WEBHOOK_SECRET'),
     apiBase: env('COINBASE_API_BASE', 'https://api.commerce.coinbase.com').replace(/\/$/, ''),
   },
+  // NOWPayments. Both secrets come from the environment with NO literal
+  // fallback: a default here would be a credential in the repository, and an
+  // empty string simply leaves the rail dormant, which is the safe failure.
+  //
+  // The account this is built against has Custody ENABLED, which means a
+  // payment with no payout_address settles into the NOWPayments balance and
+  // stays there. That is the one configuration Dues must never produce, so
+  // createInvoice refuses to build a request without a payout address rather
+  // than quietly leaving funds somewhere the seller cannot reach.
+  nowpayments: {
+    apiKey: env('NOWPAYMENTS_API_KEY'),
+    ipnSecret: env('NOWPAYMENTS_IPN_SECRET'),
+    apiBase: env('NOWPAYMENTS_API_BASE', 'https://api.nowpayments.io/v1').replace(/\/$/, ''),
+  },
   webhookToleranceSeconds: num('WEBHOOK_TOLERANCE_SECONDS', 300),
   gracePeriodHours: num('GRACE_PERIOD_HOURS', 72),
   plans: loadPlans(),
@@ -121,6 +135,9 @@ export function capabilities() {
   return {
     stripe: Boolean(config.stripe.secretKey && config.stripe.webhookSecret),
     crypto: Boolean(config.coinbase.apiKey && config.coinbase.webhookSecret),
+    // The two rails are independent: a deploy may run NOWPayments without
+    // Coinbase, and the storefront asks for this one by name.
+    nowpayments: Boolean(config.nowpayments.apiKey && config.nowpayments.ipnSecret),
   };
 }
 
@@ -149,7 +166,11 @@ export function printBanner(actualPort) {
     `│ discord api    ${c.discord.apiBase}`,
     `│ stripe         ${caps.stripe ? 'ENABLED' : 'disabled'} | key ${set(c.stripe.secretKey)} | webhook secret ${set(c.stripe.webhookSecret)} | api ${c.stripe.apiBase}`,
     `│ crypto         ${caps.crypto ? 'ENABLED (coinbase)' : 'disabled (coinbase code dormant, CTA hidden)'}`,
-    `│ webhooks       POST /webhooks/stripe${caps.crypto ? '   POST /webhooks/coinbase' : ''}   (replay tolerance ${c.webhookToleranceSeconds}s)`,
+    // Two independent rails. NOWPayments needs BOTH values: the key alone
+    // cannot verify a delivery, and an unverified delivery is an anonymous
+    // request claiming somebody paid.
+    `│ nowpayments    ${caps.nowpayments ? 'ENABLED (payouts forward to each seller wallet)' : `disabled (key ${set(Boolean(c.nowpayments.apiKey))}, IPN secret ${set(Boolean(c.nowpayments.ipnSecret))})`}`,
+    `│ webhooks       POST /webhooks/stripe${caps.crypto ? '   POST /webhooks/coinbase' : ''}${caps.nowpayments ? '   POST /webhooks/nowpayments' : ''}   (replay tolerance ${c.webhookToleranceSeconds}s)`,
     `│ cron           GET /api/cron/reconcile | CRON_SECRET ${set(c.cronSecret)} | grace ${c.gracePeriodHours}h on failed renewals`,
     `│ plans (plans.json)`,
     ...c.plans.map(planLine),

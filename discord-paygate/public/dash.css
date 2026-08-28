@@ -139,6 +139,11 @@ body.app .btn-ghost[hidden], body.app .btn-danger[hidden] { display: none; }
 /* ── 3. inputs ─────────────────────────────────────────────────────────── */
 body.app .field-label { font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--fw-medium); color: var(--d-a11); letter-spacing: 0; text-transform: none; }
 body.app .field-help { font-size: var(--fs-1); line-height: var(--lh-1); color: var(--d-muted); }
+/* The live address check speaks through this line, so its state colours have
+   to out-specify the muted default above — (0,2,1) beats (0,2,0), which is why
+   `.field-help.ok` alone silently lost and every verdict rendered grey. */
+body.app .field-help.ok { color: var(--a-11, var(--accent)); }
+body.app .field-help.bad { color: var(--bad-11); }
 body.app .field input,
 body.app .field select,
 body.app .field textarea,
@@ -295,6 +300,19 @@ body.app .rev-x span {
 }
 /* y ticks hang off the left gutter, vertically centred on their gridline */
 body.app .rev-y span { right: calc(100% - 44 / 920 * 100% + 8px); transform: translateY(-50%); }
+/* The gutter above is a PERCENTAGE of chart width (padL/W = 4.78%), which is
+   ~33px at 1440 and only ~15px at 390 — and the rule then subtracts a further
+   8px, leaving 7px for a label like "$0.5". The "$" was being sliced in half by
+   the card's own border. Below 760px the ticks left-align in a real pixel
+   gutter instead, and the plot is pushed clear of them. Not solved by shrinking
+   the font: "$12.5k", and any currency whose symbol is wider than "$", would
+   only break it again. */
+@media (max-width: 760px) {
+  body.app .rev-y span { right: auto; left: 0; text-align: left; }
+  body.app .rev-wrap { padding-left: 34px; }
+  body.app .rev-y { left: 0; right: auto; width: 34px; }
+  body.app .rev-x { left: 34px; }
+}
 /* x ticks sit under the plot, centred on their bucket — except the two ends.
    The first bucket's centre is only 6.2% across, so a centred label there
    reaches back into the y-axis gutter and collides with the $0 tick; the last
@@ -333,9 +351,21 @@ body.app .rev-peak { opacity: 0; animation: rev-area 0.5s ease-out 0.8s forwards
    scrollable things on the page indicate it the same way. */
 body.app .table-scroll { scrollbar-width: thin; }
 body.app .table-scroll:focus-visible { outline: 2px solid var(--a-9); outline-offset: -2px; border-radius: var(--r-4); }
+/* A 40px ramp to full transparency is the right affordance for a section nav
+   made of words and the WRONG one for a right-aligned number. Measured at 390:
+   the Amount column sat entirely inside the ramp, so "$500.00" rendered as a
+   ghosted "$50" at about 2.8:1 — and a faded "$50" does not read as truncation,
+   it reads as a plausible wrong number, which is worse than showing nothing.
+   The same happened to Price on Products and to the word "Delete" on Discounts,
+   which is 34px wide and vanished whole.
+
+   So: half the ramp, stop short of full transparency, and never let it start
+   over the last column — scroll-padding keeps a scrolled-to-end table clear of
+   it entirely. The affordance survives; the number is always readable. */
+body.app .table-scroll { scroll-padding-inline-end: 20px; }
 body.app .table-scroll.scroll-more {
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), rgba(0, 0, 0, .35));
+  mask-image: linear-gradient(to right, #000 calc(100% - 20px), rgba(0, 0, 0, .35));
 }
 
 /* Phone: hold the old table density. The 12px cell padding above is right for
@@ -347,6 +377,26 @@ body.app .table-scroll.scroll-more {
 @media (max-width: 760px) {
   body.app .data-table th,
   body.app .data-table td { padding: 10px var(--s-2); }
+  /* The real repair is upstream of the fade: these tables were overflowing
+     because their first column is unbounded. A product name or a customer
+     handle can be any length, `white-space: nowrap` is inherited from
+     styles.css, and a flex .prod-cell means the ellipsis declared above never
+     fires. Fixed layout plus a zero max-width is what actually lets a cell
+     agree to be narrow, so Price and Amount land on screen instead of behind
+     a gradient. */
+  body.app .t-products,
+  body.app .t-pay,
+  body.app .t-members { table-layout: fixed; width: 100%; }
+  body.app .t-products td:first-child,
+  body.app .t-pay td:first-child,
+  body.app .t-members td:first-child { max-width: 0; }
+  body.app .t-products td:first-child .prod-cell > :not(.prod-thumb),
+  body.app .t-pay td:first-child,
+  body.app .t-members td:first-child { overflow: hidden; text-overflow: ellipsis; }
+  /* The money column is the reason the table exists. It never shrinks and it
+     never wraps. */
+  body.app .data-table th.num,
+  body.app .data-table td.num { width: 5.5em; white-space: nowrap; }
   body.app .chart-card,
   body.app .table-panel { padding: var(--s-4); }
   body.app .data-table .btn-ghost { padding: 0 10px; min-height: 36px; }
@@ -430,3 +480,26 @@ body.app .side-item svg { width: 16px; height: 16px; }
     transition-duration: .001ms !important;
   }
 }
+
+/* ── the section strip fades at whichever end has more to reach ────────────
+   styles.css already masks the right edge; this adds the left, and the pair
+   so both can be active at once. Without the left one the strip's usual state
+   — auto-scrolled to centre the active tab — chops the previous tab's word in
+   half at full opacity. */
+@media (max-width: 860px) {
+  body.app .sidebar.scroll-back:not(.scroll-more) {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 44px);
+    mask-image: linear-gradient(to right, transparent, #000 44px);
+  }
+  body.app .sidebar.scroll-back.scroll-more {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+  }
+}
+
+/* ── the customize card's button was welded to the card's bottom edge ──────
+   Its border and the card's landed on the same pixel row, so the card looked
+   sliced rather than closed. The other set-cards get their inset from the
+   margin-inline block above; this body was not in that list. */
+body.app .set-card > .dc-body { margin-inline: var(--s-5); margin-top: var(--s-3); }
+body.app .set-card > .dc-body:last-child { margin-bottom: var(--s-5); }

@@ -60,7 +60,13 @@ const ICON_LOCK =
 
 const state = {
   plans: [],
-  capabilities: { stripe: false, crypto: false },
+  capabilities: { stripe: false, crypto: false, nowpayments: false },
+  // Crypto: which coins this store takes, which one the buyer picked, and
+  // the live payment once one exists. `coins: null` means "not asked yet" —
+  // distinct from an empty list, which means "asked, and there are none".
+  coins: null,
+  coin: null,
+  cryptoOrder: null,
   view: 'checkout',
   store: null,
   brand: null,
@@ -229,9 +235,11 @@ function renderBrand() {
       rolesBox.hidden = false;
     } else rolesBox.hidden = true;
   }
-  // Discount codes exist on onboarded stores only.
+  // Discount codes exist on onboarded stores only — and once a crypto
+  // payment exists its amount is already quoted on-chain, so a code applied
+  // afterwards could only change a number the buyer is no longer paying.
   const df = $('#discount-field');
-  if (df) df.hidden = !STORE_SLUG;
+  if (df) df.hidden = !STORE_SLUG || Boolean(state.cryptoOrder);
   // Availability + gating, spelled out where the buyer decides. The server
   // enforces both at checkout — these lines just make the page honest.
   const par = parentOf(plan);
@@ -302,6 +310,11 @@ function renderMethods() {
   box.innerHTML = '';
   const methods = [];
   if (state.capabilities.crypto) methods.push({ id: 'coinbase', html: `${ICON_CRYPTO}<span>Crypto</span>` });
+  // The NOWPayments rail. Offered only when the platform has credentials AND
+  // this seller has set a payout wallet — /api/plans folds both into one flag,
+  // because a button that can only answer "this store hasn't finished setting
+  // up" is worse than no button.
+  if (state.capabilities.nowpayments) methods.push({ id: 'crypto', html: `${ICON_CRYPTO}<span>Crypto</span>` });
   if (state.capabilities.stripe) methods.push({ id: 'stripe', html: `${ICON_CARD}<span>Card</span>` });
   if (!methods.some((m) => m.id === state.method)) state.method = methods.at(-1)?.id ?? null;
 
@@ -337,21 +350,79 @@ function renderPayPanel() {
   panel.hidden = false;
 
   const card = state.method === 'stripe';
+  const np = state.method === 'crypto';
   $('#pay-title').textContent = card ? 'Pay with Card' : 'Pay with Crypto';
   $('#pay-sub').textContent = card
     ? 'Secure payment processed by Stripe'
-    : 'Secure payment processed by Coinbase Commerce';
+    : np
+      ? 'Paid on-chain, forwarded straight to the seller'
+      : 'Secure payment processed by Coinbase Commerce';
   $('#trust-row').innerHTML = card
     ? `<span>${ICON_CHECK} Secured by Stripe</span><span>${ICON_LOCK} 100% Secure</span>`
-    : `<span>${ICON_CHECK} Coinbase Commerce</span><span>${ICON_LOCK} 100% Secure</span>`;
+    : np
+      ? `<span>${ICON_CHECK} Roles the moment it confirms</span><span>${ICON_LOCK} 100% Secure</span>`
+      : `<span>${ICON_CHECK} Coinbase Commerce</span><span>${ICON_LOCK} 100% Secure</span>`;
 
+  renderCoinPicker();
   renderCta();
+  renderCryptoPay();
 
   const note = $('#redirect-note');
   const showingPay = Boolean($('#cta-area .pay-btn')) && state.me.loggedIn;
-  note.textContent = showingPay
+  note.textContent = showingPay && !np
     ? `${card ? 'Stripe' : 'Coinbase'}’s secure checkout opens next to finish your payment.`
     : '';
+}
+
+// Which coins this store takes. Read live from the merchant account rather
+// than hardcoded: enabled coins are a per-seller setting that changes without
+// a deploy, and the order they arrive in is cheapest-to-settle first.
+const COIN_LABEL = {
+  btc: 'Bitcoin', eth: 'Ethereum', sol: 'Solana', trx: 'Tron', ltc: 'Litecoin',
+  doge: 'Dogecoin', xrp: 'XRP', ada: 'Cardano', bnb: 'BNB', matic: 'Polygon',
+  pol: 'Polygon', dai: 'DAI', usdterc20: 'USDT · Ethereum', usdttrc20: 'USDT · Tron',
+  usdtsol: 'USDT · Solana', usdtbsc: 'USDT · BNB Chain', usdtmatic: 'USDT · Polygon',
+  usdcerc20: 'USDC · Ethereum', usdcsol: 'USDC · Solana', usdcmatic: 'USDC · Polygon',
+  usdcbase: 'USDC · Base', usdcbsc: 'USDC · BNB Chain',
+};
+const coinLabel = (t) => COIN_LABEL[t] ?? t.toUpperCase();
+
+async function renderCoinPicker() {
+  const box = $('#coinpick');
+  if (!box) return;
+  if (state.method !== 'crypto' || state.cryptoOrder) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  const grid = $('#coinpick-grid');
+  const msg = $('#coinpick-msg');
+  if (state.coins === null) {
+    msg.textContent = 'Loading coins…';
+    state.coins = [];
+    try {
+      const res = await fetch(`/api/checkout/crypto?coins=1&store=${encodeURIComponent(STORE_SLUG)}`);
+      const data = await res.json();
+      state.coins = Array.isArray(data.coins) ? data.coins : [];
+    } catch {
+      state.coins = [];
+    }
+    renderCoinPicker();
+    return;
+  }
+  msg.textContent = state.coins.length ? '' : 'No coins are available for this store right now.';
+  grid.innerHTML = '';
+  for (const ticker of state.coins) {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = `coin${ticker === state.coin ? ' selected' : ''}`;
+    tile.innerHTML = `<b>${ticker.toUpperCase()}</b><span>${coinLabel(ticker)}</span>`;
+    tile.onclick = () => {
+      state.coin = ticker;
+      render();
+    };
+    grid.append(tile);
+  }
 }
 
 // Order-summary rows above the pay action (checkout blueprint): subtotal,
@@ -412,9 +483,18 @@ function renderCta() {
 
   const applied = state.discount && state.discount.planId === plan.id ? state.discount : null;
   renderTotals(plan, applied, true);
+  // A crypto payment already showing its address is not a thing to start
+  // again — a second invoice for the same order would send the buyer to a
+  // second address and split their payment across two of them.
+  if (state.cryptoOrder) return;
   const btn = document.createElement('button');
   btn.className = 'pay-btn';
-  btn.textContent = `Pay ${fmtPrice(applied ? applied.discountedUsd : plan.priceUsd)} with ${state.method === 'coinbase' ? 'Crypto' : 'Card'}`;
+  const crypto = state.method === 'crypto' || state.method === 'coinbase';
+  btn.textContent = `Pay ${fmtPrice(applied ? applied.discountedUsd : plan.priceUsd)} with ${crypto ? 'Crypto' : 'Card'}`;
+  if (state.method === 'crypto' && !state.coin) {
+    btn.disabled = true;
+    btn.textContent = 'Pick a coin above';
+  }
   btn.onclick = () => pay(btn, plan);
   area.append(btn);
   // One quiet, factual line under the buy action: renewing plans really can
@@ -425,6 +505,109 @@ function renderCta() {
     ? 'One-time payment — no renewals, ever.'
     : 'Cancel anytime from your account.';
   area.append(assure);
+}
+
+// ── the crypto pay screen ────────────────────────────────────────────────────
+//
+// There is no hosted checkout to redirect to: the payment forwards straight
+// to the seller's own wallet, so the address is shown here and this page
+// watches it. Everything below is display — the grant is decided entirely by
+// the signed webhook, never by anything this browser reports.
+
+let cryptoPoll = null;
+
+async function startCryptoPayment(plan, discountCode) {
+  const res = await fetch('/api/checkout/crypto', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      planId: plan.id,
+      payCurrency: state.coin,
+      ...(STORE_SLUG ? { store: STORE_SLUG } : {}),
+      ...(discountCode ? { discountCode } : {}),
+    }),
+  });
+  if (res.status === 401) {
+    window.location.href = `/auth/login?plan=${encodeURIComponent(plan.id)}${loginStoreQ}`;
+    return;
+  }
+  let data = {};
+  try {
+    data = JSON.parse(await res.text());
+  } catch {
+    data = {};
+  }
+  if (!res.ok || !data.payAddress) {
+    throw new Error(data.error || 'The payment did not start. Try again in a moment.');
+  }
+  state.cryptoOrder = data;
+  render();
+  renderCryptoPay();
+  watchCryptoPayment();
+}
+
+function renderCryptoPay() {
+  const box = $('#cryptopay');
+  if (!box) return;
+  const o = state.cryptoOrder;
+  if (!o) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  $('#cryptopay-amount').textContent = `${o.payAmount} ${o.payCurrency}`;
+  $('#cryptopay-address').textContent = o.payAddress;
+  // A memo/tag exists only on some chains, and on those chains a payment
+  // without it cannot be matched to an order at all — so it is never styled
+  // as an optional extra.
+  const memo = $('#cryptopay-memo');
+  if (o.payExtraId) {
+    memo.hidden = false;
+    $('#cryptopay-memo-value').textContent = o.payExtraId;
+  } else memo.hidden = true;
+  $('#cryptopay-note').textContent =
+    `Send exactly this amount on the ${o.payCurrency} network. Your roles arrive automatically once the network confirms it.`;
+  const copy = $('#cryptopay-copy');
+  copy.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(o.payAddress);
+      copy.textContent = 'Copied';
+      setTimeout(() => (copy.textContent = 'Copy'), 1600);
+    } catch {
+      copy.textContent = 'Select it';
+    }
+  };
+}
+
+function watchCryptoPayment() {
+  if (cryptoPoll) clearInterval(cryptoPoll);
+  const order = state.cryptoOrder?.orderId;
+  if (!order) return;
+  const tick = async () => {
+    try {
+      const res = await fetch(`/api/checkout/crypto?store=${encodeURIComponent(STORE_SLUG)}&order=${encodeURIComponent(order)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const el = $('#cryptopay-status');
+      if (el) el.textContent = data.message ?? 'Waiting for your payment…';
+      if (data.state === 'paid') {
+        clearInterval(cryptoPoll);
+        cryptoPoll = null;
+        // Reload rather than patch the page: the roles, the owned-plan badge
+        // and the account chip all change at once, and the server already
+        // knows the new truth.
+        window.location.href = `/receipt?plan=${encodeURIComponent(state.planId ?? '')}${STORE_SLUG ? `&store=${encodeURIComponent(STORE_SLUG)}` : ''}`;
+      }
+      if (data.state === 'dead') {
+        clearInterval(cryptoPoll);
+        cryptoPoll = null;
+      }
+    } catch {
+      /* a dropped poll is not an error worth showing — the next one retries */
+    }
+  };
+  tick();
+  cryptoPoll = setInterval(tick, 6000);
 }
 
 // The Apply button: confirm the code with the server and show the buyer the
@@ -669,8 +852,19 @@ async function pay(btn, plan) {
   }
   btn.disabled = true;
   const original = btn.textContent;
-  btn.textContent = 'Redirecting…';
   const discountCode = $('#discount-code')?.value.trim() ?? '';
+  if (state.method === 'crypto') {
+    btn.textContent = 'Creating payment…';
+    try {
+      await startCryptoPayment(plan, discountCode);
+    } catch (err) {
+      showPayError(err.message, () => pay(btn, plan));
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+    return;
+  }
+  btn.textContent = 'Redirecting…';
   try {
     const res = await fetch(`/api/checkout/${state.method}`, {
       method: 'POST',

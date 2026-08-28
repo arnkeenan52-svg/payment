@@ -88,6 +88,10 @@
       "destination": "/api/webhooks/coinbase"
     },
     {
+      "source": "/webhooks/nowpayments",
+      "destination": "/api/webhooks/nowpayments"
+    },
+    {
       "source": "/:slug",
       "destination": "/api/store-page?store=:slug"
     },
@@ -101,6 +105,9 @@
       "maxDuration": 60
     },
     "api/webhooks/coinbase.js": {
+      "maxDuration": 60
+    },
+    "api/webhooks/nowpayments.js": {
       "maxDuration": 60
     },
     "api/cron/reconcile.js": {

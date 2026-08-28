@@ -1,0 +1,82 @@
+import * as db from '../db.js';
+import { getGuildMember } from '../lib/discord.js';
+import { memberLimitBlocks } from './billing.js';
+import { roundAmount, normalize as normalizeCurrency } from '../lib/currency.js';
+
+// Everything that can stop a purchase before a payment provider is ever
+// contacted, in one place.
+//
+// It lives here because there is now more than one rail. A sold-out product
+// that refuses card payments but happily takes crypto is not a smaller bug
+// than one that refuses both — it is a worse one, because it only shows up
+// for the buyers who pick the second button. Both checkout endpoints call
+// this, so the rules cannot drift apart.
+//
+// Returns null when the sale may proceed, or { status, error } — the exact
+// HTTP status and the sentence the buyer should read.
+export async function purchaseBlocked({ store, plan, uid }) {
+  if (plan.active === false) {
+    return { status: 409, error: 'This product is not for sale right now.' };
+  }
+  // Limited-time products refuse new purchases past their end date — the
+  // storefront hides them, but the link may be cached or shared.
+  if (plan.expiresAt && plan.expiresAt <= Math.floor(Date.now() / 1000)) {
+    return { status: 409, error: 'This product is no longer available.' };
+  }
+  // Gated products: the buyer must already hold the required role in the
+  // store's server. Verified against Discord at purchase time — a chip on
+  // the page is advice, this is the enforcement.
+  if (plan.requiredRoleId) {
+    const member = await getGuildMember(uid, store.guildId).catch(() => null);
+    if (!member || !(member.roles ?? []).includes(plan.requiredRoleId)) {
+      return {
+        status: 403,
+        error: `This product is for ${plan.requiredRoleName ?? 'members with a specific role'} members only — unlock that first, then come back.`,
+      };
+    }
+  }
+  // Purchase limit: caps total distinct buyers, never a returning one.
+  if (plan.purchaseLimit !== null && plan.purchaseLimit !== undefined) {
+    const own = (await db.subscriptionsForMember(uid)).some((s) => {
+      const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
+      return sid === (store.id ?? null) && s.plan_id === plan.id;
+    });
+    if (!own && (await db.countBuyersOfPlan(store.id ?? null, plan.id)) >= plan.purchaseLimit) {
+      return { status: 409, error: 'This product is sold out.' };
+    }
+  }
+  // The owner's Dues plan caps how many members their stores can hold.
+  // Existing members are never blocked — only brand-new signups wait until
+  // the owner upgrades.
+  if (await memberLimitBlocks(store, uid)) {
+    return {
+      status: 409,
+      error: 'This store is at its member limit right now. The owner has been shown an upgrade prompt — please try again soon.',
+    };
+  }
+  return null;
+}
+
+// A discount code checked against this store and product. Shared for the same
+// reason as the guard above: a code that is expired, used up or scoped to
+// another product must be equally dead on every rail.
+//
+// Returns { code, row, priceAfter } or { error }.
+export async function resolveDiscount({ store, plan, code }) {
+  const codeRaw = typeof code === 'string' ? code.trim().toUpperCase() : '';
+  if (!codeRaw) return { code: null, row: null, priceAfter: plan.priceUsd };
+  const now = Math.floor(Date.now() / 1000);
+  const d = store.id !== null && store.id !== undefined ? await db.getDiscount(store.id, codeRaw) : null;
+  const valid =
+    d &&
+    // A product-scoped code covers the product's price options too.
+    (d.planKey === null || d.planKey === plan.id || d.planKey === plan.variantOf) &&
+    (d.expiresAt === null || d.expiresAt > now) &&
+    (d.maxUses === null || d.uses < d.maxUses);
+  if (!valid) return { error: 'That discount code is not valid for this product.' };
+  const cur = normalizeCurrency(plan.currency ?? store.currency);
+  const off = d.kind === 'percent'
+    ? (plan.priceUsd * Math.min(100, Math.max(1, d.amount))) / 100
+    : Math.min(d.amount, plan.priceUsd);
+  return { code: codeRaw, row: d, priceAfter: Math.max(0, roundAmount(plan.priceUsd - off, cur)) };
+}
