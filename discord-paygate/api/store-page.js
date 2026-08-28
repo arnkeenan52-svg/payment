@@ -47,12 +47,17 @@ export default guard(async (req, res) => {
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
   <meta property="og:image" content="${esc(image)}" />
+  <meta property="og:image:alt" content="${esc(title)}" />
+  <meta property="og:site_name" content="${esc(config.platform)}" />
+  <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="${esc(`${canonicalBase()}/${DEMO_SLUG}`)}" />
   <link rel="canonical" href="${esc(`${canonicalBase()}/${DEMO_SLUG}`)}" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(desc)}" />
-  <meta name="twitter:image" content="${esc(image)}" />`;
+  <meta name="twitter:image" content="${esc(image)}" />
+  <meta name="twitter:image:alt" content="${esc(title)}" />`;
   } else if (/^[a-z0-9-]{1,40}$/.test(slug)) {
     const store = await storeBySlug(slug).catch(() => null);
     if (store) {
@@ -92,12 +97,23 @@ export default guard(async (req, res) => {
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
   <meta property="og:image" content="${esc(image)}" />
+  <meta property="og:image:alt" content="${esc(title)}" />
+  <!-- The platform, not the store: this is the pill X lays over the card and
+       the line Discord prints above the title, so a seller's link unfurls as
+       "Dues · <their store>" rather than as an unattributed screenshot. The
+       store's own name is already the og:title. No width/height here — the
+       image is usually the seller's own product photo, and declaring
+       dimensions we have not measured is worse than declaring none. -->
+  <meta property="og:site_name" content="${esc(config.platform)}" />
+  <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="${esc(`${canonicalBase()}/${store.slug}${linkedPlan ? `/${encodeURIComponent(linkedPlan.linkSlug ?? linkedPlan.id)}` : ''}`)}" />
   <link rel="canonical" href="${esc(`${canonicalBase()}/${store.slug}${linkedPlan ? `/${encodeURIComponent(linkedPlan.linkSlug ?? linkedPlan.id)}` : ''}`)}" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(desc)}" />
-  <meta name="twitter:image" content="${esc(image)}" />`;
+  <meta name="twitter:image" content="${esc(image)}" />
+  <meta name="twitter:image:alt" content="${esc(title)}" />`;
     }
   }
   let html;
