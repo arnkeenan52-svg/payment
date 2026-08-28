@@ -83,11 +83,18 @@ const stripe = {
   failSubFetchOnce: new Set(),  // subscription ids whose next GET answers 500
   subFetches: {},               // subscription id -> fetch count
   failCheckoutSessionsWith: null, // when set, POST /v1/checkout/sessions answers 400 with this message
+  charges: {},                  // charge id -> { payment_intent, invoice } for refund/dispute lookups
+  invoices: {},                 // invoice id -> { subscription }
   subDeletes: [],               // DELETE /v1/subscriptions/:id calls (platform-plan switches/cancels)
   subUpdates: [],               // POST /v1/subscriptions/:id calls (buyer cancel-at-period-end)
   // Registered webhook endpoints; a matching one exists by default so the
   // doctor's endpoint check passes without registering.
-  webhookEndpoints: [{ id: 'we_e2e_default', url: 'https://tradeleaks.e2e/webhooks/stripe', status: 'enabled', metadata: {} }],
+  endpointUpdates: [],          // POST /v1/webhook_endpoints/:id — the in-place event upgrade
+  // Deliberately subscribed to the PRE-REFUND event set: this is the shape
+  // every seller who onboarded before those events were added still has, and
+  // the doctor is expected to upgrade it in place rather than leave it.
+  webhookEndpoints: [{ id: 'we_e2e_default', url: 'https://tradeleaks.e2e/webhooks/stripe', status: 'enabled', metadata: {},
+    enabled_events: ['checkout.session.completed', 'invoice.paid', 'invoice.payment_succeeded', 'invoice.payment_failed', 'customer.subscription.updated', 'customer.subscription.deleted'] }],
 };
 const AUTO_ENDPOINT_SECRET = 'whsec_auto_e2e_secret_1';
 
@@ -418,6 +425,15 @@ async function stripeHandler(req, res) {
     json(res, 200, { ...ep, secret: AUTO_ENDPOINT_SECRET });
     return;
   }
+  if ((m = url.pathname.match(/^\/v1\/webhook_endpoints\/([^/]+)$/)) && req.method === 'POST') {
+    const form = new URLSearchParams(await readBody(req));
+    const events = [...form.entries()].filter(([k]) => k.startsWith('enabled_events[')).map(([, v]) => v);
+    const ep = stripe.webhookEndpoints.find((e) => e.id === m[1]);
+    if (ep) ep.enabled_events = events;
+    stripe.endpointUpdates.push({ id: m[1], events });
+    json(res, 200, { id: m[1], enabled_events: events });
+    return;
+  }
   if (url.pathname === '/v1/coupons' && req.method === 'POST') {
     const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
     const n = (stripe.coupons ??= []).length + 1;
@@ -435,6 +451,19 @@ async function stripeHandler(req, res) {
     stripe.checkoutSessions.push(form);
     json(res, 200, { id: `cs_${stripe.checkoutSessions.length}`, url: `https://stripe.mock/pay/cs_${stripe.checkoutSessions.length}` });
     return;
+  }
+  // Charges and invoices, for the refund/dispute path: a charge names its
+  // invoice, an invoice names its subscription. Seeded per test via
+  // stripe.charges / stripe.invoices.
+  if ((m = url.pathname.match(/^\/v1\/charges\/([^/]+)$/)) && req.method === 'GET') {
+    const c = stripe.charges[m[1]];
+    if (!c) return json(res, 404, { error: { message: 'No such charge' } });
+    return json(res, 200, { id: m[1], object: 'charge', ...c });
+  }
+  if ((m = url.pathname.match(/^\/v1\/invoices\/([^/]+)$/)) && req.method === 'GET') {
+    const inv = stripe.invoices[m[1]];
+    if (!inv) return json(res, 404, { error: { message: 'No such invoice' } });
+    return json(res, 200, { id: m[1], object: 'invoice', ...inv });
   }
   if ((m = url.pathname.match(/^\/v1\/subscriptions\/([^/]+)$/)) && req.method === 'DELETE') {
     stripe.subDeletes.push(m[1]);
@@ -1045,6 +1074,106 @@ test('lifetime: NULL expiry survives the cron sweep', async () => {
   assert.equal(sweep.status, 200);
   assert.ok(memberRoles(U1).has(R_LIFETIME), 'lifetime must survive the expiry sweep');
   assert.equal((await subRow('stripe', 'pi_life_1')).status, 'active');
+});
+
+test('refunds and chargebacks take the role back', async () => {
+  const U_REF = '509900000000000099';
+  discord.members.set(U_REF, new Set(['ROLE_KEEP_UNMANAGED']));
+
+  // A lifetime purchase. Its provider_ref is the payment_intent, which is
+  // exactly what a charge.refunded event carries.
+  assert.equal((await deliverStripe({
+    id: 'evt_ref_buy',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_ref', mode: 'payment', payment_intent: 'pi_ref_1', client_reference_id: U_REF, metadata: { plan_id: 'lifetime', discord_id: U_REF } } },
+  })).status, 200);
+  assert.ok(memberRoles(U_REF).has(R_LIFETIME), 'bought and granted');
+
+  // A PARTIAL refund is not a reversal of the sale. $4 back on a $50 purchase
+  // leaves a member who is still a member.
+  assert.equal((await deliverStripe({
+    id: 'evt_ref_partial',
+    type: 'charge.refunded',
+    data: { object: { id: 'ch_ref_1', object: 'charge', payment_intent: 'pi_ref_1', amount: 5000, amount_refunded: 400, refunded: false } },
+  })).status, 200);
+  assert.ok(memberRoles(U_REF).has(R_LIFETIME), 'a partial refund must not revoke');
+  assert.equal((await subRow('stripe', 'pi_ref_1')).status, 'active');
+
+  // A FULL refund does.
+  assert.equal((await deliverStripe({
+    id: 'evt_ref_full',
+    type: 'charge.refunded',
+    data: { object: { id: 'ch_ref_1', object: 'charge', payment_intent: 'pi_ref_1', amount: 5000, amount_refunded: 5000, refunded: true } },
+  })).status, 200);
+  assert.ok(!memberRoles(U_REF).has(R_LIFETIME), 'a full refund takes the role back');
+  assert.equal((await subRow('stripe', 'pi_ref_1')).status, 'canceled');
+  assert.ok(memberRoles(U_REF).has('ROLE_KEEP_UNMANAGED'), 'and touches nothing it did not grant');
+
+  // A SUBSCRIPTION payment is stored under the subscription id, not the
+  // payment_intent — so the charge has to be walked back through its invoice.
+  assert.equal((await deliverStripe({
+    id: 'evt_ref_sub_buy',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_ref_sub', mode: 'subscription', subscription: 'sub_ref_1', client_reference_id: U_REF, metadata: { plan_id: 'insider', discord_id: U_REF } } },
+  })).status, 200);
+  assert.ok(memberRoles(U_REF).has(R_INSIDER), 'subscribed and granted');
+  stripe.invoices.in_ref_1 = { subscription: 'sub_ref_1' };
+  assert.equal((await deliverStripe({
+    id: 'evt_ref_sub',
+    type: 'charge.refunded',
+    data: { object: { id: 'ch_ref_2', object: 'charge', payment_intent: 'pi_unknown_1', invoice: 'in_ref_1', amount: 1500, amount_refunded: 1500, refunded: true } },
+  })).status, 200);
+  assert.ok(!memberRoles(U_REF).has(R_INSIDER), 'a refunded subscription payment revokes via its invoice');
+  assert.equal((await subRow('stripe', 'sub_ref_1')).status, 'canceled');
+
+  // A CHARGEBACK. The object is a Dispute, which carries no invoice — the
+  // charge has to be fetched to find one. The bank already took the money, so
+  // waiting for the dispute to resolve would leave a non-payer holding a role.
+  assert.equal((await deliverStripe({
+    id: 'evt_dispute_buy',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_dis', mode: 'payment', payment_intent: 'pi_dis_1', client_reference_id: U_REF, metadata: { plan_id: 'lifetime', discord_id: U_REF } } },
+  })).status, 200);
+  assert.ok(memberRoles(U_REF).has(R_LIFETIME));
+  stripe.charges.ch_dis_1 = { payment_intent: 'pi_dis_1', invoice: null };
+  assert.equal((await deliverStripe({
+    id: 'evt_dispute',
+    type: 'charge.dispute.created',
+    data: { object: { id: 'dp_1', object: 'dispute', charge: 'ch_dis_1', payment_intent: 'pi_dis_1', amount: 5000 } },
+  })).status, 200);
+  assert.ok(!memberRoles(U_REF).has(R_LIFETIME), 'a chargeback takes the role back');
+  assert.equal((await subRow('stripe', 'pi_dis_1')).status, 'canceled');
+
+  // A refund on a charge that has nothing to do with Dues is acknowledged and
+  // ignored — a seller's Stripe account carries plenty of those.
+  assert.equal((await deliverStripe({
+    id: 'evt_ref_stranger',
+    type: 'charge.refunded',
+    data: { object: { id: 'ch_x', object: 'charge', payment_intent: 'pi_not_ours', amount: 100, amount_refunded: 100, refunded: true } },
+  })).status, 200, 'an unrelated refund is a 200, not a retry loop');
+});
+
+test('the webhook endpoint Dues registers carries the refund events', async () => {
+  // Registration is the half people forget: a handler for charge.refunded is
+  // useless if Stripe was never told to send it. WEBHOOK_EVENTS is the single
+  // list both the create call and the in-place upgrade below read from.
+  const { WEBHOOK_EVENTS } = await import('../src/lib/stripe.js');
+  for (const want of ['charge.refunded', 'charge.dispute.created', 'checkout.session.completed']) {
+    assert.ok(WEBHOOK_EVENTS.includes(want), `every Dues endpoint must subscribe to ${want}`);
+  }
+  // And an endpoint registered BEFORE these events existed gets upgraded in
+  // place rather than left behind — that is every seller already selling. The
+  // mock's endpoint carries the pre-refund set; a doctor run must fix it.
+  assert.equal((await fetch(`${appUrl}/api/setup-check?fresh=1`)).status, 200);
+  const upgrade = stripe.endpointUpdates.find((u) => u.id === 'we_e2e_default');
+  assert.ok(upgrade, 'the doctor upgraded the existing endpoint in place');
+  assert.ok(upgrade.events.includes('charge.refunded'), 'subscribing it to refunds');
+  assert.ok(upgrade.events.includes('charge.dispute.created'), 'and to chargebacks');
+  assert.ok(upgrade.events.includes('checkout.session.completed'), 'without dropping what it already had');
+  // Idempotent: a second run has nothing left to add.
+  const before = stripe.endpointUpdates.length;
+  assert.equal((await fetch(`${appUrl}/api/setup-check?fresh=1`)).status, 200);
+  assert.equal(stripe.endpointUpdates.length, before, 'a complete endpoint is not written to again');
 });
 
 test('coinbase checkout endpoint creates a charge with metadata (crypto enabled here)', async () => {

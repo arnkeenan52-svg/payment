@@ -11,6 +11,7 @@ import {
   invalidatePriceCache,
   listWebhookEndpoints,
   createWebhookEndpoint,
+  ensureWebhookEvents,
   webhookUrlCandidates,
   canonicalWebhookUrl,
   isStripeKey,
@@ -219,7 +220,11 @@ export async function runDoctor() {
       const candidates = new Set(webhookUrlCandidates());
       const found = endpoints.find((e) => e.status === 'enabled' && candidates.has(e.url));
       if (found) {
+        // Same upgrade the per-store healer does: an endpoint registered
+        // before an event joined the list stays subscribed to the old set.
+        const added = await ensureWebhookEvents(found).catch(() => []);
         const stored = await getAppSecret('stripe_webhook_secret');
+        if (added.length) add(`${wid}:events`, 'Stripe endpoint carries every event Dues needs', 'pass', `subscribed it to ${added.join(', ')}`);
         add(wid, wname, 'pass',
           `endpoint ${found.id} → ${found.url}${found.metadata?.managed_by === 'ripley-paygate' && stored ? ' (registered automatically; deliveries verify with its stored signing secret)' : ' — make sure STRIPE_WEBHOOK_SECRET is THIS endpoint\'s signing secret'}`);
       } else if (await acquireLock('lock:stripe-endpoint-register', 600)) {

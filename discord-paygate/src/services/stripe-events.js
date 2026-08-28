@@ -1,5 +1,5 @@
 import { config } from '../config.js';
-import { getSubscription, subscriptionPeriodEnd, invoiceSubscriptionId } from '../lib/stripe.js';
+import { getSubscription, subscriptionPeriodEnd, invoiceSubscriptionId, stripeFetch } from '../lib/stripe.js';
 import { getSubscriptionByRef, setSubscriptionStatus, markCheckoutCompleted } from '../db.js';
 import { grant, markPastDue, cancel, reconcile } from './entitlements.js';
 import { storeById, defaultStore, planOf } from './stores.js';
@@ -202,7 +202,66 @@ export async function processStripeEvent(event, routeStore = null) {
       return;
     }
 
+    // ── money going back out ────────────────────────────────────────────────
+    case 'charge.refunded': {
+      // Stripe fires this for PARTIAL refunds too, with refunded:false on the
+      // charge. A partial refund is not a reversal of the sale — $5 back as
+      // goodwill does not end someone's membership — so only a full refund
+      // revokes. amount is checked as well as the flag because a zero-amount
+      // charge would otherwise satisfy the comparison on its own.
+      const amount = Number(obj.amount ?? 0);
+      const refunded = Number(obj.amount_refunded ?? 0);
+      if (obj.refunded !== true && !(amount > 0 && refunded >= amount)) return;
+      await revokeForPayment(obj, routeStore);
+      return;
+    }
+
+    case 'charge.dispute.created': {
+      // A chargeback. The bank has already pulled the money; waiting for the
+      // dispute to resolve would leave a non-paying member holding the role
+      // for weeks. If the seller wins, the buyer can be re-added by hand — the
+      // subscription row is still there, only its status moved.
+      await revokeForPayment(obj, routeStore);
+      return;
+    }
+
     default:
       return;
   }
+}
+
+// Revoke whatever a refunded/disputed payment bought. Stripe hands us a Charge
+// (charge.refunded) or a Dispute (charge.dispute.created); both carry the
+// payment_intent, which is exactly what a one-off or lifetime purchase is
+// stored under. A SUBSCRIPTION payment is stored under the subscription id
+// instead, so when the direct lookup misses we walk the charge's invoice back
+// to its subscription and revoke that.
+//
+// Deliberately quiet when nothing matches: a Stripe account can carry charges
+// that have nothing to do with Dues, and those are not our business to act on.
+async function revokeForPayment(obj, routeStore = null) {
+  const pi = typeof obj.payment_intent === 'string' ? obj.payment_intent : obj.payment_intent?.id ?? null;
+  if (pi && (await cancel('stripe', pi))) return true;
+
+  // Subscription payments: the charge names the invoice, the invoice names the
+  // subscription. A Dispute carries no invoice, so fetch its charge first.
+  let invoiceId = typeof obj.invoice === 'string' ? obj.invoice : obj.invoice?.id ?? null;
+  const key = routeStore?.stripeKey ?? config.stripe.secretKey;
+  if (!invoiceId && obj.object === 'dispute') {
+    const chargeId = typeof obj.charge === 'string' ? obj.charge : obj.charge?.id ?? null;
+    if (chargeId) {
+      const charge = await stripeFetch(`/v1/charges/${chargeId}`, { key }).catch(() => null);
+      invoiceId = typeof charge?.invoice === 'string' ? charge.invoice : charge?.invoice?.id ?? null;
+      const chargePi = typeof charge?.payment_intent === 'string' ? charge.payment_intent : charge?.payment_intent?.id ?? null;
+      if (!pi && chargePi && (await cancel('stripe', chargePi))) return true;
+    }
+  }
+  if (!invoiceId) return false;
+  const invoice = await stripeFetch(`/v1/invoices/${invoiceId}`, { key }).catch(() => null);
+  const subId = invoice ? invoiceSubscriptionId(invoice) : null;
+  if (!subId) return false;
+  // A refunded PLATFORM plan payment is the seller's own Dues subscription,
+  // not a buyer's membership — it has no role behind it to take away.
+  if (await isPlatformSubscription(subId)) return false;
+  return Boolean(await cancel('stripe', subId));
 }

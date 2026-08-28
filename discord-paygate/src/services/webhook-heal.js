@@ -9,7 +9,7 @@
 import { config } from '../config.js';
 import * as db from '../db.js';
 import { openSecret } from '../lib/secretbox.js';
-import { stripeFetch, createWebhookEndpoint } from '../lib/stripe.js';
+import { stripeFetch, createWebhookEndpoint, ensureWebhookEvents } from '../lib/stripe.js';
 
 let lastRun = 0;
 
@@ -29,7 +29,19 @@ export async function healStoreWebhooks() {
     try {
       const eps = await stripeFetch('/v1/webhook_endpoints?limit=100', { key });
       const ours = (eps.data ?? []).filter((e) => String(e.url ?? '').endsWith(`/webhooks/stripe/${row.id}`));
-      if (ours.some((e) => e.url === want && e.status !== 'disabled')) continue;
+      const live = ours.find((e) => e.url === want && e.status !== 'disabled');
+      if (live) {
+        // The endpoint is in the right place, but it was registered against
+        // whatever event list shipped that day. Bring it up to the current one
+        // — otherwise a seller who onboarded before an event was added never
+        // receives it, and the feature silently does not exist for them.
+        const added = await ensureWebhookEvents(live, key).catch(() => []);
+        if (added.length) {
+          healed += 1;
+          console.log(`[webhook-heal] store ${row.id} subscribed to ${added.join(', ')}`);
+        }
+        continue;
+      }
       const made = await createWebhookEndpoint(want, key);
       await db.updateStore(row.id, { stripeWebhookSecret: made.secret });
       for (const e of ours) {

@@ -138,20 +138,49 @@ export async function listWebhookEndpoints(key = config.stripe.secretKey) {
   return (await stripeFetch('/v1/webhook_endpoints?limit=100', { key })).data ?? [];
 }
 
+// The events a Dues endpoint must receive, in one place — createWebhookEndpoint
+// registers exactly these, and ensureWebhookEvents brings ALREADY-REGISTERED
+// endpoints up to the same list. Adding an event here without that second half
+// would only ever reach stores onboarded after the deploy: every seller already
+// selling would keep an endpoint subscribed to the old set and silently never
+// receive the new event.
+export const WEBHOOK_EVENTS = [
+  'checkout.session.completed',
+  'invoice.paid',
+  'invoice.payment_succeeded',
+  'invoice.payment_failed',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  // Money going back out. Without these a refunded or charged-back buyer keeps
+  // the role they no longer paid for, and the seller has to notice by hand.
+  'charge.refunded',
+  'charge.dispute.created',
+];
+
+// Add any missing events to an endpoint Stripe already holds. Returns the list
+// that was added (empty when it was already complete), so callers can say so.
+// Never REMOVES an event: an endpoint may legitimately carry extras a seller
+// added themselves, and pruning someone else's configuration is not our call.
+export async function ensureWebhookEvents(endpoint, key = config.stripe.secretKey) {
+  const have = new Set(endpoint?.enabled_events ?? []);
+  if (have.has('*')) return [];
+  const missing = WEBHOOK_EVENTS.filter((e) => !have.has(e));
+  if (!missing.length) return [];
+  await stripeFetch(`/v1/webhook_endpoints/${endpoint.id}`, {
+    method: 'POST',
+    key,
+    form: { enabled_events: [...have, ...missing] },
+  });
+  return missing;
+}
+
 export function createWebhookEndpoint(url, key = config.stripe.secretKey) {
   return stripeFetch('/v1/webhook_endpoints', {
     method: 'POST',
     key,
     form: {
       url,
-      enabled_events: [
-        'checkout.session.completed',
-        'invoice.paid',
-        'invoice.payment_succeeded',
-        'invoice.payment_failed',
-        'customer.subscription.updated',
-        'customer.subscription.deleted',
-      ],
+      enabled_events: WEBHOOK_EVENTS,
       description: 'Dues paygate — registered automatically by the setup doctor',
       metadata: { managed_by: 'ripley-paygate' },
     },
