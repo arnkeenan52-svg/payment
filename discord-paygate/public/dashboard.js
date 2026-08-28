@@ -1837,7 +1837,7 @@ function sectionStore(store, link, paid = true) {
       // by the server anyway, so the controls are disabled rather than merely
       // discouraged, and Reset stays live — undoing never needs a plan.
       body: (paid ? '' : `<div class="lock-note">${I.lock ?? ''}<span><b>Included from Pro.</b> Every colour, all 46 backgrounds, glass and liquid cards, corners and type. Your saved colours are kept while you are on Free — they come straight back when you upgrade.</span><a class="btn-pill" href="#/store/${esc(store.slug)}/billing">See plans</a></div>`)
-        + `<div class="${paid ? '' : 'th-locked'}">${appearanceBody(store)}</div>`,
+        + `<div class="th-wrap${paid ? '' : ' th-locked'}">${appearanceBody(store)}</div>`,
       foot: `<span class="appearance-foot"><button class="btn-pill" id="th-save"${paid ? '' : ' disabled'}>Save appearance</button>
         <button class="btn-ghost" id="th-reset">Reset to default</button>
         <span class="note-help" id="th-note" role="status"></span></span>`,
