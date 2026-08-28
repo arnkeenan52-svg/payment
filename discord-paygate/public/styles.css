@@ -888,6 +888,14 @@ footer {
    still laid out — an option editor rendered 1,046px of fields it had marked
    hidden, including a role picker marked required that options never use. */
 .field[hidden] { display: none; }
+/* The same trap, and the buttons fell into it too: `.btn-blurple, .btn-secondary`
+   sets display:flex at :645, so every button the dashboard marks hidden was
+   laid out anyway. Four of them — "Load live preview" sitting on top of the
+   preview it had already loaded, and three Clear-photo buttons with no photo
+   to clear. Re-asserted here for the whole family, because the next button
+   someone marks hidden should not have to rediscover this. */
+.btn-blurple[hidden], .btn-secondary[hidden], .btn-pill[hidden],
+.btn-ghost[hidden], .btn-fill[hidden], .btn-danger[hidden] { display: none; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 560px) { .field-row { grid-template-columns: 1fr; } }

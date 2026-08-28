@@ -14,7 +14,9 @@
     "test:presence": "node scripts/presence-test.js",
     "post": "node scripts/post-message.mjs",
     "test:post": "node scripts/post-test.js",
-    "og": "node scripts/build-og-card.mjs"
+    "og": "node scripts/build-og-card.mjs",
+    "test:dash": "node scripts/_verify-dash.mjs --check",
+    "baseline:dash": "node scripts/_verify-dash.mjs"
   },
   "engines": {
     "node": ">=22.5.0"
