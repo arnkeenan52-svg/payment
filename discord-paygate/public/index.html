@@ -1644,18 +1644,16 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
    range to exactly 250 members is a fiddle on a trackpad and impossible to do
    precisely on a phone; the box and the slider are two views of one value and
    either can drive it. */
-.save-num-wrap{display:inline-flex;align-items:center;gap:1px}
-.save-num-wrap i{font-style:normal;font-size:14px;font-weight:600;color:var(--sec)}
+.save-unit{font-weight:400;color:var(--sec)}
 .save-num{
-  width:72px;height:34px;padding:0 8px;text-align:right;
-  font-family:var(--grotesk);font-weight:700;font-size:15px;color:var(--ink);
+  width:112px;height:46px;padding:0 14px;text-align:right;
+  font-family:var(--grotesk);font-weight:700;font-size:17px;color:var(--ink);
   background:var(--well,rgba(127,140,170,.10));
-  border:1px solid var(--glass-brd);border-radius:9px;
+  border:1px solid var(--glass-brd);border-radius:11px;
   appearance:textfield;-moz-appearance:textfield;
 }
 .save-num::-webkit-outer-spin-button,
 .save-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.save-num-cur{width:64px}
 .save-num:focus-visible{outline:2px solid var(--blue);outline-offset:1px;border-color:var(--blue)}
 
 /* Desktop: one box, two columns — the controls and the figure they produce on
@@ -1672,13 +1670,29 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 .save-card h2{font-family:var(--jakarta);font-weight:500;font-size:clamp(26px,3vw,34px);letter-spacing:-.02em;text-align:center}
 .save-sub{margin:10px 0 26px;text-align:center;font-size:15px;line-height:23px;color:var(--sec)}
 .save-field{margin-top:18px}
-.save-lab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+/* Phone: the control row is the whole screen width, so the label and its box
+   both get room rather than being shrunk to desktop proportions on a device
+   with more horizontal space to spend, not less. */
+@media (max-width:640px){
+  .save-field{margin-top:26px}
+  .save-lab label{font-size:16px}
+  .save-num{height:52px;width:132px;font-size:19px}
+  .save-field input[type=range]{height:34px}
+  .save-field input[type=range]::-webkit-slider-thumb{width:24px;height:24px;margin-top:-9px}
+  .save-field input[type=range]::-moz-range-thumb{width:22px;height:22px}
+}
+.save-lab{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:10px}
 .save-lab label{font-size:14.5px;font-weight:500;color:var(--ink)}
 .save-lab output{font-family:var(--grotesk);font-weight:700;font-size:16px;color:var(--ink)}
 .save-field input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;border:0;padding:0}
-.save-field input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:rgba(127,140,170,.32)}
+.save-field input[type=range]::-webkit-slider-runnable-track{
+  height:6px;border-radius:99px;
+  background:linear-gradient(90deg,var(--blue) 0 var(--fill,0%),rgba(127,140,170,.32) var(--fill,0%) 100%);
+}
 .save-field input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--blue);border:2.5px solid #fff;box-shadow:0 1px 6px rgba(20,30,80,.35)}
 .save-field input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:rgba(127,140,170,.32)}
+/* Firefox paints the travelled part itself rather than reading a gradient. */
+.save-field input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:var(--blue)}
 .save-field input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--blue);border:2.5px solid #fff}
 .save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(88,101,242,.1);border:1px solid rgba(88,101,242,.28)}
 .save-cap{display:block;font:600 11.5px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
@@ -2154,10 +2168,9 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
       </div>
       <div class="save-field">
         <div class="save-lab">
-          <label for="svPrice">Average monthly price</label>
-          <span class="save-num-wrap"><i aria-hidden="true">$</i>
-            <input class="save-num save-num-cur" type="number" id="svPriceNum" min="1" max="100" step="1" value="20"
-                   inputmode="numeric" aria-label="Average monthly price in dollars, type a number"></span>
+          <label for="svPrice">Average monthly price <span class="save-unit">($)</span></label>
+          <input class="save-num" type="number" id="svPriceNum" min="1" max="100" step="1" value="20"
+                 inputmode="numeric" aria-label="Average monthly price in dollars, type a number">
         </div>
         <input type="range" id="svPrice" min="1" max="100" step="1" value="20">
       </div>
@@ -2896,6 +2909,11 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     return {name:'Unlimited plan', cost:134.99};
   };
   var set = function(id, txt){ document.getElementById(id).textContent = txt; };
+  var fill = function(el){
+    var lo = parseFloat(el.min), hi = parseFloat(el.max);
+    var pct = hi > lo ? ((parseFloat(el.value) - lo) / (hi - lo)) * 100 : 0;
+    el.style.setProperty('--fill', pct.toFixed(2) + '%');
+  };
   var bar = function(id, v, max){ document.getElementById(id).style.width = Math.max(4, v / max * 100) + '%'; };
   var paint = function(){
     var m = parseInt(subs.value, 10);
@@ -2907,6 +2925,10 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     // half-finished entry gets rewritten under the cursor mid-keystroke.
     if(subsNum && document.activeElement !== subsNum){ subsNum.value = m; }
     if(priceNum && document.activeElement !== priceNum){ priceNum.value = p; }
+    // How far along each slider is. A range input cannot express this to its
+    // own ::track pseudo-element, so the percentage is handed down as a custom
+    // property and the track paints a two-stop gradient from it.
+    fill(subs); fill(price);
     set('svDuesPlan', d.name);
     set('svDues', d.cost ? '$' + d.cost.toFixed(2) : '$0');
     var max = Math.max(rows.svWhop, rows.svLp, rows.svPatreon, rows.svDoorfee, d.cost, 1);
