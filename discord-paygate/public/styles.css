@@ -3814,10 +3814,22 @@ body[data-material='solid'] .panel, body[data-material='solid'] .prod-card, body
 .bgp:hover .bgp-thumb { border-color: var(--edge-hot); }
 .bgp.active .bgp-thumb { border-color: var(--blurple); box-shadow: 0 0 0 1px var(--blurple); }
 .bgp-none { display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 18px; }
+/* 8.5px in a translucent pill over a photograph is not a label, it is a
+   rumour — and it was the only thing distinguishing an animated preset from
+   the still of the same sky. Legible, opaque, and with a pulsing dot so the
+   word "live" is shown as well as said. */
 .bgp-live {
-  position: absolute; top: 4px; right: 4px; padding: 1px 5px; border-radius: 5px;
-  background: rgba(10, 16, 30, 0.65); color: #fff; font-size: 8.5px; font-weight: 700; letter-spacing: 0.08em;
+  position: absolute; top: 5px; right: 5px; display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px 2px 6px; border-radius: 999px;
+  background: rgba(8, 12, 22, 0.86); color: #fff; font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
+.bgp-live::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: #3ddc84;
+  animation: bgp-live-pulse 1.8s ease-in-out infinite;
+}
+@keyframes bgp-live-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+@media (prefers-reduced-motion: reduce) { .bgp-live::before { animation: none } }
 .bgp-name { font-size: 11px; color: var(--dim); line-height: 1.2; }
 .bgp.active .bgp-name { color: var(--ink); }
 .bgp-url-row { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }

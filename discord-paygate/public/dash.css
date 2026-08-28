@@ -225,15 +225,25 @@ body.app .delta.flat { color: var(--d-a9); background: var(--d-fill); }
    A padded track with the thumb on ::before. Outer radius 8 with 4px padding
    gives inner 6 — the system's nesting rule. */
 body.app .seg {
-  height: var(--h-3);
+  /* height comes from the track's own padding plus the button inside it, not
+     from a fixed number. Pinning 40px while styles.css keeps a 1px border and
+     the buttons keep their own padding left the content 2px taller than the
+     box that clips it, so the row was quietly cropping itself. */
+  min-height: var(--h-3);
+  align-items: center;
   background: var(--d-fill);
   border-radius: var(--r-4);
   padding: var(--s-1);
   border: none;
   gap: 0;
+  overflow: visible;
 }
 body.app .seg-btn {
   position: relative;
+  min-height: var(--h-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: transparent;
   border-radius: var(--r-3);

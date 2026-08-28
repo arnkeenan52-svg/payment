@@ -1602,10 +1602,15 @@ const THEME_DEFAULTS = { bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4', accen
 // is a wallpaper and needs a plan. src/lib/theme.js FREE_BG_PRESETS is the
 // server's copy of the same ten; a scenario in the suite holds them together.
 const BG_CATALOG = [
-  { id: 'clouds-day', label: 'Clouds · day', tone: 'light', thumb: '/sky-day-tall.jpg', live: true },
-  { id: 'clouds-night', label: 'Clouds · night', tone: 'dark', thumb: '/sky-night-tall.jpg', live: true },
-  { id: 'sky-day', label: 'Sky · day', tone: 'light', thumb: '/sky-day-tall.jpg' },
-  { id: 'sky-night', label: 'Sky · night', tone: 'dark', thumb: '/sky-night-tall.jpg' },
+  // These four read as two duplicated tiles unless the difference is visible
+  // BEFORE you pick: the animated pair and the still pair were shipping the
+  // same photograph under near-identical names. The stills now use the wide
+  // crop (a different frame of the same sky), and the names say which is
+  // which — 'Sky photo' is what src/lib/theme.js has always called them.
+  { id: 'clouds-day', label: 'Clouds · day (moving)', tone: 'light', thumb: '/sky-day-tall.jpg', live: true },
+  { id: 'clouds-night', label: 'Clouds · night (moving)', tone: 'dark', thumb: '/sky-night-tall.jpg', live: true },
+  { id: 'sky-day', label: 'Sky photo · day (still)', tone: 'light', thumb: '/sky-day.jpg' },
+  { id: 'sky-night', label: 'Sky photo · night (still)', tone: 'dark', thumb: '/sky-night.jpg' },
   { id: 'mountains', label: 'Mountains', tone: 'dark', thumb: '/bg/mountains.jpg' },
   { id: 'forest', label: 'Forest', tone: 'dark', thumb: '/bg/forest.jpg' },
   { id: 'dunes', label: 'Dunes', tone: 'dark', thumb: '/bg/dunes.jpg' },
