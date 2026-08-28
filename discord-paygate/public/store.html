@@ -21,15 +21,15 @@
   <!-- og:end -->
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=183" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=183" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=184" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=184" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=183" />
+  <link rel="stylesheet" href="/styles.css?v=184" />
 </head>
 <body>
   <header class="top">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=183" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=184" alt="Dues" height="20" /></a>
     </div>
     <div id="account" class="account"></div>
   </header>
@@ -68,7 +68,17 @@
             </div>
           </div>
           <p class="shop-sub" id="shop-sub" hidden></p>
+          <!-- The rating sits directly under the name, where the reference
+               puts it. It renders ONLY from real rows: no reviews means this
+               stays hidden rather than showing an empty widget. -->
+          <button type="button" class="shop-rating" id="shop-rating" hidden>
+            <span class="shop-rating-star" aria-hidden="true">&#9733;</span>
+            <span class="shop-rating-num" id="shop-rating-num"></span>
+            <span class="shop-rating-count" id="shop-rating-count"></span>
+          </button>
           <p class="shop-desc" id="shop-desc" hidden><span id="shop-desc-text"></span><button type="button" class="shop-desc-more" id="shop-desc-more" hidden>&#8230; see more</button></p>
+          <!-- The seller's own claim about who is behind the store. -->
+          <p class="shop-creator" id="shop-creator" hidden>Created by <b id="shop-creator-name"></b></p>
           <div class="shop-metaline" id="shop-metaline"></div>
           <p class="shop-joined" id="shop-joined" hidden></p>
           <div class="shop-roleline" id="shop-roleline" hidden></div>
@@ -79,6 +89,7 @@
              lone "Products" tab is a control with nothing to switch to. -->
         <nav class="shop-tabs" id="shop-tabs" aria-label="Store sections">
           <button type="button" class="shop-tab active" data-tab="products">Products</button>
+          <button type="button" class="shop-tab" data-tab="reviews" id="shop-tab-reviews" hidden>Reviews</button>
           <button type="button" class="shop-tab" data-tab="about" id="shop-tab-about" hidden>About</button>
         </nav>
 
@@ -88,8 +99,30 @@
           <p class="shop-empty" id="shop-empty" hidden>Nothing is for sale here yet &#8212; check back soon.</p>
         </div>
 
+        <section class="shop-pane" id="shop-pane-reviews" hidden>
+          <div class="shop-rvhead">
+            <h2 class="shop-sec" id="shop-rv-sec">Reviews</h2>
+            <div class="shop-rvscore" id="shop-rvscore" hidden>
+              <span class="shop-rvscore-star" aria-hidden="true">&#9733;</span>
+              <b id="shop-rvscore-num"></b>
+              <span id="shop-rvscore-count"></span>
+            </div>
+          </div>
+          <!-- The buyer's own review lives at the top: written, or the
+               invitation to write one. Only ever shown to someone the server
+               says may write — the button never appears as a tease. -->
+          <div class="shop-rvmine" id="shop-rvmine" hidden></div>
+          <div class="shop-rvlist" id="shop-rvlist"></div>
+          <p class="shop-empty" id="shop-rvempty" hidden>No reviews yet.</p>
+          <button type="button" class="shop-rvmore" id="shop-rvmore" hidden>Show more reviews</button>
+        </section>
+
         <section class="shop-about shop-pane" id="shop-about-box" hidden>
-          <h2 class="shop-sec">About</h2>
+          <div class="shop-team" id="shop-team" hidden>
+            <h2 class="shop-sec" id="shop-team-head">Team</h2>
+            <div class="shop-team-grid" id="shop-team-grid"></div>
+          </div>
+          <h2 class="shop-sec" id="shop-about-head" hidden>About</h2>
           <div id="shop-about"></div>
         </section>
 
@@ -158,10 +191,10 @@
 
   <footer>
     <span class="powered-label">Checkout powered by:</span>
-    <img class="powered-mark" src="/dues.png?v=183" alt="Dues" height="18" />
+    <img class="powered-mark" src="/dues.png?v=184" alt="Dues" height="18" />
     <a class="powered-community" href="https://discord.gg/G6yjsX5qbB" rel="noopener">Join the Dues community</a>
   </footer>
 
-  <script src="/app.js?v=183"></script>
+  <script src="/app.js?v=184"></script>
 </body>
 </html>

@@ -1461,6 +1461,40 @@ function setCard({ id = '', title, sub = '', body = '', foot = '' }) {
   </section>`;
 }
 
+// ── creator, team and reviews ────────────────────────────────────────────────
+// One row of the team repeater. Order is the DOM order at save time, which is
+// also the order the storefront renders — the arrows are the only reorder,
+// deliberately: there is no drag machinery anywhere in this dashboard, and
+// buttons are keyboard-operable and thumb-sized for free.
+function teamRowHtml(m = {}) {
+  return `<div class="tm-row">
+    <div class="tm-fields">
+      <input class="tm-name" type="text" maxlength="40" value="${esc(m.name ?? '')}" placeholder="Name" />
+      <input class="tm-title" type="text" maxlength="40" value="${esc(m.title ?? '')}" placeholder="Role (optional)" />
+      <input class="tm-hand" type="text" maxlength="32" value="${esc(m.handle ?? '')}" placeholder="@handle (optional)" spellcheck="false" autocapitalize="off" />
+    </div>
+    <div class="tm-actions">
+      <button type="button" class="btn-ghost tm-up" aria-label="Move up">&uarr;</button>
+      <button type="button" class="btn-ghost tm-down" aria-label="Move down">&darr;</button>
+      <button type="button" class="btn-ghost tm-del" aria-label="Remove this member">Remove</button>
+    </div>
+  </div>`;
+}
+
+// The seller's own view of their rating. This is the REAL count and mean, shown
+// whether or not the storefront switch is on — hiding reviews from buyers must
+// not hide them from the person they are about.
+function reviewStateHtml(store) {
+  const rv = store.reviews ?? { count: 0, average: null };
+  if (!rv.count) return '<span class="rv-state-none">No reviews yet.</span>';
+  const avg = rv.average === null ? null : rv.average.toFixed(1);
+  return (
+    `<span class="rv-state-n"><b>${rv.count}</b> review${rv.count === 1 ? '' : 's'}</span>` +
+    (avg ? `<span class="rv-state-avg">&#9733; ${avg} average</span>` : '') +
+    (store.reviewsOn ? '' : '<span class="rv-state-off">Hidden from your store page right now</span>')
+  );
+}
+
 // ── storefront appearance ─────────────────────────────────────────────────────
 // The platform's own tokens, doubling as the "Midnight" preset. Radius 16
 // matches .panel in styles.css.
@@ -1699,6 +1733,8 @@ function sectionStore(store, link) {
   const subnav = `<nav class="st-subnav" aria-label="Store settings sections">${[
     ['st-card-link', 'Store link'],
     ['st-card-page', 'Store page'],
+    ['st-card-people', 'Creator & team'],
+    ['st-card-reviews', 'Reviews'],
     ['st-card-theme', 'Appearance'],
     ['st-card-discover', 'Discover'],
   ].map(([id, l]) => `<button type="button" class="st-subnav-btn" data-target="${id}">${l}</button>`).join('')}</nav>`;
@@ -1752,6 +1788,42 @@ function sectionStore(store, link) {
           Show your live member count on the store page</label>
         <p class="field-err" id="err-store" role="alert"></p>`,
       foot: `<button class="btn-pill" id="st-save">Save changes</button>`,
+    })}
+    ${setCard({
+      id: 'st-card-people',
+      title: 'Creator & team',
+      sub: 'The people behind the community. Both are your own words — Dues shows them exactly as you write them and does not verify them.',
+      body: `
+        <label class="field"><span class="field-label">Created by</span>
+          <input id="st-creator" type="text" maxlength="40" value="${esc(store.creatorName ?? '')}" placeholder="Your name" />
+          <span class="field-help">Shown under your description as “Created by …”. Leave blank and the line does not appear.</span></label>
+        <label class="field"><span class="field-label">Team heading</span>
+          <input id="st-teamhead" type="text" maxlength="30" value="${esc(store.teamHeading ?? '')}" placeholder="Team" />
+          <span class="field-help">What the block is called on your About tab. Blank uses “Team”.</span></label>
+        <div class="field"><span class="field-label">Team members</span>
+          <div class="tm-list" id="st-team-list">${(store.team ?? []).map(teamRowHtml).join('')}</div>
+          <button type="button" class="btn-secondary" id="st-team-add">Add member</button>
+          <span class="field-help" id="st-team-count">${(store.team ?? []).length} of 12 &middot; drag-free ordering with the arrows</span></div>
+        <p class="field-err" id="err-people" role="alert"></p>`,
+      foot: `<button class="btn-pill" id="st-people-save">Save creator &amp; team</button>`,
+    })}
+    ${setCard({
+      id: 'st-card-reviews',
+      title: 'Reviews',
+      sub: 'Ratings from people who actually bought from you.',
+      body: `
+        <label class="disc-toggle"><input id="st-reviews-on" type="checkbox" ${store.reviewsOn ? 'checked' : ''} />
+          Show reviews and your score on your store page</label>
+        <p class="field-help">
+          Only people the payment record shows bought from you can review, and not for the first three days.
+          You can reply to any review in public. You cannot delete, hide or reorder one — if a seller could
+          remove the bad ones the score would mean nothing, and buyers work that out fast.
+          Turning this off hides every review and the score together; it deletes nothing, and turning it back
+          on brings them all back exactly as they were.
+        </p>
+        <div class="rv-state" id="st-reviews-state">${reviewStateHtml(store)}</div>
+        <p class="field-err" id="err-reviews" role="alert"></p>`,
+      foot: `<button class="btn-pill" id="st-reviews-save">Save</button>`,
     })}
     ${setCard({
       id: 'st-card-theme',
@@ -3049,6 +3121,81 @@ function wireStoreSettings(store, slug) {
       fieldErr('store', err.message);
     }
   };
+  // ── creator & team ─────────────────────────────────────────────────────
+  const teamList = $('#st-team-list');
+  const teamRows = () => [...(teamList?.querySelectorAll('.tm-row') ?? [])];
+  const syncTeamCount = () => {
+    const c = $('#st-team-count');
+    if (c) c.innerHTML = `${teamRows().length} of 12 &middot; drag-free ordering with the arrows`;
+  };
+  if (teamList && !teamList.dataset.wired) {
+    teamList.dataset.wired = '1';
+    // One delegated handler: rows come and go, and re-binding per row after
+    // every add/move is how stale handlers get left on detached nodes.
+    teamList.addEventListener('click', (ev) => {
+      const row = ev.target.closest('.tm-row');
+      if (!row) return;
+      if (ev.target.closest('.tm-del')) { row.remove(); syncTeamCount(); return; }
+      if (ev.target.closest('.tm-up') && row.previousElementSibling) row.previousElementSibling.before(row);
+      if (ev.target.closest('.tm-down') && row.nextElementSibling) row.nextElementSibling.after(row);
+    });
+  }
+  if ($('#st-team-add')) {
+    $('#st-team-add').onclick = () => {
+      if (teamRows().length >= 12) return fieldErr('people', 'A team tops out at 12 people.');
+      teamList.insertAdjacentHTML('beforeend', teamRowHtml());
+      syncTeamCount();
+      teamList.querySelector('.tm-row:last-child .tm-name')?.focus();
+    };
+  }
+  if ($('#st-people-save')) {
+    $('#st-people-save').onclick = async () => {
+      const btn = $('#st-people-save');
+      fieldErr('people', '');
+      const team = teamRows().map((row) => ({
+        name: row.querySelector('.tm-name').value.trim(),
+        title: row.querySelector('.tm-title').value.trim(),
+        handle: row.querySelector('.tm-hand').value.trim(),
+      }));
+      if (team.some((m) => !m.name)) return fieldErr('people', 'Every team member needs a name — remove the blank row or fill it in.');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        await api('/api/admin/store', {
+          store: slug,
+          creatorName: $('#st-creator').value,
+          teamHeading: $('#st-teamhead').value,
+          team,
+        });
+        state.data = null;
+        viewStore(slug);
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Save creator & team';
+        fieldErr('people', err.message);
+      }
+    };
+  }
+
+  // ── reviews switch ─────────────────────────────────────────────────────
+  if ($('#st-reviews-save')) {
+    $('#st-reviews-save').onclick = async () => {
+      const btn = $('#st-reviews-save');
+      fieldErr('reviews', '');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        await api('/api/admin/store', { store: slug, reviewsOn: $('#st-reviews-on').checked });
+        state.data = null;
+        viewStore(slug);
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Save';
+        fieldErr('reviews', err.message);
+      }
+    };
+  }
+
   $('#st-slug-save').onclick = async () => {
     const btn = $('#st-slug-save');
     const slugNew = $('#st-slug').value.trim().toLowerCase();

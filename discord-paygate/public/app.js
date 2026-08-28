@@ -717,12 +717,11 @@ function render() {
 function setTab(tab) {
   const shopEl = $('#shop');
   if (!shopEl) return;
-  // Anything that is not About lands on Products. A browser can still be
-  // running this script against a CACHED store.html that has the retired Home
-  // button in it; without this normalisation that click would set a tab no
-  // pane answers to and hide the whole storefront.
-  const hasAbout = Boolean((state.store?.about ?? '').trim());
-  if (tab !== 'about' || !hasAbout) tab = 'products';
+  // Anything that is not a section this store actually has lands on Products.
+  // A browser can still be running this script against a CACHED store.html
+  // that has a retired button in it; without this normalisation that click
+  // would set a tab no pane answers to and hide the whole storefront.
+  if (!hasSection(tab)) tab = 'products';
   shopEl.dataset.tab = tab;
   // aria-current, not just a class: the underline is the only thing that says
   // which section you are in, and a screen reader cannot see an underline.
@@ -733,7 +732,219 @@ function setTab(tab) {
     else b.removeAttribute('aria-current');
   });
   $('#shop-pane-products').hidden = tab !== 'products';
+  $('#shop-pane-reviews')?.toggleAttribute('hidden', tab !== 'reviews');
   $('#shop-about-box').hidden = tab !== 'about';
+  if (tab === 'reviews') loadReviews();
+}
+
+// Which sections this store actually has. The About tab needs About text; the
+// Reviews tab needs the seller's switch on. Neither is ever shown as an empty
+// room the visitor walked into for nothing.
+function hasSection(tab) {
+  if (tab === 'about') return Boolean((state.store?.about ?? '').trim()) || Boolean(state.store?.team?.length);
+  if (tab === 'reviews') return Boolean(state.store?.reviews?.on);
+  return tab === 'products';
+}
+
+// ── reviews ──────────────────────────────────────────────────────────────────
+// Every number here is the server's. The list is whatever /api/reviews returns
+// and the score is whatever /api/plans counted — the client never computes an
+// average from the page it happens to be showing, because that would drift
+// from the truth the moment the list is paginated.
+const reviewState = { loaded: false, loading: false, cursor: null, more: false, rows: [], canWrite: false, mine: null };
+
+const starRow = (n, cls = '') =>
+  `<span class="shop-stars ${cls}" role="img" aria-label="${n} out of 5">` +
+  [1, 2, 3, 4, 5].map((i) => `<span class="${i <= n ? 'on' : 'off'}" aria-hidden="true">&#9733;</span>`).join('') +
+  '</span>';
+
+const initialsOf = (name) =>
+  String(name ?? '?')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0] ?? '')
+    .join('')
+    .toUpperCase() || '?';
+
+function reviewCard(r) {
+  const when = r.createdAt ? fmtDate(r.createdAt) : '';
+  return `<article class="shop-rv${r.mine ? ' mine' : ''}">
+    <span class="shop-rv-face" aria-hidden="true">${esc(initialsOf(r.author))}</span>
+    <div class="shop-rv-body">
+      <div class="shop-rv-top">
+        <b class="shop-rv-name">${esc(r.author ?? 'A buyer')}</b>
+        ${r.mine ? '<span class="shop-rv-you">You</span>' : ''}
+      </div>
+      ${starRow(r.rating)}
+      ${r.body ? `<p class="shop-rv-text">${esc(r.body)}</p>` : ''}
+      <p class="shop-rv-when">${esc(when)}${r.edited ? ' &middot; edited' : ''}</p>
+      ${r.reply ? `<div class="shop-rv-reply"><b>Reply from the store</b><p>${esc(r.reply.body)}</p></div>` : ''}
+    </div>
+  </article>`;
+}
+
+async function loadReviews(force = false) {
+  if (reviewState.loading) return;
+  if (reviewState.loaded && !force) return renderReviews();
+  reviewState.loading = true;
+  try {
+    const r = await fetch(`/api/reviews?store=${encodeURIComponent(STORE_SLUG)}`);
+    const data = await r.json();
+    reviewState.rows = data.reviews ?? [];
+    reviewState.cursor = data.cursor ?? null;
+    reviewState.more = Boolean(data.more);
+    reviewState.mine = reviewState.rows.find((x) => x.mine) ?? null;
+    reviewState.loaded = true;
+  } catch {
+    // A storefront that cannot reach the review feed still sells products.
+  } finally {
+    reviewState.loading = false;
+  }
+  renderReviews();
+}
+
+function renderReviews() {
+  const list = $('#shop-rvlist');
+  if (!list) return;
+  const rows = reviewState.rows;
+  list.innerHTML = rows.filter((r) => !r.mine).map(reviewCard).join('');
+  $('#shop-rvempty').hidden = rows.length > 0;
+  // The score at the head of the pane is the same server figure as the row
+  // under the store name, held to the same threshold.
+  const rv = state.store?.reviews;
+  const score = $('#shop-rvscore');
+  if (score) {
+    const enough = rv && rv.count >= MIN_RATED && rv.average !== null;
+    score.hidden = !enough;
+    if (enough) {
+      $('#shop-rvscore-num').textContent = rv.average.toFixed(1);
+      $('#shop-rvscore-count').textContent = `(${rv.count} reviews)`;
+    }
+  }
+  const more = $('#shop-rvmore');
+  if (more) {
+    more.hidden = !reviewState.more;
+    if (!more.dataset.wired) {
+      more.dataset.wired = '1';
+      more.addEventListener('click', async () => {
+        more.disabled = true;
+        try {
+          const r = await fetch(`/api/reviews?store=${encodeURIComponent(STORE_SLUG)}&before=${reviewState.cursor}`);
+          const data = await r.json();
+          reviewState.rows = reviewState.rows.concat(data.reviews ?? []);
+          reviewState.cursor = data.cursor ?? null;
+          reviewState.more = Boolean(data.more);
+        } catch { /* the button simply stays */ }
+        more.disabled = false;
+        renderReviews();
+      });
+    }
+  }
+  renderMyReview();
+}
+
+// The composer. It appears only for someone who can actually post — a buyer
+// past the cooling window — so the button is never a tease that 403s.
+function renderMyReview() {
+  const box = $('#shop-rvmine');
+  if (!box) return;
+  const mine = reviewState.mine;
+  if (!state.me.loggedIn && !mine) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  if (mine && !box.dataset.editing) {
+    box.innerHTML =
+      reviewCard(mine) +
+      '<div class="shop-rv-acts">' +
+      '<button type="button" class="shop-desc-more" id="rv-edit">Edit your review</button>' +
+      '<button type="button" class="shop-desc-more" id="rv-del">Withdraw it</button>' +
+      '</div>';
+    $('#rv-edit').onclick = () => { box.dataset.editing = '1'; renderMyReview(); };
+    $('#rv-del').onclick = async () => {
+      await postReview({ action: 'withdraw' });
+    };
+    return;
+  }
+  const pick = Number(box.dataset.pick ?? mine?.rating ?? 0);
+  box.innerHTML = `
+    <div class="shop-rvform">
+      <p class="shop-rvform-lead">${mine ? 'Edit your review' : 'Bought from this store? Say how it went.'}</p>
+      <div class="shop-rvpick" id="rv-pick" role="group" aria-label="Your rating">
+        ${[1, 2, 3, 4, 5]
+          .map((i) => `<button type="button" class="shop-rvpick-star${i <= pick ? ' on' : ''}" data-n="${i}" aria-label="${i} star${i > 1 ? 's' : ''}" aria-pressed="${i === pick}">&#9733;</button>`)
+          .join('')}
+      </div>
+      <textarea id="rv-text" maxlength="1500" rows="3" placeholder="What did you actually get out of it?">${esc(mine?.body ?? '')}</textarea>
+      <p class="shop-rvform-note">Posted publicly under your Discord name.</p>
+      <p class="shop-rvform-err" id="rv-err" role="alert"></p>
+      <div class="shop-rv-acts">
+        <button type="button" class="shop-btn shop-rvsave" id="rv-save">${mine ? 'Save changes' : 'Post review'}</button>
+        ${mine ? '<button type="button" class="shop-desc-more" id="rv-cancel">Cancel</button>' : ''}
+      </div>
+    </div>`;
+  box.querySelectorAll('.shop-rvpick-star').forEach((b) => {
+    b.onclick = () => { box.dataset.pick = b.dataset.n; renderMyReview(); };
+  });
+  if ($('#rv-cancel')) $('#rv-cancel').onclick = () => { delete box.dataset.editing; delete box.dataset.pick; renderMyReview(); };
+  $('#rv-save').onclick = async () => {
+    const rating = Number(box.dataset.pick ?? mine?.rating ?? 0);
+    if (!rating) { $('#rv-err').textContent = 'Pick a rating first.'; return; }
+    await postReview({ action: 'write', rating, body: $('#rv-text').value });
+  };
+}
+
+async function postReview(payload) {
+  const err = $('#rv-err');
+  const save = $('#rv-save');
+  if (save) { save.disabled = true; }
+  try {
+    const r = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ store: STORE_SLUG, ...payload }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      if (r.status === 401) { window.location.href = `/auth/login?x=1${loginStoreQ}`; return; }
+      if (err) err.textContent = data.error ?? 'That did not go through.';
+      return;
+    }
+    // The score comes back from the server after every write, so the number on
+    // screen is the number the database holds — never a local recount.
+    if (state.store) state.store.reviews = { ...(state.store.reviews ?? {}), count: data.count, average: data.average };
+    renderRating();
+    const box = $('#shop-rvmine');
+    if (box) { delete box.dataset.editing; delete box.dataset.pick; }
+    await loadReviews(true);
+  } finally {
+    if (save) save.disabled = false;
+  }
+}
+
+// The rating row under the store name. Hidden outright below the threshold:
+// "5.0" off a single review reads as a fact about a store and is not one.
+const MIN_RATED = 5;
+function renderRating() {
+  const el = $('#shop-rating');
+  if (!el) return;
+  const rv = state.store?.reviews;
+  if (!rv?.on || !rv.count) { el.hidden = true; return; }
+  el.hidden = false;
+  const enough = rv.count >= MIN_RATED && rv.average !== null;
+  $('#shop-rating-num').textContent = enough ? rv.average.toFixed(1) : '';
+  $('#shop-rating-num').hidden = !enough;
+  $('#shop-rating-count').textContent = `${rv.count} review${rv.count === 1 ? '' : 's'}`;
+  el.classList.toggle('unrated', !enough);
+  if (!el.dataset.wired) {
+    el.dataset.wired = '1';
+    el.addEventListener('click', () => {
+      setTab('reviews');
+      $('#shop-pane-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 }
 
 // Exact below ten thousand, then abbreviated: a follower count is a claim, and
@@ -891,18 +1102,55 @@ function renderShop() {
   const about = (state.store?.about ?? '').trim();
   if (about) $('#shop-about').innerHTML = about.split(/\n+/).map((line) => `<p>${esc(line.trim())}</p>`).join('');
 
-  // Tabs: Products · About. About appears only when the owner wrote one — and
-  // when they did not, the whole bar goes with it, because a single tab is a
-  // switch with one position. The Products pane shows either way: setTab runs
-  // below regardless of whether the bar is on screen.
+  // Who is behind the store — the seller's own claim, rendered as written.
+  const creator = (state.store?.creatorName ?? '').trim();
+  const creatorEl = $('#shop-creator');
+  if (creatorEl) {
+    $('#shop-creator-name').textContent = creator;
+    creatorEl.hidden = !creator;
+  }
+
+  // The team, also the seller's claim. No presence dots: Discord does not tell
+  // us who is online, and a permanently-green dot is a made-up status.
+  const team = Array.isArray(state.store?.team) ? state.store.team : [];
+  const teamBox = $('#shop-team');
+  if (teamBox) {
+    teamBox.hidden = team.length === 0;
+    if (team.length) {
+      $('#shop-team-head').textContent = (state.store?.teamHeading ?? '').trim() || 'Team';
+      $('#shop-team-grid').innerHTML = team
+        .map(
+          (m) => `<div class="shop-tm">
+            <span class="shop-tm-face" aria-hidden="true">${esc(initialsOf(m.name))}</span>
+            <b class="shop-tm-name">${esc(m.name)}</b>
+            ${m.title ? `<span class="shop-tm-title">${esc(m.title)}</span>` : ''}
+            ${m.handle ? `<span class="shop-tm-handle">@${esc(m.handle)}</span>` : ''}
+          </div>`,
+        )
+        .join('');
+    }
+  }
+  const aboutHead = $('#shop-about-head');
+  if (aboutHead) aboutHead.hidden = !about;
+
+  // Tabs: Products · Reviews · About. Each appears only when the store has
+  // that section, and when only Products is left the whole bar goes with it,
+  // because a single tab is a switch with one position. The Products pane
+  // shows either way: setTab runs below regardless of the bar being on screen.
   const tabs = $('#shop-tabs');
   const aboutTab = $('#shop-tab-about');
-  if (aboutTab) aboutTab.hidden = !about;
+  const reviewsTab = $('#shop-tab-reviews');
+  const hasAboutPane = hasSection('about');
+  const hasReviews = hasSection('reviews');
+  if (aboutTab) aboutTab.hidden = !hasAboutPane;
+  if (reviewsTab) reviewsTab.hidden = !hasReviews;
+  renderRating();
   if (tabs) {
-    tabs.hidden = !about;
+    const extra = (hasAboutPane ? 1 : 0) + (hasReviews ? 1 : 0);
+    tabs.hidden = extra === 0;
     // Tells the stylesheet to put the identity/pane hairline back when the bar
     // is not there to draw it.
-    $('#shop').dataset.tabs = about ? 'on' : 'off';
+    $('#shop').dataset.tabs = extra ? 'on' : 'off';
     if (!tabs.dataset.wired) {
       tabs.dataset.wired = '1';
       tabs.querySelectorAll('.shop-tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));

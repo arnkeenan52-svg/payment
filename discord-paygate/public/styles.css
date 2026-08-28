@@ -2942,6 +2942,125 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-mlink { color: var(--dim); display: inline-flex; }
 .shop-mlink:hover { color: var(--ink); }
 .shop-metaline[hidden] { display: none; }
+
+/* ── rating, creator, team, reviews ───────────────────────────────────────── */
+/* The rating is the one gold thing on the page — the blurple Join stays the
+   only saturated CONTROL, and a star that is not gold does not read as one. */
+.shop-rating {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 12px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: 600 16px var(--font-body, inherit); color: var(--ink);
+}
+.shop-rating[hidden] { display: none; }
+.shop-rating-star { color: #f5b301; font-size: 17px; line-height: 1; }
+.shop-rating-num[hidden] { display: none; }
+.shop-rating-count { color: var(--dim); font-weight: 500; }
+.shop-rating:hover .shop-rating-count { color: var(--ink); }
+/* Below the threshold there is no number, so the star would be labelling
+   nothing — the count carries the line on its own. */
+.shop-rating.unrated .shop-rating-star { display: none; }
+.shop-creator { margin: 12px 0 0; color: var(--dim); font-size: 15px; }
+.shop-creator b { color: var(--ink); font-weight: 600; }
+.shop-creator[hidden] { display: none; }
+
+.shop-rvhead { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.shop-rvscore { display: inline-flex; align-items: baseline; gap: 7px; font-size: 15px; color: var(--dim); margin-bottom: 30px; }
+.shop-rvscore[hidden] { display: none; }
+.shop-rvscore-star { color: #f5b301; }
+.shop-rvscore b { color: var(--ink); font-size: 17px; }
+.shop-stars { display: inline-flex; gap: 2px; font-size: 14px; line-height: 1; }
+.shop-stars .on { color: #f5b301; }
+.shop-stars .off { color: var(--faint); opacity: 0.5; }
+
+.shop-rv { display: grid; grid-template-columns: 40px 1fr; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--hairline-2); }
+.shop-rv:last-child { border-bottom: 0; }
+.shop-rv-face {
+  width: 40px; height: 40px; border-radius: 50%; display: inline-flex;
+  align-items: center; justify-content: center; flex: none;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  font: 650 13px var(--font-head); color: var(--dim); letter-spacing: 0.02em;
+}
+.shop-rv-body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.shop-rv-top { display: flex; align-items: center; gap: 8px; }
+.shop-rv-name { font-size: 15px; color: var(--ink); font-weight: 600; }
+.shop-rv-you {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--dim); border: 1px solid var(--edge); border-radius: 99px; padding: 1px 7px;
+}
+.shop-rv-text { margin: 0; color: var(--dim); font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
+.shop-rv-when { margin: 0; color: var(--faint); font-size: 12.5px; }
+.shop-rv-reply {
+  margin-top: 6px; padding: 10px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+.shop-rv-reply b { display: block; font-size: 12.5px; color: var(--dim); margin-bottom: 3px; }
+.shop-rv-reply p { margin: 0; font-size: 14.5px; color: var(--ink); line-height: 1.5; overflow-wrap: anywhere; }
+.shop-rv-acts { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+
+.shop-rvmine { margin-bottom: 6px; }
+.shop-rvmine[hidden] { display: none; }
+.shop-rvform { display: flex; flex-direction: column; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid var(--hairline-2); }
+.shop-rvform-lead { margin: 0; font-size: 15px; color: var(--ink); font-weight: 600; }
+.shop-rvform-note { margin: 0; font-size: 12.5px; color: var(--faint); }
+.shop-rvform-err { margin: 0; font-size: 13px; color: var(--danger, #e5484d); }
+.shop-rvform-err:empty { display: none; }
+.shop-rvpick { display: inline-flex; gap: 4px; }
+.shop-rvpick-star {
+  background: none; border: 0; cursor: pointer; padding: 2px;
+  font-size: 26px; line-height: 1; color: var(--faint); opacity: 0.55;
+}
+.shop-rvpick-star.on { color: #f5b301; opacity: 1; }
+.shop-rvform textarea {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 74px;
+  border: 1px solid var(--edge); border-radius: 10px; padding: 10px 12px;
+  background: var(--panel); color: var(--ink); font: 400 15px var(--font-body, inherit);
+}
+.shop-rvmore { background: none; border: 0; cursor: pointer; color: var(--dim); font: 650 13.5px var(--font-body, inherit); padding: 16px 0 0; }
+.shop-rvmore:hover { color: var(--ink); }
+.shop-rvmore[hidden] { display: none; }
+
+.shop-team { margin-bottom: 34px; }
+.shop-team[hidden] { display: none; }
+.shop-team-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.shop-tm {
+  display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center;
+  padding: 20px 12px; border: 1px solid var(--edge); border-radius: 14px; min-width: 0;
+}
+.shop-tm-face {
+  width: 56px; height: 56px; border-radius: 50%; display: inline-flex;
+  align-items: center; justify-content: center; margin-bottom: 5px;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  font: 650 16px var(--font-head); color: var(--dim);
+}
+.shop-tm-name { font-size: 15px; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.shop-tm-title { font-size: 13px; color: var(--dim); overflow-wrap: anywhere; }
+.shop-tm-handle { font-size: 13px; color: var(--faint); overflow-wrap: anywhere; }
+@media (max-width: 420px) {
+  .shop-team-grid { grid-template-columns: 1fr; }
+}
+
+/* ── dashboard: team repeater and review state ────────────────────────────── */
+.tm-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.tm-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start;
+  padding: 10px; border: 1px solid var(--edge); border-radius: 12px;
+}
+.tm-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+.tm-fields input { min-width: 0; }
+.tm-actions { display: flex; gap: 4px; align-items: center; }
+.tm-actions .btn-ghost { padding: 6px 9px; min-height: 34px; }
+.rv-state { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-top: 12px; font-size: 14px; color: var(--dim); }
+.rv-state b { color: var(--ink); }
+.rv-state-avg { color: var(--ink); font-weight: 600; }
+.rv-state-off {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: var(--dim);
+  border: 1px solid var(--edge); border-radius: 99px; padding: 2px 9px;
+}
+@media (max-width: 640px) {
+  .tm-row { grid-template-columns: 1fr; }
+  .tm-fields { grid-template-columns: 1fr; }
+  .tm-actions { justify-content: flex-end; }
+}
 .shop-joined { display: flex; gap: 24px; margin: 18px 0 0; font-size: 16px; color: var(--dim); }
 .shop-joined b { color: var(--ink); font-weight: 700; }
 /* Real roles in the idiom the reference uses for member faces — we will not

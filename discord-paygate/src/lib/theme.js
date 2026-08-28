@@ -222,12 +222,12 @@ export function themeCss(theme) {
     // with hard corners, and rounding it reopens the gap the frame closes.
     // .prod-shot/.prod-ph are absent for the same reason — the card clips
     // them, and an inner radius leaves a double-rounded sliver at the corner.
-    lines.push(`.checkout .panel, .checkout .order-product, .checkout .order-roles, .checkout .pay-panel, .checkout .order-extra, .prod-card, .shop-avatar { border-radius: ${t.radius}px; }`);
-    lines.push(`.checkout .pay-btn, .checkout .apply-btn, .checkout .method, .checkout input, .checkout .op-thumb, .shop-btn, .shop-icon-btn { border-radius: ${small}px; }`);
+    lines.push(`.checkout .panel, .checkout .order-product, .checkout .order-roles, .checkout .pay-panel, .checkout .order-extra, .prod-card, .shop-avatar, .shop-tm { border-radius: ${t.radius}px; }`);
+    lines.push(`.checkout .pay-btn, .checkout .apply-btn, .checkout .method, .checkout input, .checkout .op-thumb, .shop-btn, .shop-icon-btn, .shop-rvform textarea, .shop-rv-reply { border-radius: ${small}px; }`);
   }
   if (t.font && THEME_FONTS[t.font]) {
     lines.push(`body, .checkout button, .checkout input { font-family: ${THEME_FONTS[t.font]}; }`);
-    lines.push(`.order-title, .op-price, .pay-panel h2, .shop-name, .shop-sec, .prod-name, .prod-price { font-family: ${THEME_FONTS[t.font]}; }`);
+    lines.push(`.order-title, .op-price, .pay-panel h2, .shop-name, .shop-sec, .prod-name, .prod-price, .shop-rv-name, .shop-tm-name { font-family: ${THEME_FONTS[t.font]}; }`);
   }
   return lines.join('\n');
 }

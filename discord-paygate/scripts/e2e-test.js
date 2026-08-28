@@ -3068,15 +3068,15 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   assert.match(page, /Dues Membership — Demo Store/);
   assert.match(page, /store-theme/, 'the demo ships its theme in the head');
   assert.match(page, /id="shop"/, 'the storefront carries the shop view');
-  // The store page has exactly two sections. The Home tab was removed; nothing
-  // may reintroduce its markup, and a third tab would mean the bar quietly grew
-  // back. app.js hides the whole bar when the store wrote no About text.
+  // The store page ships exactly these sections, in this order. The retired
+  // Home tab must never come back, and a tab appearing here that app.js does
+  // not know how to show would be a pane nobody can reach.
   assert.ok(!/data-tab="home"/.test(page), 'no Home tab in the served storefront');
   assert.ok(!/id="shop-pane-home"/.test(page), 'no Home pane in the served storefront');
   assert.deepEqual(
     [...page.matchAll(/<button[^>]*class="shop-tab[^"]*"[^>]*data-tab="([a-z]+)"/g)].map((m) => m[1]),
-    ['products', 'about'],
-    'the store page ships exactly the Products and About tabs, in that order',
+    ['products', 'reviews', 'about'],
+    'the store page ships exactly the Products, Reviews and About tabs, in that order',
   );
   const demoProd = await (await fetch(`${appUrl}/demo/vip-access`)).text();
   assert.match(demoProd, /VIP Access — Dues Membership/, 'demo product links carry product previews');
