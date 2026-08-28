@@ -21,6 +21,31 @@
     } catch { /* no-op */ }
   };
 
+  // iOS repaints its status bar ONLY at first paint. Safari 26 samples a fixed
+  // element's background rather than reading theme-color, and it takes that
+  // sample once — no script change moves it afterwards. The block at the top of
+  // this file sets data-theme before first paint, so a reload lands on the face
+  // the visitor chose. Scroll position rides across in sessionStorage.
+  // UA-tested, not @supports: Chromium also answers to -webkit-touch-callout
+  // and a desktop toggle must stay instant.
+  const isIosWebKit = (() => {
+    const ua = navigator.userAgent || '';
+    const iOS = /iPhone|iPad|iPod/.test(ua)
+      || (/Mac/.test(navigator.platform || '') && navigator.maxTouchPoints > 1);
+    return iOS && /AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|Android/.test(ua);
+  })();
+
+  (() => {
+    let raw = null;
+    try { raw = sessionStorage.getItem('ripley-scroll'); sessionStorage.removeItem('ripley-scroll'); } catch { /* fine */ }
+    const y = raw === null ? 0 : parseInt(raw, 10) || 0;
+    if (!y) return;
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    const put = () => window.scrollTo(0, y);
+    requestAnimationFrame(() => requestAnimationFrame(put));
+    addEventListener('load', put);
+  })();
+
   addEventListener('DOMContentLoaded', () => {
     syncChrome();
     document.querySelectorAll('[data-theme-toggle]').forEach((b) => {
@@ -30,6 +55,10 @@
         else delete document.documentElement.dataset.theme;
         try { sessionStorage.setItem('ripley-theme', toLight ? 'light' : 'dark'); } catch { /* fine */ }
         syncChrome();
+        if (isIosWebKit) {
+          try { sessionStorage.setItem('ripley-scroll', String(window.scrollY | 0)); } catch { /* fine */ }
+          location.reload();
+        }
       });
     });
   });

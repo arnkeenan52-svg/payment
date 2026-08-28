@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Dues — Sell Discord access" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=190" />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=191" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -40,12 +40,12 @@
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=190" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=191" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline &#39;Monetize your community.&#39; and a field for claiming a store link" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=190" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=190" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=191" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=191" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -68,7 +68,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=190') format('woff2');
+  src:url('/jakarta-latin.woff2?v=191') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -393,7 +393,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=190') center/cover;
+  background:url('/hero-poster.webp?v=191') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -2350,7 +2350,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=190" defer></script>
+<script src="/sky.js?v=191" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2402,6 +2402,41 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     else{ d.setAttribute('data-theme','light'); }
     syncThemeMeta();
   });
+  /* iOS repaints its status bar ONLY at first paint.
+     Safari 26 dropped theme-color and samples a fixed element's background
+     instead — and it takes that sample when the page first paints, then never
+     looks again. Nothing done from script moves it: not editing the meta tag,
+     not removing and re-adding it, not changing the sampled element's colour.
+     Three fixes aimed at those and all three failed for the same reason.
+     A fresh paint is the only thing that re-samples. The boot script at the
+     top of this file sets data-theme BEFORE first paint, so after a reload
+     Safari samples the face you actually chose. Scroll position is carried
+     across so the reload lands where you were.
+     iOS WebKit only — a UA test, not @supports, because Chromium also
+     answers to -webkit-touch-callout and desktop must not reload. */
+  var isIosWebKit = (function(){
+    var ua = navigator.userAgent || '';
+    var iOS = /iPhone|iPad|iPod/.test(ua)
+      || (/Mac/.test(navigator.platform || '') && navigator.maxTouchPoints > 1);
+    return iOS && /AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|Android/.test(ua);
+  })();
+  function repaintForStatusBar(){
+    if(!isIosWebKit){ return false; }
+    try{ sessionStorage.setItem('ripley-scroll', String(window.scrollY | 0)); }catch(e){}
+    location.reload();
+    return true;
+  }
+  (function restoreScroll(){
+    var raw = null;
+    try{ raw = sessionStorage.getItem('ripley-scroll'); sessionStorage.removeItem('ripley-scroll'); }catch(e){}
+    if(raw === null){ return; }
+    var y = parseInt(raw, 10) || 0;
+    if(!y){ return; }
+    if('scrollRestoration' in history){ history.scrollRestoration = 'manual'; }
+    var put = function(){ window.scrollTo(0, y); };
+    requestAnimationFrame(function(){ requestAnimationFrame(put); });
+    addEventListener('load', put);
+  })();
   if(themeBtn){
     themeBtn.addEventListener('click', function(){
       var d = document.documentElement;
@@ -2410,6 +2445,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
       else{ d.setAttribute('data-theme','light'); }
       try{ sessionStorage.setItem('ripley-theme', toDark ? 'dark' : 'light'); }catch(e){}
       syncThemeMeta();
+      repaintForStatusBar();
     });
   }
   syncThemeMeta();
