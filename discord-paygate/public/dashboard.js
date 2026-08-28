@@ -1723,11 +1723,19 @@ function appearanceBody(store) {
                    <button type="button" class="th-dev-btn" data-device="phone" aria-label="Phone preview" title="Phone"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18.5h2"/></svg></button>
                  </div>
                </div>
-               <div class="th-viewport" id="th-viewport">
+               <div class="th-viewport" id="th-viewport" data-slug="${esc(store.slug)}">
                  <!-- The STORE page, not ?view=checkout: an owner picking
                       colours and a background was being shown the checkout,
-                      so the thing being themed was never the thing on screen. -->
-                 <iframe id="th-preview" class="th-preview" src="/${esc(store.slug)}" title="Store preview" loading="lazy"></iframe>
+                      so the thing being themed was never the thing on screen.
+
+                      On a phone this frame is NOT mounted up front. It is a
+                      second full copy of the storefront — including whatever
+                      animated background the seller chose — inside a dashboard
+                      page that is already several thousand pixels tall, and
+                      loading="lazy" meant scrolling to the bottom of the Store
+                      section was what started it. iOS answered by killing the
+                      tab and reloading. Below 900px it waits to be asked. -->
+                 <button type="button" class="btn-secondary th-preview-open" id="th-preview-open" hidden>Load live preview</button>
                </div>
              </div>`
           : '<div class="th-stage-empty"><p class="note-help">Publish your store to see the live preview here.</p></div>'
@@ -2942,7 +2950,6 @@ function wireAppearance(store, slug) {
     $(`#${id}`)?.addEventListener('input', paint);
     $(`#${id}`)?.addEventListener('change', paint);
   }
-  $('#th-preview')?.addEventListener('load', paint);
 
   // The preview renders the page at a real viewport width and scales it to
   // fit the frame — an iframe left at the frame's own width is neither a
@@ -2977,6 +2984,33 @@ function wireAppearance(store, slug) {
   if ($('#th-viewport')) {
     new ResizeObserver(() => fit()).observe($('#th-viewport'));
     fit();
+  }
+
+  // The preview is a second full copy of the storefront — its background, its
+  // media, its fonts — inside a dashboard page that is already thousands of
+  // pixels tall. It used to be markup carrying loading="lazy", so scrolling to
+  // the bottom of this section was what started the load, and on a phone iOS
+  // answered by killing the tab and reloading it. A wide screen still mounts it
+  // on sight; a narrow one asks first.
+  const mountPreview = () => {
+    const vp = $('#th-viewport');
+    if (!vp || $('#th-preview')) return;
+    const f = document.createElement('iframe');
+    f.id = 'th-preview';
+    f.className = 'th-preview';
+    f.title = 'Store preview';
+    f.addEventListener('load', paint);
+    f.src = `/${vp.dataset.slug ?? ''}`;
+    vp.appendChild(f);
+    const b = $('#th-preview-open');
+    if (b) b.hidden = true;
+    fit();
+  };
+  const previewBtn = $('#th-preview-open');
+  if (previewBtn) {
+    if (window.matchMedia('(max-width: 900px)').matches) previewBtn.hidden = false;
+    else mountPreview();
+    previewBtn.onclick = mountPreview;
   }
   document.querySelectorAll('#th-font-seg .th-seg-btn').forEach((b) => {
     b.onclick = () => {

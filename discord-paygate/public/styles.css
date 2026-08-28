@@ -2737,6 +2737,8 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .th-note { margin: 0; font-size: 12px; color: var(--dim); line-height: 1.55; }
 
 .th-stage { min-width: 0; }
+/* the tap-to-load stand-in for the preview frame on a narrow screen */
+.th-preview-open { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: auto; min-height: 44px; white-space: nowrap; }
 .th-stage-empty { border: 1px dashed var(--edge); border-radius: 12px; padding: 40px 20px; text-align: center; }
 .th-frame { border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; background: #0c0c0c; display: flex; flex-direction: column; }
 .th-frame-bar { display: flex; align-items: center; gap: 6px; padding: 9px 12px; background: #141414; border-bottom: 1px solid var(--edge); }

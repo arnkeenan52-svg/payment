@@ -56,6 +56,11 @@ function hydrate(row) {
     ownerDiscordId: row.owner_discord_id,
     guildId: row.guild_id,
     stripeKey: row.stripe_secret_enc ? openSecret(row.stripe_secret_enc) : config.stripe.secretKey,
+    // Whether this store has a key OF ITS OWN. stripeKey above falls back to
+    // the platform's, so it can never answer "has the seller connected
+    // Stripe?" — and the setup checklist needs exactly that question. A
+    // boolean, never the key.
+    hasOwnStripeKey: Boolean(row.stripe_secret_enc),
     webhookSecret: row.stripe_webhook_secret ?? null,
     notifyChannelId: row.notify_channel_id ?? null,
     theme: row.theme ? JSON.parse(row.theme) : null,

@@ -119,7 +119,7 @@ export default guard(async function handler(req, res) {
         id: s.id, slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault,
         // whether a key EXISTS — never the key, and never anything derived
         // from it. The setup checklist used to hard-code this as true.
-        hasStripeKey: Boolean(s.stripeSecretEnc),
+        hasStripeKey: Boolean(s.hasOwnStripeKey),
         notifyChannelId: s.notifyChannelId ?? null, theme: s.theme ?? null,
         discoverable: Boolean(s.discoverable), category: s.category ?? null,
         description: s.description ?? null,
