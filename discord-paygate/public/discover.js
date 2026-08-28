@@ -15,6 +15,14 @@ let activeCat = '';
 
 function card(s) {
   const initial = esc((s.name || '?').slice(0, 1).toUpperCase());
+  // Only stores that actually uploaded or linked a banner get the strip. A
+  // placeholder slab on every other card would be louder than no banner and
+  // would say nothing true about the store.
+  const banner = s.bannerUrl
+    ? `<span class="disc-banner">${s.bannerKind === 'video'
+        ? `<video class="disc-banner-media" src="${esc(s.bannerUrl)}" autoplay muted loop playsinline preload="metadata" disablepictureinpicture aria-hidden="true" onerror="this.closest('.disc-banner').hidden = true"></video>`
+        : `<img class="disc-banner-media" src="${esc(s.bannerUrl)}" alt="" loading="lazy" decoding="async" onerror="this.closest('.disc-banner').hidden = true" />`}</span>`
+    : '';
   const icon = s.iconUrl
     ? `<img class="disc-icon" src="${esc(s.iconUrl)}" alt="" width="44" height="44" loading="lazy" />`
     : `<span class="disc-icon disc-icon-fallback">${initial}</span>`;
@@ -28,6 +36,7 @@ function card(s) {
   return `
     <a class="disc-card panel" href="/${esc(s.slug)}"${accent ? ` style="--disc-accent:${accent}"` : ''}>
       ${accent ? '<span class="disc-accent" aria-hidden="true"></span>' : ''}
+      ${banner}
       <span class="disc-head">
         ${icon}
         <span class="disc-title">

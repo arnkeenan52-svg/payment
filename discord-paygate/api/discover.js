@@ -4,7 +4,7 @@
 // ranked by anything we cannot defend: members descending, then age.
 
 import { sendJson, guard } from '../src/lib/http.js';
-import { everyStore, plansOf } from '../src/services/stores.js';
+import { everyStore, plansOf, bannerFor } from '../src/services/stores.js';
 import { countLiveMembers } from '../src/db.js';
 import { getGuild, guildIconUrl } from '../src/lib/discord.js';
 
@@ -21,13 +21,18 @@ export default guard(async function handler(req, res) {
       const plans = (await plansOf(s).catch(() => [])).filter((p) => p.active !== false);
       if (!plans.length) continue; // nothing to buy = nothing to list
       const guild = await getGuild(s.guildId).catch(() => null);
+      // Same resolution the storefront uses: an uploaded banner wins over a
+      // pasted link and is served from /api/img. Reading the raw column here
+      // meant every uploaded banner showed as no banner in the directory.
+      const banner = await bannerFor(s);
       rows.push({
         slug: s.slug,
         name: s.name,
         description: s.description ?? null,
         category: s.category ?? null,
         iconUrl: guildIconUrl(guild),
-        bannerUrl: s.bannerUrl ?? null,
+        bannerUrl: banner.url,
+        bannerKind: banner.kind,
         accent: s.theme?.accent ?? null,
         products: plans.length,
         fromUsd: Math.min(...plans.map((p) => p.priceUsd)),

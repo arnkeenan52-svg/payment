@@ -3143,6 +3143,14 @@ test('store banners: uploaded media serves from /api/img, beats a pasted link, s
   const pub = await publicStore('vip-signals');
   assert.match(pub.bannerUrl, /\/api\/img\?store=vip-signals&kind=banner&v=\d+$/, 'the storefront gets a ready-to-use URL');
   assert.equal(pub.bannerKind, 'image');
+  // The directory resolves the banner the same way the storefront does. It
+  // used to read the raw column, so an uploaded banner showed as none there.
+  const listed = (await (await fetch(`${appUrl}/api/discover?fresh=1`)).json()).stores
+    .find((x) => x.slug === 'vip-signals');
+  assert.ok(listed, 'the opted-in store is in the directory');
+  assert.equal(listed.bannerUrl, pub.bannerUrl, 'the directory serves the upload, not the pasted link');
+  assert.equal(listed.bannerKind, 'image');
+
   const served = await fetch(pub.bannerUrl.replace('https://tradeleaks.e2e', appUrl));
   assert.equal(served.status, 200);
   assert.equal(served.headers.get('content-type'), 'image/png');
@@ -3203,6 +3211,11 @@ test('store banners: uploaded media serves from /api/img, beats a pasted link, s
   assert.equal(cleared.bannerUrl, 'https://cdn.e2e.test/banner.png', 'clearing the upload falls back to the pasted link');
   assert.equal(cleared.bannerKind, 'image');
   assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals&kind=banner`)).status, 404, 'a cleared banner is gone');
+  assert.equal(
+    (await (await fetch(`${appUrl}/api/discover?fresh=1`)).json()).stores.find((x) => x.slug === 'vip-signals').bannerUrl,
+    'https://cdn.e2e.test/banner.png',
+    'the directory falls back to the pasted link too',
+  );
   assert.equal((await storeCall('vip-signals', { bannerData: `data:image/png;base64,${PNG}` })).status, 200);
   assert.equal((await storeCall('vip-signals', { description: 'The alpha desk.' })).status, 200);
   assert.equal((await fetch(`${appUrl}/api/img?store=vip-signals&kind=banner`)).status, 200, 'an unrelated save must not drop the banner');
