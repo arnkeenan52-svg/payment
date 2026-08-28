@@ -741,10 +741,7 @@ function setTab(tab) {
 const fmtCount = (n) => (n < 10000 ? String(n) : `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`);
 
 const SHOP_ICONS = {
-  lock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
-  bolt: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 12-13h-8l0-7z"/></svg>',
   people: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 20v-2a4 4 0 0 0-3-3.87"/></svg>',
-  gear: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 8 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H2a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3.7 8a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H8a1.6 1.6 0 0 0 1-1.5V2a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V8a1.6 1.6 0 0 0 1.5 1H22a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',
   discord: '<svg width="16" height="12" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>',
 };
 const LINK_ICONS = {
@@ -852,24 +849,16 @@ function renderShop() {
     };
   }
 
-  // One quiet meta line, dot-separated: the two platform facts that hold for
-  // every Dues store, with the store's own socials between them.
+  // The store's own links, and nothing else. This line used to also carry
+  // "Secured by Stripe" and "Instant role delivery" — platform boilerplate
+  // identical on every Dues store, which told a buyer nothing about THIS one
+  // and pushed the store's real identity further down the page.
   const linkHtml = socialLinks()
     .map((k) => `<a class="shop-mlink" href="${esc(state.store.links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
     .join('');
-  const metaBits = [`<span class="shop-mitem">${SHOP_ICONS.lock}Secured by Stripe</span>`];
-  if (linkHtml) metaBits.push(`<span class="shop-mgroup">${linkHtml}</span>`);
-  metaBits.push(`<span class="shop-mitem">${SHOP_ICONS.bolt}Instant role delivery</span>`);
-  // What happens AFTER the payment. This used to be the third fact in the Home
-  // pane; the meta line is where it lives now that Home is gone, because it is
-  // the only thing on the page that answers "am I stuck with this?".
-  const sellable = state.plans.filter((p) => !p.variantOf);
-  const allLifetime = sellable.length > 0 && sellable.every((p) => groupFor(p).every((g) => g.lifetime));
-  // "Cancel any time" would be a lie about the lifetime product in a mixed
-  // catalogue, so only an all-lifetime store gets the stronger claim; every
-  // other store gets the one sentence that is true of all of them.
-  metaBits.push(`<span class="shop-mitem">${SHOP_ICONS.gear}${allLifetime ? 'One-time payment' : 'Manage from your account'}</span>`);
-  $('#shop-metaline').innerHTML = metaBits.join('<i class="shop-mdot" aria-hidden="true"></i>');
+  const metaline = $('#shop-metaline');
+  metaline.innerHTML = linkHtml ? `<span class="shop-mgroup">${linkHtml}</span>` : '';
+  metaline.hidden = !linkHtml; // an empty flex row still eats its margin
 
   // Counts are whatever the server counted. Followers stay hidden below ten:
   // "1 follower" reads worse than no number, and hiding is not lying.
@@ -914,7 +903,6 @@ function renderShop() {
     // Tells the stylesheet to put the identity/pane hairline back when the bar
     // is not there to draw it.
     $('#shop').dataset.tabs = about ? 'on' : 'off';
-    tabs.style.setProperty('--shop-tabn', 2);
     if (!tabs.dataset.wired) {
       tabs.dataset.wired = '1';
       tabs.querySelectorAll('.shop-tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));

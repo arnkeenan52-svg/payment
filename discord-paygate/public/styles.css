@@ -2941,16 +2941,7 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-mgroup { display: inline-flex; align-items: center; gap: 14px; }
 .shop-mlink { color: var(--dim); display: inline-flex; }
 .shop-mlink:hover { color: var(--ink); }
-.shop-mitem { display: inline-flex; align-items: center; gap: 6px; }
-.shop-mdot { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); }
-/* Narrow screens: the line wraps, and a dot that lands at the head of the
-   second row reads as a bullet for nothing. Drop the separators and let the
-   row gap do the separating instead — there is nothing to punctuate once the
-   facts are on separate lines. */
-@media (max-width: 560px) {
-  .shop-metaline { gap: 10px 16px; }
-  .shop-mdot { display: none; }
-}
+.shop-metaline[hidden] { display: none; }
 .shop-joined { display: flex; gap: 24px; margin: 18px 0 0; font-size: 16px; color: var(--dim); }
 .shop-joined b { color: var(--ink); font-weight: 700; }
 /* Real roles in the idiom the reference uses for member faces — we will not
@@ -2967,9 +2958,12 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-roleline b { color: var(--ink); font-weight: 600; }
 
 /* ── tabs: rail to rail, exact fractions, pill underline on the divider ── */
-/* Two sections at most now (Products · About), so the no-JS fallback is 2. */
+/* Equal fractions of ONE row for however many tabs exist, rather than a fixed
+   column count the markup has to agree with. A hard count wraps to a second
+   row the moment the DOM disagrees — which a browser running this stylesheet
+   against a cached store.html can do. */
 .shop-tabs {
-  display: grid; grid-template-columns: repeat(var(--shop-tabn, 2), 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
   border-bottom: 1px solid var(--hairline-2);
 }
 /* The bar is hidden outright for a store with no About — one tab is not a tab
