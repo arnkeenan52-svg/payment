@@ -2198,6 +2198,16 @@ async function viewStore(slug) {
     const updFade = () => sb.classList.toggle('scroll-more', sb.scrollWidth - sb.clientWidth - sb.scrollLeft > 8);
     sb.addEventListener('scroll', updFade, { passive: true });
     addEventListener('resize', updFade, { passive: true });
+    // Choosing a section re-renders this bar, and a fresh element starts at
+    // scrollLeft 0 — which is how tapping a tab near the end used to leave you
+    // staring at the start of the bar with your own choice off-screen. Centre
+    // the active tab instead. Written straight to scrollLeft rather than via
+    // scrollIntoView: that would also scroll every ancestor, and the ancestor
+    // here is the page.
+    const active = sb.querySelector('.side-item.active');
+    if (active && sb.scrollWidth > sb.clientWidth) {
+      sb.scrollLeft = Math.max(0, active.offsetLeft - (sb.clientWidth - active.offsetWidth) / 2);
+    }
     updFade();
   }
 
