@@ -144,6 +144,29 @@ body.app .field-help { font-size: var(--fs-1); line-height: var(--lh-1); color: 
    `.field-help.ok` alone silently lost and every verdict rendered grey. */
 body.app .field-help.ok { color: var(--a-11, var(--accent)); }
 body.app .field-help.bad { color: var(--bad-11); }
+
+/* The dark-style picker: two ground swatches, the same shape as the accent
+   row above it. */
+body.app .dc-faces { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+body.app .dc-face {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  padding: 6px 12px 6px 6px; min-height: var(--h-2);
+  border: 1px solid var(--d-stroke); border-radius: var(--rc-2);
+  background: var(--d-fill); color: var(--d-a11);
+  font-size: var(--fs-1); font-weight: var(--fw-medium); cursor: pointer;
+}
+body.app .dc-face:hover { background: var(--d-hover); border-color: var(--d-stroke-strong); }
+body.app .dc-face.active { border-color: var(--a-9); color: var(--d-a12); background: var(--acc-surface); }
+body.app .dc-face:focus-visible { outline: 2px solid var(--a-9); outline-offset: 2px; }
+/* A swatch of the real thing: the ground with a panel sitting on it, which is
+   the only part of a face a two-colour chip can honestly show. */
+body.app .dc-face-chip {
+  flex: none; width: 26px; height: 20px; border-radius: 5px;
+  border: 1px solid var(--d-stroke); display: inline-flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 3px; overflow: hidden;
+}
+body.app .dc-face-chip i { display: block; width: 16px; height: 8px; border-radius: 2px 2px 0 0; }
+
 body.app .field input,
 body.app .field select,
 body.app .field textarea,

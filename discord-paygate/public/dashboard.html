@@ -182,6 +182,65 @@
       --el-4: 0 12px 32px rgba(0, 0, 0, 0.40);
     }
 
+    /* ── black: the third face ─────────────────────────────────────────────
+       Asked for alongside white and navy, and it is a GROUND swap, not a new
+       component palette: the --d-* ramp above is achromatic white-alpha, so it
+       sits on near-black exactly as it sits on navy — only the hue underneath
+       changes. That is the whole reason this is nine tokens and not a third
+       copy of the system.
+
+       Set as data-dark on <html> rather than a third data-theme value, because
+       data-theme is site-wide (it drives the day/night SKY on the marketing
+       pages) and this is a dashboard-only skin. dashboard.html is the only
+       document that ever writes the attribute, so nothing else can match.
+
+       It layers on TOP of night — the selector requires :not([data-theme='light'])
+       — so choosing black and then hitting the sun still gives a white
+       dashboard, which is what the toggle promises.
+
+       Not pure #000: on OLED a true black next to a #141416 panel makes the
+       panel edge bloom, and every hairline has to fight the void. #0a0a0b
+       keeps the panels readable as surfaces. */
+    html[data-dark='black']:not([data-theme='light']) {
+      --bg: #0a0a0b;
+      --panel: #141416;
+      --panel-hover: #1b1b1e;
+      --well: #0f0f11;
+      --raised: #18181b;
+      --active-fill: #202024;
+      --edge: rgba(255, 255, 255, 0.10);
+      --edge-hot: rgba(255, 255, 255, 0.22);
+      --hairline: rgba(255, 255, 255, 0.06);
+      --hairline-2: rgba(255, 255, 255, 0.09);
+      --ink: #f4f4f5;
+      --dim: #a1a1aa;
+      --faint: #71717a;
+
+      /* The iOS status-bar strip. Without this it keeps the navy value from
+         the rule above — which matches ANY non-light theme — and an iPhone
+         shows a navy band above a black dashboard. Specificity carries it:
+         (0,2,1) here beats the (0,1,1) night rule regardless of order. */
+      --ui-tint: #0a0a0b;
+    }
+
+    /* The page ground itself. The night rule paints body with a HARD-CODED
+       navy gradient rather than var(--bg), and it matches any theme that is
+       not 'light' — so re-tokening --bg turned every panel black and left the
+       ground behind them navy. Half a theme, and only visible on the parts of
+       the screen a card does not cover: the header, the rail, the gutters.
+       (0,2,2) beats the night rule's (0,1,2). */
+    html[data-dark='black']:not([data-theme='light']) body {
+      background: #0a0a0b;
+
+      /* The elevation ladder is shadow on a ground that is already almost
+         black, so the navy values read as nothing. Deeper, and one step of
+         separation lives in the panel fill instead. */
+      --el-1: 0 1px 2px rgba(0, 0, 0, 0.55);
+      --el-2: 0 2px 4px rgba(0, 0, 0, 0.55);
+      --el-3: 0 6px 16px rgba(0, 0, 0, 0.60);
+      --el-4: 0 12px 32px rgba(0, 0, 0, 0.68);
+    }
+
     /* ── day: the same roles, on the flat white face ──────────────────────
        Black alphas over white. Step 10 DARKENS on both faces, which is a
        deliberate break from the usual dark-hovers-lighter rule: the naive

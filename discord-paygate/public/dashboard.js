@@ -1179,6 +1179,21 @@ const SECTIONS = [
   ['settings', 'Settings', 'gear'],
 ];
 
+// Sets the dark ground, and keeps the browser-chrome colour with it. Chrome
+// on Android paints its bar from <meta name="theme-color">, which is a static
+// navy in the markup — theme.js only re-syncs it from the BODY background, and
+// on this page the body is transparent, so its sync silently no-ops here.
+function applyDarkFace(face) {
+  const root = document.documentElement;
+  if (face === 'black') root.dataset.dark = 'black';
+  else delete root.dataset.dark;
+  try {
+    const tint = getComputedStyle(root).getPropertyValue('--ui-tint').trim();
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta && tint) meta.setAttribute('content', tint);
+  } catch { /* nothing here is worth breaking a render over */ }
+}
+
 function sectionOverview(data, store, slug) {
   const win = rangeWindows(state.range, data.payments);
   const inRange = data.payments.filter((p) => inWin(p, win.cur));
@@ -1996,6 +2011,13 @@ function sectionCustomize(store) {
             <label class="dc-custom" title="Custom color"><input type="color" id="dc-color" value="${curAccent || '#ededed'}" aria-label="Custom accent color" /></label>
           </div>
           <p class="field-help dc-help">Paints every chart, sparkline and highlight in the dashboard.</p></div>
+        <div class="dc-row"><span class="dc-lab">Dark style</span>
+          <div class="dc-faces" role="group" aria-label="Dark dashboard style">
+            ${[['navy', 'Navy', '#101827', '#182338'], ['black', 'Black', '#0a0a0b', '#141416']]
+              .map(([k, lbl, bg, panel]) => `<button type="button" class="dc-face${(prefs.darkStyle ?? 'navy') === k ? ' active' : ''}" data-face="${k}" aria-pressed="${(prefs.darkStyle ?? 'navy') === k}">
+                <span class="dc-face-chip" style="background:${bg}"><i style="background:${panel}"></i></span>${lbl}</button>`).join('')}
+          </div>
+          <p class="field-help dc-help">Which dark the dashboard uses. The sun switches to the light theme either way.</p></div>
         <div class="dc-row"><span class="dc-lab">Stat cards</span>
           <div class="dc-checks">
             ${[['revenue', 'Revenue'], ['sales', 'Sales'], ['members', 'New members'], ['mrr', 'MRR']]
@@ -2037,6 +2059,23 @@ function wireCustomize(store, slug) {
     s.onclick = () => { pickedAccent = s.dataset.accent; markSwatch(); };
   });
   $('#dc-color').oninput = (e) => { pickedAccent = e.target.value.toLowerCase(); markSwatch(); };
+
+  // Applied on click, before Save. A colour scheme is judged by looking at it,
+  // and a picker that only takes effect after a round trip makes the seller
+  // save to find out. Reverted on navigation if they never save, because the
+  // attribute is re-derived from the stored prefs on every render.
+  let pickedFace = prefs.darkStyle === 'black' ? 'black' : 'navy';
+  document.querySelectorAll('.dc-face').forEach((btn) => {
+    btn.onclick = () => {
+      pickedFace = btn.dataset.face;
+      document.querySelectorAll('.dc-face').forEach((b) => {
+        const on = b.dataset.face === pickedFace;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+      applyDarkFace(pickedFace);
+    };
+  });
   const saveDc = async (prefsBody) => {
     const btn = $('#dc-save');
     btn.disabled = true;
@@ -2059,9 +2098,10 @@ function wireCustomize(store, slug) {
       accent: pickedAccent || null,
       cards: cardPicks,
       defaultRange: $('#dc-range').value,
+      darkStyle: pickedFace,
     });
   };
-  $('#dc-reset').onclick = () => saveDc(null);
+  $('#dc-reset').onclick = () => { applyDarkFace('navy'); saveDc(null); };
 }
 
 // Billing gets its own top-level section so upgrading a plan is one click from
@@ -2194,6 +2234,9 @@ async function viewStore(slug) {
   // the owner picks a range by hand this visit.
   const dashPrefs = store.dashboardPrefs ?? {};
   const dashAccent = /^#[0-9a-f]{6}$/i.test(String(dashPrefs.accent ?? '')) ? dashPrefs.accent : null;
+  // The ground, re-derived from the stored preference on every render — which
+  // is also what discards an unsaved preview the moment you navigate.
+  applyDarkFace(dashPrefs.darkStyle === 'black' ? 'black' : 'navy');
   if (dashPrefs.defaultRange && state.rangePicked !== store.slug && RANGES.some(([k]) => k === dashPrefs.defaultRange)) {
     state.range = dashPrefs.defaultRange;
   }

@@ -274,6 +274,10 @@ export default guard(async function handler(req, res) {
       if (p?.defaultRange && ['today', '7', '30', '90', '12m', 'all'].includes(String(p.defaultRange))) {
         clean.defaultRange = String(p.defaultRange);
       }
+      // Which dark the dashboard uses. Only 'black' is stored — 'navy' is the
+      // default, and writing a key that means "the default" is how a prefs
+      // blob grows rows that say nothing.
+      if (String(p?.darkStyle) === 'black') clean.darkStyle = 'black';
       fields.dashboardPrefs = Object.keys(clean).length ? JSON.stringify(clean) : null;
     }
   }
