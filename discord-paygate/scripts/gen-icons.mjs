@@ -12,9 +12,17 @@
 //
 //   node scripts/gen-icons.mjs
 //
-// favicon.ico is NOT regenerated: the one in the tree already carries 16/32/48/64,
-// which satisfies Google's "multiple of 48px" rule, and rewriting ICO containers
-// needs a dependency this project does not otherwise want.
+// favicon.ico is NOT built here, and the claim that used to sit on this line —
+// that the one in the tree "already carries 16/32/48/64" — was simply false: it
+// held a single 16x16 image, which is not a multiple of 48 and so is not a size
+// Google will take. scripts/gen-favicon-ico.mjs builds it now, from
+// public/favicon.svg, with no new dependency and with a read-back check.
+//
+// NOTE THAT THIS SCRIPT IS STALE. It draws the monochrome #0a0a0a mark from the
+// black-and-white era and imports `sharp`, which is not a dependency of this
+// project and is not installed. The icons actually shipping are the blue Dues
+// tile. Running this would revert the brand; it is kept for the geometry, not
+// to be executed.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

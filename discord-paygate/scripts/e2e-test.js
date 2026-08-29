@@ -915,6 +915,69 @@ test('the iOS status-bar strip is on every themed page, with both of its colours
   );
 });
 
+test('the favicon is a size Google will actually take, at a url that does not move', async () => {
+  // Google Search fetches /favicon.ico by default and is explicit about the
+  // file: "Your favicon must be a square (1:1 aspect ratio) that's a multiple
+  // of 48 pixels in size."
+  //   https://developers.google.com/search/docs/appearance/favicon-in-search
+  //
+  // The file shipped here held ONE 16x16 image. Sixteen is not a multiple of
+  // forty-eight. The markup declared it sizes="32x32" and a comment in
+  // scripts/gen-icons.mjs claimed it carried 16/32/48/64 — three different
+  // wrong answers about one 449-byte file, and Google Search showed a globe
+  // for every dues.gg result. Nothing in the tree could have caught that,
+  // because nothing read the file. This does.
+  const ico = await fs.promises.readFile(new URL('../public/favicon.ico', import.meta.url));
+  assert.equal(ico.readUInt16LE(0), 0, 'favicon.ico must start with a valid ICONDIR');
+  assert.equal(ico.readUInt16LE(2), 1, 'favicon.ico must be an icon, not a cursor');
+  const count = ico.readUInt16LE(4);
+  assert.ok(count > 0, 'favicon.ico must contain at least one image');
+  const sizes = [];
+  for (let i = 0; i < count; i++) {
+    const e = 6 + 16 * i;
+    const w = ico.readUInt8(e) || 256;
+    const h = ico.readUInt8(e + 1) || 256;
+    const len = ico.readUInt32LE(e + 8);
+    const off = ico.readUInt32LE(e + 12);
+    assert.equal(w, h, `favicon.ico entry ${i} is ${w}x${h}, not square`);
+    assert.equal(w % 48, 0, `favicon.ico entry ${i} is ${w}px — Google requires a multiple of 48`);
+    // The directory is only a claim; the PNG header is the fact. They disagreed
+    // once already.
+    const payload = ico.subarray(off, off + len);
+    const isPng = payload.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    if (isPng) {
+      assert.equal(payload.readUInt32BE(16), w, `favicon.ico entry ${i} claims ${w}px but the PNG is ${payload.readUInt32BE(16)}px`);
+      assert.equal(payload.readUInt32BE(20), h, `favicon.ico entry ${i} height disagrees with its PNG`);
+    }
+    sizes.push(`${w}x${h}`);
+  }
+
+  // and the markup has to say what the file IS.
+  const home = await (await fetch(`${appUrl}/`)).text();
+  const declared = home.match(/<link rel="icon" href="\/favicon\.ico" sizes="([^"]+)"/);
+  assert.ok(declared, 'the homepage must declare /favicon.ico with a sizes attribute');
+  assert.deepEqual(
+    declared[1].split(/\s+/).sort(),
+    sizes.sort(),
+    'the sizes attribute must list exactly what favicon.ico contains',
+  );
+
+  // No ?v= on any icon url, anywhere. Google caches the search-result favicon
+  // by URL and re-crawls it rarely, so a version query that moves every ship
+  // hands it a URL it has never seen instead of the one it already holds.
+  // These files are served must-revalidate, so the query bought no freshness.
+  const pages = ['/', '/pricing', '/help', '/terms', '/guides/', '/vs/whop', '/use-cases/trading'];
+  for (const path of pages) {
+    const html = await (await fetch(`${appUrl}${path}`)).text();
+    const versioned = [...html.matchAll(/<link rel="(?:icon|apple-touch-icon)"[^>]*href="([^"]*\?v=[^"]*)"/g)];
+    assert.deepEqual(
+      versioned.map((m) => m[1]),
+      [],
+      `${path} must not put a version query on an icon url`,
+    );
+  }
+});
+
 test('the free look: colours on every plan, wallpapers on a paid one', async () => {
   const theme = await import('../src/lib/theme.js');
   // The split has to mean the same thing in three places or it is not a split:

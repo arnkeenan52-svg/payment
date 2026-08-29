@@ -446,7 +446,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta property="og:type" content="website" />
   <meta property="og:title" content="${esc(title)}" />
   <meta property="og:description" content="${esc(desc)}" />
-  <meta property="og:image" content="${BASE}/og-card.jpg?v=195" />
+  <meta property="og:image" content="${BASE}/og-card.jpg?v=${V}" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -460,16 +460,24 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
-  <meta name="twitter:image" content="${BASE}/og-card.jpg?v=195" />
+  <meta name="twitter:image" content="${BASE}/og-card.jpg?v=${V}" />
   <meta name="twitter:image:alt" content="${esc(OG_ALT)}" />
-  <!-- Icons. favicon.ico stays at a stable, UNVERSIONED url on purpose: Google
-       caches the search-result favicon by URL, and a moving ?v= resets it.
-       The .ico carries 16/32/48/64, which clears Google's "multiple of 48px"
-       floor; the 96px PNG is what it actually prefers to serve. -->
-  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <!-- Icons, all four at STABLE urls with no ?v= on them. Google caches the
+       search-result favicon by URL and re-crawls it rarely, so a version query
+       that moves on every ship hands it a URL it has never seen instead of the
+       one it already holds. The reasoning was written here before and then
+       contradicted two lines down, which is how the one URL Google prefers —
+       the 96px PNG — ended up as the only versioned one. Vercel serves these
+       with must-revalidate, so the query bought no freshness either.
+       Sizes are what the files ARE: favicon.ico now carries 48 and 96, both
+       multiples of 48, which is what Google requires. It used to hold a single
+       16x16 and be declared as 32x32; the comment here claimed 16/32/48/64.
+       Three answers, one 449-byte file, none of them checked. Rebuild it with
+       scripts/gen-favicon-ico.mjs, which reads its own output back. -->
+  <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=${V}" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=${V}" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   <style>${DAY_CSS}</style>
