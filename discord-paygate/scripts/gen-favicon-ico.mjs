@@ -2,20 +2,33 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // gen-favicon-ico — build /favicon.ico from the shipped favicon.svg.
 //
-// WHY. Google fetches /favicon.ico by default, and Search Central is explicit
-// about what it will accept:
+// WHY. Google fetches /favicon.ico by default. Search Central says:
 //
-//   "Your favicon must be a square (1:1 aspect ratio) that's a multiple of 48
-//    pixels in size. For example, 48x48px, 96x96px, 144x144px, and so on. SVG
-//    files don't have a specific size requirement."
+//   "Your favicon must be a square (1:1 aspect ratio) that's at least 8x8px.
+//    While the minimum size requirement is 8x8px, we recommend using a favicon
+//    that's larger than 48x48px so that it looks good on various surfaces."
 //   — https://developers.google.com/search/docs/appearance/favicon-in-search
 //
-// The favicon.ico that was in the tree held ONE 16x16 image. Sixteen is not a
-// multiple of forty-eight. The markup declared it as sizes="32x32", which it
-// also was not, and scripts/gen-icons.mjs carried a comment claiming the file
-// "already carries 16/32/48/64" — three different wrong answers about one
-// 449-byte file, none of them checked. So this script checks: it writes the
-// container and then reads its own output back.
+// READ THAT CAREFULLY, because an earlier version of this header did not. It
+// quoted a SUPERSEDED revision of that page — "a multiple of 48 pixels in
+// size" — and reasoned from it that a 16x16 icon was disqualified. Google
+// relaxed the rule. A 16x16 square ICO clears the hard floor; it misses a
+// recommendation, not a requirement, and it is NOT why a site shows the globe
+// placeholder in search results. Do not cite that sentence anywhere; it is not
+// in the published text.
+//
+// So this file exists for two smaller, true reasons. The tree held ONE 16x16
+// image, which is under the recommended size and renders soft on every surface
+// Google puts it on. And three places disagreed about what was in it: the
+// markup declared sizes="32x32", scripts/gen-icons.mjs claimed it "already
+// carries 16/32/48/64", and the file itself carried neither. Three answers
+// about one 449-byte file, none of them from reading it. So this script reads
+// its own output back.
+//
+// The actual hard guideline on that page, and the one this project was
+// breaking, is a different sentence: "The favicon URL must be stable (don't
+// change the URL frequently)." The icon hrefs carried ?v= that moved on every
+// ship. That is fixed in the page markup, not here.
 //
 // WHY NOT gen-icons.mjs. That script is from the monochrome era — it builds a
 // #0a0a0a mark and needs `sharp`, which is not a dependency of this project and
@@ -37,8 +50,8 @@ import { chromium } from 'playwright';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 
-// Both multiples of 48, and nothing else in the file. A 16x16 entry alongside
-// them would just give a picker something undersized to choose.
+// At and above the size Google recommends, and nothing under it — a 16x16
+// entry alongside these would only give a picker something soft to choose.
 const SIZES = [48, 96];
 
 const svg = fs.readFileSync(path.join(PUB, 'favicon.svg'), 'utf8');
@@ -104,7 +117,11 @@ for (let i = 0; i < count; i++) {
   const realW = isPng ? payload.readUInt32BE(16) : null;
   const realH = isPng ? payload.readUInt32BE(20) : null;
   if (w !== h) throw new Error(`entry ${i} is ${w}x${h}, not square`);
-  if (w % 48 !== 0) throw new Error(`entry ${i} is ${w}px, not a multiple of 48 — Google will not take it`);
+  // 48 is Google's RECOMMENDED floor ("larger than 48x48px"), not a hard rule —
+  // the hard rule is square and at least 8x8. We hold ourselves to the
+  // recommendation because there is no reason not to, but the message says what
+  // it is rather than inventing a requirement.
+  if (w < 48) throw new Error(`entry ${i} is ${w}px — below the 48px Google recommends for search surfaces`);
   if (!isPng) throw new Error(`entry ${i} is not a PNG payload`);
   if (realW !== w || realH !== h) throw new Error(`entry ${i} claims ${w}x${h} but the PNG is ${realW}x${realH}`);
   found.push(`${w}x${h} (${len}B)`);

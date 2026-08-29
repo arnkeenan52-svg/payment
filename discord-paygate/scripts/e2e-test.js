@@ -915,18 +915,24 @@ test('the iOS status-bar strip is on every themed page, with both of its colours
   );
 });
 
-test('the favicon is a size Google will actually take, at a url that does not move', async () => {
-  // Google Search fetches /favicon.ico by default and is explicit about the
-  // file: "Your favicon must be a square (1:1 aspect ratio) that's a multiple
-  // of 48 pixels in size."
+test('the favicon is square, big enough for search surfaces, and at a url that does not move', async () => {
+  // Google Search fetches /favicon.ico by default. Its stated rules are that
+  // the file be square and at least 8x8, with "we recommend using a favicon
+  // that's larger than 48x48px so that it looks good on various surfaces".
   //   https://developers.google.com/search/docs/appearance/favicon-in-search
   //
-  // The file shipped here held ONE 16x16 image. Sixteen is not a multiple of
-  // forty-eight. The markup declared it sizes="32x32" and a comment in
-  // scripts/gen-icons.mjs claimed it carried 16/32/48/64 — three different
-  // wrong answers about one 449-byte file, and Google Search showed a globe
-  // for every dues.gg result. Nothing in the tree could have caught that,
-  // because nothing read the file. This does.
+  // Note what that does NOT say. An earlier version of this comment quoted a
+  // superseded revision — "a multiple of 48 pixels in size" — and treated a
+  // 16x16 icon as disqualified. It is not: 16x16 clears the hard floor and is
+  // not why a site shows the globe placeholder. What was actually wrong here
+  // was smaller and real. The file held ONE 16x16 image, under the recommended
+  // size, while three places disagreed about what was in it: the markup said
+  // sizes="32x32", scripts/gen-icons.mjs said 16/32/48/64, and the file said
+  // neither. Nothing in the tree could catch that, because nothing read the
+  // file. This does.
+  //
+  // The genuinely hard guideline on that page is the one about URLs, and it is
+  // checked at the bottom of this test.
   const ico = await fs.promises.readFile(new URL('../public/favicon.ico', import.meta.url));
   assert.equal(ico.readUInt16LE(0), 0, 'favicon.ico must start with a valid ICONDIR');
   assert.equal(ico.readUInt16LE(2), 1, 'favicon.ico must be an icon, not a cursor');
@@ -940,7 +946,7 @@ test('the favicon is a size Google will actually take, at a url that does not mo
     const len = ico.readUInt32LE(e + 8);
     const off = ico.readUInt32LE(e + 12);
     assert.equal(w, h, `favicon.ico entry ${i} is ${w}x${h}, not square`);
-    assert.equal(w % 48, 0, `favicon.ico entry ${i} is ${w}px — Google requires a multiple of 48`);
+    assert.ok(w >= 48, `favicon.ico entry ${i} is ${w}px — under the 48px Google recommends for search surfaces`);
     // The directory is only a claim; the PNG header is the fact. They disagreed
     // once already.
     const payload = ico.subarray(off, off + len);
@@ -962,10 +968,11 @@ test('the favicon is a size Google will actually take, at a url that does not mo
     'the sizes attribute must list exactly what favicon.ico contains',
   );
 
-  // No ?v= on any icon url, anywhere. Google caches the search-result favicon
-  // by URL and re-crawls it rarely, so a version query that moves every ship
-  // hands it a URL it has never seen instead of the one it already holds.
-  // These files are served must-revalidate, so the query bought no freshness.
+  // No ?v= on any icon url, anywhere. This is the one hard rule of the three
+  // this test touches: "The favicon URL must be stable (don't change the URL
+  // frequently)." A version query that moves on every ship hands Google a URL
+  // it has never seen instead of the one it already holds, and these files are
+  // served must-revalidate anyway, so the query bought no freshness either.
   const pages = ['/', '/pricing', '/help', '/terms', '/guides/', '/vs/whop', '/use-cases/trading'];
   for (const path of pages) {
     const html = await (await fetch(`${appUrl}${path}`)).text();
