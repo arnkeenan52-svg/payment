@@ -40,6 +40,11 @@ probe*.mjs
 .verify-*
 .shot-*
 .probe*
+
+# Screenshots and one-off harnesses written while eyeballing a render. Same
+# throwaway class as the dot-prefixed names above, just under a directory so
+# a run's artifacts stay together instead of littering the package root.
+scratch/
 tmp-hero-frames/
 tmp-film-audio.wav
 remotion/node_modules/
