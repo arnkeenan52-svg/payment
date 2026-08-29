@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Dues — Sell Discord access" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=194" />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=195" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -40,12 +40,12 @@
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=194" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=195" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline &#39;Monetize your community.&#39; and a field for claiming a store link" />
   <link rel="icon" href="/favicon.ico" sizes="32x32" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=194" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=194" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=195" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=195" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
 
@@ -68,7 +68,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=194') format('woff2');
+  src:url('/jakarta-latin.woff2?v=195') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -103,6 +103,24 @@
   --scrim:13,20,32;
   --sky-fallback:#131b2d;
   --ui-tint:#131b2d;
+  /* The colour the footer gradient ENDS on, and therefore the colour every
+     surface behind and beneath the footer has to be: the page ground under it,
+     its own background-color, the iOS tint band, the theme-color meta. They
+     were four literals in four places and v193 shipped one of them as the
+     gradient's FIRST stop, which put a pale band across the bottom of the day
+     face. Two tokens now carry it — the stop and, below, the edge that stop
+     actually paints as — and everything that has to agree references one of
+     them rather than repeating a hex. */
+  --foot-end:#2a4f93;
+  /* And what that edge actually LOOKS like, which is not the same number:
+     .footer::after lays rgba(17,25,40,.18) over the base of the gradient, so
+     the pixel at the very bottom is the stop composited with that shade. The
+     ground, the tint band and the theme-color meta all have to match the
+     PIXEL — matching the nominal stop leaves a step of up to 19 RGB exactly
+     where the seam would show.
+       night  #2a4f93 x .82 + #111928 x .18 = #264580
+       day    #2f63bf x .82 + #111928 x .18 = #2a56a4 */
+  --foot-edge:#264580;
   --r-glass:22px;
   --shadow:0 2px 10px rgba(4,8,18,.45);
   --r-slab:16px;
@@ -137,6 +155,8 @@ html[data-theme="light"]{
   --scrim:244,247,253;
   --sky-fallback:#70a3e6;
   --ui-tint:#70a3e6;
+  --foot-end:#2f63bf;
+  --foot-edge:#2a56a4;
   --shadow:0 2px 10px rgba(31,51,86,.12);
 }
 /* theme-invariant guard: the approved blurple pricing slab keeps its light pill in both themes */
@@ -157,12 +177,32 @@ html[data-theme="light"]{background:#70a3e6}
    width, pinned to the top, painted behind every layer so it is never seen,
    and coloured by a token that flips with data-theme. Only WebKit reads it,
    so it stays out of the render tree everywhere else. ──────────────────── */
-.ui-tint{
-  position:fixed;top:0;left:0;width:100%;height:4px;
+.ui-tint,.ui-tint-b{
+  position:fixed;left:0;width:100%;height:4px;
   z-index:-2147483647;pointer-events:none;display:none;
-  background-color:var(--ui-tint);
 }
-@supports (-webkit-touch-callout:none){ .ui-tint{display:block} }
+.ui-tint{top:0;background-color:var(--ui-tint)}
+/* THE BOTTOM EDGE, which had no sample point at all. Safari tints the strip
+   behind its toolbar the same way it tints the status bar, and at the bottom of
+   this page the only fixed box on that edge is .footer — whose colour lives
+   entirely in a background-IMAGE gradient, so its background-color reads
+   transparent and the sample falls straight through to the page ground. That
+   fall-through is the dark navy band under a blue footer. This band is the
+   answer for the sampling engines; .footer also carries a solid
+   background-color now, and the theme-color meta follows the scroll, so all
+   three signals say the same thing whichever one a given iOS reads. */
+.ui-tint-b{bottom:0;background-color:var(--ui-tint-b,var(--ui-tint))}
+@supports (-webkit-touch-callout:none){ .ui-tint,.ui-tint-b{display:block} }
+/* Which colour the bottom edge reports, in one place. The sky until the footer
+   owns the screen, the footer's own end colour once it does — and the same
+   state drives the page ground and the theme-color meta, so the three cannot
+   disagree. data-footer-near, not data-blind: the reveal is an animation and it
+   is allowed to switch itself off on a small handset, but the colour under the
+   footer is not optional. Gating the ground on the animation is what made a
+   disarmed phone paint a navy band under a blue footer. */
+html{--ui-tint-b:var(--ui-tint)}
+html[data-footer-near]{--ui-tint-b:var(--foot-edge)}
+html[data-footer-near]{background:var(--foot-edge)}
 
 body{
   font-family:var(--sans);
@@ -258,9 +298,17 @@ h3{font-weight:500}
   position:fixed;top:0;left:0;right:0;z-index:60;
   height:calc(64px + env(safe-area-inset-top,0px));
   padding-top:env(safe-area-inset-top,0px);
-  transition:opacity .18s cubic-bezier(.16,1,.3,1);
+  transition:opacity .18s cubic-bezier(.16,1,.3,1),visibility 0s;
 }
-html[data-footer-revealed] .nav{opacity:0;pointer-events:none}
+/* visibility, not opacity alone. Seven controls faded to nothing with
+   pointer-events:none are still in the tab order and still announced, so a
+   keyboard visitor at the foot of the page tabs into a header they cannot see
+   and cannot click, with the focus ring nowhere on screen. visibility takes
+   them out of both, and delaying it by the length of the fade keeps the fade. */
+html[data-footer-revealed] .nav{
+  opacity:0;pointer-events:none;visibility:hidden;
+  transition:opacity .18s cubic-bezier(.16,1,.3,1),visibility 0s .18s;
+}
 .nav::before{
   content:"";position:absolute;inset:0 0 -28px 0;pointer-events:none;
   /* The ramp used to be down to .88 by 62% and gone by 100% — but 100% is 28px
@@ -397,7 +445,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=194') center/cover;
+  background:url('/hero-poster.webp?v=195') center/cover;
 }
 .browser-bar{
   position:relative;height:34px;
@@ -1506,12 +1554,21 @@ html[data-theme="light"] .sheet{
 .footer-spacer{position:relative;z-index:0;height:0;pointer-events:none}
 
 /* the footer: the kit's own solid ground — the clouds stop at the sheet's lip */
+/* background-COLOR as well as the gradient, and deliberately not the
+   `background` shorthand — the shorthand resets background-color to
+   transparent, which is what left an engine sampling this element with nothing
+   to read. The colour is --foot-edge rather than the gradient's own last stop,
+   because a sampled colour that does not match the pixel above it is a seam by
+   another name. The gradient paints over it either way; the only thing this
+   decides is what an engine reads off the element. */
 .footer{
   position:relative;z-index:0;overflow:clip;margin-top:-40px;
-  background:linear-gradient(180deg,#1c2740 0%,#1f2f4d 30%,#243a64 58%,#274680 82%,#2a4f93 100%);
+  background-color:var(--foot-edge);
+  background-image:linear-gradient(180deg,#1c2740 0%,#1f2f4d 30%,#243a64 58%,#274680 82%,var(--foot-end) 100%);
 }
 html[data-theme="light"] .footer{
-  background:linear-gradient(180deg,#bcd5f0 0%,#9cbeea 26%,#8eb4e6 44%,#769fe0 62%,#5f8ed9 78%,#4575cb 90%,#2f63bf 100%);
+  background-color:var(--foot-edge);
+  background-image:linear-gradient(180deg,#bcd5f0 0%,#9cbeea 26%,#8eb4e6 44%,#769fe0 62%,#5f8ed9 78%,#4575cb 90%,var(--foot-end) 100%);
 }
 .footer::after{
   content:"";position:absolute;left:0;right:0;bottom:0;z-index:2;pointer-events:none;
@@ -1522,6 +1579,12 @@ html[data-theme="light"] .footer{
    behind the sheet, and the sheet (clouds included, clipped inside it) lifts
    away to uncover it. Real pointers ≥640px; mobile keeps the in-flow footer. */
 @media (hover:hover) and (pointer:fine) and (min-width:640px){
+  /* min-height:100vh is NOT decoration. The footer is anchored bottom:0, so a
+     footer shorter than the viewport would leave the page ground painting
+     ABOVE it — the same band this page has been reported for, relocated to the
+     top of a desktop screen. It is the desktop equivalent of the --foot-edge
+     ground swap the phone block does, and removing it to "tidy up" a
+     full-bleed footer would bring the bug straight back. */
   .footer{position:fixed;inset:auto 0 0 0;min-height:100vh;margin-top:0}
   .footer-spacer{height:100vh}
 }
@@ -2109,15 +2172,6 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 
      Every number here is padding and rhythm. No link, column or line of copy is
      removed — the fold above already decides what a phone shows. */
-  .footer-stage{padding-top:18px}
-  .footer-title{margin-bottom:6px}
-  .footer-cta{margin-bottom:8px}
-  .footer-cta .btn-gloss{margin-top:18px}
-  .footer-directory{margin-top:2px;padding-bottom:0;row-gap:10px}
-  .footer .fcol{gap:5px}
-  .footer .fcol a{line-height:1.45}
-  .f-identity{gap:6px}
-  .f-identity p{margin:0;line-height:1.4}
   /* the footer is pinned ONLY while the reveal is near. Everywhere else it
      is an ordinary in-flow footer at the end of the document, so there is
      simply nothing at the viewport bottom to peek through when an iOS
@@ -2127,27 +2181,11 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
      top edge could enter the viewport), so it is never visible. */
   html[data-blind][data-footer-near] .footer{position:fixed;inset:auto 0 0 0;z-index:0;margin-top:0}
   html[data-blind][data-footer-near] .footer-spacer{height:var(--footH,0px)}
-  /* THE BACKSTOP, and the reason the blue bar cannot come back.
-     Cutting the sky does not uncover the footer — it uncovers whatever is
-     under the sky, and under the sky (z-index:-1) is the html element's own
-     background: #131b2d at night, #70a3e6 in daylight. THAT is the bar. Any
-     cut that reached past the pinned footer's box painted a strip of page
-     ground in a colour that belongs to neither the sky nor the footer, which
-     is exactly why it read as a bar rather than as a seam.
-     So while the blind is engaged the ground itself becomes the footer's own
-     top colour. The html background is invisible at every other moment (the
-     sky covers it), so this changes nothing that is ever deliberately seen —
-     it only decides what a mistimed clip uncovers, and the answer is now
-     "more footer" instead of "a stripe of the wrong blue". */
-  /* These paint the strip BELOW the pinned footer, so they have to be the
-     colour the footer gradient ENDS on — they were set to the colour it
-     starts on. Under a footer that runs #bcd5f0 down to #2f63bf, the day
-     backstop was #bcd5f0: a pale band across the very bottom of the page,
-     lighter than everything above it. Same mistake on the night face, where
-     #1c2740 sat under a gradient ending #2a4f93. Both now take the last stop
-     of the gradient directly above them. */
-  html[data-blind][data-footer-near]{background:#2a4f93}
-  html[data-theme="light"][data-blind][data-footer-near]{background:#2f63bf}
+  /* The backstop that used to live here — the page ground taking the footer's
+     end colour — is no longer gated on the blind, and no longer written as two
+     literals. It sits with the tint tokens near the top of this sheet, keyed on
+     data-footer-near alone, so a phone the reveal cannot fit still has the
+     right colour beneath its footer. */
   /* first paint owns the whole screen: the hero spans the LARGE viewport so
      the marquee never peeks in before scrolling — even with the browser
      toolbar collapsed. The link row stays pinned at the fold; the content
@@ -2158,21 +2196,60 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   /* clean first paint: whatever Safari's floating bar exposes, the marquee
      stays invisible until the visitor actually starts scrolling */
   html[data-at-top] .rolemarq{opacity:0}
-  /* compact stage so the whole footer fits a phone viewport */
-  .footer-stage{padding-top:30px}
-  .footer-title{font-size:clamp(27px,7.6vw,38px);margin-bottom:10px}
-  .footer-cta{margin-bottom:14px}
-  .footer-cta .btn-gloss{min-height:50px;padding:14px 28px;font-size:16px}
-  .footer-directory{margin-top:6px;gap:10px 16px;padding-bottom:6px}
+  /* ── the phone footer's vertical rhythm, in ONE place and in svh ─────────
+     This used to be two groups of fixed px inside the same media query, the
+     second silently overriding the first, so a compaction pass could land on
+     the dead copy and measure no change at all. And px cannot answer the
+     question this footer has to answer, which is "do I fit a viewport whose
+     height I do not know". svh is that height — the small viewport, the one a
+     phone actually has while someone is scrolling — and it is a STATIC unit,
+     so nothing reflows when the toolbar slides away. Sized this way the footer
+     compresses itself on a short handset instead of waiting for someone to
+     notice and shave six pixels off it. */
+  .footer-stage{padding-top:clamp(14px,2.6svh,30px)}
+  .footer-title{font-size:clamp(24px,min(7.2vw,4.4svh),38px);margin-bottom:clamp(4px,1svh,10px)}
+  .footer-cta{margin-bottom:clamp(8px,1.6svh,14px)}
+  /* height, not min-height: .btn-gloss sets an explicit height:56px, which
+     min-height cannot touch — so the phone rule that has sat here shrinking
+     this button has been buying exactly zero pixels. */
+  .footer-cta .btn-gloss{height:48px;min-height:0;padding:0 26px;font-size:16px;margin-top:clamp(10px,2svh,18px)}
+  .footer-directory{margin-top:clamp(2px,.8svh,6px);gap:clamp(7px,1.2svh,10px) 16px;padding-bottom:clamp(0px,.6svh,6px)}
   .f-copy{margin-top:6px;font-size:12.5px}
-  .f-socials{margin-top:10px}
-  .footer .fcol{gap:7px}
-  .footer .fcol a{min-height:20px;font-size:13.5px}
+  .f-socials{margin-top:clamp(6px,1.2svh,10px)}
+  /* .f-identity is a block, so the `gap:6px` that used to sit here did
+     nothing at all. Its children carry their own spacing. */
+  .f-identity p{margin:0;line-height:1.4}
+  /* This one grows with the viewport (2.4vh, and vh is the LARGE viewport on
+     iOS), so a taller phone spent part of the room it had just gained on eight
+     more column gaps. svh holds it still. */
+  .f-links .fcol{margin-bottom:clamp(12px,1.8svh,20px)}
+  .footer .fcol{gap:clamp(4px,.8svh,7px)}
+  .footer .fcol a{min-height:20px;font-size:13.5px;line-height:1.45}
   .footer .fcol b{margin-bottom:1px}
-  /* the full wordmark, not the desktop bleed: phones pin the footer to the
-     physical bottom (viewport-fit=cover), so Safari's expanded toolbar sits
-     over the last ~100px — float the watermark above that zone */
-  .footer-watermark{--wm-h:calc(100vw * .14);margin-top:4px;margin-bottom:calc(env(safe-area-inset-bottom,0px) + 62px)}
+  /* The wordmark, and the band beneath it. Phones pin the footer to the
+     PHYSICAL bottom (viewport-fit=cover), so Safari's expanded toolbar covers
+     its last lvh-minus-svh pixels — about 99 on a modern iPhone, plus the
+     home-indicator inset. --foot-reserve is that band, declared once: the
+     watermark floats above it, and the fit test subtracts it rather than
+     charging the footer for space that was never meant to be looked at. That
+     subtraction is the whole reason this measured differently on a device than
+     in any emulator: env(safe-area-inset-bottom) is 34px on a notched iPhone
+     and 0 in every desktop browser, so the footer was 34px taller than every
+     check believed. */
+  html{--foot-reserve:calc(env(safe-area-inset-bottom,0px) + 62px)}
+  .footer-watermark{--wm-h:min(calc(100vw * .14),9svh);margin-top:4px;margin-bottom:var(--foot-reserve)}
+  /* Last resort: tighten, do not switch off. The reveal used to disappear the
+     moment the footer outgrew the screen, silently, which is how it has now
+     been reported broken three times. The script applies this tier and
+     re-measures before it gives up on the effect. */
+  html[data-foot-tight] .footer-title{font-size:clamp(21px,5.8vw,28px)}
+  html[data-foot-tight] .footer-watermark{display:none}
+  /* the reserve moves to the stage when the watermark that normally carries it
+     is gone, or the last row of links ends up flush against the physical
+     bottom of the screen with Safari's toolbar over it */
+  html[data-foot-tight] .footer-stage{padding-top:10px;padding-bottom:var(--foot-reserve)}
+  html[data-foot-tight] .footer .fcol a:nth-of-type(n+4){display:none}
+  html[data-foot-tight] .f-socials{margin-top:6px}
 }
 /* ── micro-motion: chips lift, cards settle; all off under reduced motion ── */
 .pay-chip{transition:transform .2s cubic-bezier(.23,1,.32,1)}
@@ -2185,6 +2262,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 </head>
 <body>
 <i class="ui-tint" aria-hidden="true"></i>
+<i class="ui-tint-b" aria-hidden="true"></i>
 
 <!-- 1 · announcement -->
 
@@ -2589,7 +2667,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </footer>
 
-<script src="/sky.js?v=194" defer></script>
+<script src="/sky.js?v=195" defer></script>
 <script>
 (function(){
   'use strict';
@@ -2598,8 +2676,18 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   /* theme toggle (sun/moon): html[data-theme="light"] = day, absent = night */
   var themeBtn = document.querySelector('[data-theme-toggle]');
   var tintFrame = 0;
+  // Read from the stylesheet's own tokens rather than repeating their values
+  // here, so the tag a browser reads and the colour the page paints cannot
+  // drift apart. --ui-tint is the sky; --foot-end is the colour the footer
+  // gradient finishes on, and it is what the bottom of the screen must report
+  // once the footer owns it. iOS uses ONE theme-color for the strips at both
+  // ends of the window, and by the time the footer is on screen it is the only
+  // thing on screen, so following it is right at both ends.
   var tintWant = function(){
-    return document.documentElement.getAttribute('data-theme') === 'light' ? '#70a3e6' : '#131b2d';
+    var d = document.documentElement;
+    var css = getComputedStyle(d);
+    var t = (css.getPropertyValue(d.hasAttribute('data-footer-near') ? '--foot-edge' : '--ui-tint') || '').trim();
+    return t || (d.getAttribute('data-theme') === 'light' ? '#70a3e6' : '#131b2d');
   };
   function syncThemeMeta(){
     var tags = document.querySelectorAll('meta[name="theme-color"]');
@@ -2633,6 +2721,9 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     } else { add(); }
   }
   syncThemeMeta();
+  // the blind script fires this when the footer takes over the screen, or
+  // gives it back
+  window.addEventListener('dues:tint', syncThemeMeta);
   window.addEventListener('pageshow', function(e){
     if(!e.persisted){ return; }
     var t = null; try{ t = sessionStorage.getItem('ripley-theme'); }catch(err){}
@@ -2674,7 +2765,15 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     if('scrollRestoration' in history){ history.scrollRestoration = 'manual'; }
     var put = function(){ window.scrollTo(0, y); };
     requestAnimationFrame(function(){ requestAnimationFrame(put); });
-    addEventListener('load', put);
+    addEventListener('load', function(){
+      put();
+      // Hand it back. This branch runs only after the status-bar reload, and
+      // it used to leave scrollRestoration on 'manual' for the rest of the
+      // visit — so on iOS, one tap of the theme button meant every later
+      // reload and every Back from /pricing or the dashboard dumped the
+      // visitor at the top of a six-thousand-pixel page.
+      if('scrollRestoration' in history){ history.scrollRestoration = 'auto'; }
+    });
   })();
   if(themeBtn){
     themeBtn.addEventListener('click', function(){
@@ -2698,14 +2797,10 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     });
   }
 
-  /* nav scrim */
-  var nav = document.getElementById('nav');
-  function onScroll(){
-    if(window.scrollY > 10){ nav.classList.add('scrolled'); }
-    else{ nav.classList.remove('scrolled'); }
-  }
-  window.addEventListener('scroll', onScroll, {passive:true});
-  onScroll();
+  /* The nav scrim used to be written here too, at a threshold of 10, while the
+     blind script writes it at 8. Two owners for one class on one element, and
+     which one won was decided by listener registration order. The blind script
+     keeps it — it is the one that also has to fade the bar out. */
 
   /* scroll reveal + chart draw */
   var mrr = document.getElementById('mrr');
@@ -2953,32 +3048,91 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   // visible area, so the reveal never completed. It worked in every desktop
   // emulator, where lvh and svh are the same number, and only ever failed on a
   // real phone.
-  var lvhProbe = document.createElement('div');
-  lvhProbe.style.cssText = 'position:fixed;left:-9px;top:0;width:1px;height:100svh;pointer-events:none;visibility:hidden';
-  (document.body || html).appendChild(lvhProbe);
-  // A browser without svh leaves the height at 0 and falls through to
-  // innerHeight, which tracks the visual viewport and is the right answer there.
-  var largeVh = function(){ var h = lvhProbe.getBoundingClientRect().height; return h > 0 ? h : window.innerHeight; };
-  // phone blind: engage only when the whole footer fits the large viewport,
-  // and keep flow height identical (spacer = measured footer px height)
+  // ONE probe, read in two units, because the fit needs both and they are the
+  // same number in every desktop engine — which is exactly why this kept
+  // passing a check and failing a phone. 100lvh is the viewport with iOS
+  // Safari's toolbars collapsed; 100svh is the viewport while they are showing.
+  // Reset to 0 before each read: in a browser that does not know the unit the
+  // assignment is simply dropped, and without the reset the probe would keep
+  // the previous value instead of falling through to innerHeight.
+  var probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;left:-9px;top:0;width:1px;pointer-events:none;visibility:hidden';
+  (document.body || html).appendChild(probe);
+  var probeAt = function(unit){
+    probe.style.height = '0px';
+    probe.style.height = '100' + unit;
+    var h = probe.getBoundingClientRect().height;
+    return h > 0 ? h : window.innerHeight;
+  };
+  var smallVh = function(){ return probeAt('svh'); };
+  var largeVh = function(){ return probeAt('lvh'); };
+
+  // The band at the foot of the footer that Safari's toolbar covers by design.
+  // Read off the element that declares it, so the stylesheet and this script
+  // cannot hold different opinions about how big it is — and so it picks up
+  // env(safe-area-inset-bottom), which is 34px on a notched iPhone and 0 in
+  // every desktop browser. That 34px is why the device and the emulator
+  // disagreed about whether this footer fits.
+  var reserve = function(){
+    var stage = footer.querySelector('.footer-stage');
+    var wm = footer.querySelector('.footer-watermark');
+    var r = stage ? parseFloat(getComputedStyle(stage).paddingBottom) || 0 : 0;
+    if(wm && getComputedStyle(wm).display !== 'none'){
+      r += parseFloat(getComputedStyle(wm).marginBottom) || 0;
+    }
+    return r;
+  };
+
+  var disarm = function(){
+    html.removeAttribute('data-blind');
+    // and the height that went with it. Nothing reads --footH unqualified
+    // today, but a stale pinned-footer height sitting on <html> for a footer
+    // that is no longer pinned is exactly the sort of thing that misleads the
+    // next person to open DevTools over this bug.
+    html.style.removeProperty('--footH');
+    // data-footer-near is NOT cleared here. It is what colours the ground and
+    // the tint band under the footer, and that has to be right whether or not
+    // the animation is on — a phone too short for the reveal still has a
+    // footer, and the strip beneath it still has to be the footer's colour.
+    // Clearing it here used to hand a disarmed phone a navy band under a blue
+    // footer for exactly as long as it took the next scroll event to fire.
+    if(sky){ sky.style.clipPath = ''; }
+  };
+
+  // TWO conditions, because the single one this replaces measured the wrong
+  // box. The old test was `offsetHeight <= svh - 24`, and it is wrong twice
+  // over: it charges the footer for a reserve that is deliberately below the
+  // small viewport, and it says nothing about whether the pinned footer's TOP
+  // lands on screen, which is the failure that actually looks broken.
+  //   1. the whole footer must fit the LAYOUT viewport. Pinned to bottom:0, a
+  //      taller one puts its own title above the top of the screen and the
+  //      reveal never completes.
+  //   2. its CONTENT — everything above the reserve — must clear the toolbar,
+  //      which is the small viewport.
+  var tryArm = function(){
+    var h = footer.offsetHeight;
+    if(h > largeVh() - 8){ return false; }
+    if(h - reserve() > smallVh() - 24){ return false; }
+    html.setAttribute('data-blind','');
+    html.style.setProperty('--footH', h + 'px');
+    return true;
+  };
+
+  // Tighten, then give up — never give up first. This effect has been reported
+  // broken three times, and every time the cause was the same: it does not
+  // fail when the footer outgrows the screen, it DISARMS, silently, and the
+  // page just stops doing the thing. A tier that compresses the footer and
+  // re-measures turns "switched itself off" into "got smaller", which is a
+  // thing someone can see and reason about.
   var fit = function(){
     if(!footer){ return; }
-    // The blind pins the footer behind the sheet and clips the fixed sky at
-    // the sheet's lip to uncover it. What used to leave a blue bar was never
-    // the clip being late — it was WHAT SITS BEHIND THE CLIP. Cutting the sky
-    // exposes the html element's own background (#131b2d night, #70a3e6 day),
-    // so any clip that ran ahead of the footer painted a strip of page
-    // ground. The footer now backstops the whole viewport (see the ::before
-    // in the phone block), so the worst a stale clip can uncover is more
-    // footer.
-    if(phoneMq.matches && footer.offsetHeight <= largeVh() - 24){
-      html.setAttribute('data-blind','');
-      html.style.setProperty('--footH', footer.offsetHeight + 'px');
-    } else {
-      html.removeAttribute('data-blind');
-      html.removeAttribute('data-footer-near');
-      if(sky){ sky.style.clipPath = ''; }
-    }
+    html.removeAttribute('data-foot-tight');
+    if(!phoneMq.matches){ disarm(); return; }
+    if(tryArm()){ return; }
+    html.setAttribute('data-foot-tight','');
+    if(tryArm()){ return; }
+    html.removeAttribute('data-foot-tight');
+    disarm();
   };
   var on = function(){
     nav.classList.toggle('scrolled', window.scrollY > 8);
@@ -2986,6 +3140,16 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     html.toggleAttribute('data-at-top', window.scrollY <= 24);
     // once the sheet's lip is on screen the blind is rising — fade the nav out
     var bottom = sheet.getBoundingClientRect().bottom;
+    // THE VISIBLE viewport, for this one decision. Everything below works in
+    // the LAYOUT viewport, which is correct for the pin and the clip — they
+    // paint in that coordinate space. The nav is not a paint, it is a
+    // perception: it should go when the footer takes over the screen a person
+    // can SEE. On iOS those differ by the height of the toolbar, about 100px,
+    // and using the layout number for both is why the header disappears while
+    // you are still reading the last section and refuses to come back until
+    // you have scrolled a further 100px on the way up. That is the whole of
+    // "the scroll-up header is broken".
+    var seenVh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
     // documentElement.clientHeight, NOT window.innerHeight. The clip uncovers
     // a footer positioned by `position: fixed`, which resolves against the
     // LAYOUT viewport; innerHeight tracks the VISUAL viewport and on iOS the
@@ -2993,13 +3157,28 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     // one coordinate space and painting the footer in another is what put a
     // band of bare page ground between them.
     var vh = document.documentElement.clientHeight || window.innerHeight;
-    var revealed = bottom <= vh + 1;
+    // And only when a reveal is actually going to happen. On a handset too
+    // short for the blind the footer is an ordinary block at the end of the
+    // document — nothing rises, so hiding the header for a screen and a half
+    // costs the visitor their only way back up and buys nothing.
+    var willReveal = phoneMq.matches ? html.hasAttribute('data-blind') : true;
+    var revealed = willReveal && bottom <= seenVh + 1;
     html.toggleAttribute('data-footer-revealed', revealed);
     // the pinned footer may only paint near the reveal (see the CSS gate).
     // This threshold is deliberately LOOSER than the clip's below: the footer
     // is pinned for a band before the sky is cut, never the other way round,
     // so there is no ordering in which the cut lands on an unpinned footer.
-    html.toggleAttribute('data-footer-near', bottom <= vh + 160);
+    // data-footer-near carries more than the pin now: the page ground, the
+    // bottom tint band and the theme-color meta all key off it, so a change
+    // has to be announced. Only on the transition — the meta tag is swapped by
+    // removing and re-inserting it, which is not something to do per scroll
+    // event.
+    var wasNear = html.hasAttribute('data-footer-near');
+    var isNear = bottom <= vh + 160;
+    html.toggleAttribute('data-footer-near', isNear);
+    if(isNear !== wasNear && typeof CustomEvent === 'function'){
+      dispatchEvent(new CustomEvent('dues:tint'));
+    }
     if(sky){
       // clip the fixed sky at the sheet's lip (canvas overshoots 160px below
       // the viewport, and the lip's 40px bottom radius carries into the clip).

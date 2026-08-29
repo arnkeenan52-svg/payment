@@ -878,9 +878,25 @@ test('the iOS status-bar strip is on every themed page, with both of its colours
     assert.match(html, /--ui-tint:#70a3e6/, `${path} must define the day tint`);
     assert.match(
       html,
-      /\.ui-tint\{[^}]*position:fixed[^}]*background-color:var\(--ui-tint\)/,
-      `${path} tint must be a fixed strip that carries the colour`,
+      /\.ui-tint,\.ui-tint-b\{[^}]*position:fixed/,
+      `${path} tint strips must be fixed to the viewport edges`,
     );
+    assert.match(html, /\.ui-tint\{top:0;background-color:var\(--ui-tint\)\}/, `${path} top strip must carry the sky colour`);
+    // BOTH edges. Safari tints the strip behind its bottom toolbar the same
+    // way it tints the status bar, and the marketing pages had no sample point
+    // down there at all — .footer paints a gradient, so its background-color
+    // reads transparent and the sample fell through to the page ground. That
+    // is a dark navy band under a blue footer, and it was reported three times.
+    assert.match(html, /<i class="ui-tint-b" aria-hidden="true"><\/i>/, `${path} must carry the bottom tint strip`);
+    assert.match(html, /\.ui-tint-b\{bottom:0;background-color:var\(--ui-tint-b,var\(--ui-tint\)\)\}/, `${path} bottom strip must carry the footer colour`);
+    // and the state that swaps it, plus the footer's own solid colour — the
+    // ground, the strip and the theme-color meta all read one token, so no
+    // future edit can leave three answers to one question.
+    assert.match(html, /html\[data-footer-near\]\{--ui-tint-b:var\(--foot-edge\)\}/, `${path} must hand the bottom strip to the footer at the foot of the page`);
+    assert.match(html, /html\[data-footer-near\]\{background:var\(--foot-edge\)\}/, `${path} ground must become the footer's edge at the foot of the page`);
+    assert.match(html, /--foot-edge:#264580/, `${path} must define the night footer edge`);
+    assert.match(html, /--foot-edge:#2a56a4/, `${path} must define the day footer edge`);
+    assert.match(html, /\.footer\{[^}]*background-color:var\(--foot-edge\)/, `${path} footer must carry a solid colour for an engine to sample`);
   }
   // Buyer storefronts get it too — there --ui-tint falls back to --bg, which
   // the seller's own theme sets, so the strip follows their store colour.

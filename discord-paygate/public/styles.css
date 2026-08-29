@@ -118,7 +118,15 @@ html[data-theme='light'] body { background: var(--bg); color: var(--ink); }
    toolbar from the platform's default ground instead of the seller's. This
    anchor is the same trick at the other edge — it reads --bg, which the
    store's own theme sets on <body>, so the bar wears the store's colour. */
-.ui-tint-b { bottom: 0; }
+.ui-tint-b {
+  bottom: 0;
+  /* Its own token first. A page whose top and bottom are different colours —
+     the SEO family is sky at the head and paper at the foot — needs two
+     answers, and giving both edges one value is what painted a sky-blue band
+     under a near-white footer. Falls back to --ui-tint and then --bg, so a
+     storefront keeps reading the seller's ground exactly as before. */
+  background-color: var(--ui-tint-b, var(--ui-tint, var(--bg)));
+}
 @supports (-webkit-touch-callout: none) { .ui-tint, .ui-tint-b { display: block; } }
 
 
