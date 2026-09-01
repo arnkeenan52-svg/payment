@@ -2964,7 +2964,7 @@ function wireProducts(store, slug, products) {
       const p = products.find((x) => x.planKey === b.dataset.plan);
       const kids = products.filter((x) => x.variantOf === b.dataset.plan);
       const extra = kids.length ? ` Its ${kids.length} pricing option${kids.length === 1 ? '' : 's'} go with it.` : '';
-      if (!confirm(`Delete "${p?.name ?? b.dataset.plan}"?\n\nBuyers keep what they already bought; the product just stops being sold.${extra}`)) return;
+      if (!confirm(`Delete "${p?.name ?? b.dataset.plan}"?\n\nThis removes it for good. If any member still holds it the delete is refused — deactivate instead to stop selling while they keep their access.${extra}`)) return;
       b.disabled = true;
       try {
         await api('/api/onboard', { step: 'product-delete', storeId: store.id, planKey: b.dataset.plan });

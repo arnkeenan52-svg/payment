@@ -67,17 +67,24 @@ async function main() {
   renderAccount(me);
 
   const requested = new URLSearchParams(window.location.search).get('plan');
-  const plan = plans.find((p) => p.id === requested) ?? plans[0];
+  // No `?? plans[0]`. That named the store's FIRST product, at its price, on
+  // the receipt for whatever was actually bought whenever the bought product
+  // had since been taken off sale. Better to say less than to say wrong.
+  const plan = plans.find((p) => p.id === requested)
+    ?? (requested ? { id: requested, name: 'Your purchase', lifetime: false, interval: '', priceUsd: null, currency: plans[0]?.currency } : null);
   if (!plan) return;
 
   $('#r-server').textContent = server.name || '—';
   $('#r-product').textContent = plan.name;
-  $('#r-option').textContent = plan.lifetime ? 'One-time — lifetime access' : `Recurring — per ${plan.interval}`;
+  $('#r-option').textContent = plan.lifetime ? 'One-time — lifetime access' : plan.interval ? `Recurring — per ${plan.interval}` : '';
   // The charged amount (discounts applied) beats the list price the moment
   // the buyer's subscription row lands; until then the list price stands in.
   const paidFor = (m) => (m.subscriptions ?? []).find((s) => s.planId === plan.id && s.paidUsd !== null && s.paidUsd !== undefined);
   PAGE_CURRENCY = String(plan.currency ?? PAGE_CURRENCY).toLowerCase();
-  const renderTotal = (m) => { $('#r-total').textContent = fmtPrice(paidFor(m)?.paidUsd ?? plan.priceUsd, plan.currency); };
+  const renderTotal = (m) => {
+    const v = paidFor(m)?.paidUsd ?? plan.priceUsd;
+    $('#r-total').textContent = v === null || v === undefined ? '—' : fmtPrice(v, plan.currency);
+  };
   renderTotal(me);
   $('#open-discord-label').textContent = server.name ? `Open ${server.name} on Discord` : 'Open Discord';
   if (server.guildId) $('#open-discord').href = `https://discord.com/channels/${server.guildId}`;

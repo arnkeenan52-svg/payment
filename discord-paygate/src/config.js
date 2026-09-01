@@ -137,7 +137,18 @@ export function capabilities() {
     crypto: Boolean(config.coinbase.apiKey && config.coinbase.webhookSecret),
     // The two rails are independent: a deploy may run NOWPayments without
     // Coinbase, and the storefront asks for this one by name.
-    nowpayments: Boolean(config.nowpayments.apiKey && config.nowpayments.ipnSecret),
+    // RELEASE-GATED, and deliberately not by the presence of its credentials.
+    // A 124-agent adversarial audit on 29 Aug 2026 confirmed 29 defects in
+    // this rail, three of them critical — among them a buyer's irreversible
+    // payment being marked completed and announced to the seller as a sale
+    // while the buyer is granted nothing. NOWPAYMENTS_API_KEY and
+    // NOWPAYMENTS_IPN_SECRET are ALREADY set in production, so a gate on them
+    // alone would have switched the rail on the moment this code deployed.
+    // NOWPAYMENTS_RELEASED=1 is the explicit act of release. The e2e suite
+    // sets it; production must not until every audit finding is closed and
+    // the rail has been re-verified.
+    nowpayments: env('NOWPAYMENTS_RELEASED', '') === '1'
+      && Boolean(config.nowpayments.apiKey && config.nowpayments.ipnSecret),
   };
 }
 

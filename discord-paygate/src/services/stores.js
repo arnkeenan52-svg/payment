@@ -54,6 +54,10 @@ export function defaultStore() {
 
 function hydrate(row) {
   if (!row) return null;
+  // Decrypted once. null here means the row HAS a sealed key and it will not
+  // open — a rotated SECRET_KEY — which is a different state from "no key",
+  // and one the checkout must refuse rather than paper over.
+  const ownKey = row.stripe_secret_enc ? openSecret(row.stripe_secret_enc) : null;
   return {
     id: row.id,
     slug: row.slug,
@@ -62,7 +66,8 @@ function hydrate(row) {
     bannerUrl: row.banner_url ?? null,
     ownerDiscordId: row.owner_discord_id,
     guildId: row.guild_id,
-    stripeKey: row.stripe_secret_enc ? openSecret(row.stripe_secret_enc) : config.stripe.secretKey,
+    stripeKey: row.stripe_secret_enc ? ownKey : config.stripe.secretKey,
+    stripeKeyBroken: Boolean(row.stripe_secret_enc) && ownKey === null,
     // Whether this store has a key OF ITS OWN. stripeKey above falls back to
     // the platform's, so it can never answer "has the seller connected
     // Stripe?" — and the setup checklist needs exactly that question. A
@@ -250,6 +255,9 @@ export async function plansOf(store) {
   if (store.isDefault) return config.plans;
   const plans = (await db.storePlansFor(store.id)).map((p) => ({
     id: p.planKey,
+    // The plan id is only unique WITHIN a store. Anything that keys a cache
+    // on a plan has to key it on this too.
+    storeId: store.id,
     name: p.name,
     description: p.description ?? '',
     descriptionHighlight: null,

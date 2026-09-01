@@ -53,11 +53,15 @@ export async function processStripeEvent(event, routeStore = null) {
         return;
       }
       const store = await resolveStore(routeStore, obj.metadata?.store_id);
-      // A redeemed discount counts its use only once payment completed.
-      if (obj.metadata?.discount_code && store?.id !== null && store?.id !== undefined) {
+      // A redeemed discount counts its use once the GRANT has landed, not
+      // before it. Counted up here, a grant that threw sent the webhook to
+      // 500, Stripe retried, and the retry counted the same sale again —
+      // burning a seller's five-use promotion two uses at a time.
+      const countDiscount = async () => {
+        if (!obj.metadata?.discount_code || store?.id === null || store?.id === undefined) return;
         const { incrementDiscountUse } = await import('../db.js');
         await incrementDiscountUse(store.id, obj.metadata.discount_code).catch(() => {});
-      }
+      };
       // What Stripe actually charged (discounts included). The plan's list
       // price is only a fallback for events without an amount.
       // amount_total is in MINOR units and the divisor is not always 100 — a
@@ -121,6 +125,7 @@ export async function processStripeEvent(event, routeStore = null) {
           paidUsd,
           currency: paidCurrency,
         });
+        await countDiscount();
         await emailReceipt();
         await notifySale();
       } else {
@@ -136,6 +141,7 @@ export async function processStripeEvent(event, routeStore = null) {
           paidUsd,
           currency: paidCurrency,
         });
+        await countDiscount();
         await emailReceipt();
         await notifySale();
       }

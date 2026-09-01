@@ -74,7 +74,10 @@ export default guard(async function handler(req, res) {
         discordId: memberId,
         planId: plan.id,
         provider: 'manual',
-        providerRef: `manual:${store.id ?? 'default'}:${memberId}:${now()}`,
+        // No timestamp in the ref. (provider, provider_ref) is the upsert key,
+        // so a double-click on Grant used to book the same member twice; one
+        // ref per member per plan makes the second click a no-op.
+        providerRef: `manual:${store.id ?? 'default'}:${memberId}:${plan.id}`,
         status: 'active',
         currentPeriodEnd: plan.lifetime ? null : now() + (plan.durationDays ?? 31) * 86400,
         graceUntil: null,

@@ -64,6 +64,12 @@ export async function stripeFetch(path, { method = 'GET', form, key = config.str
       ...(form ? { 'content-type': 'application/x-www-form-urlencoded' } : {}),
     },
     body: form ? encodeForm(form).join('&') : undefined,
+    // The only provider client that had no timeout. A hung call ran the
+    // webhook past Vercel's maxDuration, the idempotency claim stayed held,
+    // and Stripe's retry of the same event found it already claimed — a
+    // no-op. Bounded, the call fails, the claim is released, and the retry
+    // does the work.
+    signal: AbortSignal.timeout(25_000),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
@@ -118,7 +124,11 @@ export function resolvePlanPrice(plan, key = config.stripe.secretKey) {
   // Currency is part of the key: the same plan id repriced into another
   // currency is a different Stripe price, and a five-minute stale hit here
   // would sell it at the old one.
-  const cacheKey = `${key.slice(-8)}:${plan.id}:${normalizeCurrency(plan.currency)}`;
+  // The STORE is part of the key too. Managed-store plan ids are per-store
+  // keys ("vip", "premium"), and one seller can run two stores on one Stripe
+  // account — same key, same plan id, two different prices. Without the store
+  // in here, store B's checkout took store A's cached price for five minutes.
+  const cacheKey = `${plan.storeId ?? 'default'}:${key.slice(-8)}:${plan.id}:${normalizeCurrency(plan.currency)}`;
   const cached = priceCache.get(cacheKey);
   const at = Date.now();
   if (cached && at - cached.at <= PRICE_TTL_MS) return cached.promise;
@@ -355,6 +365,16 @@ export async function ensureTenantPrice(store, plan) {
 
 export async function createCheckoutSession({ plan, discordId, note = '', store = null, couponId = null, discountCode = null }) {
   const lifetime = Boolean(plan.lifetime);
+  // A tenant store charges into ITS OWN Stripe account or not at all. The
+  // fallback below exists for the built-in store (id null), whose stripeKey
+  // IS the platform key by construction. openSecret() returns null when a
+  // sealed key no longer decrypts — after a SECRET_KEY rotation, say — and
+  // `??` would then have routed that seller's buyers into the platform's
+  // Stripe account. Refuse; api/checkout/stripe.js turns the throw into a
+  // clean error the seller can act on.
+  if (store && store.id !== null && store.id !== undefined && !store.stripeKey) {
+    throw new Error(`store ${store.slug}: its Stripe key cannot be read — reconnect Stripe in Settings before selling`);
+  }
   const key = store?.stripeKey ?? config.stripe.secretKey;
   let priceId;
   const resolved = await resolvePlanPrice(plan, key);

@@ -719,6 +719,18 @@ export async function countStoreSubscriptions(storeId) {
   return Number(rows[0]?.n ?? 0);
 }
 
+// Live holders of any of these plans in one store — what product-delete has
+// to ask before it removes a row the role map is built from.
+export async function countLiveSubscriptionsForPlans(storeId, planIds) {
+  if (!planIds.length) return 0;
+  const marks = planIds.map(() => '?').join(', ');
+  const { rows } = await q(
+    `SELECT COUNT(*) AS n FROM subscriptions WHERE store_id = ? AND status IN ('active', 'past_due') AND plan_id IN (${marks})`,
+    [storeId, ...planIds],
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
 export async function deleteStore(storeId) {
   await q('DELETE FROM discounts WHERE store_id = ?', [storeId]);
   await q('DELETE FROM store_plans WHERE store_id = ?', [storeId]);
@@ -1108,8 +1120,18 @@ export async function allSubscriptionsWithUsers(storeIds = null) {
 }
 
 // (store_id, discord_id) pairs — reconciliation is per store, per member.
-export async function membersWithLiveSubscriptions() {
-  const { rows } = await q("SELECT DISTINCT store_id, discord_id FROM subscriptions WHERE status IN ('active', 'past_due')", []);
+export async function membersWithLiveSubscriptions(at = now()) {
+  // Live rows, PLUS anyone whose row expired within the last week. The sweep
+  // flips a lapsed row to 'expired' and only then reconciles the member; if
+  // that reconcile fails — Discord down for a minute — the role was never
+  // taken back, and nothing ever looked at an 'expired' row again. One lost
+  // call was free access forever. A week of revisits makes it an hour's delay.
+  const { rows } = await q(
+    `SELECT DISTINCT store_id, discord_id FROM subscriptions
+     WHERE status IN ('active', 'past_due')
+        OR (status = 'expired' AND updated_at >= ?)`,
+    [at - 7 * 86400],
+  );
   return rows.map((r) => ({ storeId: r.store_id === null ? null : Number(r.store_id), discordId: r.discord_id }));
 }
 

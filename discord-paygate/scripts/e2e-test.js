@@ -3416,6 +3416,17 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal((await call(u7Cookie, '/api/admin/store', { store: 'vip-elite', slug: 'vip-signals' })).status, 200);
 
   // ── delete a product ──────────────────────────────────────────────────────
+  // NOT while anyone holds it. U9 was granted plan2 above and still has it;
+  // rolePlanFor builds the role map from the plan rows that exist, so deleting
+  // this one would strip U9's role on the next reconcile — the opposite of what
+  // the confirm dialog promises. This assertion used to expect 200 here, which
+  // is to say the suite was asserting the bug.
+  const held = await onboard({ step: 'product-delete', storeId, planKey: plan2.planKey });
+  assert.equal(held.status, 409, 'a product with a live holder cannot be deleted');
+  assert.match((await held.json()).error, /still holds?.*Deactivate/, 'the refusal names the alternative');
+  // ...so the seller ends that membership the way the dashboard does, and the
+  // delete goes through.
+  assert.equal((await call(u7Cookie, '/api/admin/member', { store: 'vip-signals', action: 'revoke', discordId: U9, planId: plan2.planKey })).status, 200);
   assert.equal((await onboard({ step: 'product-delete', storeId, planKey: plan2.planKey })).status, 200);
   assert.equal((await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.length, 1);
   assert.equal((await checkout(u10Cookie, { planId: plan2.planKey })).status, 400, 'deleted products cannot be bought');
@@ -4522,6 +4533,9 @@ async function main() {
     NOWPAYMENTS_API_KEY: NOW_KEY,
     NOWPAYMENTS_IPN_SECRET: NOW_IPN_SECRET,
     NOWPAYMENTS_API_BASE: nowMock.url,
+    // The rail is release-gated in src/config.js; the suite exercises it, so
+    // the suite releases it. Production does not carry this variable.
+    NOWPAYMENTS_RELEASED: '1',
   };
   const app = await spawnApp(phase1Env);
   appUrl = app.url;

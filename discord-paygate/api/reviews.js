@@ -87,7 +87,9 @@ export default guard(async function handler(req, res) {
     }
 
     const beforeRaw = url.searchParams.get('before');
-    const before = beforeRaw && /^\d+$/.test(beforeRaw) ? Number(beforeRaw) : null;
+    // Digits are not enough: twenty of them pass the regex, overflow a bigint
+    // on Postgres, and 500 the endpoint. SQLite shrugged, so the suite never saw it.
+    const before = beforeRaw && /^\d{1,15}$/.test(beforeRaw) && Number.isSafeInteger(Number(beforeRaw)) ? Number(beforeRaw) : null;
     const rows = await db.listReviews(store.id, { limit: PAGE + 1, before });
     const page = rows.slice(0, PAGE);
     const summary = await db.reviewSummary(store.id);

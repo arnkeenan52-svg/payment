@@ -1371,6 +1371,9 @@ html[data-theme="light"]{
    and the payment captions 1.80:1. Darkened only for the light face, only
    where the sky is what is behind. */
 html[data-theme="light"] .sec-eyebrow{color:#1b2c57}      /* was #5865f2 — 1.77:1, now 5.2:1 */
+html[data-theme="light"] .hero-sub,
+html[data-theme="light"] .hero .microcopy,
+html[data-theme="light"] .page-hero-sub{color:#22314f}     /* --sec on the bare sky measured under 3.2:1; 5.0:1 now */
 html[data-theme="light"] .pay-cap,
 html[data-theme="light"] .pay-note{color:#22314f}         /* was #67748f — 1.80:1, now 5.0:1 */
 html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.96:1, now 5.0:1 */
@@ -1680,7 +1683,10 @@ html[data-theme="light"] .footer{
 }
 .footer .fcol a{display:inline-flex;align-items:center;min-height:21px;padding:0;color:rgba(255,255,255,.82);font-size:14px;line-height:1.5;transition:color .15s}
 .footer .fcol a:hover{color:#fff}
-/* day footer runs on the kit's dark ink over the light ground — the title stays white */
+/* day footer runs on the kit's dark ink over the light ground. The title used
+   to stay white here and measured 1.91:1 against #bcd5f0 — under even the 3:1
+   large-text floor — so it takes the ink too. */
+html[data-theme="light"] .footer-title{color:#030507}
 html[data-theme="light"] .f-brand{color:#030507}
 html[data-theme="light"] .f-brand .glyph{background:#030507}
 html[data-theme="light"] .f-copy{color:rgba(3,5,7,.9)}
@@ -1916,7 +1922,7 @@ html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
 <header class="page-hero wrap">
   <p class="sec-eyebrow">PRICING</p>
   <h1>Flat plans. 0% fees.</h1>
-  <p class="page-hero-sub">Every plan keeps the platform fee at zero, on every sale, forever. The only thing a bigger plan buys is room for more paying members.</p>
+  <p class="page-hero-sub">Every plan keeps the platform fee at zero, on every sale, forever. A bigger plan buys room for more paying members and unlocks the paid storefront looks.</p>
 </header>
 
 <!-- 10 · plans -->
@@ -2037,7 +2043,7 @@ html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
     </details>
     <details class="faq-item">
       <summary>Can I change or cancel my plan?</summary>
-      <p>Any time, from your dashboard. Cancelling drops you back to Free immediately; your store, products and members stay exactly where they are.</p>
+      <p>Any time, from your dashboard. Cancelling ends the paid plan straight away rather than at the end of the period, so do it on the day you would have renewed. Your store, products and members stay exactly where they are; a custom storefront look is parked until you re-subscribe, and comes back exactly as you left it.</p>
     </details>
     <details class="faq-item">
       <summary>Is yearly really two months free?</summary>

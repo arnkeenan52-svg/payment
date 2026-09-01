@@ -1,9 +1,15 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /dashboard
-Disallow: /account
-Disallow: /receipt
+Disallow: /dashboard$
+Disallow: /dashboard/
+Disallow: /dashboard?
+Disallow: /account$
+Disallow: /account/
+Disallow: /account?
+Disallow: /receipt$
+Disallow: /receipt/
+Disallow: /receipt?
 
 User-agent: GPTBot
 Allow: /

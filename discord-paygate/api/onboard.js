@@ -39,7 +39,13 @@ async function callerManagesGuild(uid, guildId) {
 }
 
 async function ownedStore(uid, storeId, req) {
-  const row = await db.getStoreById(Number(storeId));
+  // An integer or nothing. Number(undefined) is NaN, and the two storage
+  // engines disagree about NaN as a bound parameter: SQLite binds it as NULL
+  // and finds no row (a clean 403); Postgres rejects it and the handler 500s.
+  // The suite runs on SQLite, which is why it never saw production do this.
+  const id = Number(storeId);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  const row = await db.getStoreById(id);
   if (!row) return null;
   // The platform operator can act on any store — same bypass the sibling
   // admin endpoints grant, so the Platform admin view is fully functional.
@@ -551,6 +557,19 @@ export default guard(async function handler(req, res) {
       // Deleting a product takes its price options with it — an option
       // without its product is unreachable and must not linger half-alive.
       const variants = plan.variantOf ? [] : (await db.storePlansFor(row.id)).filter((p) => p.variantOf === planKey);
+      // "Buyers keep what they already bought" is what the confirm dialog
+      // promises, and it has to be true. rolePlanFor builds the role map from
+      // the plan rows that EXIST, so deleting a row that live subscriptions
+      // still point at means the next reconcile finds no roles for those
+      // members and takes theirs away — and for a recurring product, Stripe
+      // keeps billing them for it. Refuse while anyone holds it. Deactivating
+      // is the right verb there: it stops the sale and keeps their access.
+      const holders = await db.countLiveSubscriptionsForPlans(row.id, [plan.planKey, ...variants.map((v) => v.planKey)]);
+      if (holders > 0) {
+        return sendJson(res, 409, {
+          error: `${holders} member${holders === 1 ? ' still holds' : 's still hold'} this product. Deactivate it instead — that stops the sale and keeps their access.`,
+        });
+      }
       for (const target of [plan, ...variants]) {
         // Best-effort archive on their Stripe so the product stops being
         // sellable there too — the local delete is what gates checkout.

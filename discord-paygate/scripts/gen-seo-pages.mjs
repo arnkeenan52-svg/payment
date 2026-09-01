@@ -389,7 +389,7 @@ export const footerHtml = `
     <nav class="footer-col"><span class="footer-head">Product</span>
       <a href="/discover">Discover stores</a><a href="/pricing">Plans</a><a href="/pricing">Pricing</a><a href="/help">FAQ</a>
       <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a>
-      <a href="https://discord.gg/G6yjsX5qbB" rel="noopener">Community Discord</a></nav>
+      <a href="https://discord.gg/G6yjsX5qbB" rel="noopener">Community Discord</a><a href="mailto:contact@dues.gg">contact@dues.gg</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
       <a href="/vs/whop">Dues vs Whop</a><a href="/vs/launchpass">Dues vs LaunchPass</a>
       <a href="/vs/subscord">Dues vs Subscord</a><a href="/vs/doorfee">Dues vs DoorFee</a>
@@ -1478,7 +1478,12 @@ emit(
 const AI_BOTS = ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-Web', 'PerplexityBot', 'Google-Extended', 'CCBot'];
 emit(
   'robots.txt',
-  `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /dashboard\nDisallow: /account\nDisallow: /receipt\n\n${AI_BOTS.map((b) => `User-agent: ${b}\nAllow: /`).join('\n\n')}\n\nSitemap: ${BASE}/sitemap.xml\n`,
+  // Anchored, because a bare prefix is a glob. "Disallow: /account" also hid
+// /accounting, /account-managers and any other seller slug that starts with
+// those letters — slugs the reserved list deliberately allows. `$` pins the
+// exact path, the trailing-slash form covers anything beneath it, and `?`
+// covers the receipt's query string.
+`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /dashboard$\nDisallow: /dashboard/\nDisallow: /dashboard?\nDisallow: /account$\nDisallow: /account/\nDisallow: /account?\nDisallow: /receipt$\nDisallow: /receipt/\nDisallow: /receipt?\n\n${AI_BOTS.map((b) => `User-agent: ${b}\nAllow: /`).join('\n\n')}\n\nSitemap: ${BASE}/sitemap.xml\n`,
 );
 
 // The landing page is hand-written, but its footer is not — it is stamped from

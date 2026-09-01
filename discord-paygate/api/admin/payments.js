@@ -37,8 +37,13 @@ export default guard(async function handler(req, res) {
   // When a managed store has taken that guild over, attribute those legacy
   // payments to it — one server, one store, one history — while still
   // pricing them from the env catalog they were sold from.
+  // — but only for the platform operator. Those legacy rows are the
+  // platform's own early ledger, and the twin is created by whichever Discord
+  // admin of that guild runs the onboarding wizard, which is deliberately
+  // open (see the e2e scenario for the built-in server). Attributing them to
+  // any twin handed a guild moderator the platform's payment history.
   const def = defaultStore();
-  if (def && !byId.has(null)) {
+  if (def && platformAdmin && !byId.has(null)) {
     const twin = visible.find((s) => String(s.guildId) === String(def.guildId));
     if (twin) byId.set(null, twin);
   }
@@ -67,7 +72,9 @@ export default guard(async function handler(req, res) {
       storeName: store.name,
       planId: s.plan_id,
       planName: plan?.name ?? s.plan_id,
-      amountUsd: s.paid_usd !== null && s.paid_usd !== undefined ? Number(s.paid_usd) : plan?.priceUsd ?? 0,
+      // A manual grant is free by definition; the list-price fallback is for
+      // provider events that arrived without an amount, not for gifts.
+      amountUsd: s.paid_usd !== null && s.paid_usd !== undefined ? Number(s.paid_usd) : s.provider === 'manual' ? 0 : plan?.priceUsd ?? 0,
       // The currency THIS sale happened in, off the row itself — not the
       // store's current one. History does not get re-denominated.
       currency: s.currency ?? store.currency ?? 'usd',

@@ -420,6 +420,13 @@ export async function runDoctor() {
   if (!np.apiKey && !np.ipnSecret) {
     add('nowpayments:off', 'NOWPayments capability', 'skip',
       'NOWPAYMENTS_API_KEY and NOWPAYMENTS_IPN_SECRET are both unset — the crypto rail is dormant, its endpoints answer 501 and the storefront hides the option.');
+  } else if (np.apiKey && np.ipnSecret && !capabilities().nowpayments) {
+    // Both credentials present and the rail still off: that is the release
+    // gate doing its job, not a misconfiguration, and the doctor has to say so
+    // or the next person reads "off" and goes looking for a missing variable.
+    add('nowpayments:held', 'NOWPayments rail is release-gated', 'skip',
+      'NOWPAYMENTS_API_KEY and NOWPAYMENTS_IPN_SECRET are set; NOWPAYMENTS_RELEASED is not 1, so the rail stays dormant — endpoints answer 501, the storefront hides the option.',
+      'Leave it. The 29 Aug 2026 audit confirmed 29 defects in this rail (3 critical); it is released by setting NOWPAYMENTS_RELEASED=1 only after every one is closed and re-verified.');
   } else if (!np.apiKey || !np.ipnSecret) {
     // Half-configured is the dangerous state: with a key but no secret, the
     // checkout would create real payments the webhook can never verify.
@@ -495,6 +502,18 @@ export async function runDoctor() {
     add('nowpayments:custody', 'Custody switched OFF on the merchant account', 'warn',
       'cannot be read through the API — verify by hand in the NOWPayments dashboard',
       'Target state is Custody OFF. Until then every payment relies on the per-payment payout_address to forward, which this code always sends and refuses to omit. Turning custody off requires a payout wallet on the account first.');
+  }
+
+  // Storage. Twenty checks and not one of them asked whether the database
+  // answers; a deployment with no Postgres reported ok:true while every
+  // request that touched a row failed. One read settles it.
+  try {
+    await getAppSecret('doctor:storage-probe');
+    add('storage', 'Database answers', config.databaseUrl ? 'pass' : 'warn',
+      config.databaseUrl ? 'postgres' : 'sqlite — a local file, fine on a laptop, not on Vercel',
+      config.databaseUrl ? null : 'Set DATABASE_URL to a Postgres you can reach and run `npm run migrate`.');
+  } catch (err) {
+    add('storage', 'Database answers', 'fail', err.message, 'Set DATABASE_URL to a reachable Postgres and run `npm run migrate`.');
   }
 
   return {
