@@ -1802,6 +1802,93 @@ test('the generated pages take the community invite from config, so one regenera
   }
 });
 
+test('the fee calculators compute real figures from the ids the served markup actually carries', async () => {
+  // The rebrand left the calculators' element ids on the old name (t-ripley,
+  // t-row-ripley, t-bar-ripley) under a row labelled Dues; renaming them was
+  // shipped with no test at all. Half a rename — markup moved, script not, or
+  // the reverse — is silent in the generator and silent in the browser except
+  // that every bar reads $0. So: fetch the page, build a DOM containing ONLY
+  // the ids the markup declares, run the page's own inline script against it,
+  // and check the arithmetic. A missing id is a TypeError, not a quiet zero.
+  const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
+  const planCost = (m) => (m <= 10 ? 0 : m <= 50 ? 14.99 : m <= 500 ? 44.99 : 134.99);
+  // The publicly-listed competitor pricing each page states in its own copy.
+  const CALCULATORS = {
+    'whop-fee-calculator': { whop: (rev) => rev * 0.03 },
+    'launchpass-fee-calculator': { launchpass: (rev) => 29 + rev * 0.035 },
+    'patreon-fee-calculator': { patreon: (rev) => rev * 0.08 },
+    'doorfee-fee-calculator': { doorfee: (rev) => rev * 0.1 },
+    'discord-fee-calculator': {
+      whop: (rev) => rev * 0.03,
+      launchpass: (rev) => 29 + rev * 0.035,
+      patreon: (rev) => rev * 0.08,
+      'upgrade-chat': () => 49,
+    },
+  };
+
+  for (const [slug, competitors] of Object.entries(CALCULATORS)) {
+    const res = await fetch(`${appUrl}/tools/${slug}`);
+    assert.equal(res.status, 200, `/tools/${slug} must be served`);
+    const html = await res.text();
+    assert.ok(!/ripley/i.test(html), `/tools/${slug} still ships the old brand in its markup`);
+
+    // The Dues bar must be the one wearing the dues ids — the exact thing the
+    // rename fixed, and the thing a future rename could split apart again.
+    const row = html.slice(html.indexOf('id="t-row-dues"'), html.indexOf('</div>', html.indexOf('id="t-bar-dues"')));
+    assert.ok(row.includes('>Dues<') && row.includes('id="t-dues"'), `/tools/${slug}: the Dues row does not carry the Dues ids`);
+
+    const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+    const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+    assert.ok(script && script.includes('getElementById'), `/tools/${slug} has no inline calculator script`);
+
+    // A DOM that knows only what the page declares. getElementById on anything
+    // else returns null, exactly as a browser would, and the script throws.
+    const nodes = new Map();
+    let onInput = null;
+    const value = { 't-subs': '100', 't-price': '50' };
+    const document = {
+      getElementById(id) {
+        if (!ids.has(id)) return null;
+        if (!nodes.has(id)) {
+          nodes.set(id, {
+            get value() { return value[id]; },
+            textContent: '',
+            style: {},
+            addEventListener: (_type, fn) => { onInput = fn; },
+          });
+        }
+        return nodes.get(id);
+      },
+    };
+    new Function('document', script)(document); // runs, and calls upd() itself
+    assert.ok(onInput, `/tools/${slug}: the calculator never wired up its sliders`);
+
+    const read = (id) => String(nodes.get(id).textContent);
+    for (const [members, price] of [[5, 5], [100, 50], [1000, 200]]) {
+      value['t-subs'] = String(members);
+      value['t-price'] = String(price);
+      onInput();
+      const rev = members * price;
+      const dues = planCost(members);
+      const costs = Object.entries(competitors).map(([id, f]) => [id, f(rev)]);
+      const worst = Math.max(...costs.map(([, c]) => c));
+      const where = `/tools/${slug} at ${members} members × $${price}`;
+      assert.equal(read('t-subs-out'), String(members), `${where}: member readout`);
+      assert.equal(read('t-price-out'), `$${price}`, `${where}: price readout`);
+      assert.equal(read('t-rev'), `${money(rev)}/mo`, `${where}: sales volume`);
+      assert.equal(read('t-dues'), `${money(dues)}/mo`, `${where}: the Dues plan cost`);
+      for (const [id, cost] of costs) assert.equal(read(`t-${id}`), `${money(cost)}/mo`, `${where}: ${id} cost`);
+      assert.equal(read('t-save'), `${money(Math.max(worst - dues, 0) * 12)}/yr`, `${where}: annual saving`);
+      // Every bar is drawn, which means every bar id resolved to an element.
+      for (const id of ['dues', ...costs.map(([k]) => k)]) {
+        const width = nodes.get(`t-bar-${id}`).style.width;
+        assert.match(String(width), /^\d+(\.\d+)?%$/, `${where}: the ${id} bar was never sized`);
+        assert.ok(parseFloat(width) >= 2, `${where}: the ${id} bar collapsed to nothing`);
+      }
+    }
+  }
+});
+
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
   assert.equal((await hitCron({ omitHeader: true })).status, 401);
   assert.equal((await hitCron({ secret: 'wrong-secret' })).status, 401);
