@@ -152,6 +152,23 @@ export function validateTheme(input) {
 // Never reaches CSS (no url() injection surface) — it renders as a media
 // ELEMENT with an escaped attribute. https only, a real parseable URL, and a
 // recognizable media extension, so "javascript:" and friends have no door.
+//
+// What this check IS: a scheme gate and a typo catcher. What it is NOT: a
+// promise about the bytes. The extension is read off the URL we were handed,
+// and the host is free to answer it with a 302 somewhere else, with a 400MB
+// file, or with a socket it never closes — all three are reproducible, none
+// of them is stoppable from here, and none of them is worse than what any
+// hotlinked image on any site can do. What actually bounds the damage is the
+// shape of the destination: the value only ever becomes the `src` of an
+// <img>/<video> that carries no-referrer (bgLayer below), so it cannot run
+// script, cannot read the page, cannot reach the checkout's fields, and is
+// never fetched by OUR server — grep for it: nothing on the server side
+// touches a seller-supplied URL, so there is no SSRF here to have.
+//
+// The one thing a third-party host does learn is that a browser asked it for
+// a picture: its IP and user agent. Only proxying every import through
+// dues.gg would take that away, and that would hand us the server-side fetch
+// of an attacker-chosen URL we currently do not have. Not worth the trade.
 function validateBgUrl(v) {
   if (typeof v !== 'string' || v.length > 600) throw new Error('theme.bgUrl must be a URL under 600 characters');
   let u;
@@ -186,9 +203,22 @@ export function bgLayer(theme) {
   const id = preset ?? 'custom';
   let inner = '';
   if (custom) {
+    // no-referrer, because the host on the other end of an import is a
+    // stranger to the BUYER. Without it every visit to this store announces
+    // itself to that host as coming from https://dues.gg/ (measured: the
+    // browser default is strict-origin-when-cross-origin, so it sends the
+    // origin — not the slug — but announcing a Dues buyer at all is not ours
+    // to give away). Its IP and user agent still reach the host; that is
+    // what asking a browser for a picture costs, and only proxying every
+    // import would change it.
+    //
+    // Deliberately NOT crossorigin: that makes the request CORS-mode, and a
+    // host that does not send access-control-allow-origin then renders
+    // nothing at all. It would break honest imports to withhold a cookie
+    // from a host that already has the IP.
     inner = isVideoBg(custom)
-      ? `<video src="${escAttr(custom)}" autoplay muted loop playsinline disablepictureinpicture aria-hidden="true"></video>`
-      : `<img src="${escAttr(custom)}" alt="" aria-hidden="true" />`;
+      ? `<video src="${escAttr(custom)}" autoplay muted loop playsinline disablepictureinpicture referrerpolicy="no-referrer" aria-hidden="true"></video>`
+      : `<img src="${escAttr(custom)}" alt="" aria-hidden="true" referrerpolicy="no-referrer" />`;
   } else if (def.live) {
     inner = '<canvas data-dues-sky></canvas>';
   } else if (def.img) {

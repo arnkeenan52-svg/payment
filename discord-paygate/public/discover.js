@@ -36,10 +36,13 @@ function card(s) {
   // Only stores that actually uploaded or linked a banner get the strip. A
   // placeholder slab on every other card would be louder than no banner and
   // would say nothing true about the store.
+  // referrerpolicy: a linked banner is a host the seller chose, and the
+  // directory puts dozens of them on one page — a visit to /discover must
+  // not report itself to every one of them.
   const banner = s.bannerUrl
     ? `<span class="disc-banner">${s.bannerKind === 'video'
-        ? `<video class="disc-banner-media" src="${esc(s.bannerUrl)}" autoplay muted loop playsinline preload="metadata" disablepictureinpicture aria-hidden="true" onerror="this.closest('.disc-banner').hidden = true"></video>`
-        : `<img class="disc-banner-media" src="${esc(s.bannerUrl)}" alt="" loading="lazy" decoding="async" onerror="this.closest('.disc-banner').hidden = true" />`}</span>`
+        ? `<video class="disc-banner-media" src="${esc(s.bannerUrl)}" autoplay muted loop playsinline preload="metadata" disablepictureinpicture referrerpolicy="no-referrer" aria-hidden="true" onerror="this.closest('.disc-banner').hidden = true"></video>`
+        : `<img class="disc-banner-media" src="${esc(s.bannerUrl)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.disc-banner').hidden = true" />`}</span>`
     : '';
   const icon = s.iconUrl
     ? `<img class="disc-icon" src="${esc(s.iconUrl)}" alt="" width="44" height="44" loading="lazy" />`
