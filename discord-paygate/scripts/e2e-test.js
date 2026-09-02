@@ -966,7 +966,9 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   assert.match(diagBody, /Confirm Order/, 'unclaimed slugs serve the storefront shell');
   // `currency` rides beside priceUsd on every plan: the number alone cannot
   // say whether 1500 is $1,500.00 or ¥1,500, and the storefront formats from it.
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
+  // `durationDays` rides beside them for the same reason: the crypto rail has
+  // no renewal to point at, so the pay screen has to name the term itself.
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'durationDays', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
   assert.equal(plans[0].currency, 'usd', 'a store that never picked a currency prices in USD, exactly as before');
 });
 
@@ -5281,6 +5283,16 @@ test('crypto: a payout address with no chain refuses to create a payment rather 
   const before = nowpayments.created.length;
   try {
     const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+    // And the storefront must not advertise the rail on half a row. One
+    // predicate — wallet AND chain — decides the tile, the coin list and the
+    // payment, so a buyer is never walked through picking a coin only to be
+    // refused at the end of it.
+    assert.equal(plans.capabilities.nowpayments, false, 'half a payout row is not a working crypto rail');
+    assert.deepEqual(
+      await (await fetch(`${appUrl}/api/checkout/crypto?coins=1&store=vip-signals`)).json(),
+      { ready: false, coins: [] },
+      'the coin picker is told there is nothing to pay with, not handed a grid',
+    );
     const res = await fetch(`${appUrl}/api/checkout/crypto`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', cookie: npBuyerCookie },
@@ -6381,12 +6393,21 @@ test('crypto: buyer-facing copy never promises a renewal or a cancellation the r
   const assureExpr = app.match(/assure\.textContent = ([\s\S]*?);\n\s*area\.append\(assure\)/)?.[1];
   assert.ok(assureExpr, 'the note under the pay button must still be a single expression');
   const assure = new Function('plan', 'crypto', 'termDays', `return (${assureExpr});`);
-  const monthly = { lifetime: false, durationDays: 30 };
-  assert.match(assure(monthly, false, 30), /cancel anytime/i, 'a card membership really can be cancelled from /account');
-  const cryptoNote = assure(monthly, true, 30);
+  // The plan object is the one /api/plans actually serves, not a hand-built
+  // stand-in: the note can only name the term if the payload carries it, and
+  // a projection that drops durationDays leaves every buyer reading "a fixed
+  // term" however carefully the sentence is written.
+  const served = (await (await fetch(`${appUrl}/api/plans?store=tradeleaks`)).json()).plans;
+  const monthly = served.find((p) => !p.lifetime);
+  assert.ok(monthly, 'the storefront must still sell a term product');
+  assert.ok(Number(monthly.durationDays) > 0, '/api/plans has to carry the term length — the pay screen has nowhere else to read it');
+  assert.match(assure(monthly, false, Number(monthly.durationDays)), /cancel anytime/i, 'a card membership really can be cancelled from /account');
+  const cryptoNote = assure(monthly, true, Number(monthly.durationDays));
   assert.doesNotMatch(cryptoNote, /cancel/i, 'nothing on a crypto term can be cancelled — do not say it');
   assert.match(cryptoNote, /nothing renews|does not renew|no renewal/i, 'the crypto note must say the term does not renew');
-  assert.match(cryptoNote, /\b30 days\b/, 'the fixed term is the one fact the buyer needs');
+  assert.match(cryptoNote, new RegExp(`\\b${monthly.durationDays} days\\b`), 'the fixed term is the one fact the buyer needs');
+  const lifetimePlan = served.find((p) => p.lifetime);
+  if (lifetimePlan) assert.equal(lifetimePlan.durationDays, null, 'a lifetime product has no term to advertise');
   assert.doesNotMatch(assure({ lifetime: true, durationDays: null }, true, NaN), /cancel|renews/i);
 
   const account = fs.readFileSync(new URL('../public/account.js', import.meta.url), 'utf8');

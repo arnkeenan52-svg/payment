@@ -100,10 +100,12 @@ export default guard(async function handler(req, res) {
 
     // ── the coin picker ──────────────────────────────────────────────────
     if (url.searchParams.get('coins')) {
-      // A store with no payout wallet cannot take crypto at all, and saying
-      // so here is what keeps the storefront from offering a button that can
-      // only fail.
-      if (!String(store.cryptoWallet ?? '').trim()) {
+      // A store with no payout wallet — or one with no chain to pay it on —
+      // cannot take crypto at all, and saying so here is what keeps the
+      // storefront from offering a button that can only fail. Same pair the
+      // POST below refuses on, so the picker never fills with coins the
+      // payment is going to turn down.
+      if (!String(store.cryptoWallet ?? '').trim() || !String(store.cryptoChain ?? '').trim()) {
         sendJson(res, 200, { ready: false, coins: [] });
         return;
       }
