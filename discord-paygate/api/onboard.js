@@ -6,7 +6,7 @@ import * as db from '../src/db.js';
 import { sealSecret } from '../src/lib/secretbox.js';
 import { getUser } from '../src/db.js';
 import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember, getGuildChannels } from '../src/lib/discord.js';
-import { stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache, isStripeKey, stripeKeyMode } from '../src/lib/stripe.js';
+import { CHECKOUT_TTL_SECONDS, stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache, isStripeKey, stripeKeyMode } from '../src/lib/stripe.js';
 import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf, rebaseImageUrl } from '../src/services/stores.js';
 import { parseUploadDataUrl, UPLOAD_BODY_LIMIT } from '../src/lib/upload.js';
 import { validateAmount, roundAmount, toMinor, formatAmount, minCharge, maxCharge, normalize as normalizeCurrency } from '../src/lib/currency.js';
@@ -571,7 +571,16 @@ export default guard(async function handler(req, res) {
       // members and takes theirs away — and for a recurring product, Stripe
       // keeps billing them for it. Refuse while anyone holds it. Deactivating
       // is the right verb there: it stops the sale and keeps their access.
-      const holders = await db.countLiveSubscriptionsForPlans(row.id, [plan.planKey, ...variants.map((v) => v.planKey)]);
+      const keys = [plan.planKey, ...variants.map((v) => v.planKey)];
+      const holders = await db.countLiveSubscriptionsForPlans(row.id, keys);
+      // A buyer on Stripe's card form has no row yet; deleting under them
+      // takes their money and delivers nothing. Wait out their session.
+      const paying = holders > 0 ? 0 : await db.countOpenCheckoutsForPlans(row.id, keys, Math.floor(Date.now() / 1000) - CHECKOUT_TTL_SECONDS);
+      if (paying > 0) {
+        return sendJson(res, 409, {
+          error: `${paying === 1 ? 'Someone is' : `${paying} people are`} paying for this product right now. Deactivate it to stop the sale, and delete it once their checkout has finished (about half an hour).`,
+        });
+      }
       if (holders > 0) {
         return sendJson(res, 409, {
           error: `${holders} member${holders === 1 ? ' still holds' : 's still hold'} this product. Deactivate it instead — that stops the sale and keeps their access.`,

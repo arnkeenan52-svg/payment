@@ -69,7 +69,11 @@ export default guard(async function handler(req, res) {
     return;
   }
 
-  if (!(await claimEvent('stripe', event.id))) {
+  // Claimed per endpoint: a seller with two stores on one Stripe account has
+  // two endpoints, and Stripe sends every event to both — each store decides
+  // for itself whether the event is its own (see resolveStore).
+  const scope = routeStore ? `s${routeStore.id}` : null;
+  if (!(await claimEvent('stripe', event.id, scope))) {
     sendText(res, 200, 'duplicate');
     return;
   }
@@ -77,7 +81,7 @@ export default guard(async function handler(req, res) {
     await processStripeEvent(event, routeStore);
     sendText(res, 200, 'ok');
   } catch (err) {
-    await releaseEvent('stripe', event.id);
+    await releaseEvent('stripe', event.id, scope);
     console.error(`[webhooks] stripe ${event.id} failed (claim released for retry): ${err.stack ?? err.message}`);
     sendText(res, 500, 'processing failed');
   }

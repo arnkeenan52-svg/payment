@@ -134,7 +134,9 @@ export const config = {
 export function capabilities() {
   return {
     stripe: Boolean(config.stripe.secretKey && config.stripe.webhookSecret),
-    crypto: Boolean(config.coinbase.apiKey && config.coinbase.webhookSecret),
+    // Same release discipline as NOWPayments below: credentials make the
+    // legacy Coinbase rail possible, COINBASE_RELEASED=1 makes it live.
+    crypto: env('COINBASE_RELEASED', '') === '1' && Boolean(config.coinbase.apiKey && config.coinbase.webhookSecret),
     // The two rails are independent: a deploy may run NOWPayments without
     // Coinbase, and the storefront asks for this one by name.
     // RELEASE-GATED, and deliberately not by the presence of its credentials.

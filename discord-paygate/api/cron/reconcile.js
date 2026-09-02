@@ -4,6 +4,7 @@ import { sendJson, sendText, guard } from '../../src/lib/http.js';
 import { sweepExpirations } from '../../src/services/entitlements.js';
 import { healStoreWebhooks } from '../../src/services/webhook-heal.js';
 import { refreshBrandAssets } from '../../src/services/brand-refresh.js';
+import { backfillMissedSales } from '../../src/services/backfill.js';
 
 // Replaces the old setInterval sweep — there is no long-lived process on
 // Vercel. vercel.json schedules this; Vercel sends Authorization: Bearer
@@ -26,17 +27,22 @@ export default guard(async function handler(req, res) {
     return;
   }
   const result = await sweepExpirations();
+  // A sub-job that fails is named in the response — nobody reads the logs of
+  // an hourly job, and a webhook heal that has failed since the domain move
+  // must not look like a healthy run from outside.
+  const failures = [];
+  const attempt = (name, fn) => fn().catch((err) => {
+    console.error(`[cron] ${name} failed: ${err.message}`);
+    failures.push(`${name}: ${err.message}`);
+    return null;
+  });
   // Keep sellers' Stripe webhook registrations pointed at THIS deployment —
   // after a domain move they'd otherwise deliver into the old, dead host.
-  const webhooks = await healStoreWebhooks().catch((err) => {
-    console.warn(`[cron] webhook heal failed: ${err.message}`);
-    return null;
-  });
+  const webhooks = await attempt('webhook heal', healStoreWebhooks);
   // Keep the bot's already-posted cards and profile on the current brand —
   // an app_secrets flag makes this a no-op on every run after the first.
-  const brand = await refreshBrandAssets().catch((err) => {
-    console.warn(`[cron] brand refresh failed: ${err.message}`);
-    return null;
-  });
-  sendJson(res, 200, { ok: true, ...result, ...(webhooks ? { webhooks } : {}), ...(brand ? { brand } : {}) });
+  const brand = await attempt('brand refresh', refreshBrandAssets);
+  // Sales whose webhook never arrived: ask Stripe, process what was missed.
+  const backfill = await attempt('sale backfill', backfillMissedSales);
+  sendJson(res, 200, { ok: failures.length === 0, ...result, ...(webhooks ? { webhooks } : {}), ...(brand ? { brand } : {}), ...(backfill ? { backfill } : {}), ...(failures.length ? { failures } : {}) });
 });

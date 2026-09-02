@@ -283,89 +283,98 @@ function db() {
   if (!driverPromise) {
     driverPromise = (async () => {
       const driver = await createDriver();
+      // The in-place ALTERs below run on every cold start and must be no-ops
+      // on a current database — but ONLY the duplicate-column error is a
+      // no-op. A permissions failure, a lock timeout or a full disk used to be
+      // swallowed by the same empty catch, and the deploy carried on with a
+      // half-migrated schema. Anything else now stops it, loudly.
+      const onlyDuplicateColumn = (err) => {
+        if (err?.code === '42701' || /duplicate column|already exists/i.test(err?.message ?? '')) return;
+        throw err;
+      };
       await driver.exec(ddl(driver.dialect));
       // Databases created before multi-tenancy lack subscriptions.store_id —
       // add it in place (both dialects error harmlessly when it exists).
       const intType = driver.dialect === 'pg' ? 'BIGINT' : 'INTEGER';
-      await driver.exec(`ALTER TABLE subscriptions ADD COLUMN store_id ${intType}`).catch(() => {});
+      await driver.exec(`ALTER TABLE subscriptions ADD COLUMN store_id ${intType}`).catch(onlyDuplicateColumn);
       // Columns added after multi-tenancy shipped — same in-place pattern.
-      await driver.exec('ALTER TABLE stores ADD COLUMN description TEXT').catch(() => {});
-      await driver.exec('ALTER TABLE stores ADD COLUMN banner_url TEXT').catch(() => {});
-      await driver.exec('ALTER TABLE stores ADD COLUMN notify_channel_id TEXT').catch(() => {});
-      await driver.exec(`ALTER TABLE store_plans ADD COLUMN active ${intType} NOT NULL DEFAULT 1`).catch(() => {});
-      await driver.exec(`ALTER TABLE store_plans ADD COLUMN purchase_limit ${intType}`).catch(() => {});
-      await driver.exec('ALTER TABLE store_plans ADD COLUMN success_url TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN description TEXT').catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE stores ADD COLUMN banner_url TEXT').catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE stores ADD COLUMN notify_channel_id TEXT').catch(onlyDuplicateColumn);
+      await driver.exec(`ALTER TABLE store_plans ADD COLUMN active ${intType} NOT NULL DEFAULT 1`).catch(onlyDuplicateColumn);
+      await driver.exec(`ALTER TABLE store_plans ADD COLUMN purchase_limit ${intType}`).catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN success_url TEXT').catch(onlyDuplicateColumn);
       // Uploaded product photos live in the database as data URLs (kept out
       // of list queries; served by /api/img with cache headers).
-      await driver.exec('ALTER TABLE store_plans ADD COLUMN image_data TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN image_data TEXT').catch(onlyDuplicateColumn);
       // Buyer-initiated cancellation: the row stays active until this moment,
       // so /account can say "ends on …" instead of "renews on …".
-      await driver.exec(`ALTER TABLE subscriptions ADD COLUMN cancels_at ${intType}`).catch(() => {});
+      await driver.exec(`ALTER TABLE subscriptions ADD COLUMN cancels_at ${intType}`).catch(onlyDuplicateColumn);
       // What the buyer actually paid (post-discount) — display surfaces
       // prefer this over the plan's list price when present.
-      await driver.exec('ALTER TABLE subscriptions ADD COLUMN paid_usd REAL').catch(() => {});
+      await driver.exec('ALTER TABLE subscriptions ADD COLUMN paid_usd REAL').catch(onlyDuplicateColumn);
       // Store-page customization: long about text, social links (JSON of
       // known keys), and the opt-in live member-count badge.
-      await driver.exec('ALTER TABLE stores ADD COLUMN about TEXT').catch(() => {});
-      await driver.exec('ALTER TABLE stores ADD COLUMN links TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN about TEXT').catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE stores ADD COLUMN links TEXT').catch(onlyDuplicateColumn);
       // Per-product custom link segment: dues.gg/<store>/<link>.
-      await driver.exec('ALTER TABLE store_plans ADD COLUMN link_slug TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN link_slug TEXT').catch(onlyDuplicateColumn);
       // Pricing options: a plan row whose variant_of names another plan_key in
       // the same store is one PRICE OPTION of that product (e.g. Monthly $50
       // under a Lifetime $500 product) — its own Stripe price and payments,
       // the parent's identity (name, photo, roles, page).
-      await driver.exec('ALTER TABLE store_plans ADD COLUMN variant_of TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN variant_of TEXT').catch(onlyDuplicateColumn);
       // Limited-time products: after expires_at (unix seconds) the product
       // stops being sold — hidden from the store, refused at checkout.
       // Buyers who already bought keep everything.
-      await driver.exec(`ALTER TABLE store_plans ADD COLUMN expires_at ${intType}`).catch(() => {});
+      await driver.exec(`ALTER TABLE store_plans ADD COLUMN expires_at ${intType}`).catch(onlyDuplicateColumn);
       // Gated products: only buyers already holding this Discord role in the
       // store's server may purchase (e.g. an upsell for @PREMIUM members).
-      await driver.exec('ALTER TABLE store_plans ADD COLUMN required_role_id TEXT').catch(() => {});
-      await driver.exec('ALTER TABLE store_plans ADD COLUMN required_role_name TEXT').catch(() => {});
-      await driver.exec('ALTER TABLE stores ADD COLUMN dashboard_prefs TEXT').catch(() => {});
-      await driver.exec(`ALTER TABLE stores ADD COLUMN show_members ${intType}`).catch(() => {});
-      await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(() => {});
-      await driver.exec(`ALTER TABLE stores ADD COLUMN discoverable ${intType} NOT NULL DEFAULT 0`).catch(() => {});
-      await driver.exec('ALTER TABLE stores ADD COLUMN category TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN required_role_id TEXT').catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN required_role_name TEXT').catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE stores ADD COLUMN dashboard_prefs TEXT').catch(onlyDuplicateColumn);
+      await driver.exec(`ALTER TABLE stores ADD COLUMN show_members ${intType}`).catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE stores ADD COLUMN theme TEXT').catch(onlyDuplicateColumn);
+      await driver.exec(`ALTER TABLE stores ADD COLUMN discoverable ${intType} NOT NULL DEFAULT 0`).catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE stores ADD COLUMN category TEXT').catch(onlyDuplicateColumn);
       // Reviews are per store and ALL-OR-NOTHING: on shows the average, the
       // count and every published review; off shows none of the three. The
       // seller flips this switch; the seller never touches which reviews it
       // contains. Default 0 — publishing strangers' opinions on someone's
       // business without asking them first is not a default we get to pick,
       // the same reasoning as `discoverable` above.
-      await driver.exec(`ALTER TABLE stores ADD COLUMN reviews_on ${intType} NOT NULL DEFAULT 0`).catch(() => {});
+      await driver.exec(`ALTER TABLE stores ADD COLUMN reviews_on ${intType} NOT NULL DEFAULT 0`).catch(onlyDuplicateColumn);
       // Seller-authored identity: who is behind the store, and the people who
       // run it (JSON array, same storage idiom as `links`). Both are CLAIMS by
       // the seller about their own business, exactly like `about` — the
       // platform stores and renders them, and vouches for neither.
-      await driver.exec('ALTER TABLE stores ADD COLUMN creator_name TEXT').catch(() => {});
-      await driver.exec('ALTER TABLE stores ADD COLUMN team TEXT').catch(() => {});
-      await driver.exec('ALTER TABLE stores ADD COLUMN team_heading TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN creator_name TEXT').catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE stores ADD COLUMN team TEXT').catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE stores ADD COLUMN team_heading TEXT').catch(onlyDuplicateColumn);
       // The currency the store prices in — one per store, because it has to be
       // a settlement currency of the seller's own Stripe account for Stripe to
       // convert anything for the buyer. Defaulting to 'usd' is what makes this
       // migration free: every existing row keeps meaning exactly what it meant.
-      await driver.exec("ALTER TABLE stores ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
+      await driver.exec("ALTER TABLE stores ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(onlyDuplicateColumn);
       // Money columns carry the currency they were denominated in AT THE TIME,
       // not the store's current one. Without this a seller who switches from
       // USD to DKK turns their own history into a lie, and every SUM() over
       // these tables silently adds dollars to kroner.
-      await driver.exec("ALTER TABLE checkout_attempts ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
-      await driver.exec("ALTER TABLE subscriptions ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
-      await driver.exec("ALTER TABLE store_plans ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(() => {});
+      await driver.exec("ALTER TABLE checkout_attempts ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(onlyDuplicateColumn);
+      await driver.exec("ALTER TABLE subscriptions ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(onlyDuplicateColumn);
+      await driver.exec("ALTER TABLE store_plans ADD COLUMN currency TEXT NOT NULL DEFAULT 'usd'").catch(onlyDuplicateColumn);
       // Crypto payouts forward straight to the seller's own wallet: Dues has
       // no custodial balance and no code path that needs one. The network is
       // stored alongside the address because the same string can be a valid
       // address on more than one chain, and paying out on the wrong one is
       // unrecoverable.
-      await driver.exec('ALTER TABLE stores ADD COLUMN crypto_wallet TEXT').catch(() => {});
-      await driver.exec('ALTER TABLE stores ADD COLUMN crypto_chain TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE stores ADD COLUMN crypto_wallet TEXT').catch(onlyDuplicateColumn);
+      await driver.exec('ALTER TABLE stores ADD COLUMN crypto_chain TEXT').catch(onlyDuplicateColumn);
       // The provider's own id for an attempt. Stripe puts its cs_… id straight
       // in session_id; a crypto attempt is keyed by an order id we mint
       // ourselves, so the payment id it maps to needs somewhere to live —
       // it is what the buyer's pay screen re-reads status from.
-      await driver.exec('ALTER TABLE checkout_attempts ADD COLUMN provider_ref TEXT').catch(() => {});
+      await driver.exec('ALTER TABLE checkout_attempts ADD COLUMN provider_ref TEXT').catch(onlyDuplicateColumn);
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -497,16 +506,33 @@ export async function recordedManagedRoleIds() {
 
 // ── webhook idempotency claims ────────────────────────────────────────────────
 
-export async function claimEvent(provider, eventId) {
+// `scope` is the endpoint the delivery arrived on. Two stores on one Stripe
+// account each get every event once; a claim keyed on the event id alone let
+// whichever endpoint Stripe reached first eat the other store's sale.
+const claimKey = (provider, eventId, scope) => `${provider}:${scope ? `${scope}:` : ''}${eventId}`;
+
+export async function claimEvent(provider, eventId, scope = null) {
   const { changes } = await q(
     'INSERT INTO webhook_events (event_id, provider, received_at) VALUES (?, ?, ?) ON CONFLICT (event_id) DO NOTHING',
-    [`${provider}:${eventId}`, provider, now()],
+    [claimKey(provider, eventId, scope), provider, now()],
   );
   return changes === 1;
 }
 
-export async function releaseEvent(provider, eventId) {
-  await q('DELETE FROM webhook_events WHERE event_id = ?', [`${provider}:${eventId}`]);
+export async function releaseEvent(provider, eventId, scope = null) {
+  await q('DELETE FROM webhook_events WHERE event_id = ?', [claimKey(provider, eventId, scope)]);
+}
+
+// Buyers with an open checkout for any of these plans, younger than `since` —
+// the seller must not delete a product someone is paying for right now.
+export async function countOpenCheckoutsForPlans(storeId, planIds, since) {
+  if (!planIds.length) return 0;
+  const marks = planIds.map(() => '?').join(', ');
+  const { rows } = await q(
+    `SELECT COUNT(DISTINCT discord_id) AS n FROM checkout_attempts WHERE store_id = ? AND status = 'started' AND created_at >= ? AND plan_id IN (${marks})`,
+    [storeId, since, ...planIds],
+  );
+  return Number(rows[0]?.n ?? 0);
 }
 
 // ── subscriptions ─────────────────────────────────────────────────────────────
@@ -1008,11 +1034,32 @@ export async function updateStorePlan(storeId, planKey, fields) {
 
 // Distinct buyers who ever completed a purchase of this product — the number
 // a purchase_limit caps. Canceled/expired rows still count (they bought).
-export async function countBuyersOfPlan(storeId, planKey) {
+// Distinct buyers of a plan. With `reservedSince`, everyone whose checkout
+// session was opened after that moment and has not completed counts too — a
+// subscriptions row lands only when the webhook does, and the gap between the
+// two is the whole time a buyer spends on Stripe's card form. Counting only
+// rows sold a 1-seat product to every buyer on that form at once. `exceptUid`
+// keeps a buyer's own open session from refusing their own retry.
+export async function countBuyersOfPlan(storeId, planKey, { exceptUid = null, reservedSince = null } = {}) {
+  const storeWhere = storeId === null ? 'store_id IS NULL' : 'store_id = ?';
+  const storeArgs = storeId === null ? [] : [storeId];
+  const notMe = exceptUid ? ' AND discord_id <> ?' : '';
+  const meArgs = exceptUid ? [exceptUid] : [];
+  const reserved = reservedSince === null ? '' : ` UNION SELECT discord_id FROM checkout_attempts WHERE plan_id = ? AND ${storeWhere} AND status = 'started' AND created_at >= ?${notMe}`;
+  const reservedArgs = reservedSince === null ? [] : [planKey, ...storeArgs, reservedSince, ...meArgs];
   const { rows } = await q(
-    `SELECT COUNT(DISTINCT discord_id) AS n FROM subscriptions
-     WHERE plan_id = ? AND ${storeId === null ? 'store_id IS NULL' : 'store_id = ?'}`,
-    storeId === null ? [planKey] : [planKey, storeId],
+    `SELECT COUNT(*) AS n FROM (SELECT discord_id FROM subscriptions WHERE plan_id = ? AND ${storeWhere}${notMe}${reserved}) t`,
+    [planKey, ...storeArgs, ...meArgs, ...reservedArgs],
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
+// Buyers other than `exceptUid` with an open checkout carrying this code —
+// the same reservation, for a usage limit.
+export async function countReservedDiscountUses(storeId, code, since, exceptUid) {
+  const { rows } = await q(
+    "SELECT COUNT(DISTINCT discord_id) AS n FROM checkout_attempts WHERE store_id = ? AND discount_code = ? AND status = 'started' AND created_at >= ? AND discord_id <> ?",
+    [storeId, code, since, exceptUid ?? ''],
   );
   return Number(rows[0]?.n ?? 0);
 }

@@ -58,7 +58,7 @@ export default guard(async function handler(req, res) {
   let discountCode = null;
   const wanted = typeof body?.discountCode === 'string' ? body.discountCode : '';
   if (wanted.trim()) {
-    const applied = await resolveDiscount({ store, plan, code: wanted });
+    const applied = await resolveDiscount({ store, plan, code: wanted, uid });
     if (applied.error) {
       sendJson(res, 400, { error: applied.error });
       return;

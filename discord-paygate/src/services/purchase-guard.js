@@ -2,6 +2,7 @@ import * as db from '../db.js';
 import { getGuildMember } from '../lib/discord.js';
 import { memberLimitBlocks } from './billing.js';
 import { roundAmount, normalize as normalizeCurrency } from '../lib/currency.js';
+import { CHECKOUT_TTL_SECONDS } from '../lib/stripe.js';
 
 // Everything that can stop a purchase before a payment provider is ever
 // contacted, in one place.
@@ -41,7 +42,9 @@ export async function purchaseBlocked({ store, plan, uid }) {
       const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
       return sid === (store.id ?? null) && s.plan_id === plan.id;
     });
-    if (!own && (await db.countBuyersOfPlan(store.id ?? null, plan.id)) >= plan.purchaseLimit) {
+    // Buyers still on the card form hold a seat for the life of their session.
+    const taken = await db.countBuyersOfPlan(store.id ?? null, plan.id, { exceptUid: uid, reservedSince: Math.floor(Date.now() / 1000) - CHECKOUT_TTL_SECONDS });
+    if (!own && taken >= plan.purchaseLimit) {
       return { status: 409, error: 'This product is sold out.' };
     }
   }
@@ -62,17 +65,23 @@ export async function purchaseBlocked({ store, plan, uid }) {
 // another product must be equally dead on every rail.
 //
 // Returns { code, row, priceAfter } or { error }.
-export async function resolveDiscount({ store, plan, code }) {
+export async function resolveDiscount({ store, plan, code, uid = null }) {
   const codeRaw = typeof code === 'string' ? code.trim().toUpperCase() : '';
   if (!codeRaw) return { code: null, row: null, priceAfter: plan.priceUsd };
   const now = Math.floor(Date.now() / 1000);
   const d = store.id !== null && store.id !== undefined ? await db.getDiscount(store.id, codeRaw) : null;
+  // A use is counted when the grant lands, so between "code applied" and
+  // "paid" the counter has not moved: other buyers with this code on an open
+  // checkout hold a use for the life of their session, like a seat.
+  const reserved = d && d.maxUses !== null && uid
+    ? await db.countReservedDiscountUses(store.id, codeRaw, now - CHECKOUT_TTL_SECONDS, uid)
+    : 0;
   const valid =
     d &&
     // A product-scoped code covers the product's price options too.
     (d.planKey === null || d.planKey === plan.id || d.planKey === plan.variantOf) &&
     (d.expiresAt === null || d.expiresAt > now) &&
-    (d.maxUses === null || d.uses < d.maxUses);
+    (d.maxUses === null || d.uses + reserved < d.maxUses);
   if (!valid) return { error: 'That discount code is not valid for this product.' };
   const cur = normalizeCurrency(plan.currency ?? store.currency);
   const off = d.kind === 'percent'

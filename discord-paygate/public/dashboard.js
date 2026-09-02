@@ -3758,6 +3758,8 @@ function wireCryptoWallet(store, slug) {
       // The platform has no crypto credentials configured. Saying so is
       // better than a dead dropdown a seller keeps poking at.
       chain.innerHTML = '<option value="">Crypto payments are not switched on for this deployment</option>';
+      const sub = document.querySelector('#cw-card .card-sub');
+      if (sub) sub.textContent = 'Crypto payments are not switched on for this deployment yet — there is nothing to set up here until they are.';
       chain.disabled = true;
       addr.disabled = true;
       confirm.disabled = true;

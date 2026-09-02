@@ -240,6 +240,10 @@ export async function listWebhookEndpoints(key = config.stripe.secretKey) {
 // receive the new event.
 export const WEBHOOK_EVENTS = [
   'checkout.session.completed',
+  // Delayed-notification methods (SEPA, ACH, Bacs, OXXO…) complete the session
+  // UNPAID and settle days later; these two say whether the money ever moved.
+  'checkout.session.async_payment_succeeded',
+  'checkout.session.async_payment_failed',
   'invoice.paid',
   'invoice.payment_succeeded',
   'invoice.payment_failed',
@@ -363,6 +367,12 @@ export async function ensureTenantPrice(store, plan) {
   return { id: priceId };
 }
 
+// How long a hosted checkout page stays open. Stripe's floor is 30 minutes;
+// the purchase guard treats every 'started' attempt younger than this as a
+// seat already taken, so a 1-seat product cannot be sold to everyone who
+// happens to be on the card form at once.
+export const CHECKOUT_TTL_SECONDS = 35 * 60;
+
 export async function createCheckoutSession({ plan, discordId, note = '', store = null, couponId = null, discountCode = null }) {
   const lifetime = Boolean(plan.lifetime);
   // A tenant store charges into ITS OWN Stripe account or not at all. The
@@ -403,6 +413,7 @@ export async function createCheckoutSession({ plan, discordId, note = '', store 
     form: {
       mode: lifetime ? 'payment' : 'subscription',
       client_reference_id: discordId,
+      expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_TTL_SECONDS,
       line_items: [{ price: priceId, quantity: 1 }],
       ...(couponId ? { discounts: [{ coupon: couponId }] } : {}),
       metadata: {

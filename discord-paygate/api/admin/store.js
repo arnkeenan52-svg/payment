@@ -198,6 +198,12 @@ export default guard(async function handler(req, res) {
       fields.cryptoWallet = null;
       fields.cryptoChain = null;
     } else {
+      // Same gate as the crypto-coins action: while the rail is not released
+      // nothing about it is configurable, so an unvalidated chain can never be
+      // sitting in the table on release day. Clearing (above) is always allowed.
+      if (!capabilities().nowpayments) {
+        return sendJson(res, 409, { error: 'Crypto payments are not switched on for this deployment.' });
+      }
       const chain = String(body.cryptoChain ?? store.cryptoChain ?? '').trim().toLowerCase();
       if (!/^[a-z0-9]{2,20}$/.test(chain)) {
         return sendJson(res, 400, { error: 'Pick which coin and network you want to be paid in.' });

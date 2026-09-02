@@ -501,6 +501,11 @@ async function stripeHandler(req, res) {
     json(res, 200, coupon);
     return;
   }
+  if (url.pathname === '/v1/checkout/sessions' && req.method === 'GET') {
+    // Seeded per test: sessions Stripe holds as complete that Dues never heard about.
+    json(res, 200, { object: 'list', data: stripe.completedSessions ?? [], has_more: false });
+    return;
+  }
   if (url.pathname === '/v1/checkout/sessions' && req.method === 'POST') {
     if (stripe.failCheckoutSessionsWith) {
       json(res, 400, { error: { message: stripe.failCheckoutSessionsWith } });
@@ -563,6 +568,7 @@ async function stripeHandler(req, res) {
 
 async function nowpaymentsHandler(req, res) {
   const url = new URL(req.url, 'http://mock');
+  nowpayments.requests = (nowpayments.requests ?? 0) + 1;
   // Every call carries the merchant key; a request without it is the bug
   // where the key never reached the fetch at all.
   if (req.headers['x-api-key'] !== NOW_KEY) {
@@ -1212,7 +1218,7 @@ test('purchase: webhook completes the grant BEFORE responding (serverless-safe)'
   const { status, body } = await deliverStripe({
     id: 'evt_checkout_1',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_1', mode: 'subscription', subscription: 'sub_1', client_reference_id: U1, metadata: { plan_id: 'insider', discord_id: U1 } } },
+    data: { object: { id: 'cs_1', mode: 'subscription', payment_status: 'paid', subscription: 'sub_1', client_reference_id: U1, metadata: { plan_id: 'insider', discord_id: U1 } } },
   });
   assert.deepEqual({ status, body }, { status: 200, body: 'ok' });
 
@@ -1303,7 +1309,7 @@ test('handler crash: 500 + claim released, so the provider retry really retries'
   const evt = {
     id: 'evt_checkout_3',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_3', mode: 'subscription', subscription: 'sub_3', client_reference_id: U3, metadata: { plan_id: 'pro', discord_id: U3 } } },
+    data: { object: { id: 'cs_3', mode: 'subscription', payment_status: 'paid', subscription: 'sub_3', client_reference_id: U3, metadata: { plan_id: 'pro', discord_id: U3 } } },
   };
   const first = await deliverStripe(evt);
   // Work-first semantics: the failure surfaces as a 500 (Stripe will retry),
@@ -1432,7 +1438,7 @@ test('lifetime: NULL expiry survives the cron sweep', async () => {
   const { status } = await deliverStripe({
     id: 'evt_checkout_life',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_life', mode: 'payment', payment_intent: 'pi_life_1', client_reference_id: U1, metadata: { plan_id: 'lifetime', discord_id: U1 } } },
+    data: { object: { id: 'cs_life', mode: 'payment', payment_status: 'paid', payment_intent: 'pi_life_1', client_reference_id: U1, metadata: { plan_id: 'lifetime', discord_id: U1 } } },
   });
   assert.equal(status, 200);
   assert.ok(memberRoles(U1).has(R_LIFETIME));
@@ -1454,7 +1460,7 @@ test('refunds and chargebacks take the role back', async () => {
   assert.equal((await deliverStripe({
     id: 'evt_ref_buy',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_ref', mode: 'payment', payment_intent: 'pi_ref_1', client_reference_id: U_REF, metadata: { plan_id: 'lifetime', discord_id: U_REF } } },
+    data: { object: { id: 'cs_ref', mode: 'payment', payment_status: 'paid', payment_intent: 'pi_ref_1', client_reference_id: U_REF, metadata: { plan_id: 'lifetime', discord_id: U_REF } } },
   })).status, 200);
   assert.ok(memberRoles(U_REF).has(R_LIFETIME), 'bought and granted');
 
@@ -1483,7 +1489,7 @@ test('refunds and chargebacks take the role back', async () => {
   assert.equal((await deliverStripe({
     id: 'evt_ref_sub_buy',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_ref_sub', mode: 'subscription', subscription: 'sub_ref_1', client_reference_id: U_REF, metadata: { plan_id: 'insider', discord_id: U_REF } } },
+    data: { object: { id: 'cs_ref_sub', mode: 'subscription', payment_status: 'paid', subscription: 'sub_ref_1', client_reference_id: U_REF, metadata: { plan_id: 'insider', discord_id: U_REF } } },
   })).status, 200);
   assert.ok(memberRoles(U_REF).has(R_INSIDER), 'subscribed and granted');
   stripe.invoices.in_ref_1 = { subscription: 'sub_ref_1' };
@@ -1501,7 +1507,7 @@ test('refunds and chargebacks take the role back', async () => {
   assert.equal((await deliverStripe({
     id: 'evt_dispute_buy',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_dis', mode: 'payment', payment_intent: 'pi_dis_1', client_reference_id: U_REF, metadata: { plan_id: 'lifetime', discord_id: U_REF } } },
+    data: { object: { id: 'cs_dis', mode: 'payment', payment_status: 'paid', payment_intent: 'pi_dis_1', client_reference_id: U_REF, metadata: { plan_id: 'lifetime', discord_id: U_REF } } },
   })).status, 200);
   assert.ok(memberRoles(U_REF).has(R_LIFETIME));
   stripe.charges.ch_dis_1 = { payment_intent: 'pi_dis_1', invoice: null };
@@ -1801,7 +1807,7 @@ test('a plan with stale roleIds grants by role NAME, and the doctor goes green',
         data: {
           object: {
             id: 'cs_named_1',
-            mode: 'payment',
+            mode: 'payment', payment_status: 'paid',
             client_reference_id: U4,
             metadata: { plan_id: 'named', discord_id: U4 },
           },
@@ -1931,7 +1937,7 @@ test('doctor auto-registers the missing webhook endpoint; deliveries verify with
       id: 'evt_auto_secret_1',
       type: 'checkout.session.completed',
       data: {
-        object: { id: 'cs_auto_1', mode: 'payment', client_reference_id: U5, metadata: { plan_id: 'lifetime', discord_id: U5 } },
+        object: { id: 'cs_auto_1', mode: 'payment', payment_status: 'paid', client_reference_id: U5, metadata: { plan_id: 'lifetime', discord_id: U5 } },
       },
     };
     const payload = JSON.stringify(evt);
@@ -1972,7 +1978,7 @@ test('platform: account re-sync heals a manually-removed role', async () => {
   const paid = await deliverStripe({
     id: 'evt_platform_u6',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_platform_u6', mode: 'payment', client_reference_id: U6, metadata: { plan_id: 'lifetime', discord_id: U6 } } },
+    data: { object: { id: 'cs_platform_u6', mode: 'payment', payment_status: 'paid', client_reference_id: U6, metadata: { plan_id: 'lifetime', discord_id: U6 } } },
   });
   assert.equal(paid.status, 200);
   assert.ok(memberRoles(U6).has(R_LIFETIME));
@@ -2037,7 +2043,7 @@ test('checkout attempts are logged whether or not the buyer pays', async () => {
     (await deliverStripe({
       id: 'evt_u11_paid',
       type: 'checkout.session.completed',
-      data: { object: { id: target.sessionId, mode: 'subscription', subscription: 'sub_u11', client_reference_id: U11, metadata: { plan_id: 'pro', discord_id: U11 } } },
+      data: { object: { id: target.sessionId, mode: 'subscription', payment_status: 'paid', subscription: 'sub_u11', client_reference_id: U11, metadata: { plan_id: 'pro', discord_id: U11 } } },
     })).status,
     200,
   );
@@ -2054,7 +2060,7 @@ test('checkout attempts are logged whether or not the buyer pays', async () => {
   await deliverStripe({
     id: 'evt_u11_paid_again',
     type: 'checkout.session.completed',
-    data: { object: { id: target.sessionId, mode: 'subscription', subscription: 'sub_u11', client_reference_id: U11, metadata: { plan_id: 'pro', discord_id: U11 } } },
+    data: { object: { id: target.sessionId, mode: 'subscription', payment_status: 'paid', subscription: 'sub_u11', client_reference_id: U11, metadata: { plan_id: 'pro', discord_id: U11 } } },
   });
   const replayed = (await owned()).checkouts.find((c) => c.sessionId === target.sessionId);
   assert.equal(replayed.completedAt, firstCompletedAt, 'a replayed webhook does not move completed_at');
@@ -2082,7 +2088,7 @@ test('buyer self-serve cancel: at period end, own subscriptions only', async () 
     (await deliverStripe({
       id: 'evt_u10_sub',
       type: 'checkout.session.completed',
-      data: { object: { id: 'cs_u10', mode: 'subscription', subscription: subId, client_reference_id: U10, metadata: { plan_id: 'pro', discord_id: U10 } } },
+      data: { object: { id: 'cs_u10', mode: 'subscription', payment_status: 'paid', subscription: subId, client_reference_id: U10, metadata: { plan_id: 'pro', discord_id: U10 } } },
     })).status,
     200,
   );
@@ -2314,7 +2320,7 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
     data: {
       object: {
         id: 'cs_tenant_1',
-        mode: 'payment',
+        mode: 'payment', payment_status: 'paid',
         client_reference_id: U8,
         customer_details: { email: 'buyer8@e2e.test' },
         metadata: { plan_id: plan.planKey, discord_id: U8, store_id: String(store.id) },
@@ -2341,7 +2347,7 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   const forgePlatEvt = {
     id: 'evt_forge_platform_1',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_forge_plat', mode: 'subscription', subscription: 'sub_forge_plat', client_reference_id: '507700000000000007', metadata: { kind: 'platform_plan', tier: 'scale', owner_discord_id: '507700000000000007' } } },
+    data: { object: { id: 'cs_forge_plat', mode: 'subscription', payment_status: 'paid', subscription: 'sub_forge_plat', client_reference_id: '507700000000000007', metadata: { kind: 'platform_plan', tier: 'scale', owner_discord_id: '507700000000000007' } } },
   };
   const forgePlat = await deliverStripe(forgePlatEvt, {
     path: `/webhooks/stripe/${store.id}`,
@@ -2905,7 +2911,7 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
     data: {
       object: {
         id: `cs_plat_${n}`,
-        mode: 'subscription',
+        mode: 'subscription', payment_status: 'paid',
         subscription: subId,
         client_reference_id: '507700000000000007',
         metadata: { kind: 'platform_plan', tier, owner_discord_id: '507700000000000007' },
@@ -3184,7 +3190,7 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   await deliverStripe({
     id: 'evt_plat_3',
     type: 'checkout.session.completed',
-    data: { object: { id: 'cs_plat_3', mode: 'subscription', subscription: 'sub_plat_3', client_reference_id: '507700000000000007', metadata: { kind: 'platform_plan', tier: 'starter', owner_discord_id: '507700000000000007' } } },
+    data: { object: { id: 'cs_plat_3', mode: 'subscription', payment_status: 'paid', subscription: 'sub_plat_3', client_reference_id: '507700000000000007', metadata: { kind: 'platform_plan', tier: 'starter', owner_discord_id: '507700000000000007' } } },
   });
 
   // The owner's management list: buyers count + a copyable checkout link.
@@ -3363,7 +3369,7 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
     id: 'evt_disc_1',
     type: 'checkout.session.completed',
     // Stripe reports what was actually charged: $59.99 less LAUNCH20 (20%).
-    data: { object: { id: 'cs_disc_1', mode: 'payment', amount_total: 4799, client_reference_id: '509900000000000009', customer_details: { email: 'buyer9@e2e.test' }, metadata: { plan_id: vip.planKey, discord_id: '509900000000000009', store_id: String(storeId), discount_code: 'LAUNCH20' } } },
+    data: { object: { id: 'cs_disc_1', mode: 'payment', payment_status: 'paid', amount_total: 4799, client_reference_id: '509900000000000009', customer_details: { email: 'buyer9@e2e.test' }, metadata: { plan_id: vip.planKey, discord_id: '509900000000000009', store_id: String(storeId), discount_code: 'LAUNCH20' } } },
   });
   const discs = (await (await disc({ action: 'list' })).json()).discounts;
   assert.equal(discs.find((d) => d.code === 'LAUNCH20').uses, 1, 'the webhook counts discount uses');
@@ -3568,7 +3574,10 @@ test('pricing options: one product sold at several prices, same role, same page'
   assert.ok(!dark.some((p) => p.id === parent.planKey) && !dark.some((p) => p.id === opt.planKey), 'inactive product hides its options');
   assert.equal((await onboard({ step: 'product-update', storeId, planKey: parent.planKey, active: true })).status, 200);
 
-  // …and deleting the product deletes them.
+  // …and deleting the product deletes them — once nobody is mid-checkout on
+  // it: the buyer above still has a card form open, so the delete waits.
+  assert.equal((await onboard({ step: 'product-delete', storeId, planKey: parent.planKey })).status, 409, 'a product someone is paying for cannot be deleted under them');
+  await tq("UPDATE checkout_attempts SET status = 'expired' WHERE status = 'started' AND plan_id IN (?, ?)", [parent.planKey, opt.planKey]);
   assert.equal((await onboard({ step: 'product-delete', storeId, planKey: parent.planKey })).status, 200);
   const after = await (await onboard({ step: 'products', storeId })).json();
   assert.ok(!after.products.some((p) => p.planKey === parent.planKey || p.planKey === opt.planKey), 'options never outlive their product');
@@ -3785,6 +3794,8 @@ test('gated + limited-time products: only role holders buy, expiry ends the sale
   // Clearing the date puts it back on sale; cleanup.
   assert.equal((await onboard({ step: 'product-update', storeId, planKey: plan.planKey, expiresAt: '' })).status, 200);
   assert.ok((await plansAt()).some((p) => p.id === plan.planKey), 'clearing the expiry restores the sale');
+  // The gated buyer's card forms above are still open; let them lapse first.
+  await tq("UPDATE checkout_attempts SET status = 'expired' WHERE status = 'started' AND plan_id IN (?, ?)", [plan.planKey, opt.planKey]);
   assert.equal((await onboard({ step: 'product-delete', storeId, planKey: plan.planKey })).status, 200);
 });
 
@@ -4518,7 +4529,7 @@ test('managed store: a role deleted and re-created under its name still lands �
     const evt = {
       id: 'evt_stale_role_1',
       type: 'checkout.session.completed',
-      data: { object: { id: 'cs_stale_role_1', mode: 'payment', amount_total: 2500, client_reference_id: UID, customer_details: { email: 'stale@e2e.test' }, metadata: { plan_id: plan.planKey, discord_id: UID, store_id: String(storeId) } } },
+      data: { object: { id: 'cs_stale_role_1', mode: 'payment', payment_status: 'paid', amount_total: 2500, client_reference_id: UID, customer_details: { email: 'stale@e2e.test' }, metadata: { plan_id: plan.planKey, discord_id: UID, store_id: String(storeId) } } },
     };
     const delivered = await deliverStripe(evt, { path: `/webhooks/stripe/${storeId}`, header: signStripe(JSON.stringify(evt), nowSec(), AUTO_ENDPOINT_SECRET) });
     assert.equal(delivered.status, 200, delivered.body);
@@ -4640,7 +4651,7 @@ test('gifts are one row and zero revenue; a use counts only when a grant lands; 
   const signed = (evt) => deliverStripe(evt, { path: `/webhooks/stripe/${storeId}`, header: signStripe(JSON.stringify(evt), nowSec(), AUTO_ENDPOINT_SECRET) });
   const completed = (id, uid, planId, extra = {}) => ({
     id: `evt_${id}`, type: 'checkout.session.completed',
-    data: { object: { id: `cs_${id}`, mode: 'payment', amount_total: 1000, client_reference_id: uid, customer_details: { email: `${id}@e2e.test` }, metadata: { plan_id: planId, discord_id: uid, store_id: String(storeId), ...extra } } },
+    data: { object: { id: `cs_${id}`, mode: 'payment', payment_status: 'paid', amount_total: 1000, client_reference_id: uid, customer_details: { email: `${id}@e2e.test` }, metadata: { plan_id: planId, discord_id: uid, store_id: String(storeId), ...extra } } },
   });
 
   // 1. A double-clicked manual grant is ONE membership, priced at nothing —
@@ -4718,6 +4729,231 @@ test('whole numbers bound for bigint columns are safe integers, and an oversized
   for (const bad of ['99999999999999999999', '9223372036854775808', '1000000000000000000000000']) {
     const r = await deliverStripe({ id: 'evt_bigid', type: 'ping', data: { object: {} } }, { path: `/webhooks/stripe/${bad}` });
     assert.equal(r.status, 404, `store ${bad} on the public route`);
+  }
+});
+
+test('a buyer on the card form holds a seat and a discount use; an option upgrade ends the earlier option', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const post = (path, body, cookie = u7Cookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const seat = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'One Seat', priceUsd: 30, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: seat.planKey, roleId: R2_VIP })).status, 200);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: 1 })).status, 200);
+  const A = '522200000000000022';
+  const B = '523300000000000023';
+  discord.oauthUsers.code_seat_a = { id: A, username: 'seat_a' };
+  discord.oauthUsers.code_seat_b = { id: B, username: 'seat_b' };
+  discord.members.set(A, new Set());
+  discord.members.set(B, new Set());
+  const aCookie = await loginAs('code_seat_a');
+  const bCookie = await loginAs('code_seat_b');
+  // A opens the card form. Nobody has paid, so the subscriptions table is
+  // empty — and B must still be refused, or the seller sells one seat twice.
+  assert.equal((await post('/api/checkout/stripe', { planId: seat.planKey }, aCookie)).status, 200);
+  const b = await post('/api/checkout/stripe', { planId: seat.planKey }, bCookie);
+  const bBody = await b.text();
+  assert.equal(b.status, 409, bBody);
+  assert.match(bBody, /sold out/);
+  assert.equal((await post('/api/checkout/stripe', { planId: seat.planKey }, aCookie)).status, 200, "A's own open session never refuses A's retry");
+  // The same reservation for a usage limit: one use, A has it on an open form.
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: null })).status, 200);
+  assert.equal((await post('/api/admin/discounts', { action: 'create', code: 'ONESEAT', kind: 'percent', amount: 10, maxUses: 1 })).status, 200);
+  assert.equal((await post('/api/checkout/stripe', { planId: seat.planKey, discountCode: 'ONESEAT' }, aCookie)).status, 200);
+  const bCode = await post('/api/checkout/stripe', { planId: seat.planKey, discountCode: 'ONESEAT' }, bCookie);
+  assert.equal(bCode.status, 400, await bCode.text());
+  assert.equal((await post('/api/checkout/stripe', { planId: seat.planKey, discountCode: 'ONESEAT' }, aCookie)).status, 200, 'A may reopen with the code they hold');
+
+  // An upgrade inside one product: Monthly, then Yearly. The Monthly
+  // subscription is ended at its period end on Stripe, the way the buyer's
+  // own cancel button does it — never two live subscriptions for one product.
+  const club = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Upgrade Club', priceUsd: 200, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: club.planKey, roleId: R2_VIP })).status, 200);
+  const monthly = JSON.parse(await (await post('/api/onboard', { step: 'variant', storeId, planKey: club.planKey, label: 'Monthly', priceUsd: 15, lifetime: false })).text()).plan;
+  const yearly = JSON.parse(await (await post('/api/onboard', { step: 'variant', storeId, planKey: club.planKey, label: 'Yearly', priceUsd: 120, lifetime: false })).text()).plan;
+  const U = '524400000000000024';
+  discord.oauthUsers.code_up = { id: U, username: 'upgrader' };
+  discord.members.set(U, new Set());
+  const uCookie = await loginAs('code_up');
+  const signed = (evt) => deliverStripe(evt, { path: `/webhooks/stripe/${storeId}`, header: signStripe(JSON.stringify(evt), nowSec(), AUTO_ENDPOINT_SECRET) });
+  const subEvt = (id, subId, planId) => ({ id: `evt_${id}`, type: 'checkout.session.completed', data: { object: { id: `cs_${id}`, mode: 'subscription', payment_status: 'paid', subscription: subId, amount_total: 1500, client_reference_id: U, customer_details: { email: 'up@e2e.test' }, metadata: { plan_id: planId, discord_id: U, store_id: String(storeId) } } } });
+  assert.equal((await signed(subEvt('up_m', 'sub_up_month', monthly.planKey))).status, 200);
+  const updatesBefore = stripe.subUpdates.length;
+  assert.equal((await signed(subEvt('up_y', 'sub_up_year', yearly.planKey))).status, 200);
+  const ended = stripe.subUpdates.slice(updatesBefore).find((u) => u.id === 'sub_up_month');
+  assert.ok(ended && ended.form.cancel_at_period_end === 'true', 'the Monthly subscription is ended at its period end on Stripe');
+  assert.ok(!stripe.subUpdates.slice(updatesBefore).some((u) => u.id === 'sub_up_year'), 'the new Yearly subscription is left alone');
+  const mine = (await (await fetch(`${appUrl}/api/me`, { headers: { cookie: uCookie } })).json()).subscriptions;
+  assert.ok(mine.find((s) => s.planId === monthly.planKey).cancelsAt, 'the account page shows Monthly winding down');
+  assert.ok(!mine.find((s) => s.planId === yearly.planKey).cancelsAt, 'and Yearly live');
+  assert.ok(memberRoles(U).has(R2_VIP), 'the role stays throughout');
+  // Cleanup: park both products.
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, active: false })).status, 200);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: club.planKey, active: false })).status, 200);
+});
+
+test('money: unpaid sessions grant nothing until they settle, a sibling store never eats an event, platform billing moves only from the platform endpoint', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const post = (path, body, cookie = u7Cookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf && !p.requiredRoleName);
+  const signed = (evt, sid = storeId) => deliverStripe(evt, { path: `/webhooks/stripe/${sid}`, header: signStripe(JSON.stringify(evt), nowSec(), AUTO_ENDPOINT_SECRET) });
+  const session = (id, uid, planId, extra = {}) => ({
+    id: `evt_${id}`, type: 'checkout.session.completed',
+    data: { object: { id: `cs_${id}`, mode: 'payment', payment_status: 'paid', payment_intent: `pi_${id}`, amount_total: 1000, client_reference_id: uid, customer_details: { email: `${id}@e2e.test` }, metadata: { plan_id: planId, discord_id: uid, store_id: String(storeId) }, ...extra } },
+  });
+
+  // 1. A delayed-notification payment: the session is complete but UNPAID.
+  //    Nothing is granted, mailed or pinged until Stripe says the money moved.
+  const SLOW = '525500000000000025';
+  discord.members.set(SLOW, new Set());
+  const emails0 = resend.emails.length;
+  const unpaid = session('slow_1', SLOW, plan.id, { payment_status: 'unpaid' });
+  assert.equal((await signed(unpaid)).status, 200);
+  assert.ok(!memberRoles(SLOW).has(R2_VIP), 'no role until the money moves');
+  assert.equal(resend.emails.length, emails0, 'no paid receipt for an unpaid session');
+  const settled = { ...unpaid, id: 'evt_slow_1_ok', type: 'checkout.session.async_payment_succeeded', data: { object: { ...unpaid.data.object, payment_status: 'paid' } } };
+  assert.equal((await signed(settled)).status, 200);
+  assert.ok(memberRoles(SLOW).has(R2_VIP), 'async_payment_succeeded is the grant');
+  assert.equal(resend.emails.length, emails0 + 1, 'and the receipt goes out then');
+  const NEVER = '526600000000000026';
+  discord.members.set(NEVER, new Set());
+  const never = session('never_1', NEVER, plan.id, { payment_status: 'unpaid' });
+  assert.equal((await signed(never)).status, 200);
+  assert.equal((await signed({ ...never, id: 'evt_never_1_fail', type: 'checkout.session.async_payment_failed' })).status, 200);
+  assert.ok(!memberRoles(NEVER).has(R2_VIP), 'a payment that never clears delivers nothing');
+
+  // 2. Two stores on ONE Stripe account each have an endpoint, and Stripe
+  //    sends every event to both. The sibling drops what is not its own; the
+  //    owner is never told "duplicate".
+  const u13Cookie = await loginAs('code_u13');
+  const sibling = (await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u13Cookie } })).json()).stores.find((s) => s.slug === 'tradeleaks-pro');
+  assert.ok(sibling, 'the second store on the shared key exists');
+  const TWIN = '527700000000000027';
+  discord.members.set(TWIN, new Set());
+  const twinSale = session('twin_1', TWIN, plan.id);
+  assert.equal((await signed(twinSale, sibling.id)).status, 200);
+  assert.ok(!memberRoles(TWIN).has(R2_VIP), 'the sibling endpoint grants nothing: not its sale');
+  const owner = await signed(twinSale, storeId);
+  assert.deepEqual([owner.status, owner.body], [200, 'ok'], 'the owning endpoint is not told duplicate');
+  assert.ok(memberRoles(TWIN).has(R2_VIP), 'the owning store delivers');
+  const RENEW = '528800000000000028';
+  discord.members.set(RENEW, new Set());
+  const base = session('twin_sub', RENEW, plan.id).data.object;
+  const subSale = { id: 'evt_twin_sub', type: 'checkout.session.completed', data: { object: { ...base, mode: 'subscription', subscription: 'sub_twin_1' } } };
+  assert.equal((await signed(subSale)).status, 200);
+  const rowBefore = await subRow('stripe', 'sub_twin_1');
+  const renewal = { id: 'evt_twin_renew', type: 'invoice.paid', data: { object: { id: 'in_twin_1', parent: { subscription_details: { subscription: 'sub_twin_1' } } } } };
+  assert.equal((await signed(renewal, sibling.id)).status, 200);
+  assert.equal(Number((await subRow('stripe', 'sub_twin_1')).store_id), Number(rowBefore.store_id), 'a renewal on the sibling endpoint does not migrate the row');
+
+  // 3. Platform-billing state moves only from the platform's own endpoint.
+  const billingBefore = await (await fetch(`${appUrl}/api/billing`, { headers: { cookie: u7Cookie } })).json();
+  const forge = { id: 'evt_forge_plat_up', type: 'customer.subscription.updated', data: { object: { id: 'sub_plat_2', object: 'subscription', status: 'active', items: { data: [{ current_period_end: nowSec() + 10 * 365 * 86400 }] } } } };
+  assert.equal((await signed(forge)).status, 200);
+  const billingAfter = await (await fetch(`${appUrl}/api/billing`, { headers: { cookie: u7Cookie } })).json();
+  assert.deepEqual(
+    { tier: billingAfter.current.tier, periodEnd: billingAfter.current.periodEnd },
+    { tier: billingBefore.current.tier, periodEnd: billingBefore.current.periodEnd },
+    'a seller cannot move their own Dues tier by signing to their store endpoint',
+  );
+
+  // 4. One grace window per unpaid period: Stripe's retries do not restart
+  //    it, and the buyer is told once.
+  const failed = { id: 'evt_twin_fail_1', type: 'invoice.payment_failed', data: { object: { id: 'in_twin_2', parent: { subscription_details: { subscription: 'sub_twin_1' } } } } };
+  const dms0 = discord.dms.filter((d) => d.uid === RENEW).length;
+  assert.equal((await signed(failed)).status, 200);
+  const g1 = (await subRow('stripe', 'sub_twin_1')).grace_until;
+  assert.ok(g1 > nowSec() + 71 * 3600, 'a full window from the unpaid period end');
+  await sleep(1100);
+  assert.equal((await signed({ ...failed, id: 'evt_twin_fail_2' })).status, 200);
+  assert.equal((await subRow('stripe', 'sub_twin_1')).grace_until, g1, 'a retry does not restart the window');
+  assert.equal(discord.dms.filter((d) => d.uid === RENEW).length, dms0 + 1, 'and the buyer is told once');
+
+  // 5. Money taken for a product the store no longer has alerts the seller.
+  const pings0 = discord.channelPosts.length;
+  const GHOST2 = '529900000000000029';
+  discord.members.set(GHOST2, new Set());
+  assert.equal((await signed(session('ghost_2', GHOST2, 'no-such-product'))).status, 200);
+  assert.equal(discord.channelPosts.length, pings0 + 1, 'the seller is pinged');
+  assert.match(discord.channelPosts.at(-1).body.embeds[0].title, /no longer exists/);
+
+  // 6. A product someone is paying for right now cannot be deleted under them.
+  const doomed = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Doomed', priceUsd: 12, lifetime: true })).text()).plan;
+  const PAYER = '530000000000000030';
+  discord.oauthUsers.code_payer = { id: PAYER, username: 'payer' };
+  discord.members.set(PAYER, new Set());
+  const payerCookie = await loginAs('code_payer');
+  assert.equal((await post('/api/checkout/stripe', { planId: doomed.planKey }, payerCookie)).status, 200);
+  const del = await post('/api/onboard', { step: 'product-delete', storeId, planKey: doomed.planKey });
+  const delBody = await del.text();
+  assert.equal(del.status, 409, delBody);
+  assert.match(delBody, /paying for this product right now/);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: doomed.planKey, active: false })).status, 200);
+});
+
+test('a sale whose webhook never arrived is recovered by the cron, and a late delivery then does nothing twice', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const post = (path, body, cookie = u7Cookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf && !p.requiredRoleName);
+  const LOST = '531100000000000031';
+  discord.oauthUsers.code_lost = { id: LOST, username: 'lost_buyer' };
+  discord.members.set(LOST, new Set());
+  const lostCookie = await loginAs('code_lost');
+  assert.equal((await post('/api/checkout/stripe', { planId: plan.id }, lostCookie)).status, 200);
+  const sessionId = `cs_${stripe.checkoutSessions.length}`;
+  // Stripe holds the session complete and paid two hours ago; Dues never heard.
+  stripe.completedSessions = [{
+    id: sessionId, object: 'checkout.session', status: 'complete', payment_status: 'paid', mode: 'payment', payment_intent: 'pi_lost_1',
+    created: nowSec() - 7200, amount_total: 2500, client_reference_id: LOST, customer_details: { email: 'lost@e2e.test' },
+    metadata: { plan_id: plan.id, discord_id: LOST, store_id: String(storeId) },
+  }];
+  const emails0 = resend.emails.length;
+  const pings0 = discord.channelPosts.length;
+  try {
+    const cron = await hitCron();
+    assert.equal(cron.status, 200, cron.body);
+    const body = JSON.parse(cron.body);
+    assert.equal(body.backfill?.recovered, 1, `the cron recovers the sale: ${cron.body}`);
+    assert.ok(memberRoles(LOST).has(R2_VIP), 'the role is delivered');
+    assert.equal(resend.emails.length, emails0 + 1, 'the receipt goes out');
+    assert.equal(discord.channelPosts.length, pings0 + 1, 'the seller is pinged');
+    assert.equal(JSON.parse((await hitCron()).body).backfill.recovered, 0, 'a second sweep finds nothing to do');
+    // The real delivery finally lands: acknowledged, and nothing happens twice.
+    const late = { id: 'evt_lost_late', type: 'checkout.session.completed', data: { object: stripe.completedSessions[0] } };
+    const r = await deliverStripe(late, { path: `/webhooks/stripe/${storeId}`, header: signStripe(JSON.stringify(late), nowSec(), AUTO_ENDPOINT_SECRET) });
+    assert.deepEqual([r.status, r.body], [200, 'ok']);
+    assert.equal(resend.emails.length, emails0 + 1, 'no second receipt');
+    assert.equal(discord.channelPosts.length, pings0 + 1, 'no second ping');
+  } finally {
+    stripe.completedSessions = [];
   }
 });
 
@@ -4832,6 +5068,7 @@ async function main() {
     COINBASE_API_KEY: 'cb_key_e2e',
     COINBASE_WEBHOOK_SECRET: COINBASE_SECRET,
     COINBASE_API_BASE: coinbaseMock.url,
+    COINBASE_RELEASED: '1', // the suite exercises the legacy rail; production does not carry this
     NOWPAYMENTS_API_KEY: NOW_KEY,
     NOWPAYMENTS_IPN_SECRET: NOW_IPN_SECRET,
     NOWPAYMENTS_API_BASE: nowMock.url,
@@ -4885,6 +5122,35 @@ async function main() {
     } catch (err) {
       failed++;
       console.error(`  ✗ stripe-only mode\n    ${String(err.stack ?? err).split('\n').join('\n    ')}`);
+    }
+  }
+
+  // Phase 3: PRODUCTION's shape — NOWPayments credentials present, the release
+  // flag absent. The gate, not the credentials, must keep the rail off, and the
+  // provider must never be called. This is the one configuration the
+  // production safety property rests on, and the only one in which the gated
+  // expression and its credential-only twin would differ.
+  if (!failed) {
+    const heldDb = path.join(path.dirname(dbPath), 'held.sqlite');
+    const before = nowpayments.requests ?? 0;
+    const held = await spawnApp({
+      ...baseEnv(mocks),
+      ...(PG_URL ? {} : { DB_PATH: heldDb }),
+      ...(PG_URL ? { DATABASE_URL: PG_URL } : {}),
+      NOWPAYMENTS_API_KEY: NOW_KEY,
+      NOWPAYMENTS_IPN_SECRET: NOW_IPN_SECRET,
+      NOWPAYMENTS_API_BASE: nowMock.url,
+    });
+    try {
+      const { capabilities } = await (await fetch(`${held.url}/api/plans`)).json();
+      assert.equal(capabilities.nowpayments, false, 'credentials alone must not switch the rail on');
+      assert.equal((await fetch(`${held.url}/api/checkout/crypto?coins=1&store=tradeleaks`)).status, 501, 'the crypto checkout stays dormant behind the gate');
+      assert.equal((await deliverNow({ payment_id: 'npid_held', payment_status: 'finished' }, { base: held.url })).status, 501, 'a correctly signed IPN is refused while the gate is closed');
+      assert.equal(nowpayments.requests ?? 0, before, 'the provider was never called');
+      console.log('  ✓ release gate: NOWPayments credentials present, flag absent — rail off, provider never called');
+    } catch (err) {
+      failed++;
+      console.error(`  ✗ release gate\n    ${String(err.stack ?? err).split('\n').join('\n    ')}`);
     }
   }
 

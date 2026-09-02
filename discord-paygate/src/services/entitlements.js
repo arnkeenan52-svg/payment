@@ -3,6 +3,7 @@ import * as db from '../db.js';
 import { effectiveRolePlan, effectiveManagedRoleIds, guildRolesCached, resolveAgainstGuild } from './plan-config.js';
 import { defaultStore, storeById, plansOf, planOf } from './stores.js';
 import { getGuildMember, addRole, removeRole, joinGuildWithRoles, dmUser } from '../lib/discord.js';
+import { stripeFetch, subscriptionPeriodEnd } from '../lib/stripe.js';
 
 const now = () => Math.floor(Date.now() / 1000);
 const storeKey = (store) => String(store?.id ?? 'default');
@@ -231,6 +232,13 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
     // be right and its label wrong, which is the worst of the two.
     currency: currency ?? plan.currency ?? target?.currency ?? 'usd',
   });
+  // Buying another option of the SAME product — Monthly to Yearly, Monthly
+  // to Lifetime — is an upgrade, not a second membership: the previous
+  // recurring subscription is ended at its period end, the way the buyer's
+  // own cancel button does it. Different products stack; that is deliberate.
+  await supersedeFamily({ discordId, plan, target, keepId: sub.id }).catch((err) => {
+    console.error(`[entitlements] superseding ${discordId}'s earlier option of ${plan.variantOf ?? plan.id} failed (their cancel button still works): ${err.message}`);
+  });
   try {
     await reconcile(discordId, target);
   } catch (err) {
@@ -246,6 +254,23 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
   return sub;
 }
 
+async function supersedeFamily({ discordId, plan, target, keepId }) {
+  const family = plan.variantOf ?? plan.id;
+  for (const other of await db.subscriptionsForMember(discordId)) {
+    if (other.id === keepId || other.provider !== 'stripe' || !sameStore(other, target)) continue;
+    if (!db.isEntitled(other) || other.cancels_at) continue;
+    if (other.current_period_end === null || other.current_period_end === undefined) continue; // lifetime
+    const op = await planOf(target, other.plan_id);
+    if (!op || (op.variantOf ?? op.id) !== family) continue;
+    const s = await stripeFetch(`/v1/subscriptions/${encodeURIComponent(other.provider_ref)}`, {
+      method: 'POST',
+      form: { cancel_at_period_end: 'true' },
+      key: target?.stripeKey ?? config.stripe.secretKey,
+    });
+    await db.markSubscriptionCancelling(other.id, Number(subscriptionPeriodEnd(s) ?? other.current_period_end));
+  }
+}
+
 // Failed payment on a renewing plan: keep access through a grace window and
 // tell the buyer, instead of yanking roles the moment a card bounces.
 export async function markPastDue(provider, providerRef) {
@@ -259,8 +284,14 @@ export async function markPastDue(provider, providerRef) {
   // here: the sweep can expire a row moments before the renewal's failure
   // lands, and that buyer should still get grace.
   if (sub.status === 'canceled') return sub;
+  // One window per unpaid period, anchored to the period that was not paid
+  // for rather than to the clock. Stripe retries a failing card for weeks and
+  // sends invoice.payment_failed each time; re-anchoring on every retry
+  // turned 72 hours into three weeks, and DMed a fresh deadline each time.
+  if (sub.status === 'past_due' && sub.grace_until) return sub;
   const store = await storeById(sub.store_id);
-  const graceUntil = now() + config.gracePeriodHours * 3600;
+  const periodEnd = Number(sub.current_period_end);
+  const graceUntil = Math.max(Number.isFinite(periodEnd) ? periodEnd : 0, now()) + config.gracePeriodHours * 3600;
   await db.setSubscriptionStatus(sub.id, { status: 'past_due', graceUntil });
   const plan = await planOf(store, sub.plan_id);
   await dmUser(

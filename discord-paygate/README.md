@@ -291,6 +291,12 @@ fixed `durationDays`; the lifetime plan is lifetime either way.
 
 ## NOWPayments (the crypto rail sellers use)
 
+> **Release gate.** The two credentials below make the rail *possible*;
+> `NOWPAYMENTS_RELEASED=1` makes it *live*. Production carries the credentials
+> and not the flag: the rail stays off until every finding of the 29 Aug 2026
+> audit is closed and it has been re-verified end to end. The legacy Coinbase
+> rail is gated the same way, by `COINBASE_RELEASED=1`.
+
 Two env vars, both required — `NOWPAYMENTS_API_KEY` and
 `NOWPAYMENTS_IPN_SECRET`. The key alone cannot verify a delivery, and an
 unverified delivery is an anonymous request claiming somebody paid, so with
