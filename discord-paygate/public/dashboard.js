@@ -298,23 +298,23 @@ async function viewAdmin() {
 
   const storeRow = (st) => `<tr>
       <td><a class="admin-store-link" href="#/store/${esc(st.slug)}">${esc(st.name)}</a><span class="dim"> /${esc(st.slug)}</span></td>
-      <td>${st.ownerUsername ? `@${esc(st.ownerUsername)}<span class="dim"> ${esc(st.ownerDiscordId ?? '')}</span>` : esc(st.ownerDiscordId ?? '')}</td>
-      <td>${st.status === 'live' ? '<span class="chip chip-good">Live</span>' : '<span class="chip chip-off">Draft</span>'}</td>
-      <td>${esc(st.ownerTier)}</td>
-      <td class="num">${st.members}</td>
-      <td class="num">${usd(st.revenueUsd, 'usd')}</td>
-      <td class="dim">${st.createdAt ? fmtDT(st.createdAt) : '—'}</td>
+      <td data-th="Owner">${st.ownerUsername ? `@${esc(st.ownerUsername)}<span class="dim"> ${esc(st.ownerDiscordId ?? '')}</span>` : esc(st.ownerDiscordId ?? '')}</td>
+      <td data-th="Status">${st.status === 'live' ? '<span class="chip chip-good">Live</span>' : '<span class="chip chip-off">Draft</span>'}</td>
+      <td data-th="Plan">${esc(st.ownerTier)}</td>
+      <td class="num" data-th="Members">${st.members}</td>
+      <td class="num" data-th="Revenue">${usd(st.revenueUsd, 'usd')}</td>
+      <td class="dim" data-th="Created">${st.createdAt ? fmtDT(st.createdAt) : '—'}</td>
     </tr>`;
 
   const userRow = (u) => `<tr>
       <td>${u.username ? `@${esc(u.username)}<span class="dim"> ${esc(u.discordId)}</span>` : esc(u.discordId)}</td>
-      <td>${u.seller ? '<span class="chip chip-code">Seller</span>' : ''}${
+      <td data-th="Roles">${u.seller ? '<span class="chip chip-code">Seller</span>' : ''}${
         u.entitled ? ' <span class="chip chip-good">Member</span>' : u.memberships ? ' <span class="chip chip-off">Lapsed</span>' : ''
       }</td>
-      <td class="num">${u.memberships || ''}</td>
-      <td class="num">${u.spentUsd ? usd(u.spentUsd, 'usd') : ''}</td>
-      <td class="dim">${fmtDT(u.joinedAt)}</td>
-      <td class="dim">${rel(u.lastSeenAt)}</td>
+      <td class="num" data-th="Purchases">${u.memberships || ''}</td>
+      <td class="num" data-th="Spent">${u.spentUsd ? usd(u.spentUsd, 'usd') : ''}</td>
+      <td class="dim" data-th="First seen">${fmtDT(u.joinedAt)}</td>
+      <td class="dim" data-th="Last seen">${rel(u.lastSeenAt)}</td>
     </tr>`;
 
   $('#content').innerHTML = `
@@ -336,7 +336,7 @@ async function viewAdmin() {
 
       <section class="panel table-panel">
         <div class="card-head"><div><h3>Stores</h3><p class="card-sub">Everyone who set up the bot — live and still in setup.</p></div></div>
-        <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-pay"><thead><tr>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-stores"><thead><tr>
           <th>Store</th><th>Owner</th><th>Status</th><th>Plan</th><th class="num">Members</th><th class="num">Revenue</th><th>Created</th>
         </tr></thead><tbody>${d.stores.map(storeRow).join('') || '<tr><td colspan="7" class="dim">No stores yet.</td></tr>'}</tbody></table></div>
         <p class="rows-note">${d.stores.length} store(s) · ${t.sellers} seller(s)</p>
@@ -350,7 +350,7 @@ async function viewAdmin() {
             <option value="">Everyone</option><option value="seller">Sellers</option><option value="member">Active members</option>
           </select>
         </div>
-        <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-pay"><thead><tr>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="data-table t-users"><thead><tr>
           <th>User</th><th>Roles</th><th class="num">Purchases</th><th class="num">Spent</th><th>First seen</th><th>Last seen</th>
         </tr></thead><tbody id="au-body">${d.users.map(userRow).join('')}</tbody></table></div>
         <p class="rows-note" id="au-count">${d.users.length} account(s)</p>
@@ -1154,10 +1154,10 @@ function paymentsRows(list) {
     .map(
       (p) => `<tr>
         <td>${p.username ? `@${esc(p.username)}<span class="dim"> ${esc(p.discordId)}</span>` : esc(p.discordId)}</td>
-        <td>${esc(p.planName)}<span class="row-when">${fmtDT(p.createdAt)}</span></td>
-        <td class="num">${usd(p.amountUsd, p.currency)}</td>
-        <td>${chipFor(p)}</td>
-        <td class="dim">${fmtDT(p.createdAt)}</td>
+        <td data-th="Product">${esc(p.planName)}<span class="row-when">${fmtDT(p.createdAt)}</span></td>
+        <td class="num" data-th="Amount">${usd(p.amountUsd, p.currency)}</td>
+        <td data-th="Status">${chipFor(p)}</td>
+        <td class="dim" data-th="Date">${fmtDT(p.createdAt)}</td>
       </tr>`,
     )
     .join('');
@@ -1181,17 +1181,17 @@ function checkoutRows(list) {
     .map(
       (c) => `<tr>
         <td>${c.username ? `@${esc(c.username)}<span class="dim"> ${esc(c.discordId)}</span>` : esc(c.discordId)}</td>
-        <td>${esc(c.planName)}${c.discountCode ? ` <span class="chip chip-code">${esc(c.discountCode)}</span>` : ''}<span class="row-when">${fmtDT(c.createdAt)}${
+        <td data-th="Product">${esc(c.planName)}${c.discountCode ? ` <span class="chip chip-code">${esc(c.discountCode)}</span>` : ''}<span class="row-when">${fmtDT(c.createdAt)}${
           c.completedAt ? ` · paid in ${fmtDur(c.completedAt - c.createdAt)}` : ''
         }</span></td>
-        <td class="num">${usd(c.amountUsd, c.currency)}</td>
-        <td>${
+        <td class="num" data-th="Amount">${usd(c.amountUsd, c.currency)}</td>
+        <td data-th="Status">${
           c.status === 'completed'
             ? '<span class="chip chip-good">Paid</span>'
             : '<span class="chip chip-warn">Not finished</span>'
         }</td>
-        <td class="dim">${fmtDT(c.createdAt)}</td>
-        <td class="dim">${
+        <td class="dim" data-th="Started">${fmtDT(c.createdAt)}</td>
+        <td class="dim" data-th="Paid">${
           c.completedAt
             ? `${fmtDT(c.completedAt)}<span class="ck-dur"> · ${fmtDur(c.completedAt - c.createdAt)}</span>`
             : '—'
@@ -1574,13 +1574,13 @@ function sectionProducts(products, data, slug) {
             : `${p.imageUrl ? `<img class="prod-thumb" src="${esc(p.imageUrl)}" alt="" width="30" height="30" />` : '<span class="prod-thumb prod-thumb-empty"></span>'}
           <span><strong>${esc(p.name)}</strong><span class="dim prod-roles"> ${esc((p.roleNames ?? []).map(roleLabel).join(', '))}${p.requiredRoleId ? ` · ${esc(roleLabel(p.requiredRoleName ?? 'role'))} only` : ''}</span></span>`
         }</td>
-        <td class="num">${usd(p.priceUsd, p.currency)}</td>
-        <td class="dim">${billingLabel(p)}${
+        <td class="num" data-th="Price">${usd(p.priceUsd, p.currency)}</td>
+        <td class="dim" data-th="Billing">${billingLabel(p)}${
           p.expiresAt ? (p.expiresAt * 1000 <= Date.now() ? ' · <strong>ended</strong>' : ` · ends ${new Date(p.expiresAt * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`) : ''
         }</td>
-        <td class="num">${(membersBy.get(p.planKey) ?? new Set()).size}</td>
-        <td class="num">${usd(revenueBy.get(p.planKey) ?? 0)}</td>
-        <td><label class="switch"><input type="checkbox" class="prod-active" data-plan="${esc(p.planKey)}" ${p.active ? 'checked' : ''} /><span></span></label></td>
+        <td class="num" data-th="Members">${(membersBy.get(p.planKey) ?? new Set()).size}</td>
+        <td class="num" data-th="Revenue">${usd(revenueBy.get(p.planKey) ?? 0)}</td>
+        <td data-th="Active"><label class="switch"><input type="checkbox" class="prod-active" data-plan="${esc(p.planKey)}" ${p.active ? 'checked' : ''} /><span></span></label></td>
         <td class="row-actions">
           ${isOpt ? '' : `<button class="btn-ghost prod-opt" data-plan="${esc(p.planKey)}">${I.plus} Option</button>
           <button class="btn-ghost prod-copy" data-url="${esc(p.checkoutUrl)}">${I.copy} Link</button>`}
@@ -1618,10 +1618,10 @@ function sectionDiscounts(discounts, products, slug) {
     .map(
       (d) => `<tr>
         <td><code>${esc(d.code)}</code></td>
-        <td>${d.kind === 'percent' ? `${d.amount}% off` : `${usd(d.amount)} off`}</td>
-        <td class="dim">${d.planKey ? esc(products.find((p) => p.planKey === d.planKey)?.name ?? d.planKey) : 'All products'}</td>
-        <td class="num">${d.uses}${d.maxUses ? ` / ${d.maxUses}` : ''}</td>
-        <td class="dim">${d.expiresAt ? fmtDUtc(d.expiresAt) : 'Never'}</td>
+        <td data-th="Discount">${d.kind === 'percent' ? `${d.amount}% off` : `${usd(d.amount)} off`}</td>
+        <td class="dim" data-th="Scope">${d.planKey ? esc(products.find((p) => p.planKey === d.planKey)?.name ?? d.planKey) : 'All products'}</td>
+        <td class="num" data-th="Uses">${d.uses}${d.maxUses ? ` / ${d.maxUses}` : ''}</td>
+        <td class="dim" data-th="Expires">${d.expiresAt ? fmtDUtc(d.expiresAt) : 'Never'}</td>
         <td class="row-actions"><button class="btn-ghost act-revoke disc-del" data-code="${esc(d.code)}">Delete</button></td>
       </tr>`,
     )
@@ -2443,9 +2443,9 @@ async function viewStore(slug) {
       .map(
         (m) => `<tr data-member="${esc(m.discordId)}">
           <td>${m.username ? `@${esc(m.username)}<span class="dim"> ${esc(m.discordId)}</span>` : esc(m.discordId)}</td>
-          <td>${esc([...m.products].join(', ') || '—')}</td>
-          <td class="num">${usd(m.spent)}</td>
-          <td>${m.lifetime ? '<span class="chip chip-good">Lifetime</span>' : m.entitled ? '<span class="chip chip-good">Active</span>' : '<span class="chip chip-off">Ended</span>'}</td>
+          <td data-th="Products">${esc([...m.products].join(', ') || '—')}</td>
+          <td class="num" data-th="Total spent">${usd(m.spent)}</td>
+          <td data-th="Status">${m.lifetime ? '<span class="chip chip-good">Lifetime</span>' : m.entitled ? '<span class="chip chip-good">Active</span>' : '<span class="chip chip-off">Ended</span>'}</td>
           <td class="row-actions">
             <button class="btn-ghost act-resync" data-id="${esc(m.discordId)}">Re-sync</button>
             ${m.entitled && !m.lifetime ? `<button class="btn-ghost act-extend" data-id="${esc(m.discordId)}">Extend</button>` : ''}
