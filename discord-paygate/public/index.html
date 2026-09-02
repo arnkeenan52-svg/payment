@@ -1786,7 +1786,7 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 @media (max-width:600px){.steps{padding-block:4px 72px}}
 .bcard{background:var(--glass);border-color:var(--glass-brd);border-radius:22px;box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
 .bcard:hover{border-color:var(--blue)}
-.fee-note{margin-top:10px;font-size:12px;line-height:18px;color:var(--micro)}
+.fee-note{margin-top:14px;font-size:12px;line-height:18px;color:var(--micro)}
 
 /* The band head, shared by "How it works" and "What it costs". It was one
    section's private rule (.save-head) in a type scale nothing else on the page
@@ -1828,7 +1828,11 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
    range to exactly 250 members is a fiddle on a trackpad and impossible to do
    precisely on a phone; the box and the slider are two views of one value and
    either can drive it. */
-.save-unit{font-weight:400;color:var(--sec)}
+/* The unit belongs ON the box, not parenthesised in the label. "Average
+   monthly price ($)" made the reader carry a unit across the row to reach the
+   field it applied to, and cost the label the width it needed on a phone. */
+.save-numbox{position:relative;display:inline-flex;align-items:center;flex:none}
+.save-unit{position:absolute;left:14px;font-weight:400;font-size:15px;color:var(--sec);pointer-events:none}
 .save-num{
   width:112px;height:46px;padding:0 14px;text-align:right;
   font-family:var(--grotesk);font-weight:700;font-size:17px;color:var(--ink);
@@ -1856,11 +1860,13 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 /* Firefox paints the travelled part itself rather than reading a gradient. */
 .save-field input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:var(--blue)}
 .save-field input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--blue);border:2.5px solid #fff}
+.save-vol{margin-top:20px;font-size:14px;line-height:20px;color:var(--sec)}
+.save-vol b{font-family:var(--grotesk);font-weight:700;color:var(--ink)}
 .save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(88,101,242,.1);border:1px solid rgba(88,101,242,.28)}
 .save-cap{display:block;font:600 12px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
 .save-hero b{display:block;margin-top:6px;font-family:var(--grotesk);font-weight:700;font-size:clamp(36px,5vw,46px);letter-spacing:-.02em;color:#3ddc84}
 html[data-theme="light"] .save-hero b{color:#177245}
-.save-hero small{display:block;margin-top:4px;font-size:12.5px;color:var(--micro)}
+.save-hero small{display:block;margin-top:4px;font-size:12.5px;color:var(--micro);text-wrap:balance}
 .save-rows{display:flex;flex-direction:column;gap:13px}
 .save-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}
 .sv-name{font-size:14.5px;font-weight:600;color:var(--ink)}
@@ -1868,9 +1874,22 @@ html[data-theme="light"] .save-hero b{color:#177245}
 .sv-cost{font-family:var(--grotesk);font-weight:700;font-size:15.5px;color:var(--ink)}
 .sv-bar{grid-column:1 / -1;height:6px;border-radius:99px;background:rgba(127,140,170,.22);overflow:hidden}
 .sv-bar i{display:block;height:100%;border-radius:99px;background:rgba(127,140,170,.55);transition:width .25s ease}
+/* The row the section exists to make. Five identically-set rows made the claim
+   a table entry: it now sits on its own ground, above the four it is compared
+   with, and states its basis in the same grammar they use ("0% of sales"
+   against "3% of sales") so the column of bases IS the argument at a glance.
+   Ground only — the colour stays on the figure and the bar, so the card keeps
+   one accent. And the ground grows OUTWARD (negative inline margin covering
+   the padding AND the border) rather than inset: inset, this row's bar would
+   start 13px right of the four below it, and the one axis the bars exist to
+   share would stop being shared. */
+.save-dues{
+  margin:0 -13px 4px;padding:12px;border-radius:14px;
+  background:var(--well,rgba(127,140,170,.10));border:1px solid var(--glass-brd);
+}
 .save-dues .sv-bar i{background:#3ddc84}
 html[data-theme="light"] .save-dues .sv-bar i{background:#1f9d5b}
-.save-dues .sv-cost{color:#3ddc84}
+.save-dues .sv-cost{font-size:17px;color:#3ddc84}
 html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 .save-cta{margin-top:24px;display:flex;justify-content:center}
 .save-demo{margin-top:14px;text-align:center}
@@ -1937,9 +1956,11 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   .save-lab{margin-bottom:6px;gap:12px}
   .save-lab label{font-size:14px}
   .save-num{width:78px;height:34px;padding:0 10px;font-size:15px;border-radius:9px}
+  .save-unit{left:10px;font-size:13px}
   .save-field input[type=range]{height:22px}
   .save-field input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-5px;border-width:2px}
   .save-field input[type=range]::-moz-range-thumb{width:15px;height:15px;border-width:2px}
+  .save-vol{margin-top:16px;font-size:13.5px;line-height:19px}
   .save-hero{margin:20px 0 0;padding:14px 16px;border-radius:14px}
   .save-hero b{margin-top:3px;font-size:34px}
   .save-hero small{margin-top:2px;font-size:12px}
@@ -1949,6 +1970,8 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   .sv-cost{font-size:14.5px}
   .sv-bar{height:5px}
   .save-cta{margin-top:20px}
+  .save-dues{margin:0 -13px 2px;padding:10px 12px}
+  .save-dues .sv-cost{font-size:16px}
   .fee-note{font-size:12px;line-height:17px}
 }
 /* payment methods: real brand marks on white chips, its own section */
@@ -2428,7 +2451,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 }
 /* ONE uppercase label. Four trackings and three weights became one of each, so
    "WHAT COMMUNITIES SELL WITH DUES", "PAYMENTS RUN ON STRIPE", "COMMUNITIES",
-   "FAQ", "MONTHLY PLATFORM COST" and "ESTIMATED ANNUAL SAVINGS" finally read as
+   "FAQ", "MONTHLY PLATFORM COST" and "ESTIMATED ANNUAL SAVING" finally read as
    the same kind of thing. Colour is left alone — every one of these was tuned
    against the sky for contrast, and none of them changes size class. */
 .marq-cap,.pay-cap,.sec-eyebrow,.save-rows-cap,.save-cap{
@@ -2616,37 +2639,46 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
       <div class="save-field">
         <div class="save-lab">
           <label for="svSubs">Paying members</label>
-          <input class="save-num" type="number" id="svSubsNum" min="10" max="1000" step="10" value="100"
-                 inputmode="numeric" aria-label="Paying members, type a number">
+          <span class="save-numbox"><input class="save-num" type="number" id="svSubsNum" min="10" max="1000" step="10" value="100"
+                 inputmode="numeric" aria-label="Paying members, type a number"></span>
         </div>
         <input type="range" id="svSubs" min="10" max="1000" step="10" value="100">
       </div>
       <div class="save-field">
         <div class="save-lab">
-          <label for="svPrice">Average monthly price <span class="save-unit">($)</span></label>
-          <input class="save-num" type="number" id="svPriceNum" min="1" max="100" step="1" value="20"
-                 inputmode="numeric" aria-label="Average monthly price in dollars, type a number">
+          <label for="svPrice">Average monthly price</label>
+          <span class="save-numbox"><span class="save-unit" aria-hidden="true">$</span><input class="save-num" type="number" id="svPriceNum" min="1" max="100" step="1" value="20"
+                 inputmode="numeric" aria-label="Average monthly price in dollars, type a number"></span>
         </div>
         <input type="range" id="svPrice" min="1" max="100" step="1" value="20">
       </div>
+      <!-- The number every percentage below is a percentage OF. Without it the
+           comparison is five figures a visitor has to take on trust; with it
+           the whole table is arithmetic they can do in their head. -->
+      <p class="save-vol">That&rsquo;s <b id="svRev">$2,000</b> a month in sales.</p>
       <div class="save-hero">
-        <span class="save-cap">Estimated annual savings</span>
+        <span class="save-cap">Estimated annual saving</span>
         <b id="svAnnual">$1,860</b>
-        <small>vs the priciest platform at your numbers</small>
+        <small id="svVs">kept versus DoorFee, the priciest at your numbers</small>
       </div>
      </div>
      <div class="save-right">
       <p class="save-rows-cap">Monthly platform cost</p>
+      <!-- Ordered by the size of the cut, which is what the section is about:
+           0%, 3%, 3.5%, 8%, 10%. NOT sorted by the computed figure — at ten
+           members and a dollar a month a percentage of almost nothing beats
+           any flat plan, and a table that reshuffles under the slider stops
+           being readable long before it becomes more honest. -->
       <div class="save-rows" aria-live="polite">
-      <div class="save-row save-dues"><span class="sv-name">Dues <em id="svDuesPlan">Max plan</em></span><b class="sv-cost" id="svDues">$44.99</b><span class="sv-bar"><i id="svBarDues" style="width:22%"></i></span></div>
+      <div class="save-row save-dues"><span class="sv-name">Dues <em><span id="svDuesPlan">Max plan</span> &#183; 0% of sales</em></span><b class="sv-cost" id="svDues">$44.99</b><span class="sv-bar"><i id="svBarDues" style="width:22%"></i></span></div>
       <div class="save-row"><span class="sv-name">Whop <em>3% of sales</em></span><b class="sv-cost" id="svWhop">$60</b><span class="sv-bar"><i id="svBarWhop" style="width:30%"></i></span></div>
       <div class="save-row"><span class="sv-name">LaunchPass <em>$29/mo + 3.5%</em></span><b class="sv-cost" id="svLp">$99</b><span class="sv-bar"><i id="svBarLp" style="width:50%"></i></span></div>
       <div class="save-row"><span class="sv-name">Patreon <em>8% of sales</em></span><b class="sv-cost" id="svPatreon">$160</b><span class="sv-bar"><i id="svBarPatreon" style="width:80%"></i></span></div>
       <div class="save-row"><span class="sv-name">DoorFee <em>10% of sales</em></span><b class="sv-cost" id="svDoorfee">$200</b><span class="sv-bar"><i id="svBarDoorfee" style="width:100%"></i></span></div>
       </div>
+      <p class="fee-note">Publicly listed pricing at time of writing &#8212; verify on each platform&rsquo;s site. Stripe processing applies everywhere, so it cancels out.</p>
      </div>
     </div>
-    <p class="fee-note">Monthly platform cost. Publicly listed pricing at time of writing &#8212; verify on each platform&rsquo;s site. Stripe processing applies everywhere, so it cancels out.</p>
     <div class="save-cta"><a class="btn btn-primary" href="/dashboard">Start selling &#8594;</a></div>
     <p class="save-demo microcopy">Free to start. Your Stripe, your money. <a class="demo-link" href="/demo?plan=vip-access">See a live demo store</a></p>
   </div>
@@ -3436,7 +3468,13 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
     n = Math.round(n / st) * st;
     return Math.min(hi, Math.max(lo, n));
   };
-  var money = function(v){ return '$' + Math.round(v).toLocaleString('en-US'); };
+  // Cents under ten dollars. At ten members paying a dollar, three of the four
+  // percentage cuts round to "$0" — a figure the table is arguing AGAINST, and
+  // the one place where whole dollars stop being the honest unit.
+  var money = function(v){ return '$' + (v > 0 && v < 10 ? v.toFixed(2) : Math.round(v).toLocaleString('en-US')); };
+  // The tier ladder, and it has to stay the SAME ladder as src/services/billing.js
+  // TIERS — that is what Stripe bills against. An e2e scenario runs this very
+  // function against TIERS at every cap so the two cannot drift apart quietly.
   var plan = function(m){
     if(m <= 10){ return {name:'Free plan', cost:0}; }
     if(m <= 50){ return {name:'Pro plan', cost:14.99}; }
@@ -3449,7 +3487,13 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
     var pct = hi > lo ? ((parseFloat(el.value) - lo) / (hi - lo)) * 100 : 0;
     el.style.setProperty('--fill', pct.toFixed(2) + '%');
   };
-  var bar = function(id, v, max){ document.getElementById(id).style.width = Math.max(4, v / max * 100) + '%'; };
+  // A stub of bar for a figure too small to draw, but NO bar for a figure that
+  // is genuinely zero: the Free plan costs nothing and a 4% green sliver read
+  // as "a little", which is the one thing that row does not mean.
+  var bar = function(id, v, max){ document.getElementById(id).style.width = (v > 0 ? Math.max(4, v / max * 100) : 0) + '%'; };
+  // Whose figure the annual saving is measured against, so the box can name it
+  // instead of saying "the priciest platform" and asking to be believed.
+  var NAMES = { svWhop:'Whop', svLp:'LaunchPass', svPatreon:'Patreon', svDoorfee:'DoorFee' };
   var paint = function(){
     var m = parseInt(subs.value, 10);
     var p = parseInt(price.value, 10);
@@ -3468,11 +3512,19 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
     set('svDues', d.cost ? '$' + d.cost.toFixed(2) : '$0');
     var max = Math.max(rows.svWhop, rows.svLp, rows.svPatreon, rows.svDoorfee, d.cost, 1);
     Object.keys(rows).forEach(function(k){ set(k, money(rows[k])); });
+    set('svRev', money(rev));
     bar('svBarDues', d.cost, max);
     bar('svBarWhop', rows.svWhop, max); bar('svBarLp', rows.svLp, max);
     bar('svBarPatreon', rows.svPatreon, max); bar('svBarDoorfee', rows.svDoorfee, max);
-    var best = Math.max(rows.svWhop, rows.svLp, rows.svPatreon, rows.svDoorfee);
-    set('svAnnual', money(Math.max(0, (best - d.cost) * 12)));
+    var worst = Object.keys(rows).reduce(function(a, b){ return rows[b] > rows[a] ? b : a; });
+    var gap = rows[worst] - d.cost;
+    set('svAnnual', money(Math.max(0, gap * 12)));
+    // Far enough down the sliders — a few hundred members at a dollar a month —
+    // a percentage of very little really is cheaper than any flat plan, and the
+    // box has to say so rather than print $0 under a sentence claiming the row
+    // it names is the priciest thing on screen.
+    set('svVs', gap > 0 ? 'kept versus ' + NAMES[worst] + ', the priciest at your numbers'
+                        : 'at these numbers a cut costs less than a flat plan');
   };
   ['input','change'].forEach(function(ev){ subs.addEventListener(ev, paint); price.addEventListener(ev, paint); });
   var bindNum = function(box, range){
