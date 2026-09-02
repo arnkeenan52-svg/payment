@@ -4725,6 +4725,10 @@ test('whole numbers bound for bigint columns are safe integers, and an oversized
     assert.equal((await post('/api/admin/discounts', { action: 'create', code: 'HUGE', kind: 'percent', amount: 10, maxUses: bad })).status, 400, `max uses ${bad}`);
   }
   assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, purchaseLimit: 5 })).status, 200);
+  // Pinned the validation; put the product back. Left at 5, the limit was
+  // reached by the buyers above and refused the crypto invoice opened
+  // earlier when it settled — the guard runs again at settlement.
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, purchaseLimit: null })).status, 200);
   assert.equal((await post('/api/onboard', { step: 'product', storeId, name: 'Bad term', priceUsd: 10, lifetime: false, durationDays: 'abc' })).status, 400, 'a term that is not a number is refused, never stored as NaN');
   for (const bad of ['99999999999999999999', '9223372036854775808', '1000000000000000000000000']) {
     const r = await deliverStripe({ id: 'evt_bigid', type: 'ping', data: { object: {} } }, { path: `/webhooks/stripe/${bad}` });
@@ -5051,6 +5055,133 @@ test('crypto: an IPN whose order is not ours is answered, and grants nothing', a
   const res = await deliverNow({ payment_id: 'npid_stranger', payment_status: 'finished', order_id: 'np_ffffffffffffffffffffffffffffffff' });
   assert.equal(res.status, 200);
   assert.equal(await subRow('nowpayments', 'npid_stranger'), null);
+});
+
+// A crypto checkout for the vip-signals buyer: the order row and the mock
+// payment it points at, so a scenario can walk the payment through statuses.
+async function npCheckout(planId, cookie = npBuyerCookie) {
+  const res = await fetch(`${appUrl}/api/checkout/crypto`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie },
+    body: JSON.stringify({ store: 'vip-signals', planId, payCurrency: 'sol' }),
+  });
+  const body = await res.text();
+  assert.equal(res.status, 200, body);
+  const order = JSON.parse(body);
+  const { rows } = await tq('SELECT provider_ref FROM checkout_attempts WHERE session_id = ?', [order.orderId]);
+  return { order, payment: nowpayments.payments.get(rows[0].provider_ref) };
+}
+const npView = async (orderId, cookie = npBuyerCookie) =>
+  (await fetch(`${appUrl}/api/checkout/crypto?store=vip-signals&order=${orderId}`, { headers: { cookie } })).json();
+const npAttemptStatus = async (orderId) =>
+  (await tq('SELECT status FROM checkout_attempts WHERE session_id = ?', [orderId])).rows[0].status;
+
+test('crypto: no coin figure without evidence, and a status nobody knows is "checking", never "confirming"', async () => {
+  const { describeStatus, paidInRequestedCoin } = await import('../src/lib/nowpayments.js');
+  // Wrong-asset auto-processing is ON, so a deposit with no fiat valuation
+  // attached could be any coin. The shortfall is still quoted in the order's
+  // money; the coin figure needs actually_paid_at_fiat to vouch for it.
+  const bare = { payment_status: 'partially_paid', pay_currency: 'sol', pay_amount: 0.5, actually_paid: 0.35, price_amount: 49.99, price_currency: 'usd' };
+  assert.equal(paidInRequestedCoin(bare), false, 'no actually_paid_at_fiat is no evidence, not proof of the requested coin');
+  assert.doesNotMatch(describeStatus(bare, { currency: 'usd' }).message, /SOL/);
+  assert.equal(paidInRequestedCoin({ ...bare, actually_paid_at_fiat: 34.99 }), true, 'a fiat value that agrees with the coin maths is the evidence');
+
+  for (const status of ['something_new', '', undefined]) {
+    const d = describeStatus({ payment_status: status });
+    assert.equal(d.state, 'pending', `status ${JSON.stringify(status)} keeps the screen polling`);
+    assert.match(d.message, /Checking on this payment/);
+    assert.doesNotMatch(d.message, /Confirming/, 'nothing here knows a confirmation is under way');
+  }
+
+  // The same status through the webhook: nothing granted, and a log line an
+  // operator can find — the buyer's screen says "checking", so this is the
+  // only trace.
+  const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  const { order, payment } = await npCheckout(plans.plans[0].id);
+  payment.payment_status = 'something_new';
+  assert.equal((await deliverNow({ payment_id: payment.payment_id, payment_status: 'something_new', order_id: order.orderId })).status, 200);
+  assert.equal(await subRow('nowpayments', payment.payment_id), null);
+  await waitFor('the unrecognised status to be logged', () =>
+    appLog.join('').includes(`nowpayments ${payment.payment_id} (order ${order.orderId}) has unrecognised status "something_new"`));
+  const view = await npView(order.orderId);
+  assert.equal(view.state, 'pending');
+  assert.match(view.message, /Checking on this payment/);
+});
+
+test('crypto: money that lands for a product that cannot be delivered is never a completed sale', async () => {
+  const post = (path, body, cookie = npCookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: npCookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const product = async (name) => {
+    const plan = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name, priceUsd: 20, lifetime: true })).text()).plan;
+    assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: plan.planKey, roleId: R2_VIP })).status, 200);
+    return plan;
+  };
+  const finish = async ({ order, payment }) => {
+    payment.payment_status = 'finished';
+    payment.actually_paid = payment.pay_amount;
+    payment.actually_paid_at_fiat = payment.price_amount;
+    assert.equal((await deliverNow({ payment_id: payment.payment_id, payment_status: 'finished', order_id: order.orderId })).status, 200);
+  };
+  const undelivered = async ({ order, payment }, why, pings0, cookie = npBuyerCookie) => {
+    assert.equal(await subRow('nowpayments', payment.payment_id), null, 'nothing may be granted');
+    assert.equal(await npAttemptStatus(order.orderId), 'started', '"completed" means the buyer got what they paid for');
+    assert.equal(discord.channelPosts.length, pings0 + 1, 'exactly one post: the alert, never a sale ping');
+    const embed = discord.channelPosts.at(-1).body.embeds[0];
+    assert.match(embed.title, /nothing was delivered/i);
+    assert.doesNotMatch(embed.title, /New Subscriber/);
+    assert.match(embed.description, why);
+    assert.match(embed.description, /SOL/, 'the seller is told which coin to refund');
+    // The buyer is not told "confirmed" and bounced to a receipt that will
+    // never fill: the money is in, the product is not.
+    const view = await npView(order.orderId, cookie);
+    assert.equal(view.state, 'pending', JSON.stringify(view));
+    assert.match(view.message, /checking on delivery/i);
+  };
+
+  // 1. Switched off while the invoice was open. The checkout-time answer is
+  //    stale, and the guard is asked again at settlement.
+  const dark = await product('Switched Off');
+  const a = await npCheckout(dark.planKey);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: dark.planKey, active: false })).status, 200);
+  let pings0 = discord.channelPosts.length;
+  await finish(a);
+  await undelivered(a, /not for sale/, pings0);
+
+  // 2. Deleted while the invoice was open — the delete waits for open
+  //    checkouts, but an invoice outlives that window and still pays.
+  const ghost = await product('Ghost');
+  const g = await npCheckout(ghost.planKey);
+  await tq('UPDATE checkout_attempts SET created_at = created_at - 3600 WHERE session_id = ?', [g.order.orderId]);
+  assert.equal((await post('/api/onboard', { step: 'product-delete', storeId, planKey: ghost.planKey })).status, 200);
+  pings0 = discord.channelPosts.length;
+  await finish(g);
+  await undelivered(g, /no longer in this store/, pings0);
+
+  // 3. One seat, two invoices. Another buyer's OPEN invoice is a reservation
+  //    at checkout, not a sale at settlement: the first to pay is granted…
+  const seat = await product('Last Seat');
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: 1 })).status, 200);
+  const first = await npCheckout(seat.planKey);
+  await tq('UPDATE checkout_attempts SET created_at = created_at - 3600 WHERE session_id = ?', [first.order.orderId]);
+  const LATE = '532200000000000032';
+  discord.members.set(LATE, new Set());
+  const lateCookie = await signInAs('code_late_seat', LATE, 'late_seat');
+  const second = await npCheckout(seat.planKey, lateCookie);
+  pings0 = discord.channelPosts.length;
+  await finish(first);
+  await waitFor('the first seat to land', async () => (await subRow('nowpayments', first.payment.payment_id)) !== null);
+  assert.equal(await npAttemptStatus(first.order.orderId), 'completed');
+  assert.equal(discord.channelPosts.length, pings0 + 1);
+  assert.match(discord.channelPosts.at(-1).body.embeds[0].title, /New Subscriber/);
+  assert.equal((await npView(first.order.orderId)).state, 'paid', 'delivered, so the screen may say so');
+  // …and the second, paying after the seat is gone, is not.
+  pings0 = discord.channelPosts.length;
+  await finish(second);
+  await undelivered(second, /sold out/, pings0, lateCookie);
+  assert.ok(!memberRoles(LATE).has(R2_VIP), 'the role is the product, and it was not for sale');
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: null })).status, 200);
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════

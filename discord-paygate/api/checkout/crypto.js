@@ -66,7 +66,7 @@ export default guard(async function handler(req, res) {
         // browser sent, and answer with a buyer-shaped view: no address, no
         // ids, nothing about the seller's wallet.
         const payment = await getPayment(attempt.provider_ref);
-        sendJson(res, 200, publicPaymentView(payment, { currency: attempt.currency }));
+        sendJson(res, 200, publicPaymentView(payment, { currency: attempt.currency, delivered: attempt.status === 'completed' }));
       } catch (err) {
         console.error(`[checkout] nowpayments status for ${order} failed: ${err.message}`);
         sendJson(res, 502, { error: 'Could not check that payment just now — try again in a moment.' });

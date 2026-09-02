@@ -15,7 +15,14 @@ import { CHECKOUT_TTL_SECONDS } from '../lib/stripe.js';
 //
 // Returns null when the sale may proceed, or { status, error } — the exact
 // HTTP status and the sentence the buyer should read.
-export async function purchaseBlocked({ store, plan, uid }) {
+//
+// `atSettlement` is the crypto rail asking again once the money has landed:
+// an invoice can sit open far longer than a card form, so the answer given
+// at checkout may have gone stale. Open checkouts hold a seat at checkout
+// time so a limited product is not oversold; at settlement they must NOT
+// count, or ten buyers holding an invoice for a one-seat product would each
+// refuse the first of them who actually pays.
+export async function purchaseBlocked({ store, plan, uid, atSettlement = false }) {
   if (plan.active === false) {
     return { status: 409, error: 'This product is not for sale right now.' };
   }
@@ -43,7 +50,7 @@ export async function purchaseBlocked({ store, plan, uid }) {
       return sid === (store.id ?? null) && s.plan_id === plan.id;
     });
     // Buyers still on the card form hold a seat for the life of their session.
-    const taken = await db.countBuyersOfPlan(store.id ?? null, plan.id, { exceptUid: uid, reservedSince: Math.floor(Date.now() / 1000) - CHECKOUT_TTL_SECONDS });
+    const taken = await db.countBuyersOfPlan(store.id ?? null, plan.id, { exceptUid: uid, reservedSince: atSettlement ? null : Math.floor(Date.now() / 1000) - CHECKOUT_TTL_SECONDS });
     if (!own && taken >= plan.purchaseLimit) {
       return { status: 409, error: 'This product is sold out.' };
     }
