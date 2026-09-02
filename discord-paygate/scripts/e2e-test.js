@@ -643,7 +643,15 @@ async function nowpaymentsHandler(req, res) {
     return;
   }
   if (url.pathname === '/min-amount' && req.method === 'GET') {
-    nowpayments.minAmount.push({ from: url.searchParams.get('currency_from'), to: url.searchParams.get('currency_to') });
+    nowpayments.minAmount.push({
+      from: url.searchParams.get('currency_from'),
+      to: url.searchParams.get('currency_to'),
+      // The floor is per FLOW as well as per pair — fixed-rate minimums run
+      // higher than standard-rate ones — so the create flags have to ride
+      // along or the quoted figure is one the payment would refuse.
+      fixedRate: url.searchParams.get('is_fixed_rate'),
+      feePaidByUser: url.searchParams.get('is_fee_paid_by_user'),
+    });
     json(res, 200, { min_amount: 0.004, currency_from: url.searchParams.get('currency_from') });
     return;
   }
@@ -6941,7 +6949,18 @@ test("crypto: an open invoice holds its seat and its discount use for the invoic
   const under = await start(aCookie, { planId: tiny.planKey, payCurrency: 'btc' });
   assert.equal(under.status, 409);
   assert.match((await under.json()).error, /network minimum of about 0\.004 BTC/);
-  assert.deepEqual(nowpayments.minAmount.at(-1), { from: 'btc', to: 'sol' }, 'the minimum quoted is the one that refused the order');
+  assert.deepEqual(
+    nowpayments.minAmount.at(-1),
+    { from: 'btc', to: 'sol', fixedRate: 'true', feePaidByUser: 'true' },
+    'the minimum quoted is the one that refused the order — same pair AND same flow the payment was created on',
+  );
+  assert.deepEqual(
+    nowpayments.created.at(-1) === undefined
+      ? null
+      : { fixed: nowpayments.created.at(-1).is_fixed_rate, fee: nowpayments.created.at(-1).is_fee_paid_by_user },
+    { fixed: true, fee: true },
+    'the flow the minimum was asked for is the flow createPayment actually sends',
+  );
   {
     const { rows } = await tq('SELECT * FROM checkout_attempts WHERE discord_id = ? AND plan_id = ?', [A, tiny.planKey]);
     assert.equal(rows.length, 1);
