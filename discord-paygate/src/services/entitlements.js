@@ -13,17 +13,24 @@ const sameStore = (sub, store) => {
 
 // Role mapping for a store. The default store resolves through plan-config
 // (picker override > existing ids > name match); a dashboard-created store
-// carries exact role ids picked during onboarding.
+// carries exact role ids picked during onboarding — checked against the live
+// guild the same way, with the stored role NAME as the fallback, so a role
+// the seller deleted and re-created does not turn every sale into a 500 loop
+// with no role, no receipt and no self-heal. A roles fetch that fails leaves
+// the stored ids in place and marks the mapping degraded (no removals).
 async function rolePlanFor(store) {
   if (!store || store.isDefault) return effectiveRolePlan();
+  const roles = store.guildId ? await guildRolesCached(store.guildId) : null;
   const map = new Map();
   const ids = [];
   for (const plan of await plansOf(store)) {
-    map.set(plan.id, { roleIds: plan.roleIds, roleNames: plan.roleNames, source: 'store' });
-    ids.push(...plan.roleIds);
+    const resolved = roles ? await resolveAgainstGuild(plan, roles, store.guildId) : null;
+    const roleIds = resolved?.ids ?? plan.roleIds;
+    map.set(plan.id, { roleIds, roleNames: plan.roleNames, source: resolved?.byName ? 'name' : 'store' });
+    ids.push(...roleIds);
   }
   db.recordManagedRoles(ids).catch(() => {}); // removal ledger; never blocks a grant
-  return { map, degraded: false };
+  return { map, degraded: !roles };
 }
 
 // Role ids this store's reconciler may REMOVE: its current mapping plus the
@@ -159,10 +166,27 @@ async function reconcileNow(discordId, store) {
   const desiredInGuild = degraded ? desired : await desiredRoleIdsInGuild(discordId, store, roleMap);
   const toRemove = degraded ? [] : [...current].filter((r) => managed.has(r) && !desiredInGuild.has(r));
 
-  for (const roleId of toAdd) await addRole(discordId, roleId, store.guildId);
-  for (const roleId of toRemove) await removeRole(discordId, roleId, store.guildId);
+  // Revocations first, and every role call isolated: one role the bot cannot
+  // touch (dragged above it, deleted, a 5xx) must never cancel the rest of the
+  // pass. A failed add costs nobody money; a skipped removal is free access.
+  // toAdd and toRemove are disjoint (toRemove excludes desiredInGuild, a
+  // superset of desired), so the order can never cost an entitled member a
+  // role. One throw at the end keeps the caller's logging and the next
+  // sweep's retry.
+  const added = [];
+  const removed = [];
+  const failures = [];
+  for (const roleId of toRemove) {
+    try { await removeRole(discordId, roleId, store.guildId); removed.push(roleId); }
+    catch (err) { failures.push(err.message); }
+  }
+  for (const roleId of toAdd) {
+    try { await addRole(discordId, roleId, store.guildId); added.push(roleId); }
+    catch (err) { failures.push(err.message); }
+  }
+  if (failures.length) throw new Error(failures.join('; '));
 
-  return { joined: false, added: toAdd, removed: toRemove };
+  return { joined: false, added, removed };
 }
 
 // ── entitlement mutations (each ends in a reconcile) ──────────────────────────
@@ -216,6 +240,14 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
 export async function markPastDue(provider, providerRef) {
   const sub = await db.getSubscriptionByRef(provider, providerRef);
   if (!sub) return null;
+  // A revoked row must stay revoked. 'canceled' is what a refund, a chargeback
+  // and the seller's own Revoke button all write, and Stripe keeps retrying the
+  // renewal invoice on the dead card afterwards — without this guard every
+  // retry would open a fresh grace window and hand the role back. Coming back
+  // needs an explicit re-grant (a real payment). 'expired' is deliberately not
+  // here: the sweep can expire a row moments before the renewal's failure
+  // lands, and that buyer should still get grace.
+  if (sub.status === 'canceled') return sub;
   const store = await storeById(sub.store_id);
   const graceUntil = now() + config.gracePeriodHours * 3600;
   await db.setSubscriptionStatus(sub.id, { status: 'past_due', graceUntil });

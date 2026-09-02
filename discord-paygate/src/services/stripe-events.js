@@ -195,6 +195,12 @@ export async function processStripeEvent(event, routeStore = null) {
         return;
       const row = await getSubscriptionByRef('stripe', obj.id);
       if (!row) return;
+      // Same rule as markPastDue: a deliberately revoked row is not resurrected
+      // by routine traffic. Stripe still calls the subscription 'active' after a
+      // refund or a dispute (nothing here cancels it at Stripe), and the buyer's
+      // own cancel button posts cancel_at_period_end, which emits exactly this
+      // event.
+      if (row.status === 'canceled') return;
       if (obj.status === 'active' || obj.status === 'trialing') {
         const periodEnd = subscriptionPeriodEnd(obj);
         await setSubscriptionStatus(row.id, {

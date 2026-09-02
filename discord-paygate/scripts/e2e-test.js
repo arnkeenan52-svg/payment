@@ -156,6 +156,33 @@ function startMock(name, handler) {
   });
 }
 
+// The live role list per guild, as the doctor and the grant path see it. G2's
+// can be swapped by a scenario (a seller deleting and re-creating a role); the
+// default guild's bot position and decoy roles are mock-configurable.
+function guildRoleList(guildId) {
+  if (guildId === G2) {
+    return discord.g2RolesOverride ?? [
+      { id: G2, name: '@everyone', position: 0, permissions: '0', color: 0 },
+      { id: R2_BOT, name: 'Dues', position: 40, permissions: String(1 << 28), color: 0, managed: true },
+      { id: R2_VIP, name: 'VIP', position: 7, permissions: '0', color: 5793266 },
+    ];
+  }
+  if (guildId === GUILD) {
+    return [
+      ...discord.extraRoles,
+      { id: GUILD, name: '@everyone', position: 0, permissions: '0', color: 0 },
+      { id: R_BOT, name: 'Tradeleaks Bot', position: discord.botRolePosition, permissions: String(1 << 28), color: 0, managed: true }, // MANAGE_ROLES
+      { id: R_ADMIN, name: 'Admin', position: 60, permissions: '8', color: 15548997 },
+      { id: R_NEW, name: 'New Tier', position: 15, permissions: '0', color: 16711680 },
+      { id: R_LIFETIME, name: 'Lifetime', position: 12, permissions: '0', color: 0 },
+      { id: R_PRO, name: 'Pro Desk', position: 11, permissions: '0', color: 0 },
+      { id: R_INSIDER, name: 'Insider', position: 10, permissions: '0', color: 0 },
+      { id: R_MANAGED, name: 'Some Bot Integration', position: 3, permissions: '0', color: 0, managed: true },
+    ];
+  }
+  return null;
+}
+
 async function discordHandler(req, res) {
   const url = new URL(req.url, 'http://mock');
   const p = url.pathname;
@@ -172,6 +199,13 @@ async function discordHandler(req, res) {
     discord.roleCalls.push({ method: req.method, uid, roleId });
     if (!discord.members.has(uid)) {
       json(res, 404, { message: 'Unknown Member' });
+      return;
+    }
+    // A role that no longer exists in the guild cannot be granted: Discord
+    // answers 404 Unknown Role (code 10011), and no retry will ever succeed.
+    const known = guildRoleList(m[1]);
+    if (req.method === 'PUT' && known && !known.some((r) => r.id === roleId)) {
+      json(res, 404, { message: 'Unknown Role', code: 10011 });
       return;
     }
     if (req.method === 'PUT') discord.members.get(uid).add(roleId);
@@ -313,25 +347,8 @@ async function discordHandler(req, res) {
       json(res, 500, { message: 'mock: roles fetch exploded' });
       return;
     }
-    if (m[1] === G2) {
-      json(res, 200, [
-        { id: G2, name: '@everyone', position: 0, permissions: '0', color: 0 },
-        { id: R2_BOT, name: 'Dues', position: 40, permissions: String(1 << 28), color: 0, managed: true },
-        { id: R2_VIP, name: 'VIP', position: 7, permissions: '0', color: 5793266 },
-      ]);
-      return;
-    }
-    json(res, 200, [
-      ...discord.extraRoles,
-      { id: GUILD, name: '@everyone', position: 0, permissions: '0', color: 0 },
-      { id: R_BOT, name: 'Tradeleaks Bot', position: discord.botRolePosition, permissions: String(1 << 28), color: 0, managed: true }, // MANAGE_ROLES
-      { id: R_ADMIN, name: 'Admin', position: 60, permissions: '8', color: 15548997 },
-      { id: R_NEW, name: 'New Tier', position: 15, permissions: '0', color: 16711680 },
-      { id: R_LIFETIME, name: 'Lifetime', position: 12, permissions: '0', color: 0 },
-      { id: R_PRO, name: 'Pro Desk', position: 11, permissions: '0', color: 0 },
-      { id: R_INSIDER, name: 'Insider', position: 10, permissions: '0', color: 0 },
-      { id: R_MANAGED, name: 'Some Bot Integration', position: 3, permissions: '0', color: 0, managed: true },
-    ]);
+    // Guilds the mock has no list for are served the default guild's.
+    json(res, 200, guildRoleList(m[1]) ?? guildRoleList(GUILD));
     return;
   }
 }
@@ -786,6 +803,7 @@ const baseEnv = (mocks) => ({
   STRIPE_API_BASE: mocks.stripe.url,
   WEBHOOK_TOLERANCE_SECONDS: '300',
   GRACE_PERIOD_HOURS: '72',
+  ROLE_CACHE_SECONDS: '0', // every resolution refetches, so a scenario can swap a guild's role list and be seen at once
   RESEND_API_KEY: RESEND_KEY,
   RESEND_API_BASE: mocks.resend.url,
 });
@@ -4445,6 +4463,67 @@ test('crypto: an unsigned or wrongly signed IPN grants nothing', async () => {
   assert.equal((await deliverNow(payload, { signature: 'deadbeef' })).status, 400);
   assert.equal((await deliverNow(payload, { signature: signNow(payload, 'the-wrong-secret') })).status, 400);
   assert.equal(await subRow('nowpayments', 'npid_1'), null, 'nothing may be granted on an unverified delivery');
+});
+
+test('managed store: a role deleted and re-created under its name still lands — no 500 loop', async () => {
+  // The seller picked @VIP for a product. Later they delete that role in
+  // Discord and make a new one with the same name. The stored id is dead:
+  // Discord answers 404 Unknown Role to any grant of it. Every sale of that
+  // product used to 500-loop — no role, no receipt, no sale ping, and Stripe
+  // retrying the same event for days — because a managed store's ids were
+  // never checked against the live guild and the stored NAME was never read.
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const onboard = (body) =>
+    fetch(`${appUrl}/api/onboard`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: u7Cookie }, body: JSON.stringify(body) });
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const made = await onboard({ step: 'product', storeId, name: 'Stale Role Club', priceUsd: 25, lifetime: true });
+  const madeBody = await made.text();
+  assert.equal(made.status, 200, madeBody);
+  const plan = JSON.parse(madeBody).plan;
+  assert.equal((await onboard({ step: 'role', storeId, planKey: plan.planKey, roleId: R2_VIP })).status, 200);
+
+  // The seller deletes @VIP and re-creates it: a new snowflake, the same name.
+  const R2_VIP_AGAIN = '2200000000000000102';
+  discord.g2RolesOverride = [
+    { id: G2, name: '@everyone', position: 0, permissions: '0', color: 0 },
+    { id: R2_BOT, name: 'Dues', position: 40, permissions: String(1 << 28), color: 0, managed: true },
+    { id: R2_VIP_AGAIN, name: 'VIP', position: 7, permissions: '0', color: 5793266 },
+  ];
+  try {
+    const UID = '516600000000000016';
+    discord.members.set(UID, new Set());
+    const callsBefore = discord.roleCalls.length;
+    const emailsBefore = resend.emails.length;
+    const pingsBefore = discord.channelPosts.length;
+    const evt = {
+      id: 'evt_stale_role_1',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_stale_role_1', mode: 'payment', amount_total: 2500, client_reference_id: UID, customer_details: { email: 'stale@e2e.test' }, metadata: { plan_id: plan.planKey, discord_id: UID, store_id: String(storeId) } } },
+    };
+    const delivered = await deliverStripe(evt, { path: `/webhooks/stripe/${storeId}`, header: signStripe(JSON.stringify(evt), nowSec(), AUTO_ENDPOINT_SECRET) });
+    assert.equal(delivered.status, 200, delivered.body);
+    assert.ok(memberRoles(UID).has(R2_VIP_AGAIN), 'the live role with the same name is delivered');
+    assert.ok(!discord.roleCalls.slice(callsBefore).some((c) => c.uid === UID && c.roleId === R2_VIP), 'the dead id is never attempted');
+    assert.ok(resend.emails.length > emailsBefore, 'the receipt still goes out');
+    assert.ok(discord.channelPosts.length > pingsBefore, 'the sale ping still goes out');
+    // A sweep has nothing to add and nothing to strip.
+    const sweepFrom = discord.roleCalls.length;
+    assert.equal((await hitCron()).status, 200);
+    assert.ok(memberRoles(UID).has(R2_VIP_AGAIN), 'the sweep keeps the role');
+    assert.equal(discord.roleCalls.slice(sweepFrom).filter((c) => c.uid === UID).length, 0, 'the sweep has nothing to do');
+  } finally {
+    discord.g2RolesOverride = null;
+  }
+  // Park the product so later catalogs are unchanged.
+  assert.equal((await onboard({ step: 'product-update', storeId, planKey: plan.planKey, active: false })).status, 200);
 });
 
 test('crypto: waiting and partially_paid show progress and grant nothing', async () => {

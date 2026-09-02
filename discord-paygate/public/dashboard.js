@@ -1358,11 +1358,18 @@ async function renderChecklist(store, slug) {
     const products = await loadProducts(store);
     const withRoles = products.filter((p) => (p.roleIds ?? []).length);
     let rolesOk = true;
+    let rolesGone = false;
     if (withRoles.length) {
       const data = await api('/api/onboard', { step: 'roles', storeId: store.id }).catch(() => null);
       if (data) {
-        const usable = new Set(data.roles.filter((r) => r.usable).map((r) => r.id));
-        rolesOk = withRoles.every((p) => p.roleIds.every((rid) => usable.has(rid)));
+        // Two different failures, two different fixes: a role that is no
+        // longer in the server needs re-picking; one that exists but sits
+        // above the bot needs dragging. One `usable` test blamed both on the
+        // bot's position.
+        const known = new Map(data.roles.map((r) => [r.id, r]));
+        const wanted = withRoles.flatMap((p) => p.roleIds);
+        rolesGone = wanted.some((rid) => !known.has(rid));
+        rolesOk = wanted.every((rid) => !known.has(rid) || known.get(rid).usable);
       }
     }
     const checks = [
@@ -1378,6 +1385,7 @@ async function renderChecklist(store, slug) {
       },
       { ok: products.length > 0, label: 'First product created', href: `#/store/${slug}/products` },
       { ok: store.status === 'live' && withRoles.length > 0, label: 'Store published with a role to deliver', href: `#/store/${slug}/products` },
+      { ok: !rolesGone, label: 'Every role a product delivers still exists', href: `#/store/${slug}/products`, hint: 'A role was deleted from your server — open the product and pick its role again. Until then Dues delivers a role with the same name, if there is one.' },
       { ok: rolesOk, label: 'Bot role sits above the roles it delivers', href: null, hint: 'Drag the Dues role higher in Server Settings → Roles.' },
     ];
     if (checks.every((c) => c.ok)) return;

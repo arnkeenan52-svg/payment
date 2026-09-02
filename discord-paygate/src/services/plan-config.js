@@ -26,35 +26,34 @@ import { getGuildRoles, getBotUser, getGuildMember } from '../lib/discord.js';
 // path and role lists change rarely. Failures are NOT cached — the next call
 // retries — and resolve to null so callers fall back to the configured ids.
 const ttlMs = () => Number(process.env.ROLE_CACHE_SECONDS ?? 60) * 1000;
-let rolesFetchedAt = 0;
-let rolesPromise = null;
-function guildRolesCached() {
+// Per guild: every managed store lives in its own server, and the cron sweep
+// resolves once per (store, member) pair, so one shared slot would thrash.
+const rolesCache = new Map(); // guildId -> { at, promise }
+export function guildRolesCached(guildId = config.discord.guildId) {
   const at = Date.now();
-  if (!rolesPromise || at - rolesFetchedAt > ttlMs()) {
-    rolesFetchedAt = at;
-    rolesPromise = getGuildRoles().catch(() => {
-      rolesFetchedAt = 0;
-      return null;
-    });
-  }
-  return rolesPromise;
+  const hit = rolesCache.get(guildId);
+  if (hit && at - hit.at <= ttlMs()) return hit.promise;
+  const entry = { at, promise: null };
+  entry.promise = getGuildRoles(guildId).catch(() => {
+    entry.at = 0; // a failure is not cached: the next call retries
+    return null;
+  });
+  rolesCache.set(guildId, entry);
+  return entry.promise;
 }
 
 // The doctor calls this before running so "Re-run checks" never grades a
 // mapping resolved from a role list up to a minute old.
 export function invalidateGuildRolesCache() {
-  rolesFetchedAt = 0;
-  rolesPromise = null;
-  botMemberFetchedAt = 0;
-  botMemberPromise = null;
+  rolesCache.clear();
+  botMemberCache.clear();
 }
 
 // The bot's top role position — consulted only to break ties between
 // same-named roles, so the pick prefers a role the bot can actually grant.
 let botIdPromise = null;
-let botMemberFetchedAt = 0;
-let botMemberPromise = null;
-async function botTopPosition(roles) {
+const botMemberCache = new Map(); // guildId -> { at, promise }
+async function botTopPosition(roles, guildId = config.discord.guildId) {
   try {
     botIdPromise ??= getBotUser().then((u) => u.id).catch(() => {
       botIdPromise = null;
@@ -63,14 +62,16 @@ async function botTopPosition(roles) {
     const botId = await botIdPromise;
     if (!botId) return null;
     const at = Date.now();
-    if (!botMemberPromise || at - botMemberFetchedAt > ttlMs()) {
-      botMemberFetchedAt = at;
-      botMemberPromise = getGuildMember(botId).catch(() => {
-        botMemberFetchedAt = 0;
+    let hit = botMemberCache.get(guildId);
+    if (!hit || at - hit.at > ttlMs()) {
+      hit = { at, promise: null };
+      hit.promise = getGuildMember(botId, guildId).catch(() => {
+        hit.at = 0;
         return null;
       });
+      botMemberCache.set(guildId, hit);
     }
-    const member = await botMemberPromise;
+    const member = await hit.promise;
     if (!member) return null;
     const byId = new Map(roles.map((r) => [r.id, r]));
     let top = 0;
@@ -86,7 +87,10 @@ const normName = (name) => String(name ?? '').replace(/^@/, '').trim().toLowerCa
 // Tier 2/3 resolution for one plan against the live role list. Returns null
 // when nothing resolves — callers fall back to the shipped ids so the doctor
 // can point at them loudly.
-async function resolveAgainstGuild(plan, roles) {
+// Exported: managed stores resolve the same way against THEIR guild, so a
+// role the seller deleted and re-created under the same name still lands
+// instead of every sale 500-looping on the dead id.
+export async function resolveAgainstGuild(plan, roles, guildId = config.discord.guildId) {
   const byId = new Map(roles.map((r) => [r.id, r]));
   const ids = (plan.roleIds ?? []).filter((id) => byId.has(id));
   if (ids.length > 0) return { ids, byName: false };
@@ -96,12 +100,12 @@ async function resolveAgainstGuild(plan, roles) {
     const key = normName(wanted);
     if (!key) continue;
     const matches = roles
-      .filter((r) => r.id !== config.discord.guildId && !r.managed && normName(r.name) === key)
+      .filter((r) => r.id !== guildId && !r.managed && normName(r.name) === key)
       .sort((a, b) => b.position - a.position);
     if (matches.length === 0) continue;
     let pick = matches[0];
     if (matches.length > 1) {
-      const top = await botTopPosition(roles);
+      const top = await botTopPosition(roles, guildId);
       if (top !== null) pick = matches.find((m) => m.position < top) ?? matches[0];
     }
     if (!out.includes(pick.id)) out.push(pick.id);
