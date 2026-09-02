@@ -6,11 +6,17 @@ import { getAppSecret, setAppSecret } from '../../src/db.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
 import { resendApiKey, receiptFrom } from '../../src/lib/email.js';
 
-// A bare address, or a display name in front of one in angle brackets. The
-// name may not carry quotes or brackets of its own — nothing here needs the
-// full RFC 5322 grammar, and a From header is not the place to explore it.
+// A bare address, or a display name in front of one in angle brackets.
+// The name is either quoted or free of the characters that end a mailbox.
+// The old class had that backwards — it banned the quotes and admitted the
+// specials — so `Dues, Inc <a@b.co>` was stored (the comma ends the address:
+// not a mailbox at all, and every receipt then fails at Resend) while the one
+// spelling that works, `"Dues, Inc" <a@b.co>`, was refused. Nothing here
+// needs the full RFC 5322 grammar; it does need to stop admitting exactly
+// the senders Resend will reject.
 const ADDRESS = '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+';
-const FROM_RE = new RegExp(`^(?:${ADDRESS}|[^<>"\\r\\n]{1,80}<${ADDRESS}>)$`);
+const NAME = '(?:"[^"\\r\\n]{1,78}"|[^<>",:;@\\r\\n]{1,80})';
+const FROM_RE = new RegExp(`^(?:${ADDRESS}|${NAME} ?<${ADDRESS}>)$`);
 
 // Platform settings (owner only): the Resend key powering receipt emails and
 // the From address. Stored sealed in the database so no redeploy is needed;
@@ -47,7 +53,7 @@ export default guard(async function handler(req, res) {
     // receipts quietly stop — so the shape is checked here, where the owner
     // can still see the answer.
     if (from.length > 120 || !FROM_RE.test(from)) {
-      sendJson(res, 400, { error: 'The sender must be an email address, or Name <address> — e.g. Dues <receipts@yourdomain.com>.' });
+      sendJson(res, 400, { error: 'The sender must be an email address, or Name <address> — e.g. Dues <receipts@yourdomain.com>. A name containing a comma goes in double quotes.' });
       return;
     }
     await setAppSecret('receipt_from', from);

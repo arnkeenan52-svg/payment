@@ -5759,11 +5759,16 @@ test('the input boundary: bad cookies, null bodies, NUL bytes, wrong types and o
   // The receipt sender is the From header of every receipt: an address, or a
   // name in front of one. Resend rejects anything else and the only symptom
   // used to be receipts quietly stopping.
-  for (const from of ['not an email at all', '<script>alert(1)</script>', 'Dues <a@b>', 'Dues <a@b.c', 'x\r\nbcc: y@z.io']) {
+  // The specials belong in quotes: `Dues, Inc <a@b.co>` is not a mailbox at
+  // all (the comma ends the address) and Resend rejects it — receipts then
+  // stop with no symptom. The check used to admit exactly those and refuse
+  // the quoted spelling that works.
+  for (const from of ['not an email at all', '<script>alert(1)</script>', 'Dues <a@b>', 'Dues <a@b.c', 'x\r\nbcc: y@z.io', 'Dues, Inc <a@b.co>', 'a:b;c <a@b.co>', 'x@y.z <a@b.co>']) {
     assert.equal((await post('/api/admin/settings', { receiptFrom: from }, u1Cookie)).status, 400, `receiptFrom ${JSON.stringify(from)}`);
   }
+  assert.equal((await post('/api/admin/settings', { receiptFrom: '"Dues, Inc" <receipts@tradeleaks.e2e>' }, u1Cookie)).status, 200, 'a quoted display name is the RFC spelling, not a refusal');
   const settings = await (await fetch(`${appUrl}/api/admin/settings`, { headers: { cookie: u1Cookie } })).json();
-  assert.equal(settings.receiptFrom, 'Dues <receipts@tradeleaks.e2e>', 'the refused senders changed nothing');
+  assert.equal(settings.receiptFrom, '"Dues, Inc" <receipts@tradeleaks.e2e>', 'the refused senders changed nothing');
   assert.equal((await post('/api/admin/settings', { receiptFrom: 'Dues <receipts@tradeleaks.e2e>' }, u1Cookie)).status, 200, 'a real Name <address> sender is accepted');
 });
 
