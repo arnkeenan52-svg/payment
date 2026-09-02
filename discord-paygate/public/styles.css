@@ -131,6 +131,17 @@ html[data-theme='light'] body { background: var(--bg); color: var(--ink); }
 
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+/* The hidden attribute wins everywhere. [hidden] is a UA rule with NO
+   specificity, so any `display:` on a class beat it — and this file kept
+   rediscovering that one block at a time (.coinpick, .field, the button
+   family, .shop-tabs …) while .shop-btn, .shop-icon-btn, .order-roles,
+   .pay-panel and .totals were still missed: the hosted demo store shipped an
+   inert "Follow" button with .hidden === true, and a checkout that hid its
+   totals kept drawing them. One rule with !important closes the whole class
+   of bug; the per-block rules below stay as the record of where it bit.
+   Anything that must show while carrying the attribute has to say so with
+   its own !important — nothing in this stylesheet does. */
+[hidden] { display: none !important; }
 
 body {
   background: var(--bg);
@@ -959,7 +970,7 @@ footer {
 .footer-col { display: flex; flex-direction: column; gap: 6px; }
 .footer-col a { color: var(--dim); text-decoration: none; font-size: 13px; }
 .footer-col a:hover { color: var(--ink); }
-.footer-head { font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 2px; }
+.footer-head { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 2px; }
 
 /* ── dashboard app: picker, wizard, tabs, chart ───────────────────────────── */
 .dash-head h1 { font-size: 24px; margin: 0 0 4px; }
@@ -1372,8 +1383,8 @@ body.home .landing { overflow-x: clip; }
 .calc-bar { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 10%, transparent); overflow: hidden; }
 .calc-bar span { display: block; height: 100%; border-radius: 4px; background: color-mix(in srgb, var(--ink) 28%, transparent); transition: width 260ms cubic-bezier(0.2, 0, 0, 1); }
 .calc-bar.mine span { background: var(--accent); }
-.calc-bar-sub { font-size: 11.5px; color: color-mix(in srgb, var(--ink) 40%, transparent); }
-.calc-note { font-size: 11.5px; color: color-mix(in srgb, var(--ink) 35%, transparent); line-height: 1.5; margin: 4px 0 0; }
+.calc-bar-sub { font-size: 12px; color: color-mix(in srgb, var(--ink) 40%, transparent); }
+.calc-note { font-size: 12px; color: color-mix(in srgb, var(--ink) 35%, transparent); line-height: 1.5; margin: 4px 0 0; }
 @media (prefers-reduced-motion: reduce) { .calc-bar span { transition: none; } }
 
 /* fee trio */
@@ -1817,7 +1828,7 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 /* ── mobile header: one row + hamburger menu (home) ─────────────────────────── */
 .menu-btn {
   display: none; background: transparent; border: 1px solid var(--edge); border-radius: 6px;
-  color: var(--ink); min-width: 40px; min-height: 40px; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--ink); min-width: 44px; min-height: 44px; align-items: center; justify-content: center; cursor: pointer;
 }
 .menu-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .mobile-menu {
@@ -1911,7 +1922,9 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 .bt-free span { color: var(--dim); font-weight: 500; }
 #billing-body .bill-toggle { justify-content: flex-start; margin: 4px 0 12px; }
 
-.footer-disclaimer { flex-basis: 100%; color: color-mix(in srgb, var(--ink) 35%, transparent); font-size: 12px; margin: 14px 0 0; }
+/* Capped like every other body block: full-width it ran ~185 characters a
+   line at 12px, twice the measure a reader can track back from. */
+.footer-disclaimer { flex-basis: 100%; max-width: 78ch; color: color-mix(in srgb, var(--ink) 35%, transparent); font-size: 12px; margin: 14px 0 0; }
 
 /* ── hero: browser-chrome frame around the video (reference look) ───────────── */
 .browser-frame { border-color: color-mix(in srgb, var(--accent) 30%, rgba(255,255,255,0.1)); position: relative; }
@@ -2692,7 +2705,7 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .alt-card { cursor: default; }
 .alt-ours {
   margin-left: 8px; vertical-align: 2px; background: #ededed; color: var(--accent-ink);
-  border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 750;
+  border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 750;
   letter-spacing: 0.06em; text-transform: uppercase;
 }
 .alt-grid { grid-template-columns: 1fr; }
@@ -3167,7 +3180,10 @@ body[data-material='solid'].has-bg .shop-col {
 #shop-desc-more { display: block; width: fit-content; padding-left: 0; margin-top: 2px; }
 .shop-metaline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 15px; color: var(--dim); font-size: 16px; }
 .shop-mgroup { display: inline-flex; align-items: center; gap: 14px; }
-.shop-mlink { color: var(--dim); display: inline-flex; }
+/* The icon is 17px; the hit box is not. Padding grows it to 25px for a
+   pointer and the negative margin gives the layout the 17px back, so the
+   row keeps its rhythm. The touch pass below takes the same box to 44. */
+.shop-mlink { color: var(--dim); display: inline-flex; padding: 4px; margin: -4px; }
 .shop-mlink:hover { color: var(--ink); }
 .shop-metaline[hidden] { display: none; }
 
@@ -3296,12 +3312,12 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-roleline { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 16px; color: var(--dim); }
 .shop-rolestack { display: inline-flex; flex: none; }
 .shop-rolechip {
-  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
-  font: 700 10px/1 var(--font-body, inherit); color: var(--ink);
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 12px/1 var(--font-body, inherit); color: var(--ink);
   background: color-mix(in srgb, var(--ink) 18%, transparent);
   box-shadow: 0 0 0 1.5px var(--shop-ground);
 }
-.shop-rolechip + .shop-rolechip { margin-left: -8px; }
+.shop-rolechip + .shop-rolechip { margin-left: -9px; }
 .shop-roleline b { color: var(--ink); font-weight: 600; }
 
 /* ── tabs: rail to rail, exact fractions, pill underline on the divider ── */
@@ -3388,8 +3404,8 @@ body[data-material='solid'].has-bg .shop-col {
   .shop-name { font-size: 24px; }
   .shop-titlebar { flex-direction: column; align-items: stretch; gap: 12px; }
   .shop-actions { gap: 8px; }
-  .shop-icon-btn { width: 40px; height: 40px; flex: none; }
-  .shop-btn { flex: 1; height: 40px; }
+  .shop-icon-btn { width: 44px; height: 44px; flex: none; }
+  .shop-btn { flex: 1; height: 44px; }
   .shop-tab { height: 52px; font-size: 14px; }
   .shop-tab.active::after { width: 48px; }
 }
@@ -3404,6 +3420,30 @@ body[data-material='solid'].has-bg .shop-col {
 
 /* the hidden attribute must win over the layout display rules above */
 .order-card[hidden], .shop[hidden] { display: none !important; }
+
+/* ── touch: 44px hit boxes for the controls the phone pass above missed ──
+   Sized by the pointer, not the viewport width, because that is what decides
+   whether a finger or a cursor lands on them. Each grows its HIT box, not
+   its drawn box: padding plus the matching negative margin, or a pseudo
+   element, so nothing on the page moves and the layout budgets (the phone
+   footer's fit guard) are untouched. */
+@media (pointer: coarse) {
+  /* A 44px box around the 17px icon, and the negative margin hands the 17px
+     back to the row. The icons sit 17px apart plus a 14px gap: a 31px pitch,
+     so two 44px boxes would overlap and a finger got 31 of them. Gap 27
+     makes the pitch 44. */
+  .shop-mlink { width: 44px; height: 44px; align-items: center; justify-content: center; margin: -13.5px; }
+  .shop-mgroup { gap: 27px; }
+  /* The chip rows wrap with an 8px gap, so a pseudo-element reaching out
+     for the missing height would land on the row below; the chip itself
+     grows instead: 16px of text + 2 x 14px + the border = 44. */
+  .disc-chip { padding-top: 14px; padding-bottom: 14px; }
+  .powered-community { position: relative; }
+  .powered-community::after { content: ""; position: absolute; inset: -12px 0; }
+  /* The footer directory has no fit budget on these pages, so the rows can
+     genuinely grow: 38px + the 6px gap is a 44px pitch. */
+  .footer-col a { display: inline-flex; align-items: center; min-height: 38px; }
+}
 
 /* ── shop page: about, empty state ────────────────────────────────────────── */
 /* NOTE: `.prod-roles` is still declared here as a flex row, but the storefront
@@ -3810,7 +3850,23 @@ html[data-theme='light'] body.home .browser-frame .hero-video { background: #faf
 html[data-theme='light'] .store-bg::after { background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(16, 25, 45, 0.14)); }
 /* content stacks above the fixed ground */
 body.has-bg .top, body.has-bg .checkout, body.has-bg > footer { position: relative; z-index: 1; }
-body.has-bg .top { background: transparent; border-bottom-color: transparent; }
+/* The header and footer sit outside the column, straight on the wallpaper,
+   and their --dim text is mixed from the palette, not from the photograph:
+   on meadow the "powered by" line measured 1.2:1, on blossom 1.2:1, and the
+   signed-in nav link 2.2:1 on sky-day. Same translucent ground the column
+   already wears, so their contrast stops depending on the seller's photo. */
+body.has-bg .top, body.has-bg > footer {
+  background: color-mix(in srgb, var(--bg) 46%, transparent);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+body.has-bg .top { border-bottom-color: transparent; }
+/* And their text is the ink, not --dim. --dim is mixed for the palette's own
+   opaque ground; on the 46% ground it still measured 3.1:1 on meadow and
+   3.3:1 for the signed-in nav link on sky-day (a denser ground alone never
+   got sky-day past 4.4). The ink measures 5.0:1 at its worst, on flow, and
+   7:1 or better on every other preset. */
+body.has-bg > footer, body.has-bg .powered-community,
+body.has-bg .top .nav-link, body.has-bg .top .account, body.has-bg .top .btn-ghost { color: var(--ink); }
 
 /* ── materials ─────────────────────────────────────────────────────────────
    glass (default with a background), liquid (heavier, specular), solid. */

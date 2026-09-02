@@ -4384,6 +4384,110 @@ test('gated + limited-time products: only role holders buy, expiry ends the sale
   assert.equal((await onboard({ step: 'product-delete', storeId, planKey: plan.planKey })).status, 200);
 });
 
+test('storefront chrome: hidden wins, touch targets reach 44, phone text floors at 12px', async () => {
+  // A stylesheet is behaviour too. Each of these pinned a buyer-visible bug
+  // that a desktop skim signed off on, and the suite cannot run a browser —
+  // so it holds the RULES that fixed them, from the served stylesheet, with
+  // the same selectors the pages use.
+  const css = await (await fetch(`${appUrl}/styles.css`)).text();
+  const plain = css.replace(/\/\*[\s\S]*?\*\//g, ''); // comments talk about selectors too
+  const rules = (sel) => {
+    // every declaration block whose selector list carries `sel` verbatim
+    const out = [];
+    const re = /([^{}]+)\{([^{}]*)\}/g;
+    let m;
+    while ((m = re.exec(plain))) if (m[1].split(',').map((s) => s.trim()).includes(sel)) out.push(m[2]);
+    return out;
+  };
+  const page = (file) => fs.readFileSync(path.join(ROOT, 'public', file), 'utf8');
+
+  // [hidden] is a UA rule with no specificity; .shop-btn's display:inline-flex
+  // beat it and /demo shipped an inert Follow button with .hidden === true.
+  // One !important rule, and nothing in the sheet may push back against it.
+  assert.match(css, /\n\[hidden\] \{ display: none !important; \}/, 'the generic [hidden] rule must be in the served stylesheet');
+  for (const [, sel, body] of plain.matchAll(/([^{}]*\[hidden\][^{}]*)\{([^{}]*)\}/g)) {
+    if (/:not\([^)]*\[hidden\]/.test(sel)) continue; // `.x:not([hidden])` is the attribute doing its job
+    const d = body.match(/display:\s*([^;!]+)/);
+    if (d) assert.equal(d[1].trim(), 'none', `${sel.trim()} must not re-show a hidden element`);
+  }
+  const demo = await (await fetch(`${appUrl}/api/plans?store=demo`)).json();
+  assert.equal(demo.store.followable, false, 'the demo store is not followable, so its Follow button is hidden — and must actually vanish');
+
+  // Touch targets: the phone pass had stopped at 40px, and several controls
+  // were never sized for a finger at all. Hit boxes, not drawn boxes.
+  const phone = css.slice(css.indexOf('@media (max-width: 560px) {\n  .shop-avatar'));
+  assert.match(phone, /\.shop-icon-btn \{ width: 44px; height: 44px;/, 'share button is 44px on phones');
+  assert.match(phone, /\.shop-btn \{ flex: 1; height: 44px; \}/, 'Join / Follow are 44px on phones');
+  assert.match(rules('.menu-btn')[0], /min-width: 44px; min-height: 44px/, 'the /discover hamburger is 44px');
+  assert.match(rules('.shop-mlink')[0], /padding: 4px; margin: -4px;/, 'store links carry a 24px pointer hit box');
+  const touch = css.slice(css.indexOf('@media (pointer: coarse) {'));
+  assert.ok(touch.length > 30, 'the touch pass exists');
+  assert.match(touch, /\.shop-mlink \{ width: 44px; height: 44px; align-items: center; justify-content: center; margin: -13\.5px; \}/, 'store links reach 44px under a finger');
+  assert.match(touch, /\.shop-mgroup \{ gap: 27px; \}/, 'store links sit a 44px pitch apart, so the hit boxes do not overlap');
+  assert.match(touch, /\.disc-chip \{ padding-top: 14px; padding-bottom: 14px; \}/, 'discover chips grow to 44px');
+  assert.match(touch, /\.powered-community::after \{ content: ""; position: absolute; inset: -12px 0; \}/, 'the community link reaches 44px');
+  assert.match(touch, /\.footer-col a \{ display: inline-flex; align-items: center; min-height: 38px; \}/, 'footer rows grow to a 44px pitch');
+  for (const file of ['index.html', 'pricing.html']) {
+    const html = page(file);
+    assert.match(html, /\.nav-login\{[^}]*padding:10px 0;margin:-10px 0\}/, `${file}: Log in has a 44px hit box`);
+    assert.match(html, /\.hero-foot a\{[^}]*min-height:44px;margin:-6px 0\}/, `${file}: the hero footer links have a 44px hit box in a 32px row`);
+    assert.match(html, /\.footer \.soc-tile::after\{content:"";position:absolute;inset:-6px\}/, `${file}: social tiles reach 44px`);
+    // The landing footer has a fit budget (the phone reveal disarms when it
+    // outgrows the viewport), so these rows cannot grow: the hit box reaches
+    // UP into the gap above the row, which is the whole pitch on a phone.
+    assert.match(html, /\.footer \.fcol a::after\{content:"";position:absolute;inset:-5px 0 0\}/, `${file}: footer links grow only upward, never the footer`);
+  }
+
+  // Phone text floor: nothing a buyer reads sits under 12px.
+  const px = (body) => [...body.matchAll(/font(?:-size)?:\s*(?:\d+\s+)?([\d.]+)px/g)].map((m) => Number(m[1]));
+  for (const sel of ['.shop-rolechip', '.alt-ours', '.footer-head', '.calc-note', '.calc-bar-sub', '.footer-disclaimer']) {
+    const sizes = rules(sel).flatMap(px);
+    assert.ok(sizes.length, `${sel} declares a size`);
+    assert.ok(sizes.every((n) => n >= 12), `${sel} must not go under 12px (got ${sizes})`);
+  }
+  for (const file of ['index.html', 'pricing.html']) {
+    const html = page(file);
+    for (const re of [/\.tog-save\{\s*font-size:([\d.]+)px/, /\.marq-cap\{\s*text-align:center;font-size:([\d.]+)px/, /\.kicker\{\s*display:block;font:600 ([\d.]+)px/, /\.footer \.fcol b\{[^}]*font-size:([\d.]+)px/]) {
+      const m = html.match(re);
+      assert.ok(m, `${file}: ${re} must still match`);
+      assert.ok(Number(m[1]) >= 12, `${file}: ${re} is ${m[1]}px, under the 12px floor`);
+    }
+    // the footer heading grew from 10.5px inside a fit-budgeted footer: the
+    // leading is what keeps its line box (and the phone budget) unchanged
+    assert.match(html, /\.footer \.fcol b\{[^}]*line-height:1\.1;/, `${file}: footer headings keep their 13px line box`);
+  }
+  const home = page('index.html');
+  assert.match(home, /\.pay-cap\{font:600 12px/, 'the payment caption is 12px');
+  assert.match(home, /\.save-cap\{display:block;font:600 12px/, 'the savings caption is 12px');
+  assert.doesNotMatch(home, /\.save-cap\{font-size:10\.5px\}/, 'no phone override drags it back under');
+
+  // The legal footnote ran ~185 characters a line on a desktop: capped like
+  // every other body block.
+  assert.match(rules('.footer-disclaimer')[0], /max-width: 78ch/, 'the footer disclaimer is capped to a readable measure');
+
+  // Store chrome over a wallpaper: header and footer wear the column's
+  // translucent ground and the ink, so their text no longer depends on the
+  // seller's photo.
+  assert.match(css, /body\.has-bg \.top, body\.has-bg > footer \{\n  background: color-mix\(in srgb, var\(--bg\) 46%, transparent\);/, 'header + footer get the column ground over a wallpaper');
+  assert.doesNotMatch(css, /body\.has-bg \.top \{ background: transparent/, 'the header must not be transparent over a wallpaper');
+  assert.match(css, /\nbody\.has-bg > footer, body\.has-bg \.powered-community,\nbody\.has-bg \.top \.nav-link, body\.has-bg \.top \.account, body\.has-bg \.top \.btn-ghost \{ color: var\(--ink\); \}/, 'chrome text over a wallpaper is the ink, not --dim');
+
+  // Day-sky SEO pages: blurple TEXT is the darker token. #5865f2 measured
+  // 4.3:1 on the paper and ~3.1:1 under the sky; #424cbd is 6.6:1 on the
+  // paper and 5.0:1 on the bluest band a prose link sits on. Pinned in the
+  // generator AND in the committed artifacts, so a regenerate that was never
+  // run cannot ship the old colour.
+  const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-seo-pages.mjs'), 'utf8');
+  const textLinks = ['--blurple-text: #424cbd;', '.guide-body a { color: var(--blurple-text); }', '.alt-card .seo-card-cta a { color: var(--blurple-text); }',
+    '.seo-card-cta, .cmp-table th:nth-child(2), .calc-label output { color: var(--blurple-text); }'];
+  for (const line of textLinks) assert.ok(gen.includes(line), `generator paints "${line}"`);
+  assert.doesNotMatch(gen, /\.guide-body a \{ color: #5865f2/, 'prose links never go back to the button blurple');
+  for (const seo of ['help.html', 'vs/whop.html', 'tools/whop-fee-calculator.html', 'alternatives/whop-alternatives.html', 'guides/discord-paywall.html']) {
+    const html = page(seo);
+    for (const line of textLinks) assert.ok(html.includes(line), `${seo} is regenerated with "${line}"`);
+  }
+});
+
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {
   // The page serves with its own head and the Emerald theme server-rendered.
   const page = await (await fetch(`${appUrl}/demo`)).text();
