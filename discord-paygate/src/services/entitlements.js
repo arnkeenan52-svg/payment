@@ -131,7 +131,10 @@ export async function reconcileEverywhere(discordId) {
   };
 }
 
-async function reconcileNow(discordId, store) {
+// `afterJoin` marks the one re-entry allowed after a guilds.join answered
+// 204 ("already a member"): the second pass diffs like any other and never
+// tries to join again.
+async function reconcileNow(discordId, store, afterJoin = false) {
   // One mapping snapshot for BOTH the desired and managed sets — resolving
   // twice could disagree mid-reconcile (a transient roles-fetch failure on
   // one of them) and strip a role the member is entitled to.
@@ -139,12 +142,23 @@ async function reconcileNow(discordId, store) {
   const desired = await desiredFrom(roleMap, store, discordId);
   const managed = await managedFor(store, roleMap);
 
+  // Throws with code 'bot_not_in_guild' when the BOT is gone from the server
+  // — that is not "the buyer isn't in yet", and no join can fix it.
   const member = await getGuildMember(discordId, store.guildId);
 
   if (member === null) {
     // Buyer isn't in the server yet. If they logged in we hold a guilds.join
     // token — pull them in with their roles already applied instead of failing.
     if (desired.size === 0) return { joined: false, added: [], removed: [] };
+    if (afterJoin) {
+      // Discord just said "already a member" and now says "not a member".
+      // A consistency window, or a member fetch failing for some reason other
+      // than absence — either way, looping until the two agree once spun for
+      // the whole function budget. One look is all it gets; the next
+      // reconcile (every webhook, login and sweep) tries again.
+      console.warn(`[entitlements] Discord reports ${discordId} already in guild ${store.guildId} but the member fetch still answers 404; will retry on next reconcile`);
+      return { joined: false, added: [], removed: [] };
+    }
     const user = await db.getUser(discordId);
     if (!user?.access_token) {
       console.warn(`[entitlements] ${discordId} not in guild ${store.guildId} and no OAuth token stored; will retry on next reconcile`);
@@ -153,8 +167,8 @@ async function reconcileNow(discordId, store) {
     const joined = await joinGuildWithRoles(discordId, user.access_token, [...desired], store.guildId);
     if (joined) return { joined: true, added: [...desired], removed: [] };
     // 204: they were already a member after all (raced a join) — fall through
-    // to a normal diff on the next call; recurse once for freshness.
-    return reconcileNow(discordId, store);
+    // to a normal diff; exactly one re-entry, see `afterJoin`.
+    return reconcileNow(discordId, store, true);
   }
 
   const current = new Set(member.roles ?? []);
@@ -327,15 +341,30 @@ export async function sweepExpirations(at = now()) {
     pairs.set(`${m.storeId ?? 'default'}:${m.discordId}`, m);
   }
   let reconciled = 0;
+  // A guild the bot has been kicked from fails every member the same way.
+  // Name it once, skip the store's remaining members this run (two Discord
+  // calls each, all doomed), and carry the guild in the result so the cron
+  // response shows the outage — nobody reads the log of an hourly job.
+  const guildsWithoutBot = new Set();
   for (const { storeId, discordId } of pairs.values()) {
     try {
       const store = await storeById(storeId);
       if (!store) continue;
+      if (guildsWithoutBot.has(String(store.guildId))) continue;
       await reconcile(discordId, store);
       reconciled++;
     } catch (err) {
+      if (err.code === 'bot_not_in_guild') {
+        guildsWithoutBot.add(err.guildId);
+        console.error(`[sweep] the bot is not in guild ${err.guildId} (store ${storeId ?? 'default'}): no member there can gain or lose a role until it is re-invited; skipping that store's other members this run`);
+        continue;
+      }
       console.error(`[sweep] reconcile ${discordId} (store ${storeId ?? 'default'}) failed: ${err.message}`);
     }
   }
-  return { lapsed: lapsed.length, membersReconciled: reconciled };
+  return {
+    lapsed: lapsed.length,
+    membersReconciled: reconciled,
+    ...(guildsWithoutBot.size ? { guildsWithoutBot: [...guildsWithoutBot] } : {}),
+  };
 }
