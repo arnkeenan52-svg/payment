@@ -372,6 +372,25 @@ has Custody enabled: a payment created *without* a payout address would settle
 into the platform balance, so `createPayment` throws rather than build one.
 Custody-off is the target state, and turning it off changes nothing here.
 
+> **Open question — ask NOWPayments before releasing the rail.** Their
+> documentation describes settlement as a transfer out to a wallet
+> (`sending` = "the funds are being sent to your personal wallet") but it
+> never defines `payout_address` on `POST /v1/payment`; it only defines
+> `payout_currency` as "currency of your external payout_address" and
+> `payout_extra_id` as "extra id or memo or tag for external payout_address".
+> Meanwhile the account-level settlement target is documented as one payout
+> wallet per currency, and the Mass Payouts API refuses any address that is
+> not whitelisted (24–48h per request). Nothing published settles whether a
+> per-payment payout address is honoured while Custody is on, or whether it is
+> subject to that whitelist — and if it is, per-seller forwarding cannot work
+> at all. One question to paste to `support@nowpayments.io`:
+>
+> > On `POST /v1/payment`, is the `payout_address` field honoured as an
+> > automatic per-payment settlement to that external address — including
+> > while Custodial Processing is enabled on our account, and for addresses
+> > that are not on our payout-wallet or Mass Payouts whitelist — or is it
+> > ignored so that funds settle to our account balance instead?
+
 Three provider behaviours the code is built around:
 
 - **Payment covering (2%)** — a deposit within 2% of the price is finished by

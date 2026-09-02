@@ -3,7 +3,8 @@
 //
 // THE ONE RULE: Dues never holds funds, and neither does its account.
 //
-// Confirmed against the live dashboard (28 Aug 2026):
+// Read from the live dashboard (28 Aug 2026). These are settings someone saw,
+// not behaviour anyone has watched money go through:
 //
 //   Custody                    ENABLED — it could NOT be switched off yet.
 //                              The confirm dialog refuses while the payout
@@ -20,6 +21,32 @@
 //                                    invoice address has it converted at the
 //                                    current rate instead of bounced)
 //
+// WHAT THE PROVIDER'S OWN DOCUMENTATION SAYS, AND WHAT IT DOES NOT.
+//
+// It says settlement is a transfer OUT to a wallet: `sending` is "the funds
+// are being sent to your personal wallet", `finished` is "the funds have
+// reached your personal address", and the fees page describes the
+// non-custodial flow as "we process the payment, charge the NOWPayments
+// service fee, and make the payout to your wallet". So forwarding is the
+// documented shape of a settled payment, with no second call to make.
+//
+// It does NOT document `payout_address` on POST /payment. The create-payment
+// field list defines `payout_currency` as "currency of your external
+// payout_address, required when payout_adress is specified" and
+// `payout_extra_id` as "extra id or memo or tag for external payout_address"
+// — two fields that exist only to describe a third the docs never define.
+// The help centre's own endpoint reference omits all three. Every claim below
+// about a PER-PAYMENT payout address is therefore inference from those two
+// references, not a documented guarantee, and NOTHING in this repo has ever
+// watched a real coin arrive at a seller's wallet. What is documented, in the
+// same breath, is that the account's own settlement target is a single
+// account-level payout wallet per currency ("the address for withdrawal is
+// the same as the wallet address designated as the 'Payout wallet'") and that
+// the Mass Payouts API refuses any address that is not whitelisted, a request
+// that "takes up to 24-48 hours". If the payment-level field turns out to be
+// subject to that same whitelist, per-seller forwarding cannot work at all.
+// See the open question at the top of README's crypto section.
+//
 // Two consequences run through this whole file:
 //
 //   1. `payout_address` is a precondition, not an option. createPayment throws
@@ -27,7 +54,8 @@
 //      loudly at checkout, where it is a configuration error the seller can
 //      fix, and never quietly at settlement, where it is money sitting in
 //      someone else's account. Custody-off is the target state; until then
-//      the per-payment payout address is what keeps the guarantee true.
+//      the per-payment payout address is what keeps the guarantee true — IF
+//      it is honoured, which is the sentence above.
 //
 //   2. NOTHING here reads the account balance. No /balance, no payout-from-
 //      balance, no "do we have funds" check. The balance is required to be
@@ -162,8 +190,19 @@ export async function validatePayoutAddress({ address, currency, extraId = null 
   throw new Error(`nowpayments: POST /payout/validate-address failed with ${res.status}: ${detail.slice(0, 300)}`);
 }
 
+// The minimum is per PAIR and per FLOW. Their docs say the flow flags
+// "allows you to see current minimum amounts for corresponsing flows (it may
+// differ from the standard flow!)", and their fees page is blunter: "the
+// minimum amounts you see on the status page are calculated for standard rate
+// payments only! Fixed-rate minimum amounts are usually higher." createPayment
+// below sends both flags, so asking without them quotes a floor the payment
+// would not actually accept — and the one caller uses this figure to tell a
+// buyer which coin to pick instead.
 export const minimumFor = (from, to) =>
-  npFetch(`/min-amount?currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`);
+  npFetch(
+    `/min-amount?currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}` +
+      '&is_fixed_rate=true&is_fee_paid_by_user=true',
+  );
 
 export const estimate = (amount, from, to) =>
   npFetch(`/estimate?amount=${amount}&currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`);
@@ -206,12 +245,21 @@ export async function createPayment({ plan, store, amount, payCurrency, orderId 
     order_id: orderId,
     order_description: `${plan.name} — ${store?.name ?? config.brand}`,
     ipn_callback_url: ipnCallbackUrl(),
-    // Locks the exchange rate for the invoice window, so a buyer who takes
-    // ten minutes to send does not land short because the coin moved.
+    // Locks the exchange rate so the quoted coin amount cannot drift out from
+    // under a buyer mid-payment. It BUYS THAT WITH TIME: their docs say "the
+    // rate of exchange will be frozen for 10 minutes. If there are no incoming
+    // payments during this period, the payment status changes to 'expired'" —
+    // against the 7-day window a floating-rate payment gets. And "no callbacks
+    // are sent after a payment expires. Deposits can still be received, but
+    // they will not trigger any further IPN callbacks."
     is_fixed_rate: true,
-    // The buyer covers the service fee. The seller still absorbs the on-chain
-    // payout fee — the account is set to "withdrawal fee paid by Receiver" —
-    // which is exactly why cheap chains are ranked first above.
+    // The buyer covers the service fee ("it allows you to transfer all
+    // commissions on payment to your customer"). It is not independent of the
+    // line above: "the fee-paid-by-user option always assumes fixed rate and
+    // cannot be activated for regular rate" — set alone it would turn
+    // is_fixed_rate on anyway. The seller still absorbs the on-chain payout
+    // fee — the account is set to "withdrawal fee paid by Receiver" — which is
+    // exactly why cheap chains are ranked first above.
     is_fee_paid_by_user: true,
   };
   return npFetch('/payment', { method: 'POST', body });
@@ -221,6 +269,13 @@ export const getPayment = (id) => npFetch(`/payment/${encodeURIComponent(id)}`);
 
 // Recon reads PAYMENTS, never the balance: this is the list of what was
 // forwarded, not of what is being held. (See rule 2 at the top.)
+//
+// UNUSED, and it would 403 if it were called: their docs put this endpoint
+// behind a JWT ("required for using 'Get list of payments' and 'Create
+// payout'"), obtained from POST /v1/auth with the DASHBOARD EMAIL AND
+// PASSWORD and valid for five minutes. Dues holds neither credential and
+// should not: the backfill asks about the payment ids it already recorded,
+// one lookup each, which needs only the API key.
 export const listPayments = ({ limit = 100, page = 0 } = {}) =>
   npFetch(`/payment/?limit=${Number(limit)}&page=${Number(page)}&sortBy=created_at&orderBy=desc`);
 
