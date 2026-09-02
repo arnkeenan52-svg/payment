@@ -55,14 +55,11 @@ export async function purchaseBlocked({ store, plan, uid, atSettlement = false }
     }
   }
   // Purchase limit: caps total distinct buyers, never a returning one.
-  if (plan.purchaseLimit !== null && plan.purchaseLimit !== undefined) {
-    const own = (await db.subscriptionsForMember(uid)).some((s) => {
-      const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
-      return sid === (store.id ?? null) && s.plan_id === plan.id;
-    });
+  const limit = await seatLimitFor({ store, plan, uid });
+  if (limit !== null) {
     // Buyers still on the card form hold a seat for the life of their session.
     const taken = await db.countBuyersOfPlan(store.id ?? null, plan.id, { exceptUid: uid, reservedSince: atSettlement ? null : Math.floor(Date.now() / 1000) - CHECKOUT_TTL_SECONDS });
-    if (!own && taken >= plan.purchaseLimit) {
+    if (taken >= limit) {
       return { status: 409, error: 'This product is sold out.' };
     }
   }
@@ -78,6 +75,22 @@ export async function purchaseBlocked({ store, plan, uid, atSettlement = false }
   return null;
 }
 
+// The purchase limit this buyer's checkout has to hold to, or null when
+// nothing caps them: either the product has no limit, or they already bought
+// it — a returning buyer never takes a second seat, so the limit is not theirs
+// to hit. Exported because the answer is needed twice: once here for the
+// sentence the buyer reads, and once at the checkout row's INSERT, which is
+// where the limit is actually enforced against a second buyer clicking Pay at
+// the same moment.
+export async function seatLimitFor({ store, plan, uid }) {
+  if (plan.purchaseLimit === null || plan.purchaseLimit === undefined) return null;
+  const own = (await db.subscriptionsForMember(uid)).some((s) => {
+    const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
+    return sid === (store.id ?? null) && s.plan_id === plan.id;
+  });
+  return own ? null : plan.purchaseLimit;
+}
+
 // A discount code checked against this store and product. Shared for the same
 // reason as the guard above: a code that is expired, used up or scoped to
 // another product must be equally dead on every rail.
@@ -91,8 +104,11 @@ export async function resolveDiscount({ store, plan, code, uid = null }) {
   // A use is counted when the grant lands, so between "code applied" and
   // "paid" the counter has not moved: other buyers with this code on an open
   // checkout hold a use for the life of their session, like a seat. (A crypto
-  // invoice holds it until the provider's own expiry — see db.OPEN_ATTEMPT.)
-  const reserved = d && d.maxUses !== null && uid
+  // invoice holds it for as long as the provider would still settle it — see
+  // db.OPEN_ATTEMPT and api/checkout/crypto.js.)
+  // Asked without a uid too — that is the public preview, and the honest
+  // answer for "anyone but you" when nobody is signed in is "everyone".
+  const reserved = d && d.maxUses !== null
     ? await db.countReservedDiscountUses(store.id, codeRaw, now - CHECKOUT_TTL_SECONDS, uid)
     : 0;
   const valid =

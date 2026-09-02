@@ -3,7 +3,7 @@ import { capabilities } from '../../src/config.js';
 import { storeBySlug, planOf } from '../../src/services/stores.js';
 import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
-import { purchaseBlocked, resolveDiscount } from '../../src/services/purchase-guard.js';
+import { purchaseBlocked, resolveDiscount, seatLimitFor } from '../../src/services/purchase-guard.js';
 import { publicPaymentView } from '../../src/services/nowpayments-events.js';
 import { createPayment, getPayment, merchantCoins, minimumFor } from '../../src/lib/nowpayments.js';
 import { normalize as normalizeCurrency, formatAmount, minCharge } from '../../src/lib/currency.js';
@@ -30,14 +30,20 @@ const ORDER_RE = /^np_[0-9a-f]{32}$/;
 // the provider gives up on it.
 const MAX_OPEN_INVOICES = 3;
 
-// When the provider stops taking money for a payment, in unix seconds. The
-// row holds its seat and its discount use until then, so a missing or
-// unreadable date falls back to the card-form TTL rather than to forever.
-function invoiceExpiry(payment) {
-  const at = Math.floor(Date.parse(payment?.expiration_estimate_date ?? '') / 1000);
-  const now = Math.floor(Date.now() / 1000);
-  return Number.isFinite(at) && at > now ? at : now + CHECKOUT_TTL_SECONDS;
-}
+// How long a live invoice holds its seat and its discount use.
+//
+// NOT expiration_estimate_date: that is when the QUOTED COIN AMOUNT stops
+// being valid, and the deposit address stays payable long past it — a payment
+// is only given up on when nothing was sent to it for a week, which is exactly
+// the window src/services/backfill.js keeps asking the provider about it for,
+// and a late `finished` grants like any other. Releasing the seat at the rate
+// quote's expiry put it back on sale while the first buyer could still pay: if
+// they then did, the second buyer's irreversible crypto payment was refused at
+// settlement with nothing delivered. The hold ends when the payment is really
+// closed — the IPN or the cron marks the row expired on expired/failed/
+// refunded — and the buyer's own countdown still runs to the quote's expiry,
+// which is what the pay screen is given below.
+const INVOICE_HOLD_SECONDS = 7 * 86400;
 
 async function loadStore(slug) {
   const store = await storeBySlug(typeof slug === 'string' ? slug : '');
@@ -149,6 +155,8 @@ export default guard(async function handler(req, res) {
     sendJson(res, blocked.status, { error: blocked.error });
     return;
   }
+  // The same purchase limit, to be held again by the reservation's INSERT.
+  const seatLimit = await seatLimitFor({ store, plan, uid });
   // No wallet, no sale. Refusing here is the whole custody guarantee: a
   // payment created without a payout address settles into the platform's
   // NOWPayments balance, and this account still has custody switched on.
@@ -200,23 +208,22 @@ export default guard(async function handler(req, res) {
     return;
   }
 
-  // A buyer with addresses already waiting on them does not need another.
-  // Checked here, after everything that can refuse for a better reason, and
-  // before the provider is asked for anything.
-  const open = await db.countOpenCryptoAttemptsBy(store.id ?? null, uid, Math.floor(Date.now() / 1000) - CHECKOUT_TTL_SECONDS);
-  if (open >= MAX_OPEN_INVOICES) {
-    sendJson(res, 429, { error: 'You already have crypto payments waiting — pay one of those, or let them expire before starting another.' });
-    return;
-  }
-
   // The order row goes in BEFORE the payment exists. It is the only mapping
   // from a NOWPayments IPN back to which buyer bought what, so it must never
   // be possible for money to move while the row is still missing. A row with
   // no payment behind it is just an abandoned checkout, which is a thing the
   // table already models.
+  //
+  // It is also the reservation: the seat and the buyer's invoice cap are
+  // counted by the INSERT itself, so a burst of parallel clicks cannot each
+  // read "nothing taken yet" and then each be handed an address. The guard
+  // above already answered for this buyer — this is the same rule, enforced
+  // where it holds, and it runs before the provider is asked for anything.
   const orderId = `np_${crypto.randomUUID().replace(/-/g, '')}`;
+  const reservedSince = Math.floor(Date.now() / 1000) - CHECKOUT_TTL_SECONDS;
+  let reserved;
   try {
-    await db.recordCheckoutAttempt({
+    reserved = await db.insertCheckoutAttemptWithin({
       storeId: store.id ?? null,
       planId: plan.id,
       discordId: uid,
@@ -224,10 +231,24 @@ export default guard(async function handler(req, res) {
       amountUsd: amount,
       currency,
       discountCode,
+      seatLimit,
+      maxOpenCrypto: MAX_OPEN_INVOICES,
+      reservedSince,
     });
   } catch (err) {
     console.error(`[checkout] could not log crypto attempt ${orderId}: ${err.message}`);
     sendJson(res, 500, { error: 'Payment could not be started — try again in a moment.' });
+    return;
+  }
+  if (!reserved) {
+    // Which of the two limits refused it — the same counts the INSERT just
+    // took, so the buyer reads the reason that actually applies.
+    const open = await db.countOpenCryptoAttemptsBy(store.id ?? null, uid, reservedSince).catch(() => MAX_OPEN_INVOICES);
+    if (open >= MAX_OPEN_INVOICES) {
+      sendJson(res, 429, { error: 'You already have crypto payments waiting — pay one of those, or let them expire before starting another.' });
+      return;
+    }
+    sendJson(res, 409, { error: 'This product is sold out.' });
     return;
   }
 
@@ -258,7 +279,7 @@ export default guard(async function handler(req, res) {
     return;
   }
 
-  await db.setCheckoutAttemptRef(orderId, String(payment.payment_id), invoiceExpiry(payment)).catch((err) => {
+  await db.setCheckoutAttemptRef(orderId, String(payment.payment_id), Math.floor(Date.now() / 1000) + INVOICE_HOLD_SECONDS).catch((err) => {
     // Not fatal: the IPN still resolves the order by order_id. Only the
     // buyer's live status poll degrades, and it degrades to "waiting" until
     // the webhook marks the row completed (the poll reads that first).
