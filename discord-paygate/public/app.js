@@ -1501,7 +1501,7 @@ function renderRating() {
 
 // Exact below ten thousand, then abbreviated: a follower count is a claim, and
 // "12.4K" is only honest because the real number is still what was counted.
-const fmtCount = (n) => (n < 10000 ? String(n) : `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`);
+const fmtCount = (n) => (n < 10000 ? n.toLocaleString() : `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`);
 
 // The crowd icon that used to sit beside "2 roles" is gone with it: a role is
 // not a group of people, and the glyph was arguing the opposite.
@@ -1624,8 +1624,19 @@ function renderShop() {
   const sub = $('#shop-sub');
   const serverName = state.server?.name ?? '';
   const showSub = Boolean(serverName) && serverName !== name;
+  // When the seller has also pasted a Discord link, the server's own name IS
+  // that link and the standalone mark beside it comes off the row. Two Discord
+  // glyphs 40px apart, one naming the server and one linking to it, read as a
+  // duplicate rather than as two facts.
+  const invite = typeof state.store?.links?.discord === 'string' && /^https:\/\//.test(state.store.links.discord)
+    ? state.store.links.discord
+    : null;
   if (sub) {
-    sub.innerHTML = showSub ? `${SHOP_ICONS.discord}<span>${esc(serverName)}</span>` : '';
+    sub.innerHTML = showSub
+      ? invite
+        ? `<a class="shop-sublink" href="${esc(invite)}" target="_blank" rel="noopener noreferrer">${SHOP_ICONS.discord}<span>${esc(serverName)}</span></a>`
+        : `${SHOP_ICONS.discord}<span>${esc(serverName)}</span>`
+      : '';
     sub.hidden = !showSub;
   }
 
@@ -1650,6 +1661,7 @@ function renderShop() {
   // identical on every Dues store, which told a buyer nothing about THIS one
   // and pushed the store's real identity further down the page.
   const linkHtml = socialLinks()
+    .filter((k) => !(k === 'discord' && showSub && invite))
     .map((k) => `<a class="shop-mlink" href="${esc(state.store.links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
     .join('');
   const metaline = $('#shop-metaline');
@@ -1663,7 +1675,7 @@ function renderShop() {
   const joined = $('#shop-joined');
   const bits = [];
   const count = state.store?.memberCount;
-  if (Number.isFinite(count) && count > 0) bits.push(`<span><b>${count}</b> members</span>`);
+  if (Number.isFinite(count) && count > 0) bits.push(`<span><b>${fmtCount(count)}</b> members</span>`);
   const followers = state.store?.followers;
   if (Number.isFinite(followers) && followers >= 10) bits.push(`<span><b>${fmtCount(followers)}</b> followers</span>`);
   joined.innerHTML = bits.join('');

@@ -3257,6 +3257,9 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-meta > * { margin: 0 !important; }
 .shop-sub { margin: 8px 0 0; display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--dim); }
 .shop-sub svg { flex: none; }
+/* The server's name is the invite when the seller pasted one. */
+.shop-sublink { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; min-height: 24px; }
+.shop-sublink:hover { color: var(--ink); }
 /* Primary ink, deliberately: in the reference the bio is the same colour as
    the title. Demoting it to --dim is what made the old page read flat. */
 .shop-desc { margin: 16px 0 0; color: var(--ink); font-size: 16px; line-height: 20px; }
@@ -3516,6 +3519,11 @@ body[data-material='solid'].has-bg .shop-col {
    300px of nothing beside it is the shape that made a new store look unfinished.
    Set from the render so it does not depend on :has(). */
 .shop-grid[data-count="1"] { grid-template-columns: 1fr; }
+/* …and its media takes a wider crop rather than a 16:9 slab a third of the
+   page tall. */
+.shop-grid[data-count="1"] .prod-shot,
+.shop-grid[data-count="1"] .prod-ph { aspect-ratio: 3 / 1; }
+@media (max-width: 520px) { .shop-grid[data-count="1"] .prod-shot, .shop-grid[data-count="1"] .prod-ph { aspect-ratio: 2 / 1; } }
 .prod-card {
   background: var(--panel); border: 1px solid var(--edge); border-radius: 12px;
   padding: 0; overflow: hidden; display: flex; flex-direction: column;
@@ -3536,11 +3544,25 @@ body[data-material='solid'].has-bg .shop-col {
   width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block;
   border-radius: 0; border: 0;
 }
+/* A product with no photograph. The letter was 34px in a tile up to 590px
+   wide — a small mark adrift in a large empty rectangle, which is what made a
+   photoless catalogue look unfinished. It is a monogram now: large, quiet, and
+   lit from one corner so the tile has a direction. */
 .prod-ph {
   display: grid; place-items: center;
-  font: 700 34px/1 var(--font-head); color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  font: 700 clamp(44px, 13vw, 76px)/1 var(--font-head);
+  color: color-mix(in srgb, var(--accent) 62%, transparent);
+  /* The bottom band traces the SAME curve as the title scrim over it
+     (.prod-media::after: black to transparent across the lower 62%), so the
+     two stack into one ramp instead of meeting at a seam. And the ground is a
+     real tint, not a 9% whisper: on the light face that whisper left a
+     near-white tile with a black stain across its bottom third. */
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.34) 0%, transparent 62%),
+    radial-gradient(110% 130% at 20% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 66%),
+    color-mix(in srgb, var(--accent) 24%, var(--panel));
 }
+@media (min-width: 521px) { .prod-ph { font-size: clamp(40px, 7vw, 68px); } }
 .prod-name {
   position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 1;
   color: #fff; font: 600 15px var(--font-head); line-height: 1.25; letter-spacing: -0.01em;

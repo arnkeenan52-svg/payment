@@ -3803,6 +3803,22 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
     { id: tenantPlans.plans[0].id, imageUrl: tenantPlans.plans[0].imageUrl, roleNames: tenantPlans.plans[0].roleNames },
     { id: plan.planKey, imageUrl: 'https://cdn.e2e.test/vip.png', roleNames: ['@VIP'] },
   );
+  // A role reaches the storefront as the guild defines it — the live NAME and
+  // the live COLOUR — and not as the string the seller happened to type. The
+  // stored name here is "@VIP" with the sigil on it; the role's actual name is
+  // "VIP" and its colour is 5793266 (#5865f2), and both come from the guild's
+  // own role list keyed by the id the plan grants.
+  assert.deepEqual(
+    tenantPlans.plans[0].roles,
+    [{ name: 'VIP', color: '#5865f2' }],
+    'plans[].roles carries the guild role name and colour, resolved by id',
+  );
+  // @everyone shares the guild id and every member holds it already: naming it
+  // would tell a buyer they are paying for a role they have.
+  assert.ok(
+    !tenantPlans.plans.some((p) => p.roles.some((r) => r.name === '@everyone')),
+    '@everyone is never sold',
+  );
 
   // Buyer U8: signs in, checks out on the tenant store.
   const U8 = '508800000000000008';
