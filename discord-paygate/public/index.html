@@ -1778,7 +1778,9 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 }
 
 /* ── the savings box: Subscord's calculator, on our glass ── */
-.save{padding:72px 24px 88px}
+/* padding-block only: the desktop gutter is .wrap's 48px, shared with the nav
+   and the FAQ — a padding shorthand here silently reset it to something else */
+.save{padding-block:72px 88px}
 .save-card{
   width:min(640px,100%);margin:0 auto;padding:34px clamp(20px,4vw,40px) 28px;border-radius:26px;
   background:var(--glass);border:1px solid var(--glass-brd);
@@ -2017,7 +2019,7 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
    were answering a different one at four times the height, so the reader had
    to work past a fake settings panel to find "connect Stripe". A centred
    heading and three columns say it outright. */
-.how{padding:64px 24px 30px}
+.how{padding-block:64px 30px}
 .how-title{
   font-family:var(--jakarta);font-weight:600;text-align:center;
   font-size:clamp(30px,4vw,44px);line-height:1.1;letter-spacing:-.02em;color:var(--ink);
@@ -2060,7 +2062,7 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
 }
 
 /* ── what platform fees cost ── */
-.why{padding:8px 24px 40px;text-align:center}
+.why{padding-block:8px 40px;text-align:center}
 .why-title{
   font-family:var(--jakarta);font-weight:600;text-align:center;
   font-size:clamp(26px,3.4vw,38px);line-height:1.12;letter-spacing:-.02em;color:var(--ink);
@@ -2071,7 +2073,7 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
 }
 
 /* ── what sellers say: featured editorial card + stacked rail ── */
-.voices{padding:34px 24px 26px}
+.voices{padding-block:34px 26px}
 .voices-stage{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px;align-items:stretch}
 .voices-side{display:grid;grid-template-rows:1fr 1fr;gap:16px;min-width:0}
 .voice-card{
@@ -2135,7 +2137,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 }
 
 /* ── community card: split CTA with a live-presence channel mock ── */
-.comm{padding:26px 24px 56px}
+.comm{padding-block:26px 56px}
 .comm-card{
   position:relative;overflow:hidden;
   display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;gap:clamp(28px,4vw,52px);
