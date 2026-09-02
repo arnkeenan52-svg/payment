@@ -1268,6 +1268,38 @@ test('landing polish holds: one gutter, centred community CTA, Cash App logotype
   assert.equal(probe(index), probe(pricing), 'index and pricing share one viewport-probe block, comments included');
 });
 
+test('one nav: every page in the site shows the same header links, in the same order', () => {
+  // The site grew three different desktop navs. The landing and /pricing had
+  // Pricing / Discover / Invite Dues; the SEO and legal pages had
+  // Discover / Pricing / Compare / Tools; /discover alone had a "Features" link
+  // pointing at a fragment of another page. Moving between pages swapped the
+  // item set and the order, and two of the four hubs were unreachable from the
+  // highest-authority page on the site. The SEO set won: it names the four
+  // hubs that exist as real routes, and it is the set the ~40 generated pages
+  // carry, so adopting it costs the landing only a nav-level invite link that
+  // the community section already repeats. This walks every page AND the
+  // generator that writes most of them, so a new page cannot invent a fourth.
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(path.join(dir, e.name))
+      : e.name.endsWith('.html') ? [path.join(dir, e.name)] : []);
+  const NAV = /<div class="nav-links">([\s\S]*?)<\/div>|<nav class="top-center"[^>]*>([\s\S]*?)<\/nav>|<nav class="mobile-menu"[^>]*>([\s\S]*?)<\/nav>/g;
+  const linksOf = (block) => [...block.matchAll(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
+    .map((m) => `${m[2].replace(/<[^>]*>/g, '').trim()} -> ${m[1]}`).join(' | ');
+  const CANON = 'Discover -> /discover | Pricing -> /pricing | Compare -> /vs | Tools -> /tools';
+  const files = [...walk(path.join(root, 'public')), path.join(root, 'scripts/gen-seo-pages.mjs')];
+  let navs = 0;
+  for (const f of files) {
+    for (const m of fs.readFileSync(f, 'utf8').matchAll(NAV)) {
+      const links = linksOf(m[1] ?? m[2] ?? m[3]);
+      if (!links) continue;                       // an empty shell, e.g. a JS-filled menu
+      navs++;
+      assert.equal(links, CANON, `${path.relative(root, f)} carries its own nav`);
+    }
+  }
+  assert.ok(navs >= 40, `every page's nav was inspected (${navs})`);
+});
+
 test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black face holds on every route', async () => {
   // The dashboard renders on the client, which this suite does not run. These
   // are the pure functions it reads its money and growth figures with, lifted
@@ -1520,7 +1552,11 @@ test('every in-page anchor link on the site points at an id that exists — chec
       else if (!ids.has(id)) dead.push(`${relative(PUBLIC, file)} → ${target}#${id} (no such id)`);
     }
   }
-  assert.ok(seen >= 4, `expected the site's anchor links to be walked, found ${seen}`);
+  // Two survive: the /#how link in /pricing's body copy and the one in
+  // /discover's. /discover's nav used to carry a third and fourth (desktop
+  // and mobile "Features") until the site settled on one shared nav; the
+  // floor is only here so an empty walk cannot pass as a green check.
+  assert.ok(seen >= 2, `expected the site's anchor links to be walked, found ${seen}`);
   assert.deepEqual(dead, [], `anchor links with nothing to scroll to: ${dead.join(', ')}`);
 });
 
