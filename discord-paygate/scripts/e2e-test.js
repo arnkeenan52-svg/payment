@@ -2829,6 +2829,21 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
     assert.ok(home.body.includes(`href="${idx}"`), `the homepage links ${idx}`);
   }
 
+  // /terms and /privacy carry the site header and the grid footer like every
+  // other page. They used to have a logo-only header — a visitor landing from
+  // a search result had no link into the site — and a flex footer, where the
+  // preferred-sources pill theme.js appends (grid-column:1/-1) had no row of
+  // its own and landed hard-right beside the legal links.
+  for (const legal of ['/terms', '/privacy']) {
+    const { status, body } = await get(legal);
+    assert.equal(status, 200);
+    const navLinks = [...body.matchAll(/<a class="nav-link" href="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(navLinks, ['/discover', '/pricing', '/vs', '/tools'], `${legal} carries the site nav`);
+    assert.match(body, /<footer class="site-footer cols seo-footer">/, `${legal} uses the grid footer`);
+    assert.match(body, /<p class="footer-disclaimer">/, `${legal} footer has the row the preferred-sources pill is inserted before`);
+    assert.match(body, /<a href="\/terms">Terms<\/a><a href="\/privacy">Privacy<\/a>/, `${legal} footer links both legal pages`);
+  }
+
 
   // The homepage's "Invite Dues" button: a stable hop to Discord's
   // authorize screen, bot scope — same as the wizard.
