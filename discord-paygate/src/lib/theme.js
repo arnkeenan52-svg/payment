@@ -252,6 +252,15 @@ export function themeCss(theme) {
     lines.push(`.pay-btn { background: ${t.pay}; color: ${inkFor(t.pay)}; }`);
     lines.push(`.pay-btn:hover:not(:disabled) { background: color-mix(in srgb, ${t.pay} 86%, #000000); }`);
   }
+  // The wordmark ships as a white PNG. public/styles.css inverts it under
+  // html[data-theme='light'], but a store's lightness comes from --bg, not
+  // from that attribute — so a light colour way leaves it near-white on
+  // near-white. With a background layer the ground is the layer, not --bg:
+  // light-tone presets already set data-theme='light', dark ones want the
+  // white mark, and an owner-imported image is unknowable, so skip those.
+  if (t.bg && !t.bgPreset && !t.bgUrl && inkFor(t.bg) === '#0a0a0a') {
+    lines.push('.platform-mark, .powered-mark { filter: invert(1); }');
+  }
   if (t.radius !== undefined) {
     const small = Math.min(t.radius, 12);
     // .shop-banner is deliberately absent: it runs flush to the column rails

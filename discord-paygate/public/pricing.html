@@ -118,8 +118,8 @@ html[data-theme="light"]{
   --slab:#ffffff;
   --hair:rgba(15,22,38,.10);
   --ink:#0f1626;
-  --sec:#46536e;
-  --micro:#67748f;
+  --sec:#2b3550;
+  --micro:#3c4763;
   --blue:#5865f2;
   --money:#15803d;
   --gold:#a16207;
@@ -1224,9 +1224,12 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .bcard{grid-column:span 6}
   .bcard-lg{grid-column:span 12}
 }
-@media (max-width:900px){
+/* Nav collapses at the site's phone breakpoint (760px), not at 900. */
+@media (max-width:760px){
   .nav-links{display:none}
   .nav-right .btn{display:none}
+}
+@media (max-width:900px){
   .hero-sub{display:none}
   .hero-core{padding-top:64px}
   .hero-stage{padding:56px 16px 84px}
@@ -1349,8 +1352,8 @@ html[data-theme="light"]{
   --gl-card-solid:#ffffff;
   --gl-ink:#0f1626;
   --gl-btn-ink-text:#ffffff;
-  --gl-sec:#44536e;
-  --gl-micro:#64748f;
+  --gl-sec:#2b3550;
+  --gl-micro:#3c4763;
   --gl-blue:#5865f2;
   --gl-accent-strong:#5865f2;
   --gl-green:#16a34a;

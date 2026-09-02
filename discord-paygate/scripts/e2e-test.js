@@ -460,8 +460,14 @@ async function stripeHandler(req, res) {
   }
   if (url.pathname === '/v1/coupons' && req.method === 'POST') {
     const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
-    const n = (stripe.coupons ??= []).length + 1;
-    const coupon = { id: `coupon_${n}`, ...form };
+    stripe.coupons ??= [];
+    // Stripe honours a caller-chosen id and refuses a repeat of it.
+    if (form.id && stripe.coupons.some((c) => c.id === form.id)) {
+      json(res, 400, { error: { code: 'resource_already_exists', message: 'Coupon already exists.' } });
+      return;
+    }
+    const n = stripe.coupons.length + 1;
+    const coupon = { id: form.id || `coupon_${n}`, ...form };
     stripe.coupons.push(coupon);
     json(res, 200, coupon);
     return;
@@ -2940,6 +2946,16 @@ test('onboarding: the Continue check uses only the bot token (never user-guild l
   assert.deepEqual(await (await botcheck(u7Cookie, G2)).json(), { botIn: true });
 });
 
+test('store themes: a light colour way inverts the white wordmark', async () => {
+  const { themeCss } = await import('../src/lib/theme.js');
+  const invert = '.platform-mark, .powered-mark { filter: invert(1); }';
+  assert.ok(themeCss({ bg: '#faf9f7' }).includes(invert), 'Ivory ground: the white mark would vanish, so it inverts');
+  assert.ok(themeCss({ bg: '#ffffff' }).includes(invert));
+  assert.ok(!themeCss({ bg: '#0a0a0a' }).includes(invert), 'a dark ground keeps the white mark');
+  assert.ok(!themeCss({ bg: '#faf9f7', bgPreset: 'midnight' }).includes(invert), 'with a background layer the ground is the layer, not --bg');
+  assert.ok(!themeCss({ bg: '#faf9f7', bgUrl: 'https://example.com/bg.gif' }).includes(invert));
+});
+
 test('store themes: validated tokens in, server-rendered CSS out', async () => {
   const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
   const st = new URL(login.headers.get('location')).searchParams.get('state');
@@ -3302,9 +3318,16 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   const withCode = await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'launch20' });
   assert.equal(withCode.status, 200, await withCode.text());
   const sess = stripe.checkoutSessions.at(-1);
-  assert.match(sess['discounts[0][coupon]'], /^coupon_/, 'a Stripe coupon rides the session');
+  assert.match(sess['discounts[0][coupon]'], /^dues_/, 'a Stripe coupon rides the session');
   assert.equal(sess['metadata[discount_code]'], 'LAUNCH20');
   assert.equal(stripe.coupons.at(-1).percent_off, '20');
+  // A second attempt with the same code and terms REUSES the coupon: a failed
+  // or abandoned checkout leaves nothing new on the seller's Stripe account.
+  const couponCount = stripe.coupons.length;
+  const again = await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'launch20' });
+  assert.equal(again.status, 200, await again.text());
+  assert.equal(stripe.coupons.length, couponCount, 'the same code on the same terms mints no second coupon');
+  assert.equal(stripe.checkoutSessions.at(-1)['discounts[0][coupon]'], sess['discounts[0][coupon]']);
   // Completed payment counts the use.
   await deliverStripe({
     id: 'evt_disc_1',
@@ -3608,7 +3631,12 @@ test('multi-currency: a store prices in its own currency, and the minor-unit mat
   // old ones: a Stripe price object carries its currency forever, so leaving a
   // yen price pinned under a krone label would sell at the wrong money.
   const oldPriceId = plan.stripePriceId;
-  assert.equal((await call('/api/admin/store', { store: slug, currency: 'dkk' })).status, 200);
+  // With products live the switch is a relabel, not a conversion, so it is
+  // refused until the seller confirms the new stickers by name.
+  const relabel = await call('/api/admin/store', { store: slug, currency: 'dkk' });
+  assert.equal(relabel.status, 409, 'a relabel of live prices needs an explicit confirmation');
+  assert.equal((await relabel.json()).needsConfirm, true);
+  assert.equal((await call('/api/admin/store', { store: slug, currency: 'dkk', currencyConfirm: 'dkk' })).status, 200);
   const afterSwitch = (await (await fetch(`${appUrl}/api/plans?store=${slug}`)).json()).plans.find((p) => p.id === plan.planKey);
   assert.equal(afterSwitch.currency, 'dkk', 'products follow the store to its new currency');
   assert.notEqual(afterSwitch.stripePriceId, oldPriceId, 'the yen price is unpinned, not relabelled');

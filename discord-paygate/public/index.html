@@ -139,8 +139,8 @@ html[data-theme="light"]{
   --slab:#ffffff;
   --hair:rgba(15,22,38,.10);
   --ink:#0f1626;
-  --sec:#46536e;
-  --micro:#67748f;
+  --sec:#2b3550;
+  --micro:#3c4763;
   --blue:#5865f2;
   --money:#15803d;
   --gold:#a16207;
@@ -1171,9 +1171,14 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .bcard{grid-column:span 6}
   .bcard-lg{grid-column:span 12}
 }
-@media (max-width:900px){
+/* The header keeps its links down to the phone breakpoint the rest of the
+   site uses (760px): a 761-900px desktop window has 200px+ of slack for them,
+   and every other page family still shows its full nav there. */
+@media (max-width:760px){
   .nav-links{display:none}
   .nav-right .btn{display:none}
+}
+@media (max-width:900px){
   .hero-core{padding-top:64px}
   .hero-stage{padding:56px 16px 84px}
   .chip-film-embed{display:none}
@@ -1301,8 +1306,8 @@ html[data-theme="light"]{
   --gl-card-solid:#ffffff;
   --gl-ink:#0f1626;
   --gl-btn-ink-text:#ffffff;
-  --gl-sec:#44536e;
-  --gl-micro:#64748f;
+  --gl-sec:#2b3550;
+  --gl-micro:#3c4763;
   --gl-blue:#5865f2;
   --gl-accent-strong:#5865f2;
   --gl-green:#16a34a;
@@ -1585,8 +1590,13 @@ html[data-theme="light"] .footer{
      top of a desktop screen. It is the desktop equivalent of the --foot-edge
      ground swap the phone block does, and removing it to "tidy up" a
      full-bleed footer would bring the bug straight back. */
-  .footer{position:fixed;inset:auto 0 0 0;min-height:100vh;margin-top:0}
-  .footer-spacer{height:100vh}
+  html[data-blind] .footer{position:fixed;inset:auto 0 0 0;min-height:100vh}
+  html[data-blind] .footer-spacer{height:100vh}
+  /* Gated on the blind for the same reason the phone is: a footer taller
+     than the viewport, pinned to bottom:0, hides its own title and CTA above
+     the top of the screen. When it does not fit it flows, flush under the
+     sheet's lip, and the title is a scroll away. */
+  .footer{margin-top:0}
 }
 .footer-stage{
   position:relative;z-index:1;display:flex;flex-direction:column;box-sizing:border-box;
@@ -1597,6 +1607,23 @@ html[data-theme="light"] .footer{
   .footer-title{margin:auto 0 clamp(10px,2vh,28px)}
   .footer-cta{margin-bottom:clamp(16px,5vh,64px)}
   .footer-directory{margin:36px auto 0}
+  /* Tighten in three steps before giving up, as the phone does, so the
+     reveal survives on every common desktop size: first pack the directory
+     (five columns, a tighter rhythm), then drop the watermark, and only then
+     the deep links — hidden with display:none, so the directory is still in
+     the document for crawlers and the in-flow fallback shows all of it. */
+  html[data-foot-tight] .footer-stage{padding-top:20px}
+  html[data-foot-tight] .footer-title{margin-bottom:8px}
+  html[data-foot-tight] .footer-cta{margin-bottom:16px}
+  html[data-foot-tight] .footer-directory{margin-top:16px;padding-bottom:8px;width:min(100%,1240px)}
+  html[data-foot-tight] .f-links .fcol{margin-bottom:12px}
+  html[data-foot-tight] .footer .fcol{gap:7px}
+  html[data-foot-tight] .footer-watermark{margin-top:0}
+  html[data-foot-tighter] .footer-watermark{display:none}
+  html[data-foot-tightest] .footer .fcol a:nth-of-type(n+4){display:none}
+}
+@media (hover:hover) and (pointer:fine) and (min-width:1200px){
+  html[data-foot-tight] .f-links{column-count:5}
 }
 .footer-title{
   margin:0 0 20px;
@@ -3132,8 +3159,29 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   // thing someone can see and reason about.
   var fit = function(){
     if(!footer){ return; }
-    html.removeAttribute('data-foot-tight');
-    if(!phoneMq.matches){ disarm(); return; }
+    var tiers = ['data-foot-tight','data-foot-tighter','data-foot-tightest'];
+    var loosen = function(){ for(var i = 0; i < tiers.length; i++){ html.removeAttribute(tiers[i]); } };
+    loosen();
+    if(!phoneMq.matches){
+      // Desktop: measured IN FLOW, then pinned only if the whole footer fits
+      // the viewport. Not tryArm(): .footer-stage{min-height:100vh} makes the
+      // in-flow height equal the viewport exactly when it fits, and tryArm's
+      // slack would reject that. Three tightening tiers before giving up.
+      var armDesk = function(){
+        html.removeAttribute('data-blind');
+        var hd = footer.offsetHeight;
+        if(hd <= largeVh()){ html.setAttribute('data-blind',''); html.style.setProperty('--footH', hd + 'px'); return true; }
+        return false;
+      };
+      if(armDesk()){ return; }
+      for(var t = 0; t < tiers.length; t++){
+        html.setAttribute(tiers[t], '');
+        if(armDesk()){ return; }
+      }
+      loosen();
+      disarm();
+      return;
+    }
     if(tryArm()){ return; }
     html.setAttribute('data-foot-tight','');
     if(tryArm()){ return; }
@@ -3167,7 +3215,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     // short for the blind the footer is an ordinary block at the end of the
     // document — nothing rises, so hiding the header for a screen and a half
     // costs the visitor their only way back up and buys nothing.
-    var willReveal = phoneMq.matches ? html.hasAttribute('data-blind') : true;
+    var willReveal = html.hasAttribute('data-blind');
     var revealed = willReveal && bottom <= seenVh + 1;
     html.toggleAttribute('data-footer-revealed', revealed);
     // the pinned footer may only paint near the reveal (see the CSS gate).

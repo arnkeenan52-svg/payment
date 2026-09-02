@@ -1483,7 +1483,12 @@ emit(
 // those letters — slugs the reserved list deliberately allows. `$` pins the
 // exact path, the trailing-slash form covers anything beneath it, and `?`
 // covers the receipt's query string.
-`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /dashboard$\nDisallow: /dashboard/\nDisallow: /dashboard?\nDisallow: /account$\nDisallow: /account/\nDisallow: /account?\nDisallow: /receipt$\nDisallow: /receipt/\nDisallow: /receipt?\n\n${AI_BOTS.map((b) => `User-agent: ${b}\nAllow: /`).join('\n\n')}\n\nSitemap: ${BASE}/sitemap.xml\n`,
+// /api/plans, /api/img and /api/discover are what a storefront and the
+// /discover grid render FROM — public, read-only, and the only way a crawler
+// sees a store's products, its banner, or a link to it. RFC 9309 gives the
+// longest matching rule the win, so these three escape the /api/ block and
+// nothing else under it does.
+`User-agent: *\nAllow: /\nAllow: /api/plans\nAllow: /api/img\nAllow: /api/discover\nDisallow: /api/\nDisallow: /dashboard$\nDisallow: /dashboard/\nDisallow: /dashboard?\nDisallow: /account$\nDisallow: /account/\nDisallow: /account?\nDisallow: /receipt$\nDisallow: /receipt/\nDisallow: /receipt?\n\n${AI_BOTS.map((b) => `User-agent: ${b}\nAllow: /`).join('\n\n')}\n\nSitemap: ${BASE}/sitemap.xml\n`,
 );
 
 // The landing page is hand-written, but its footer is not — it is stamped from

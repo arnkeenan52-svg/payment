@@ -27,6 +27,12 @@ const usd = (n, cur = STORE_CURRENCY) => {
     return `${c.toUpperCase()} ${Number(n).toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp })}`;
   }
 };
+// Aggregates can span currencies: a sale can settle in the buyer's own
+// currency and a manual grant carries the column default, so a sum across
+// rows is a number in no currency at all. One figure per currency.
+const byCur = (list) => { const m = new Map(); for (const p of list) { const c = String(p.currency ?? STORE_CURRENCY).toLowerCase(); m.set(c, (m.get(c) ?? 0) + p.amountUsd); } return m; };
+const money = (list) => { const e = [...byCur(list)].sort((a, b) => b[1] - a[1]); return e.length ? e.map(([c, v]) => usd(v, c)).join(' + ') : usd(0); };
+const oneCur = (list) => byCur(list).size <= 1;
 const fmtDT = (unix) =>
   new Date(unix * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
   ', ' + new Date(unix * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -124,7 +130,12 @@ async function api(path, body) {
     body: JSON.stringify(body),
   });
   const out = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(out.detail ?? out.error ?? 'That did not work. Try again.');
+  if (!res.ok) {
+    const err = new Error(out.detail ?? out.error ?? 'That did not work. Try again.');
+    err.status = res.status;
+    err.body = out; // a 409 can carry a needsConfirm payload the caller acts on
+    throw err;
+  }
   return out;
 }
 
@@ -278,7 +289,7 @@ async function viewAdmin() {
 
   const storeRow = (st) => `<tr>
       <td><a class="admin-store-link" href="#/store/${esc(st.slug)}">${esc(st.name)}</a><span class="dim"> /${esc(st.slug)}</span></td>
-      <td>${st.ownerUsername ? '@' + esc(st.ownerUsername) : ''}<span class="dim"> ${esc(st.ownerDiscordId ?? '')}</span></td>
+      <td>${st.ownerUsername ? `@${esc(st.ownerUsername)}<span class="dim"> ${esc(st.ownerDiscordId ?? '')}</span>` : esc(st.ownerDiscordId ?? '')}</td>
       <td>${st.status === 'live' ? '<span class="chip chip-good">Live</span>' : '<span class="chip chip-off">Draft</span>'}</td>
       <td>${esc(st.ownerTier)}</td>
       <td class="num">${st.members}</td>
@@ -287,7 +298,7 @@ async function viewAdmin() {
     </tr>`;
 
   const userRow = (u) => `<tr>
-      <td>${u.username ? '@' + esc(u.username) : ''}<span class="dim"> ${esc(u.discordId)}</span></td>
+      <td>${u.username ? `@${esc(u.username)}<span class="dim"> ${esc(u.discordId)}</span>` : esc(u.discordId)}</td>
       <td>${u.seller ? '<span class="chip chip-code">Seller</span>' : ''}${
         u.entitled ? ' <span class="chip chip-good">Member</span>' : u.memberships ? ' <span class="chip chip-off">Lapsed</span>' : ''
       }</td>
@@ -807,7 +818,9 @@ function rangeWindows(range, payments) {
   if (range === 'today') {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    return { cur: [start.getTime(), nowMs], prev: [start.getTime() - day, start.getTime()], cmp: 'yesterday (same time)', grain: 'hour' };
+    // The previous window stops at this hour yesterday, so the label is true
+    // and a partial day is not held against a whole one.
+    return { cur: [start.getTime(), nowMs], prev: [start.getTime() - day, nowMs - day], cmp: 'yesterday (same time)', grain: 'hour' };
   }
   if (range === '12m') {
     const start = new Date();
@@ -849,7 +862,10 @@ function bucketSeries(payments, win, valueOf = (p) => p.amountUsd) {
     const d = new Date(cur[0]);
     d.setDate(1); d.setHours(0, 0, 0, 0);
     const stop = new Date(cur[1]);
-    while (d <= stop && marks.length < 24) {
+    // No 24-month cap: that was a column-width guard from the bar-chart era,
+    // and it silently dropped a store's most recent year from the "All" line
+    // while the header printed the full total. The bound is only a loop guard.
+    while (d <= stop && marks.length < 600) {
       marks.push(d.getTime());
       d.setMonth(d.getMonth() + 1);
     }
@@ -1117,7 +1133,7 @@ function paymentsRows(list) {
   return list
     .map(
       (p) => `<tr>
-        <td>${p.username ? '@' + esc(p.username) : ''}<span class="dim"> ${esc(p.discordId)}</span></td>
+        <td>${p.username ? `@${esc(p.username)}<span class="dim"> ${esc(p.discordId)}</span>` : esc(p.discordId)}</td>
         <td>${esc(p.planName)}<span class="row-when">${fmtDT(p.createdAt)}</span></td>
         <td class="num">${usd(p.amountUsd, p.currency)}</td>
         <td>${chipFor(p)}</td>
@@ -1144,7 +1160,7 @@ function checkoutRows(list) {
   return list
     .map(
       (c) => `<tr>
-        <td>${c.username ? '@' + esc(c.username) : ''}<span class="dim"> ${esc(c.discordId)}</span></td>
+        <td>${c.username ? `@${esc(c.username)}<span class="dim"> ${esc(c.discordId)}</span>` : esc(c.discordId)}</td>
         <td>${esc(c.planName)}${c.discountCode ? ` <span class="chip chip-code">${esc(c.discountCode)}</span>` : ''}<span class="row-when">${fmtDT(c.createdAt)}${
           c.completedAt ? ` · paid in ${fmtDur(c.completedAt - c.createdAt)}` : ''
         }</span></td>
@@ -1200,6 +1216,9 @@ function sectionOverview(data, store, slug) {
   const prevRange = win.prev ? data.payments.filter((p) => inWin(p, win.prev)) : null;
   const sum = (l) => l.reduce((s, p) => s + p.amountUsd, 0);
   const pct = (cur, prev) => (prevRange === null || prev <= 0 ? null : ((cur - prev) / prev) * 100);
+  // Deltas and percentages only mean something when every row shares one
+  // currency; otherwise the cards print one figure per currency and no %.
+  const mono = oneCur(data.payments);
 
   const rev = sum(inRange);
   const revPrev = prevRange ? sum(prevRange) : 0;
@@ -1218,8 +1237,9 @@ function sectionOverview(data, store, slug) {
   const newMembersPrev = prevRange ? newIn(win.prev) : 0;
 
 
-  const mrr = sum(data.payments.filter((p) => p.entitled && !p.lifetime));
-  const mrrNew = sum(data.payments.filter((p) => p.entitled && !p.lifetime && inWin(p, win.cur)));
+  const mrrRows = data.payments.filter((p) => p.entitled && !p.lifetime);
+  const mrrNewRows = mrrRows.filter((p) => inWin(p, win.cur));
+  const mrrNew = sum(mrrNewRows);
 
   const cmpNote = win.cmp ? `vs ${win.cmp}` : 'all time';
   const prevSub = (v, fmt = usd) => (prevRange === null ? cmpNote : `${fmt(v)} ${cmpNote}`);
@@ -1237,10 +1257,18 @@ function sectionOverview(data, store, slug) {
   };
 
   // Top products with per-product change vs the previous window.
+  // Keyed by product — and by currency too when the rows mix them, so a bar
+  // never adds kroner to dollars under one label.
+  const planKey = (p) => (mono ? p.planName : `${p.planName} · ${String(p.currency ?? STORE_CURRENCY).toUpperCase()}`);
+  const keyCur = new Map();
   const byPlan = new Map();
-  for (const p of inRange) byPlan.set(p.planName, (byPlan.get(p.planName) ?? 0) + p.amountUsd);
+  for (const p of inRange) { const k = planKey(p); byPlan.set(k, (byPlan.get(k) ?? 0) + p.amountUsd); keyCur.set(k, p.currency ?? STORE_CURRENCY); }
   const byPlanPrev = new Map();
-  if (prevRange) for (const p of prevRange) byPlanPrev.set(p.planName, (byPlanPrev.get(p.planName) ?? 0) + p.amountUsd);
+  if (prevRange) for (const p of prevRange) { const k = planKey(p); byPlanPrev.set(k, (byPlanPrev.get(k) ?? 0) + p.amountUsd); keyCur.set(k, p.currency ?? STORE_CURRENCY); }
+  // The server names the one currency every row shares, or null when they
+  // differ — then it is one figure per currency, never a mislabelled sum.
+  const allEnts = data.totals.currency === null && data.totals.byCurrency ? Object.entries(data.totals.byCurrency).sort((a, b) => b[1] - a[1]) : null;
+  const allTime = allEnts ? (allEnts.length ? allEnts.map(([c, v]) => usd(v, c)).join(' + ') : usd(0)) : usd(data.totals.allTimeUsd, data.totals.currency ?? undefined);
   const top = [...byPlan.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   const topMax = Math.max(...top.map(([, v]) => v), 1);
   const topDelta = (name, v) => {
@@ -1259,10 +1287,10 @@ function sectionOverview(data, store, slug) {
   const prefs = store.dashboardPrefs ?? {};
   const cards = { revenue: true, sales: true, members: true, mrr: true, ...(prefs.cards ?? {}) };
   const statCards = [
-    cards.revenue ? statCard('Revenue', usd(rev), I.dollar, pct(rev, revPrev), prevSub(revPrev), sparks.rev) : '',
+    cards.revenue ? statCard('Revenue', money(inRange), I.dollar, mono ? pct(rev, revPrev) : null, prevRange === null ? cmpNote : `${money(prevRange)} ${cmpNote}`, sparks.rev) : '',
     cards.sales ? statCard('Sales', sales, I.cart, pct(sales, salesPrev), prevSub(salesPrev, (v) => v), sparks.sales) : '',
     cards.members ? statCard('New members', newMembers, I.users, pct(newMembers, newMembersPrev), prevSub(newMembersPrev, (v) => v), sparks.members) : '',
-    cards.mrr ? statCard('MRR', usd(mrr), I.infinity, null, mrrNew > 0 ? `+${usd(mrrNew)} added this period` : 'recurring, right now', sparks.mrr) : '',
+    cards.mrr ? statCard('MRR', money(mrrRows), I.infinity, null, mrrNew > 0 ? `+${money(mrrNewRows)} added this period` : 'recurring, right now', sparks.mrr) : '',
   ].join('');
   return `
     <div class="ov-toolbar">
@@ -1276,7 +1304,7 @@ function sectionOverview(data, store, slug) {
     <div class="chart-grid">
       <section class="panel chart-card" id="rev-card">
         <div class="card-head"><div><h3>Revenue</h3><p class="card-sub">${win.cmp ? `This period against ${win.cmp}` : 'Monthly, all time'}</p></div>
-          <div class="chart-side"><span class="chart-total">${usd(rev)}${deltaChip(pct(rev, revPrev))}</span>
+          <div class="chart-side"><span class="chart-total">${money(inRange)}${mono ? deltaChip(pct(rev, revPrev)) : ''}</span>
             <span class="chart-legend"><span class="lg-key cur"></span>This period${series.prevVals ? '<span class="lg-key prev"></span>Previous' : ''}</span></div></div>
         ${revenueChart(series)}
       </section>
@@ -1286,13 +1314,13 @@ function sectionOverview(data, store, slug) {
           top.length
             ? `<ul class="top-list">${top
                 .map(
-                  ([name, v]) => `<li><span class="top-meta"><strong>${esc(name)}</strong><span class="num">${usd(v)} ${topDelta(name, v)}</span></span>
+                  ([name, v]) => `<li><span class="top-meta"><strong>${esc(name)}</strong><span class="num">${usd(v, keyCur.get(name))} ${topDelta(name, v)}</span></span>
                     <span class="top-bar"><span style="width:${Math.max((v / topMax) * 100, 2)}%"></span></span></li>`,
                 )
                 .join('')}</ul>`
             : '<div class="empty-chart">No sales in this period</div>'
         }
-        <p class="rows-note">Active members: ${data.totals.activeMembers} · All-time revenue: ${usd(data.totals.allTimeUsd)}</p>
+        <p class="rows-note">Active members: ${data.totals.activeMembers} · All-time revenue: ${allTime}</p>
       </section>
     </div>
     <div class="chart-grid">
@@ -1705,6 +1733,8 @@ function previewThemeCss(t) {
     `.checkout .panel, .checkout .order-product, .checkout .order-roles, .checkout .pay-panel, .checkout .order-extra { border-radius: ${t.radius}px; }`,
     `.checkout .pay-btn, .checkout .apply-btn, .checkout .method, .checkout input, .checkout .op-thumb { border-radius: ${small}px; }`,
     font ? `body, .checkout button, .checkout input, .order-title, .op-price, .pay-panel h2 { font-family: ${font}; }` : '',
+    // mirrors themeCss: the white wordmark inverts on a light ground with no layer
+    t.bg && !t.bgPreset && !t.bgUrl && inkFor(t.bg) === '#0a0a0a' ? '.platform-mark, .powered-mark { filter: invert(1); }' : '',
   ].join('\n');
 }
 
@@ -2328,7 +2358,7 @@ async function viewStore(slug) {
     const memberRows = members
       .map(
         (m) => `<tr data-member="${esc(m.discordId)}">
-          <td>${m.username ? '@' + esc(m.username) : ''}<span class="dim"> ${esc(m.discordId)}</span></td>
+          <td>${m.username ? `@${esc(m.username)}<span class="dim"> ${esc(m.discordId)}</span>` : esc(m.discordId)}</td>
           <td>${esc([...m.products].join(', ') || '—')}</td>
           <td class="num">${usd(m.spent)}</td>
           <td>${m.lifetime ? '<span class="chip chip-good">Lifetime</span>' : m.entitled ? '<span class="chip chip-good">Active</span>' : '<span class="chip chip-off">Ended</span>'}</td>
@@ -2525,7 +2555,12 @@ async function viewStore(slug) {
   if (section === 'discounts' && !store.isDefault) wireDiscounts(store, slug);
   if (section === 'store' && !store.isDefault) { wireStoreSettings(store, slug); wireAppearance(store, slug); wireDiscovery(store, slug); }
   if (section === 'customize' && !store.isDefault) wireCustomize(store, slug);
-  if (section === 'billing') renderBillingPanel();
+  if (section === 'billing') {
+    renderBillingPanel().catch(() => {
+      const el = $('#billing-body');
+      if (el) el.innerHTML = '<p class="note-help">Could not load your plan — refresh to try again.</p>';
+    });
+  }
   if (section === 'settings') {
     const pmSave = $('#pm-save');
     if (pmSave)
@@ -3610,8 +3645,23 @@ function wireCurrency(store, slug) {
     if (!next || next === current) { save.textContent = 'Saved ✓'; setTimeout(() => { save.textContent = 'Save'; }, 1400); return; }
     save.disabled = true;
     save.textContent = 'Saving…';
+    const post = (extra) => api('/api/admin/store', { store: slug, currency: next, ...extra });
     try {
-      await api('/api/admin/store', { store: slug, currency: next });
+      try {
+        await post({});
+      } catch (err) {
+        // Dues has no exchange rate: with products live, the switch keeps
+        // every NUMBER and only changes its currency. The server refuses
+        // until the seller has seen the new stickers and said yes.
+        if (!err.body?.needsConfirm || err.body.currencyConfirm !== next) throw err;
+        const list = (err.body.repriced ?? []).map((r) => `${r.name}: ${r.before} → ${r.after}`).join('\n');
+        if (!confirm(`Prices are re-denominated, not converted. Your products would keep their numbers:\n\n${list}\n\nKeep these prices in ${next.toUpperCase()}? Cancel to re-price them first.`)) {
+          save.disabled = false;
+          save.textContent = 'Save';
+          return;
+        }
+        await post({ currencyConfirm: next });
+      }
       save.textContent = 'Saved ✓';
       // Every price on screen is denominated in the currency that just
       // changed, so re-read rather than leave old numbers with a new label.

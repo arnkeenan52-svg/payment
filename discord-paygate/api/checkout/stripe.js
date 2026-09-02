@@ -3,7 +3,7 @@ import { storeBySlug, planOf } from '../../src/services/stores.js';
 import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { createCheckoutSession, stripeFetch } from '../../src/lib/stripe.js';
-import { fromMinor, toMinor, normalize as normalizeCurrency } from '../../src/lib/currency.js';
+import { fromMinor, toMinor, normalize as normalizeCurrency, minCharge, formatAmount } from '../../src/lib/currency.js';
 import { purchaseBlocked, resolveDiscount } from '../../src/services/purchase-guard.js';
 import * as db from '../../src/db.js';
 
@@ -51,27 +51,42 @@ export default guard(async function handler(req, res) {
       sendJson(res, 400, { error: applied.error });
       return;
     }
+    // A code that drags the total under Stripe's per-currency floor cannot be
+    // charged by any card; Stripe would refuse the session with an error the
+    // buyer never gets to read. Say it here, before minting anything.
+    {
+      const cur = normalizeCurrency(plan.currency);
+      if (applied.priceAfter > 0 && applied.priceAfter < minCharge(cur)) {
+        sendJson(res, 409, {
+          error: `That code brings the total under the ${cur.toUpperCase()} minimum of ${formatAmount(minCharge(cur), cur)}, which no card payment can clear.`,
+        });
+        return;
+      }
+    }
     const d = applied.row;
+    // A fixed discount is money, so it carries the plan's currency and the
+    // plan's minor-unit factor. Hardcoded 'usd' × 100 minted a ¥500-off
+    // coupon as a $500-off one — refused by Stripe at best, and at worst a
+    // discount a hundred times the intended size.
+    const terms = d.kind === 'percent'
+      ? { percent_off: Math.min(100, Math.max(1, d.amount)) }
+      : { amount_off: toMinor(Math.min(d.amount, plan.priceUsd), plan.currency), currency: normalizeCurrency(plan.currency) };
+    // One coupon per (store, code, terms), reused across attempts. Stripe lets
+    // the caller pick the coupon id, so a failed or abandoned checkout leaves
+    // nothing new on the seller's account, and an edited discount gets a fresh
+    // coupon because its terms are in the id. Codes are already [A-Z0-9_-].
+    const couponKey = `dues_${store.id ?? 'default'}_${applied.code}_${d.kind === 'percent' ? `p${terms.percent_off}` : `a${terms.amount_off}${terms.currency}`}`
+      .replace(/[^A-Za-z0-9_-]/g, '_');
     try {
-      const coupon = await stripeFetch('/v1/coupons', {
+      await stripeFetch('/v1/coupons', {
         method: 'POST',
         key: store.stripeKey,
-        form: {
-          duration: 'once',
-          name: applied.code,
-          ...(d.kind === 'percent'
-            ? { percent_off: Math.min(100, Math.max(1, d.amount)) }
-            // A fixed discount is money, so it carries the plan's currency and
-            // the plan's minor-unit factor. Hardcoded 'usd' × 100 minted a
-            // ¥500-off coupon as a $500-off one — refused by Stripe at best,
-            // and at worst a discount a hundred times the intended size.
-            : {
-                amount_off: toMinor(Math.min(d.amount, plan.priceUsd), plan.currency),
-                currency: normalizeCurrency(plan.currency),
-              }),
-        },
+        form: { id: couponKey, duration: 'once', name: applied.code, ...terms },
+      }).catch((err) => {
+        // Already minted by an earlier attempt: reuse it.
+        if (!/resource_already_exists|already exists/i.test(err.message)) throw err;
       });
-      couponId = coupon.id;
+      couponId = couponKey;
       discountCode = applied.code;
     } catch (err) {
       console.error(`[checkout] coupon for ${applied.code} on ${store.slug} failed: ${err.message}`);

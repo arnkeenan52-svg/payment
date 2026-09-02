@@ -11,7 +11,7 @@ import { isStoreCategory } from '../../src/services/stores.js';
 import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
 import { parseUploadDataUrl, uploadKind, UPLOAD_BODY_LIMIT } from '../../src/lib/upload.js';
 import { payoutCurrencies, invalidatePriceCache } from '../../src/lib/stripe.js';
-import { isSupported, normalize as normalizeCurrency } from '../../src/lib/currency.js';
+import { isSupported, normalize as normalizeCurrency, roundAmount, validateAmount, formatAmount } from '../../src/lib/currency.js';
 import { validateAddress, chainFamily } from '../../src/lib/crypto-address.js';
 import { merchantCoins } from '../../src/lib/nowpayments.js';
 import { capabilities } from '../../src/config.js';
@@ -147,8 +147,38 @@ export default guard(async function handler(req, res) {
       // the dashboard no longer claims. Safe here, and only here, because this
       // branch is unreachable once anyone has subscribed.
       const plans = await db.storePlansFor(store.id);
-      for (const p of plans) {
-        await db.updateStorePlan(store.id, p.planKey, { currency: next, stripePriceId: null });
+      // The NUMBER on each product does not convert — Dues has no exchange
+      // rate — so a silent relabel sells a $25 pass for ¥25. Two guards, both
+      // before anything is written: re-run the same floor/ceiling the product
+      // form enforces, and make the seller confirm the new stickers.
+      const was = normalizeCurrency(store.currency);
+      const priced = plans.map((p) => {
+        const amount = roundAmount(p.priceUsd, next);
+        return { plan: p, amount, check: validateAmount(amount, next) };
+      });
+      const bad = priced.filter((x) => !x.check.ok);
+      if (bad.length) {
+        return sendJson(res, 400, {
+          error: `In ${next.toUpperCase()} these prices could not be charged: `
+            + bad.map((x) => `${x.plan.name} at ${formatAmount(x.amount, next)} (${x.check.reason})`).join('; ')
+            + '. Dues does not convert amounts, so re-price these products first.',
+        });
+      }
+      if (priced.length && String(body.currencyConfirm ?? '') !== next) {
+        return sendJson(res, 409, {
+          needsConfirm: true,
+          currencyConfirm: next,
+          repriced: priced.map((x) => ({
+            planKey: x.plan.planKey,
+            name: x.plan.name,
+            before: formatAmount(x.plan.priceUsd, was),
+            after: formatAmount(x.amount, next),
+          })),
+          error: `Prices are re-denominated, not converted: ${priced.map((x) => `${x.plan.name} ${formatAmount(x.plan.priceUsd, was)} becomes ${formatAmount(x.amount, next)}`).join('; ')}. Confirm to keep these numbers, or cancel and re-price first.`,
+        });
+      }
+      for (const x of priced) {
+        await db.updateStorePlan(store.id, x.plan.planKey, { priceUsd: x.amount, currency: next, stripePriceId: null });
       }
       invalidatePriceCache();
     }

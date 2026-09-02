@@ -44,7 +44,9 @@ async function ownedStore(uid, storeId, req) {
   // and finds no row (a clean 403); Postgres rejects it and the handler 500s.
   // The suite runs on SQLite, which is why it never saw production do this.
   const id = Number(storeId);
-  if (!Number.isInteger(id) || id <= 0) return null;
+  // Safe integers only: pg serialises 1e21 as "1e+21" and 2^63 past bigint's
+  // range, and both surface as a 500 instead of this 403. isInteger let them by.
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
   const row = await db.getStoreById(id);
   if (!row) return null;
   // The platform operator can act on any store — same bypass the sibling

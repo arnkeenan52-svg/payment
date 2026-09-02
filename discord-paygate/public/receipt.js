@@ -70,8 +70,12 @@ async function main() {
   // No `?? plans[0]`. That named the store's FIRST product, at its price, on
   // the receipt for whatever was actually bought whenever the bought product
   // had since been taken off sale. Better to say less than to say wrong.
+  // A product since taken off sale is absent from /api/plans, but the buyer's
+  // own subscription row still names it — and the confirmed screen reads its
+  // roleNames, which the bare placeholder never carried (it threw instead).
+  const owned = (me.subscriptions ?? []).find((s) => s.planId === requested);
   const plan = plans.find((p) => p.id === requested)
-    ?? (requested ? { id: requested, name: 'Your purchase', lifetime: false, interval: '', priceUsd: null, currency: plans[0]?.currency } : null);
+    ?? (requested ? { id: requested, name: owned?.planName ?? 'Your purchase', roleNames: owned?.roleNames ?? [], lifetime: owned?.lifetime ?? false, interval: '', priceUsd: null, currency: plans[0]?.currency } : null);
   if (!plan) return;
 
   $('#r-server').textContent = server.name || '—';

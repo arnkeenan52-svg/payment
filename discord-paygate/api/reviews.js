@@ -118,7 +118,7 @@ export default guard(async function handler(req, res) {
       return sendJson(res, 403, { error: 'not your store' });
     }
     const id = Number(body.id);
-    if (!Number.isInteger(id) || id <= 0) return sendJson(res, 400, { error: 'which review?' });
+    if (!Number.isSafeInteger(id) || id <= 0) return sendJson(res, 400, { error: 'which review?' });
     const target = await db.getReviewById(id);
     if (!target || target.storeId !== store.id) return sendJson(res, 404, { error: 'unknown review' });
     const text = body.body === null || body.body === '' ? null : String(body.body).trim().slice(0, MAX_BODY);

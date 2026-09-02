@@ -83,7 +83,10 @@
             <span class="shop-rating-num" id="shop-rating-num"></span>
             <span class="shop-rating-count" id="shop-rating-count"></span>
           </button>
-          <p class="shop-desc" id="shop-desc" hidden><span id="shop-desc-text"></span><button type="button" class="shop-desc-more" id="shop-desc-more" hidden>&#8230; see more</button></p>
+          <p class="shop-desc" id="shop-desc" hidden><span id="shop-desc-text"></span></p>
+          <!-- Outside the clamped paragraph: inside it, a long description pushed the
+               button onto the third line, which the clamp clipped away. -->
+          <button type="button" class="shop-desc-more" id="shop-desc-more" hidden>&#8230; see more</button>
           <!-- The seller's own claim about who is behind the store. -->
           <p class="shop-creator" id="shop-creator" hidden>Created by <b id="shop-creator-name"></b></p>
           <div class="shop-metaline" id="shop-metaline"></div>

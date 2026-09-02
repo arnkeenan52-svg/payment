@@ -1272,12 +1272,15 @@ function productCard(plan) {
   card.type = 'button';
   card.className = 'prod-card';
   const group = groupFor(plan);
-  const minUsd = Math.min(...group.map((g) => g.priceUsd));
+  // "from" quotes the CHEAPEST option, so the cadence beside it has to be
+  // that same option's — the parent's flag would price a $50/month option as
+  // "from $50.00 lifetime" for a product whose lifetime price is $500.
+  const cheapest = group.reduce((a, b) => (b.priceUsd < a.priceUsd ? b : a), group[0]);
   const priceHtml =
-    group.length > 1 ? `<span class="prod-from">from</span> ${fmtPrice(minUsd)}` : fmtPrice(plan.priceUsd);
+    group.length > 1 ? `<span class="prod-from">from</span> ${fmtPrice(cheapest.priceUsd)}` : fmtPrice(plan.priceUsd);
   // The interval is the same weight and colour as the amount: "$49.99 / month"
   // has to read as one string, not a number with a footnote.
-  const per = plan.lifetime ? ' lifetime' : ` / ${esc(plan.interval ?? 'month')}`;
+  const per = cheapest.lifetime ? ' lifetime' : ` / ${esc(cheapest.interval ?? 'month')}`;
   const now = Math.floor(Date.now() / 1000);
   const roleCount = Array.isArray(plan.roleNames) ? plan.roleNames.length : 0;
   const meta =
@@ -1285,15 +1288,21 @@ function productCard(plan) {
     : plan.expiresAt && plan.expiresAt > now ? 'Limited'
     : roleCount ? `${SHOP_ICONS.people}${roleCount} role${roleCount > 1 ? 's' : ''}`
     : '';
+  const ph = `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`;
   const media = plan.imageUrl
     ? (isVideoMedia(plan)
-        ? `<video class="prod-shot media-fade" src="${esc(plan.imageUrl)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true" onerror="this.remove()" onloadeddata="this.classList.add('loaded')"></video>`
-        : `<img class="prod-shot media-fade" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onerror="this.remove()" onload="this.classList.add('loaded')" />`)
-    : `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`;
+        ? `<video class="prod-shot media-fade" src="${esc(plan.imageUrl)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true" onloadeddata="this.classList.add('loaded')"></video>`
+        : `<img class="prod-shot media-fade" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onload="this.classList.add('loaded')" />`)
+    : ph;
   card.innerHTML =
     `<span class="prod-media">${media}<span class="prod-name">${esc(plan.name)}</span></span>` +
     `<span class="prod-foot"><span class="prod-price">${priceHtml}<span class="prod-per">${per}</span></span>` +
     `<span class="prod-meta">${meta}</span></span>`;
+  // A dead image URL must not collapse .prod-media to 0px: swap in the same
+  // letter tile the no-image branch uses, so the card keeps its shape and the
+  // absolutely-positioned .prod-name stays inside .prod-card's overflow:hidden.
+  const shot = card.querySelector('.prod-shot');
+  if (shot) shot.onerror = () => { shot.outerHTML = ph; };
   card.onclick = () => openCheckout(plan.id);
   return card;
 }
@@ -1656,9 +1665,12 @@ async function main() {
   // deep link, a checkout return, or the dashboard preview (?view=checkout)
   // goes straight to the order card. One-PRODUCT stores skip the shop —
   // a product's price options don't count as separate products.
+  // A store with NOTHING sellable (every product paused or expired) is not a
+  // one-product store: state.planId is null exactly then, and the shop's
+  // empty-state copy is the only honest page — never a nameless order card.
   const productCount = state.plans.filter((p) => !p.variantOf).length;
   state.view =
-    !deadProductLink && (requestedPlan || productCount <= 1 || search.get('checkout') || search.get('view') === 'checkout')
+    state.planId && !deadProductLink && (requestedPlan || productCount === 1 || search.get('checkout') || search.get('view') === 'checkout')
       ? 'checkout'
       : 'shop';
   const back = $('#back-to-shop');
