@@ -203,9 +203,9 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
             </div>
             <div class="calc-bars">
               <span class="calc-bars-label">Monthly platform cost</span>
-            <div class="calc-bar-row" id="t-row-ripley">
-              <div class="calc-bar-meta"><span class="calc-bar-name">Dues</span><span class="calc-bar-amt" id="t-ripley">$0</span></div>
-              <div class="calc-bar mine"><span id="t-bar-ripley"></span></div>
+            <div class="calc-bar-row" id="t-row-dues">
+              <div class="calc-bar-meta"><span class="calc-bar-name">Dues</span><span class="calc-bar-amt" id="t-dues">$0</span></div>
+              <div class="calc-bar mine"><span id="t-bar-dues"></span></div>
               <span class="calc-bar-sub">Flat plan · 0% of sales</span>
             </div>
             <div class="calc-bar-row">
@@ -241,7 +241,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
   (function () {
     var subs = document.getElementById('t-subs'), price = document.getElementById('t-price');
     var fmt = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
-    function ripleyCost(members) {
+    function duesCost(members) {
       if (members <= 10) return 0;
       if (members <= 50) return 14.99;
       if (members <= 500) return 44.99;
@@ -252,18 +252,18 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
       document.getElementById('t-subs-out').textContent = m;
       document.getElementById('t-price-out').textContent = '$' + p;
       document.getElementById('t-rev').textContent = fmt(rev) + '/mo';
-      var ripley = ripleyCost(m);
+      var dues = duesCost(m);
       var rows = [{ id: 'whop', cost: rev * 0.03 }];
-      var max = ripley; rows.forEach(function (r) { if (r.cost > max) max = r.cost; });
+      var max = dues; rows.forEach(function (r) { if (r.cost > max) max = r.cost; });
       var worst = 0;
-      document.getElementById('t-ripley').textContent = fmt(ripley) + '/mo';
-      document.getElementById('t-bar-ripley').style.width = Math.max((ripley / (max || 1)) * 100, 2) + '%';
+      document.getElementById('t-dues').textContent = fmt(dues) + '/mo';
+      document.getElementById('t-bar-dues').style.width = Math.max((dues / (max || 1)) * 100, 2) + '%';
       rows.forEach(function (r) {
         if (r.cost > worst) worst = r.cost;
         document.getElementById('t-' + r.id).textContent = fmt(r.cost) + '/mo';
         document.getElementById('t-bar-' + r.id).style.width = Math.max((r.cost / (max || 1)) * 100, 2) + '%';
       });
-      document.getElementById('t-save').textContent = fmt(Math.max(worst - ripley, 0) * 12) + '/yr';
+      document.getElementById('t-save').textContent = fmt(Math.max(worst - dues, 0) * 12) + '/yr';
     }
     subs.addEventListener('input', upd); price.addEventListener('input', upd); upd();
   })();
