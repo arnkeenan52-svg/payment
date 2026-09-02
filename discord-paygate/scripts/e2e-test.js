@@ -5389,6 +5389,128 @@ test('a kicked bot is named as the cause (not a buyer who has not joined), the s
   assert.ok(memberRoles(KC).has(R2_VIP));
 });
 
+// The IPN is a claim on the WORK, not on the delivery. NOWPayments sends one
+// IPN per status transition and the handler re-reads the payment every time,
+// so on a fast chain several deliveries all read `finished`: keyed on the
+// body's status, every one of them ran the completion side effects. And a
+// delivery whose re-read has not caught up yet is answered 5xx so the
+// provider brings it back — a 200 there consumed the only `finished` this
+// payment would ever send.
+const npStoreId = async () =>
+  (await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: npCookie } })).json()).stores.find((s) => s.slug === 'vip-signals').id;
+const npPlan = async () => (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans[0];
+async function npOpenOrder({ storeId, plan, uid, orderId, ref, status, age, discountCode = null, amount = plan.priceUsd }) {
+  discord.members.set(uid, new Set());
+  await tq(
+    "INSERT INTO checkout_attempts (store_id, plan_id, discord_id, session_id, amount_usd, currency, discount_code, provider_ref, status, created_at) VALUES (?, ?, ?, ?, ?, 'usd', ?, ?, 'started', ?)",
+    [storeId, plan.id, uid, orderId, amount, discountCode, ref, nowSec() - age],
+  );
+  const payment = {
+    payment_id: ref, payment_status: status, order_id: orderId, price_amount: amount, price_currency: 'usd',
+    pay_currency: 'sol', pay_amount: 0.5, actually_paid: status === 'finished' ? 0.5 : 0,
+  };
+  nowpayments.payments.set(ref, payment);
+  return payment;
+}
+const attemptStatus = async (orderId) => (await tq('SELECT status FROM checkout_attempts WHERE session_id = ?', [orderId])).rows[0].status;
+
+test('crypto: a lagging re-read is retried rather than consumed, and the completion side effects run once per sale', async () => {
+  const storeId = await npStoreId();
+  const plan = await npPlan();
+  await tq("INSERT INTO discounts (store_id, code, kind, amount, plan_key, max_uses, uses, expires_at, created_at) VALUES (?, 'CRYPTO10', 'percent', 10, NULL, 5, 0, NULL, ?)", [storeId, nowSec()]);
+  const uses = async () => Number((await tq('SELECT uses FROM discounts WHERE store_id = ? AND code = ?', [storeId, 'CRYPTO10'])).rows[0].uses);
+  const LAG = '515000000000000016';
+  const orderId = `np_${'a'.repeat(32)}`;
+  const payment = await npOpenOrder({ storeId, plan, uid: LAG, orderId, ref: 'npid_lag', status: 'confirming', age: 60, discountCode: 'CRYPTO10', amount: Math.round(plan.priceUsd * 90) / 100 });
+  const pings0 = discord.channelPosts.length;
+
+  // The signed `finished` lands while GET /payment still answers confirming.
+  const lagging = await deliverNow({ payment_id: 'npid_lag', payment_status: 'finished', order_id: orderId });
+  assert.equal(lagging.status, 503, 'a finished delivery the re-read cannot confirm is not a terminal outcome — the provider must bring it back');
+  assert.equal(await subRow('nowpayments', 'npid_lag'), null);
+  assert.deepEqual(await claimRows('nowpayments:npid_lag:%'), [], 'no claim is held on work that did not happen');
+  assert.equal(await attemptStatus(orderId), 'started');
+
+  // The provider catches up. Whichever delivery re-reads `finished` first
+  // does the work — here a late in-flight one, which is exactly the case
+  // a per-delivery claim let through twice...
+  payment.payment_status = 'finished';
+  payment.actually_paid = 0.5;
+  const late = await deliverNow({ payment_id: 'npid_lag', payment_status: 'confirming', order_id: orderId });
+  assert.deepEqual([late.status, late.body], [200, 'ok']);
+  assert.ok(memberRoles(LAG).has(R2_VIP), 'the role lands');
+  assert.equal(await attemptStatus(orderId), 'completed');
+  assert.equal(await uses(), 1);
+  assert.equal(discord.channelPosts.length, pings0 + 1);
+  assert.match(discord.channelPosts.at(-1).body.embeds[0].description, /paid in SOL/);
+  // ...and every later delivery, whatever status it carries, finds it done.
+  for (const status of ['finished', 'sending', 'finished']) {
+    const r = await deliverNow({ payment_id: 'npid_lag', payment_status: status, order_id: orderId });
+    assert.deepEqual([r.status, r.body], [200, 'duplicate'], `a ${status} delivery after the grant`);
+  }
+  assert.equal(await uses(), 1, 'a five-use code burns one use on one sale');
+  assert.equal(discord.channelPosts.length, pings0 + 1, 'one sale, one ping');
+  assert.equal((await claimRows('nowpayments:npid_lag:%')).length, 1, 'one claim: the work');
+});
+
+test('crypto: a claim left by an invocation that died is retaken, and the cron recovers a finished payment whose IPN never came', async () => {
+  const storeId = await npStoreId();
+  const plan = await npPlan();
+  const DIED = '515000000000000017';
+  const LOST = '515000000000000018';
+  const GONE = '515000000000000019';
+  const O_DIED = `np_${'b'.repeat(32)}`;
+  const O_LOST = `np_${'c'.repeat(32)}`;
+  const O_GONE = `np_${'d'.repeat(32)}`;
+  await npOpenOrder({ storeId, plan, uid: DIED, orderId: O_DIED, ref: 'npid_died', status: 'finished', age: 60 });
+  await npOpenOrder({ storeId, plan, uid: LOST, orderId: O_LOST, ref: 'npid_lost', status: 'finished', age: 7200 });
+  await npOpenOrder({ storeId, plan, uid: GONE, orderId: O_GONE, ref: 'npid_gone', status: 'expired', age: 7200 });
+
+  // 1. Another invocation took the claim on this very work 30 seconds ago
+  // and may still be running: neither duplicate it nor consume the delivery.
+  await tq("INSERT INTO webhook_events (event_id, provider, received_at) VALUES ('nowpayments:npid_died:finished', 'nowpayments', ?)", [nowSec() - 30]);
+  const held = await deliverNow({ payment_id: 'npid_died', payment_status: 'finished', order_id: O_DIED });
+  assert.equal(held.status, 503, 'work someone else holds is "come back", never "done"');
+  assert.equal(await subRow('nowpayments', 'npid_died'), null);
+  // Fifteen minutes on with the order still open, the holder can only be an
+  // invocation the platform killed before its catch ran (the limit is 60s).
+  await tq("UPDATE webhook_events SET received_at = ? WHERE event_id = 'nowpayments:npid_died:finished'", [nowSec() - 900]);
+  const retaken = await deliverNow({ payment_id: 'npid_died', payment_status: 'finished', order_id: O_DIED });
+  assert.deepEqual([retaken.status, retaken.body], [200, 'ok'], 'a stale claim on undone work is retaken, not honoured');
+  assert.ok(memberRoles(DIED).has(R2_VIP));
+  assert.equal(await attemptStatus(O_DIED), 'completed');
+
+  // 2. No IPN ever arrived for a payment that finished two hours ago — the
+  // provider's retries are spent, the coins are in the seller's wallet.
+  const pings0 = discord.channelPosts.length;
+  const cron = await hitCron();
+  assert.equal(cron.status, 200, cron.body);
+  const body = JSON.parse(cron.body);
+  assert.equal(body.cryptoBackfill?.recovered, 1, `the cron recovers the sale: ${cron.body}`);
+  assert.equal(body.cryptoBackfill?.closed, 1, `and closes the invoice the provider expired: ${cron.body}`);
+  assert.ok(memberRoles(LOST).has(R2_VIP), 'the role is delivered');
+  assert.equal(await attemptStatus(O_LOST), 'completed');
+  assert.equal(discord.channelPosts.length, pings0 + 1, 'the seller is pinged');
+  assert.equal(await attemptStatus(O_GONE), 'expired', 'an invoice closed unpaid is closed here too');
+  // A second sweep has nothing open left and asks the provider nothing.
+  const reqs = nowpayments.requests;
+  assert.deepEqual(JSON.parse((await hitCron()).body).cryptoBackfill, { checked: 0, recovered: 0, closed: 0 });
+  assert.equal(nowpayments.requests, reqs);
+  // The real delivery finally lands: acknowledged, and nothing happens twice.
+  const lateIpn = await deliverNow({ payment_id: 'npid_lost', payment_status: 'finished', order_id: O_LOST });
+  assert.deepEqual([lateIpn.status, lateIpn.body], [200, 'duplicate']);
+  assert.equal(discord.channelPosts.length, pings0 + 1, 'no second ping');
+});
+
+test('cron: idempotency claims older than any provider retry window are purged, younger ones stay', async () => {
+  await tq("INSERT INTO webhook_events (event_id, provider, received_at) VALUES ('stripe:evt_ancient', 'stripe', ?)", [nowSec() - 10 * 86400]);
+  assert.equal((await claimRows('nowpayments:npid_lag:%')).length, 1);
+  const body = JSON.parse((await hitCron()).body);
+  assert.ok(body.claimsPurged >= 1, JSON.stringify(body));
+  assert.deepEqual(await claimRows('stripe:evt_ancient'), [], 'a claim no retry can ever match again is gone');
+  assert.equal((await claimRows('nowpayments:npid_lag:%')).length, 1, 'a claim inside the window stays');
+});
+
 // ═══ runner ═══════════════════════════════════════════════════════════════════
 
 async function main() {

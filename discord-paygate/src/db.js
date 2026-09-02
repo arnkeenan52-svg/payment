@@ -91,7 +91,7 @@ const ddl = (dialect) => {
     currency      TEXT NOT NULL DEFAULT 'usd',
     discount_code TEXT,
     provider_ref  TEXT,                 -- crypto: the NOWPayments payment id
-    status        TEXT NOT NULL,        -- 'started' | 'completed'
+    status        TEXT NOT NULL,        -- 'started' | 'completed' | 'expired' (crypto: the provider closed the invoice unpaid)
     created_at    ${int} NOT NULL,
     completed_at  ${int},
     UNIQUE (session_id)
@@ -525,16 +525,38 @@ export async function recordedManagedRoleIds() {
 // whichever endpoint Stripe reached first eat the other store's sale.
 const claimKey = (provider, eventId, scope) => `${provider}:${scope ? `${scope}:` : ''}${eventId}`;
 
-export async function claimEvent(provider, eventId, scope = null) {
-  const { changes } = await q(
-    'INSERT INTO webhook_events (event_id, provider, received_at) VALUES (?, ?, ?) ON CONFLICT (event_id) DO NOTHING',
-    [claimKey(provider, eventId, scope), provider, now()],
-  );
+// `retakeAfter` (seconds) makes a claim on WORK rather than on a delivery: a
+// claim older than that whose work never landed can only have been left by
+// an invocation that died before its catch ran (the platform's hard time
+// limit, an OOM) — and a second delivery would otherwise be answered
+// "duplicate" forever for work nobody did. The caller decides whether the
+// work is still outstanding; this only lets a stale enough claim be retaken.
+export async function claimEvent(provider, eventId, scope = null, { retakeAfter = null } = {}) {
+  const t = now();
+  const { changes } = retakeAfter === null
+    ? await q(
+      'INSERT INTO webhook_events (event_id, provider, received_at) VALUES (?, ?, ?) ON CONFLICT (event_id) DO NOTHING',
+      [claimKey(provider, eventId, scope), provider, t],
+    )
+    : await q(
+      `INSERT INTO webhook_events (event_id, provider, received_at) VALUES (?, ?, ?)
+       ON CONFLICT (event_id) DO UPDATE SET received_at = excluded.received_at WHERE webhook_events.received_at < ?`,
+      [claimKey(provider, eventId, scope), provider, t, t - Number(retakeAfter)],
+    );
   return changes === 1;
 }
 
 export async function releaseEvent(provider, eventId, scope = null) {
   await q('DELETE FROM webhook_events WHERE event_id = ?', [claimKey(provider, eventId, scope)]);
+}
+
+// Claims exist to refuse a provider's retry of a delivery already handled.
+// Stripe stops retrying after three days and NOWPayments within the hour, so
+// a claim older than the retention is dead weight on the one table every
+// webhook inserts into. Returns how many were dropped.
+export async function purgeWebhookEvents(before) {
+  const { changes } = await q('DELETE FROM webhook_events WHERE received_at < ?', [before]);
+  return Number(changes ?? 0);
 }
 
 // Buyers with an open checkout for any of these plans, younger than `since` —
@@ -626,8 +648,30 @@ export async function getCheckoutAttempt(sessionId) {
 
 // The completion webhook is the only thing that flips a row. It is replayed by
 // Stripe on retries, so completed_at is written once and never moved.
+// Answers whether THIS call flipped the row — the once-only signal the
+// completion side effects (discount use, sale ping) hang off.
 export async function markCheckoutCompleted(sessionId, at = now()) {
-  await q("UPDATE checkout_attempts SET status = 'completed', completed_at = ? WHERE session_id = ? AND status <> 'completed'", [at, sessionId]);
+  const { changes } = await q("UPDATE checkout_attempts SET status = 'completed', completed_at = ? WHERE session_id = ? AND status <> 'completed'", [at, sessionId]);
+  return Number(changes ?? 0) > 0;
+}
+
+// A crypto invoice the provider closed without payment (expired, failed,
+// refunded). Closing the attempt too is what stops the cron asking about it
+// every hour for a week, and releases the seat and discount use it held.
+export async function markCheckoutExpired(sessionId) {
+  await q("UPDATE checkout_attempts SET status = 'expired' WHERE session_id = ? AND status = 'started'", [sessionId]);
+}
+
+// Crypto orders a payment was created for that nobody ever closed: what the
+// cron asks the provider about. Oldest first, bounded, so a run that cannot
+// get through them all still makes progress on the ones that have waited
+// longest.
+export async function openCryptoAttempts({ since, until, limit = 20 }) {
+  const { rows } = await q(
+    "SELECT * FROM checkout_attempts WHERE provider_ref IS NOT NULL AND status = 'started' AND created_at >= ? AND created_at <= ? ORDER BY created_at ASC LIMIT ?",
+    [since, until, limit],
+  );
+  return rows;
 }
 
 export async function checkoutAttempts(storeIds = null, { limit = 300 } = {}) {

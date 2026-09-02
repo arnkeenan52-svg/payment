@@ -1,7 +1,6 @@
 import { capabilities } from '../../src/config.js';
 import { readRawBody, sendText, guard } from '../../src/lib/http.js';
-import { verifyIpnSignature, getPayment } from '../../src/lib/nowpayments.js';
-import { claimEvent, releaseEvent } from '../../src/db.js';
+import { verifyIpnSignature, getPayment, GRANTS_ACCESS } from '../../src/lib/nowpayments.js';
 import { processNowPayment } from '../../src/services/nowpayments-events.js';
 
 // Raw body: the IPN signature is computed over a RE-SERIALISATION of the
@@ -46,26 +45,41 @@ export default guard(async function handler(req, res) {
     return;
   }
 
-  // NOWPayments sends one IPN per status TRANSITION and gives none of them an
-  // event id, so the claim key is the pair. Keying on payment_id alone would
-  // let the first delivery (waiting) swallow every later one — including the
-  // finished that actually grants the role.
-  const eventId = `${paymentId}:${status}`;
-  if (!(await claimEvent('nowpayments', eventId))) {
+  // No claim is taken on the DELIVERY. NOWPayments sends one IPN per status
+  // transition with no event id, and this handler deliberately ignores the
+  // status it carries — the payment is re-read from the API and the answer is
+  // its state NOW, which is what makes a captured IPN replayed next week
+  // harmless (the IPN has no timestamp and no nonce to bound a replay with).
+  // But that same re-read means several deliveries can all read `finished`,
+  // so a per-delivery claim keyed on the body's status let each of them run
+  // the completion side effects again. The claim is on the WORK instead,
+  // inside processNowPayment: payment id + outcome, taken once the outcome is
+  // known and released when the work fails, so nothing runs twice and no
+  // delivery is consumed for work that did not happen.
+  let outcome;
+  try {
+    const payment = await getPayment(paymentId);
+    outcome = await processNowPayment(payment);
+  } catch (err) {
+    console.error(`[webhooks] nowpayments ${paymentId}:${status} failed (provider will retry): ${err.stack ?? err.message}`);
+    sendText(res, 500, 'processing failed');
+    return;
+  }
+  if (outcome === 'already') {
     sendText(res, 200, 'duplicate');
     return;
   }
-  try {
-    // The IPN carries no timestamp and no nonce, so there is nothing in it to
-    // bound a replay against. Re-reading the payment from the API makes that
-    // moot: a captured delivery replayed next week is answered with the
-    // payment's state next week, not with the state it described.
-    const payment = await getPayment(paymentId);
-    await processNowPayment(payment);
-    sendText(res, 200, 'ok');
-  } catch (err) {
-    await releaseEvent('nowpayments', eventId);
-    console.error(`[webhooks] nowpayments ${eventId} failed (claim released for retry): ${err.stack ?? err.message}`);
-    sendText(res, 500, 'processing failed');
+  // A non-2xx is the only thing that brings a delivery back, and this may be
+  // the only `finished` this payment ever sends. So a delivery that claims a
+  // granting status is not acknowledged until the re-read agrees — GET
+  // /payment is a separate read path that can lag the emitter — or the
+  // payment has ended for good. Same for work another invocation holds: it
+  // may have died, and a retry in a few minutes finds out either way.
+  const settled = outcome === 'granted' || outcome === 'ignored' || outcome === 'dead';
+  if (outcome === 'in-progress' || (GRANTS_ACCESS.has(status) && !settled)) {
+    console.warn(`[webhooks] nowpayments ${paymentId}: delivery says ${status}, re-read says ${outcome} — asking the provider to retry`);
+    sendText(res, 503, 'not settled yet');
+    return;
   }
+  sendText(res, 200, 'ok');
 });

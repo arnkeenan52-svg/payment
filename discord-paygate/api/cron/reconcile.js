@@ -4,7 +4,12 @@ import { sendJson, sendText, guard } from '../../src/lib/http.js';
 import { sweepExpirations } from '../../src/services/entitlements.js';
 import { healStoreWebhooks } from '../../src/services/webhook-heal.js';
 import { refreshBrandAssets } from '../../src/services/brand-refresh.js';
-import { backfillMissedSales } from '../../src/services/backfill.js';
+import { backfillMissedSales, backfillMissedCryptoSales } from '../../src/services/backfill.js';
+import { purgeWebhookEvents } from '../../src/db.js';
+
+// Webhook idempotency claims outlive any provider's retries by this much and
+// are then dropped; Stripe retries for three days, NOWPayments for minutes.
+const CLAIM_RETENTION = 7 * 86400;
 
 // Replaces the old setInterval sweep — there is no long-lived process on
 // Vercel. vercel.json schedules this; Vercel sends Authorization: Bearer
@@ -44,5 +49,19 @@ export default guard(async function handler(req, res) {
   const brand = await attempt('brand refresh', refreshBrandAssets);
   // Sales whose webhook never arrived: ask Stripe, process what was missed.
   const backfill = await attempt('sale backfill', backfillMissedSales);
-  sendJson(res, 200, { ok: failures.length === 0, ...result, ...(webhooks ? { webhooks } : {}), ...(brand ? { brand } : {}), ...(backfill ? { backfill } : {}), ...(failures.length ? { failures } : {}) });
+  // Crypto sales whose IPN never arrived: ask the provider about every open
+  // order, process what finished.
+  const cryptoBackfill = await attempt('crypto backfill', backfillMissedCryptoSales);
+  // Claims no retry can ever match again, off the table every webhook inserts into.
+  const claimsPurged = await attempt('claim purge', () => purgeWebhookEvents(Math.floor(Date.now() / 1000) - CLAIM_RETENTION));
+  sendJson(res, 200, {
+    ok: failures.length === 0,
+    ...result,
+    ...(webhooks ? { webhooks } : {}),
+    ...(brand ? { brand } : {}),
+    ...(backfill ? { backfill } : {}),
+    ...(cryptoBackfill ? { cryptoBackfill } : {}),
+    ...(claimsPurged === null ? {} : { claimsPurged }),
+    ...(failures.length ? { failures } : {}),
+  });
 });
