@@ -202,6 +202,11 @@ export async function validatePayoutAddress({ address, currency, extraId = null 
 // fiat_equivalent is a REQUEST parameter, not something the answer volunteers:
 // the response carries the field only when the fiat ticker was asked for, so
 // the caller's fallback to it is dead without this.
+//
+// The gap between the two flows is not small — NOWPayments' own example puts
+// USDTTRC20→USDTTRC20 at about 9 on the standard rate and about 20 fixed —
+// and a buyer who sends below the real floor gets a `failed` payment the
+// provider says usually cannot be refunded. See docs/nowpayments-operations.md.
 export const minimumFor = (from, to, { fiatEquivalent = null } = {}) =>
   npFetch(
     `/min-amount?currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`
