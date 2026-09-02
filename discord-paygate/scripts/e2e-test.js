@@ -1463,14 +1463,21 @@ test('landing polish holds: one gutter, centred community CTA, Cash App logotype
   assert.match(index, /<section class="how wrap" id="how">[\s\S]*?<div class="pay">[\s\S]*?<\/section>/,
     'the payment strip lives inside How it works and takes that section\'s gutter');
   assert.doesNotMatch(index, /<section class="pay/, 'the payment strip is not a section of its own');
-  // and it is off the walk above now, so its own rules are checked here — the
-  // night face's `html:not(...) .pay` panel is exempt for the same reason the
-  // walk exempts compounds: that one is a card treatment, not the page gutter.
+  // It IS a card now, so it has an inset of its own and that is the point: the
+  // heading, the two sets of marks, the note and the Stripe line are one
+  // argument, and four rows lying loose on the page read as four things. What
+  // has to hold instead is that the card cannot outgrow the column it sits in
+  // — a panel wider than the section's gutter would punch through the reading
+  // measure that every other band on this page respects.
   const payRules = [...css.matchAll(/(?:^|[{,])\s*\.pay\{([^}]*)\}/gm)];
   assert.ok(payRules.length, '.pay still has a rule');
+  const payBody = payRules.map((r) => r[1]).join(';');
+  assert.match(payBody, /width:min\(100%,\s*\d+px\)/, 'the payment card is capped, never wider than its column');
+  assert.match(payBody, /margin-inline:auto/, 'and centred in it');
+  assert.match(payBody, /border-radius:/, 'it reads as one object, with an edge');
   for (const r of payRules) {
-    assert.doesNotMatch(r[1], /(^|;)\s*padding(-inline|-left|-right)?\s*:/,
-      '.pay must not grow a horizontal gutter of its own inside How it works');
+    assert.doesNotMatch(r[1], /(^|;)\s*padding(-inline|-left|-right)\s*:/,
+      '.pay takes one padding shorthand, not a separate horizontal gutter');
   }
 
   // The community card centres everything; its one CTA is inside a flex row
@@ -1588,14 +1595,20 @@ test('the landing runs on one type scale, one vertical rhythm and one grid', () 
     assert.equal(last(s, 'font-size'), 'var(--t-note)', `${s} takes the one note step`);
   }
 
-  // TWO section boundaries, and no third. Every section's block padding is
-  // written in the rhythm tokens, so the gap between any two of them is either
-  // 2x--sec-y (a new movement) or 2x--sec-y-tight (inside the fee argument).
+  // TWO section boundaries, and no third. Every section spends the rhythm on
+  // ONE block property, so the gap between any two of them is either 2x--sec-y
+  // (a new movement) or 2x--sec-y-tight (inside the fee argument). A section
+  // whose ground is the page's own carries it as padding; a section drawn as a
+  // card (.pay) carries it as margin, because its padding is the card's inset
+  // and would put the rhythm inside the border instead of between sections.
   for (const s of ['.save', '.why', '.pay', '.how', '.voices', '.comm', '.faq']) {
     const pad = last(s, 'padding-block');
-    assert.ok(pad, `${s} sets its own block rhythm`);
-    assert.doesNotMatch(pad, /\d+px/, `${s} spends the rhythm tokens, not a hand-picked px value (${pad})`);
-    assert.match(pad, /var\(--sec-y(-tight)?\)/, `${s} spends the rhythm tokens`);
+    const mar = last(s, 'margin-block');
+    const rhythm = pad || mar;
+    assert.ok(rhythm, `${s} sets its own block rhythm`);
+    assert.ok(!(pad && mar), `${s} spends the rhythm once, not on both padding and margin`);
+    assert.doesNotMatch(rhythm, /\d+px/, `${s} spends the rhythm tokens, not a hand-picked px value (${rhythm})`);
+    assert.match(rhythm, /var\(--sec-y(-tight)?\)/, `${s} spends the rhythm tokens`);
   }
 
   // ONE reading column, ONE multi-column measure — four widths became two
@@ -4374,17 +4387,41 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
     ['/discover', '/pricing', '/vs', '/tools'], '/crypto carries the site nav');
   assert.doesNotMatch(cry.body, /\b\d+\+\s*(coins|cryptocurrencies|crypto)\b/i,
     '/crypto must not print a coin count it cannot source');
-  assert.match(cry.body, /read live from|reads? live|asks the crypto rail/i, '/crypto says where the list comes from');
+  assert.match(cry.body, /read from the crypto rail|read live from|reads? live|asks the crypto rail/i,
+    '/crypto says where the list comes from');
   const { CHAIN_RANK } = await import('../src/lib/nowpayments.js');
-  const rankedCount = CHAIN_RANK.reduce((n, t) => n + t.length, 0);
-  assert.match(cry.body, new RegExp(`${rankedCount} assets are ranked`), `/crypto names the ${rankedCount} assets CHAIN_RANK actually ranks`);
-  for (const tier of CHAIN_RANK) {
-    for (const ticker of tier) {
-      // every ticker in the ordering has a human name on the page — the
-      // generator throws rather than ship a bare "usdcbase" at a seller
-      assert.ok(!cry.body.includes(`>${ticker}<`), `/crypto never shows the raw ticker ${ticker}`);
+  // THE LIST IS THE PAGE. Someone who follows "see the full list" is owed the
+  // list, not an essay about why we won't print one — so every asset the
+  // checkout can settle in appears, each with its own brand mark and ticker.
+  // It is ALPHABETICAL and flat on purpose: CHAIN_RANK's order is a detail of
+  // how the picker is sorted, and reprinted here as tiers it read as a ranking
+  // of the coins themselves.
+  const listed = [...cry.body.matchAll(
+    /<li class="cx-coin">\s*<span class="cx-mark"[^>]*>(.*?)<\/span>\s*<span class="cx-name">([^<]+)<\/span>\s*<span class="cx-tick">([A-Z0-9]+)<\/span>/gs)];
+  assert.deepEqual([...listed.map((m) => m[3].toLowerCase())].sort(), [...CHAIN_RANK.flat()].sort(),
+    '/crypto lists every asset the checkout can settle in, and nothing it cannot');
+  const names = listed.map((m) => m[2].trim());
+  assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b, 'en')),
+    '/crypto lists them alphabetically — a flat list, not a ranking');
+  for (const [, mark, raw, ticker] of listed) {
+    const name = raw.trim();
+    // A REAL logo, not a lettered placeholder: the brand's own disc in the
+    // brand's own colour, drawn inline so the page owes nobody a request.
+    assert.match(mark, /^<svg viewBox="0 0 32 32">.*<\/svg>$/s, `/crypto draws ${ticker} as a mark`);
+    assert.match(mark, /fill="#[0-9A-Fa-f]{3,6}"/, `/crypto gives ${ticker} its brand colour`);
+    assert.doesNotMatch(mark, /<text/, `/crypto draws ${ticker}'s logo, it does not letter it`);
+    // A stablecoin ticker is the coin and its chain glued together, and a
+    // seller reading "usdcbase" learns neither — so those spell out both.
+    if (/^usd[tc]./.test(ticker.toLowerCase())) {
+      assert.match(name, /^USD[TC] on \S/, `/crypto spells ${ticker} out as the coin and its chain`);
     }
+    // Everything else carries the asset's own name, which for BASE and XRP is
+    // the ticker itself. What must never reach a seller is the raw rail string.
+    assert.notEqual(name, ticker.toLowerCase(), `/crypto never prints the raw rail ticker ${ticker} as a name`);
+    assert.match(name, /^[A-Za-z][A-Za-z0-9 ]*$/, `/crypto gives ${ticker} a readable name (${name})`);
   }
+  // and no tier language survives: this page ranks nothing
+  assert.doesNotMatch(cry.body, /Ranked (first|next|last)/i, '/crypto no longer sorts the coins into tiers');
   assert.match(cry.body, /nowpayments\.io\/status-page/, "/crypto points at the provider's own live per-coin page");
   // and the homepage strip is what links it
   assert.match((await get('/')).body, /href="\/crypto"/, 'the payment strip links /crypto');

@@ -2061,15 +2061,36 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 .seo-card:hover { border-color: var(--dim); }
 .seo-card p { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.55; }
 .seo-card-cta { color: var(--accent); font-size: 13px; font-weight: 700; margin-top: auto; padding-top: 6px; }
-/* /crypto: the assets in each settlement tier, one line per card. Heavier and
-   inkier than the .seo-card paragraph above it because it is a list of names
-   being scanned, not a sentence being read. */
-/* The list IS the page, so each asset gets its own line with its ticker: a
-   middot-joined run of 10 names reads as prose and cannot be scanned for the
-   one coin a seller came to check. */
-.crypto-chains { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
-.crypto-chains li { display: flex; align-items: baseline; gap: 8px; font-size: 13.5px; line-height: 1.45; color: color-mix(in srgb, var(--ink) 86%, transparent); }
-.crypto-chains b { flex: none; min-width: 70px; font-weight: 700; font-size: 12px; letter-spacing: .04em; color: var(--accent); font-variant-numeric: tabular-nums; }
+/* /crypto: THE LIST IS THE PAGE. One flat, alphabetical grid of every coin a
+   checkout can settle in — the seller came to check whether their coin is on
+   it, so each asset gets its own tile with its own mark and its ticker, and
+   the grid can be scanned in one pass instead of read as prose. No tiers and
+   no ordering: the settlement order is a detail of the picker, and printed
+   here it would only read as a ranking of coins.
+   Namespaced cx- because .coin is the STOREFRONT's live picker button
+   (line ~459) — a shared class name here would restyle a buyer's checkout. */
+.cx-list { margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); gap: 10px; }
+.cx-coin { display: flex; align-items: center; gap: 11px; min-height: 56px; padding: 10px 14px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.cx-mark { flex: none; width: 30px; height: 30px; display: block; }
+.cx-mark svg { width: 100%; height: 100%; display: block; border-radius: 50%; }
+.cx-name { flex: 1 1 auto; min-width: 0; font-size: 13.5px; font-weight: 600; line-height: 1.3;
+  color: var(--ink); overflow-wrap: break-word; }
+/* The longest ticker on the list is USDTTRC20; the ticker column is sized so
+   that one fits beside its name on a single line, and every shorter one
+   therefore does too — a stablecoin row wrapping while its twin on the next
+   chain does not is the kind of ragged edge a reader notices. */
+.cx-tick { flex: none; font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+  color: var(--dim); font-variant-numeric: tabular-nums; }
+/* One column on a phone. Two 170px columns fit, and every "USDC on Ethereum"
+   then shatters into four lines with a broken word in the middle of it — a
+   name that has to be reassembled is worse than a longer list. */
+@media (max-width: 560px) {
+  .cx-list { grid-template-columns: 1fr; gap: 8px; }
+  .cx-coin { gap: 10px; padding: 9px 12px; min-height: 50px; }
+  .cx-mark { width: 26px; height: 26px; }
+}
 .crypto-note { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; margin-top: 26px; }
 .cmp-card { padding: 20px; }
 .cmp-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
