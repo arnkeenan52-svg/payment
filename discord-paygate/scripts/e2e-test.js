@@ -2774,6 +2774,25 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   // /help, and has a hand-written head — it is not tenant content, so it is
   // the one store URL the sitemap lists.
   assert.match(sm.body, /https:\/\/dues\.gg\/demo<\/loc>/, 'the hosted demo is in the sitemap');
+  // Every title in the sitemap fits Google's ~60-character display width and
+  // is unique. Seven ran to 77 characters and the clipped tail was the part
+  // that told the pages apart — the fee calculator lost "vs Dues", the
+  // comparison index lost "monetization" — and the platforms listicle fell
+  // out of its "Best X Alternatives" template as "Best Discord monetization
+  // platform Alternatives for Discord". Titles are generated, so the check
+  // reads the served pages rather than the generator.
+  const decode = (t) => t.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+  const seenTitles = new Map();
+  for (const loc of [...sm.body.matchAll(/<loc>https:\/\/dues\.gg([^<]*)<\/loc>/g)].map((m) => m[1] || '/')) {
+    const { status, body } = await get(loc);
+    assert.equal(status, 200, `${loc} is in the sitemap and must serve`);
+    const title = decode((body.match(/<title>([^<]*)<\/title>/) || [])[1] || '');
+    assert.ok(title, `${loc} has a <title>`);
+    assert.ok(title.length <= 60, `${loc} title is ${title.length} chars, over the ~60 Google shows: "${title}"`);
+    assert.ok(!seenTitles.has(title), `${loc} shares its title with ${seenTitles.get(title)}`);
+    seenTitles.set(title, loc);
+  }
+  assert.equal(seenTitles.get('Best Discord Monetization Platforms (2026)'), '/alternatives/best-discord-monetization-platforms', 'the platforms listicle carries its hand-written title');
   // Reach paths resolve to pages, never to a store.
   assert.equal((await fetch(`${appUrl}/api/plans?store=vs`)).status, 404);
   assert.equal((await fetch(`${appUrl}/api/plans?store=guides`)).status, 404);

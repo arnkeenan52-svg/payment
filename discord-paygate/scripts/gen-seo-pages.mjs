@@ -621,7 +621,7 @@ function vsIndex() {
 ${cta()}`;
   return page({
     urlPath: '/vs',
-    title: 'Dues vs Whop, LaunchPass, Patreon & more — compare Discord monetization',
+    title: 'Dues vs Whop, LaunchPass & Patreon — Discord monetization',
     desc: 'Side-by-side comparisons of Discord monetization platforms: fees, payouts, role delivery and lock-in. See what 0% platform fees change.',
     body,
     crumbs: [['Compare', '/vs']],
@@ -758,7 +758,7 @@ function competitorCalculator(key) {
     slug,
     html: calculatorPage({
       slug,
-      title: `${c.name} fee calculator — what ${c.name} costs your Discord`,
+      title: `${c.name} fee calculator — what it costs your Discord`,
       desc: `Estimate what ${c.name}'s fees (${c.feeLine.replace('*', '')}) cost your Discord community each month, compared with Dues's flat 0%-fee plans.`,
       h1: `${c.name} Fee Calculator`,
       intro: `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Move the sliders to see what that costs at your size — and what the same store costs on Dues's flat plans.`,
@@ -788,7 +788,7 @@ function allInOneCalculator() {
     slug: 'discord-fee-calculator',
     html: calculatorPage({
       slug: 'discord-fee-calculator',
-      title: 'Discord monetization fee calculator — Whop vs LaunchPass vs Patreon vs Dues',
+      title: 'Discord fee calculator — Whop vs LaunchPass vs Dues',
       desc: 'Compare what Whop, LaunchPass, Patreon and Upgrade.Chat cost your Discord community each month against Dues’s flat 0%-fee plans.',
       h1: 'Discord Monetization Fee Calculator',
       intro: 'Every platform prices differently — percentages, subscriptions, or both. Set your community size and price to compare monthly platform costs side by side.',
@@ -914,7 +914,7 @@ function useCasesIndex() {
 ${cta()}`;
   return page({
     urlPath: '/use-cases',
-    title: 'Discord monetization use cases — trading, coaching, cook groups & more',
+    title: 'Discord monetization use cases — trading, coaching & more',
     desc: 'How trading groups, sports picks communities, coaches, cook groups and creators sell Discord access with 0% platform fees on Dues.',
     body,
     crumbs: [['Use cases', '/use-cases']],
@@ -1159,7 +1159,7 @@ function guidesIndex() {
 ${cta()}`;
   return page({
     urlPath: '/guides',
-    title: 'Discord monetization guides — sell roles, run paid servers, pick your stack',
+    title: 'Discord monetization guides — sell roles, paid servers',
     desc: 'Guides to monetizing Discord: selling roles, building paid servers, choosing a subscription bot, and pricing memberships.',
     body,
     crumbs: [['Guides', '/guides']],
@@ -1221,6 +1221,13 @@ const ALTERNATIVES = {
   },
   'best-discord-monetization-platforms': {
     target: 'Discord monetization platform',
+    // Not an "X alternatives" page, so the template's copy does not fit: it
+    // read "Best Discord monetization platform Alternatives for Discord" on
+    // the one page aimed at the site's highest-intent query. Hand-written.
+    title: 'Best Discord Monetization Platforms (2026)',
+    desc: 'The Discord monetization platforms compared honestly: flat-fee vs percentage pricing, who holds your money, and how roles are delivered.',
+    faqQ: 'What is the best Discord monetization platform?',
+    card: 'Best Discord monetization platforms',
     picks: ['ripley', 'whop', 'launchpass', 'subscord', 'doorfee', 'xoe', 'patreon'],
     why: 'Every tool here sells Discord access; they differ in what they take from each sale and who holds your money. The list splits into flat-fee (a fixed plan, 0% of sales) and percentage or marketplace models — pick the shape that matches how you plan to grow.',
   },
@@ -1228,10 +1235,10 @@ const ALTERNATIVES = {
 
 function altPage(slug, a) {
   const picks = a.picks.map((k) => ALT_LIST[k]).filter(Boolean);
-  const title = `Best ${a.target} Alternatives for Discord (2026)`;
-  const desc = `${a.target} alternatives for monetizing a Discord server, compared honestly: flat-fee vs percentage pricing, who holds your money, and how roles are delivered.`;
+  const title = a.title ?? `Best ${a.target} Alternatives for Discord (2026)`;
+  const desc = a.desc ?? `${a.target} alternatives for monetizing a Discord server, compared honestly: flat-fee vs percentage pricing, who holds your money, and how roles are delivered.`;
   const faq = [
-    [`What is the best ${a.target} alternative?`, `It depends on the pricing shape you want. Flat-fee platforms like Dues cost the same whatever you earn and pay into your own Stripe account; percentage platforms scale their cut with your revenue. The list above marks each model.`],
+    [a.faqQ ?? `What is the best ${a.target} alternative?`, `It depends on the pricing shape you want. Flat-fee platforms like Dues cost the same whatever you earn and pay into your own Stripe account; percentage platforms scale their cut with your revenue. The list above marks each model.`],
     ['Are the listed fees current?', 'They are the publicly listed prices at the time of writing, always asterisked — verify on each platform’s own site.'],
     ['Is this list neutral?', 'No, and it does not pretend to be: Dues is our product and it is listed first. Every factual claim about other platforms is their own published pricing, linked from the full comparison pages.'],
   ];
@@ -1284,7 +1291,7 @@ function altIndex() {
     .map(
       ([slug, a]) => `
           <a class="panel seo-card" href="/alternatives/${slug}">
-            <strong>Best ${esc(a.target)} alternatives</strong>
+            <strong>${esc(a.card ?? `Best ${a.target} alternatives`)}</strong>
             <p>${esc(a.why.split('.')[0])}.</p>
             <span class="seo-card-cta">See the list →</span>
           </a>`,
@@ -1306,7 +1313,7 @@ function altIndex() {
 ${cta()}`;
   return page({
     urlPath: '/alternatives',
-    title: 'Whop, LaunchPass, Subscord & Patreon alternatives for Discord',
+    title: 'Whop, LaunchPass & Patreon alternatives for Discord',
     desc: 'Honest alternative lists for Discord monetization platforms: flat-fee vs percentage pricing, payouts, and role delivery compared.',
     body,
     crumbs: [['Alternatives', '/alternatives']],
