@@ -1221,6 +1221,55 @@ test('the look is free: every background and an imported URL, on every plan', as
     `every plan, Free included, advertises all ${total} backgrounds plus the import — got ${JSON.stringify(looks)}`);
 });
 
+test('How it works shows the mechanism: the steps are numbered and wear the real marks', () => {
+  // The band used to be three centred paragraphs under three grey discs. It
+  // TOLD the mechanism and showed none of it: a wallet glyph does not say
+  // "your own Stripe account", a basket does not say "a role is the product",
+  // and in a section headed "Three steps" the order — the one thing that makes
+  // it a sequence rather than a list — was nowhere on screen. Each of the four
+  // things that fixes it is pinned here, because every one is invisible to the
+  // HTTP scenarios and each has a cheap way of quietly regressing.
+  const index = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  const css = index.slice(index.indexOf('<style>'), index.indexOf('</style>'));
+  const band = index.slice(index.indexOf('<div class="trio">'), index.indexOf('<div class="pay">'));
+  assert.ok(band.length > 400, 'the step band and the payment strip are both still there');
+
+  // 1 · the order is on screen, and it is in order.
+  assert.deepEqual([...band.matchAll(/<span class="trio-n"[^>]*>(\d+)<\/span>/g)].map((m) => m[1]),
+    ['01', '02', '03'], 'the three steps are numbered, in sequence');
+
+  // 2 · each step wears the real mark of the thing it names — the Stripe
+  //     wordmark, the blurple role chip a storefront actually renders, the
+  //     Discord glyph the role lands in — and they are white chips, the same
+  //     component the payment strip below is built from, which is what makes
+  //     that strip read as the end of step three rather than a fourth thing.
+  assert.match(band, /class="trio-badge trio-stripe"[^>]*>\s*<svg viewBox="54 36 360 150"/,
+    'step one wears the Stripe wordmark');
+  assert.match(band, /<span class="trio-badge trio-role"[^>]*>@VIP<\/span>/,
+    'step two wears a role chip');
+  assert.match(band, /class="trio-badge trio-discord"[^>]*>\s*<svg viewBox="0 0 127.14 96.36"/,
+    'step three wears the Discord mark');
+  assert.match(css, /^\.trio-badge\{[^}]*background:#fff/m, 'the step marks are the strip\'s white chip');
+
+  // 3 · the copy is the seller's, unchanged: this was a layout fix, and a
+  //     redesign that quietly rewrites a claim is not one.
+  assert.deepEqual([...band.matchAll(/<h3>([^<]+)<\/h3>/g)].map((m) => m[1]),
+    ['Set up payouts', 'Create a product', 'Get paid'], 'the three step headings');
+
+  // 4 · a step is a card on BOTH faces, and so is the strip that closes the
+  //     band. Small copy straight on the sky photograph is the contrast bug
+  //     this page has fixed everywhere else; and the strip used to be framed
+  //     on the night face only, so on day it read as a row of logos that had
+  //     drifted loose below the section.
+  assert.match(css, /^\.trio-item\{[^}]*background:var\(--glass\)/m, 'a step is a glass card');
+  assert.match(css, /^html:not\(\[data-theme="light"\]\) \.trio-item\{[^}]*background:rgba\(13,20,32,\.62\)/m,
+    'the night face gives the step card the same navy glass as the plan cards');
+  for (const face of ['html:not\\(\\[data-theme="light"\\]\\)', 'html\\[data-theme="light"\\]']) {
+    assert.match(css, new RegExp(`^${face} \\.pay\\{[^}]*border-radius:22px`, 'm'),
+      'both faces frame the payment strip');
+  }
+});
+
 test('landing polish holds: one gutter, centred community CTA, Cash App logotype, comments that match the code', () => {
   // Each of these was a real regression on the landing page and every one is
   // invisible to the HTTP-level scenarios, so they are pinned at the source.
