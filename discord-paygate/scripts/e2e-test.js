@@ -70,6 +70,7 @@ const discord = {
   botInG2: false,               // the invite step flips this
   userGuilds: {},               // uid -> guilds visible to /users/@me/guilds
   failRolesFetchOnce: false,    // next GET /guilds/:id/roles answers 500
+  failMemberGetsFor: new Set(), // uids whose GET member answers 500 — Discord down, not "they left"
   extraRoles: [],               // appended to the role list (e.g. a same-named decoy)
   kickedFrom: null,             // a guild id the bot was removed from: every guild route answers as Discord does then
   kickedMemberGets: 0,          // GET member calls that hit the kicked guild
@@ -273,6 +274,12 @@ async function discordHandler(req, res) {
   }
   if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'GET') {
     const [, , uid] = m;
+    // Discord failing to answer. Deliberately NOT a 404: the whole point is
+    // that "we could not ask" and "they are not a member" are different.
+    if (discord.failMemberGetsFor.has(uid)) {
+      json(res, 500, { message: 'mock: discord is having a moment' });
+      return;
+    }
     if (!discord.members.has(uid)) {
       json(res, 404, { message: 'Unknown Member', code: 10007 });
       return;
@@ -1565,6 +1572,20 @@ test('vercel.json: the old domain 301s to dues.gg with the path kept; the webhoo
     ['/webhooks/stripe/:storeid', '/api/webhooks/stripe?store=:storeid'],
     ['/s/:slug', '/api/store-page?store=:slug'],
   ]) assert.equal(rewritten.get(source), destination, `${source} rewrite must be kept`);
+  // Every function that makes a provider call the platform default cannot
+  // outlive declares its own limit. A crypto checkout POST is up to three
+  // serial NOWPayments round trips of 15s each (coin list, create payment,
+  // and the minimum lookup on a minimum error); killed halfway it leaves an
+  // order row holding a seat and a discount use with no payment id, and an
+  // invoice the provider minted that no buyer is ever shown.
+  for (const fn of [
+    'api/webhooks/stripe.js',
+    'api/webhooks/coinbase.js',
+    'api/webhooks/nowpayments.js',
+    'api/cron/reconcile.js',
+    'api/checkout/crypto.js',
+    'api/admin/store.js',
+  ]) assert.ok((vercel.functions?.[fn]?.maxDuration ?? 0) >= 60, `${fn} must declare a maxDuration above the provider timeouts it can stack`);
 });
 
 test('the community invite is one setting: the site hop and the receipt read the same value, either name works', async () => {
@@ -6596,13 +6617,20 @@ const npAttemptStatus = async (orderId) =>
   (await tq('SELECT status FROM checkout_attempts WHERE session_id = ?', [orderId])).rows[0].status;
 
 test('crypto: no coin figure without evidence, and a status nobody knows is "checking", never "confirming"', async () => {
-  const { describeStatus, paidInRequestedCoin } = await import('../src/lib/nowpayments.js');
+  const { describeStatus, paidInRequestedCoin, settledFiat } = await import('../src/lib/nowpayments.js');
   // Wrong-asset auto-processing is ON, so a deposit with no fiat valuation
-  // attached could be any coin. The shortfall is still quoted in the order's
-  // money; the coin figure needs actually_paid_at_fiat to vouch for it.
+  // attached could be any coin. actually_paid_at_fiat is the only evidence of
+  // what turned up, and ONE rule follows from its absence: no coin figure and
+  // no money figure either. The shortfall used to be quoted in dollars from
+  // (actually_paid / pay_amount) × price — the same wrong-asset assumption
+  // the coin figure is withheld for, dressed up as a precise number.
   const bare = { payment_status: 'partially_paid', pay_currency: 'sol', pay_amount: 0.5, actually_paid: 0.35, price_amount: 49.99, price_currency: 'usd' };
   assert.equal(paidInRequestedCoin(bare), false, 'no actually_paid_at_fiat is no evidence, not proof of the requested coin');
+  assert.equal(settledFiat(bare), null, 'and no evidence of what it was worth either');
   assert.doesNotMatch(describeStatus(bare, { currency: 'usd' }).message, /SOL/);
+  assert.doesNotMatch(describeStatus(bare, { currency: 'usd' }).message, /[$\d]/, 'no figure at all, in any unit, when nothing here knows one');
+  assert.match(describeStatus(bare, { currency: 'usd' }).message, /same address/, 'they can still top it up');
+  assert.match(describeStatus({ ...bare, actually_paid_at_fiat: 34.99 }, { currency: 'usd' }).message, /\$15\.00/, 'a reported fiat value is quoted');
   assert.equal(paidInRequestedCoin({ ...bare, actually_paid_at_fiat: 34.99 }), true, 'a fiat value that agrees with the coin maths is the evidence');
 
   for (const status of ['something_new', '', undefined]) {
@@ -6645,7 +6673,7 @@ test('crypto: money that lands for a product that cannot be delivered is never a
   };
   const undelivered = async ({ order, payment }, why, pings0, cookie = npBuyerCookie) => {
     assert.equal(await subRow('nowpayments', payment.payment_id), null, 'nothing may be granted');
-    assert.equal(await npAttemptStatus(order.orderId), 'started', '"completed" means the buyer got what they paid for');
+    assert.equal(await npAttemptStatus(order.orderId), 'undelivered', '"completed" means the buyer got what they paid for; this order is closed, not open');
     assert.equal(discord.channelPosts.length, pings0 + 1, 'exactly one post: the alert, never a sale ping');
     const embed = discord.channelPosts.at(-1).body.embeds[0];
     assert.match(embed.title, /nothing was delivered/i);
@@ -6703,6 +6731,117 @@ test('crypto: money that lands for a product that cannot be delivered is never a
   await undelivered(second, /sold out/, pings0, lateCookie);
   assert.ok(!memberRoles(LATE).has(R2_VIP), 'the role is the product, and it was not for sale');
   assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: null })).status, 200);
+
+  // 4. And the answer is given ONCE. Left open, this order was re-settled by
+  //    every IPN replay past the claim window and by every hourly cron for
+  //    the whole seven-day backfill window: the same red embed to the seller
+  //    each time (~168 of them), counted as a `recovered` sale each time, and
+  //    — the expensive part — granted the moment the block happened to clear,
+  //    which is after the seller has read "refund them from your wallet" and
+  //    done it. Closing the order is what stops all three.
+  pings0 = discord.channelPosts.length;
+  await tq("UPDATE webhook_events SET received_at = received_at - 900 WHERE event_id = ?", [`nowpayments:${a.payment.payment_id}:finished`]);
+  const replay = await deliverNow({ payment_id: a.payment.payment_id, payment_status: 'finished', order_id: a.order.orderId });
+  assert.deepEqual([replay.status, replay.body], [200, 'ok'], 'the money is settled and the order closed — nothing for the provider to retry');
+  assert.equal(discord.channelPosts.length, pings0, 'no second alert for the same undelivered payment');
+  await tq('UPDATE checkout_attempts SET created_at = created_at - 7200 WHERE session_id = ?', [a.order.orderId]);
+  for (const pass of [1, 2]) {
+    await tq('UPDATE webhook_events SET received_at = received_at - 3600 WHERE event_id = ?', [`nowpayments:${a.payment.payment_id}:finished`]);
+    const cron = JSON.parse((await hitCron()).body);
+    assert.equal(cron.cryptoBackfill?.recovered, 0, `pass ${pass}: an undelivered order is not a recovered sale`);
+    assert.equal(discord.channelPosts.length, pings0, `pass ${pass}: the cron re-alerts nobody`);
+  }
+  // The seller fixes the cause. The money still does not deliver itself —
+  // they were told to refund it, and undoing that is their call, from
+  // Members, not something an hourly job decides for them.
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: dark.planKey, active: true })).status, 200);
+  await tq('UPDATE webhook_events SET received_at = received_at - 3600 WHERE event_id = ?', [`nowpayments:${a.payment.payment_id}:finished`]);
+  assert.equal(JSON.parse((await hitCron()).body).cryptoBackfill?.recovered, 0, 'a re-enabled product does not resurrect a refunded sale');
+  // Nor does a replayed IPN, which is the other way in: NOWPayments' delivery
+  // carries no timestamp, so a captured one can arrive at any point.
+  await tq('UPDATE webhook_events SET received_at = received_at - 3600 WHERE event_id = ?', [`nowpayments:${a.payment.payment_id}:finished`]);
+  const late = await deliverNow({ payment_id: a.payment.payment_id, payment_status: 'finished', order_id: a.order.orderId });
+  assert.deepEqual([late.status, late.body], [200, 'ok']);
+  assert.equal(await subRow('nowpayments', a.payment.payment_id), null);
+  assert.equal(await npAttemptStatus(a.order.orderId), 'undelivered');
+  assert.equal(discord.channelPosts.length, pings0);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: dark.planKey, active: false })).status, 200);
+});
+
+test('crypto: Discord failing to answer at settlement is a retry, never "they left — refund them"', async () => {
+  // The one guard that asks Discord anything: a role-gated product. At
+  // checkout, folding an error into "not a member" is right — nothing has
+  // been paid. At settlement the coins are already in the seller's wallet,
+  // and the alert says the sale is not allowed and to refund it, word for
+  // word what a real departure produces. A seller cannot tell those apart,
+  // and acting on the wrong one costs them the refund AND the sale, because
+  // the next cron delivers the role anyway.
+  const post = (path, body, cookie = npCookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const storeId = await npStoreId();
+  const plan = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Gate Retry', priceUsd: 25, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: plan.planKey, roleId: R2_VIP })).status, 200);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.planKey, requiredRoleId: R2_VIP })).status, 200);
+  const GB = '534400000000000035';
+  discord.members.set(GB, new Set());
+  // The gate role goes on AFTER the login: signing in reconciles, and a
+  // managed role nobody has bought yet is taken back off.
+  const gbCookie = await signInAs('code_gate_retry', GB, 'gate_retry');
+  discord.members.get(GB).add(R2_VIP);
+  const { order, payment } = await npCheckout(plan.planKey, gbCookie);
+  payment.payment_status = 'finished';
+  payment.actually_paid = payment.pay_amount;
+  payment.actually_paid_at_fiat = payment.price_amount;
+
+  const pings0 = discord.channelPosts.length;
+  discord.failMemberGetsFor.add(GB);
+  const down = await deliverNow({ payment_id: payment.payment_id, payment_status: 'finished', order_id: order.orderId });
+  assert.equal(down.status, 500, 'a delivery nothing could decide must come back, not be acknowledged');
+  assert.equal(discord.channelPosts.length, pings0, 'no alert: nobody knows yet whether this sale is allowed');
+  assert.equal(await npAttemptStatus(order.orderId), 'started', 'and the order stays open for the retry');
+  assert.deepEqual(await claimRows(`nowpayments:${payment.payment_id}:%`), [], 'the claim is released, so the retry is not answered "in progress"');
+
+  // Discord comes back; the provider's retry delivers the sale once.
+  discord.failMemberGetsFor.delete(GB);
+  const back = await deliverNow({ payment_id: payment.payment_id, payment_status: 'finished', order_id: order.orderId });
+  assert.deepEqual([back.status, back.body], [200, 'ok']);
+  assert.equal(await npAttemptStatus(order.orderId), 'completed');
+  assert.ok((await subRow('nowpayments', payment.payment_id)) !== null, 'the valid sale lands');
+  assert.equal(discord.channelPosts.length, pings0 + 1);
+  assert.match(discord.channelPosts.at(-1).body.embeds[0].title, /New Subscriber/);
+});
+
+test('crypto backfill: orders the provider never advances take their turn instead of holding the queue', async () => {
+  // The batch is capped at 20 and used to be the OLDEST open orders, every
+  // run. An underpayment stays `partially_paid` until it ages out, so twenty
+  // of them — common on-chain — pinned the batch for a week and the lost
+  // sale this backstop exists for was never looked at. Least-recently-asked
+  // ordering is what keeps the queue moving.
+  const storeId = await npStoreId();
+  const made = JSON.parse(await (await fetch(`${appUrl}/api/onboard`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: npCookie },
+    body: JSON.stringify({ store: 'vip-signals', step: 'product', storeId, name: 'Queue Order', priceUsd: 30, lifetime: true }),
+  })).text()).plan;
+  const plan = { id: made.planKey, priceUsd: 30 };
+  const SHORTY = '535500000000000036';
+  const LOST2 = '535500000000000037';
+  for (let i = 0; i < 20; i += 1) {
+    await npOpenOrder({ storeId, plan, uid: SHORTY, orderId: `np_${'e'.repeat(30)}${String(i).padStart(2, '0')}`, ref: `npid_short_${i}`, status: 'partially_paid', age: 10800 + i });
+  }
+  const O_LOST2 = `np_${'f'.repeat(32)}`;
+  await npOpenOrder({ storeId, plan, uid: LOST2, orderId: O_LOST2, ref: 'npid_lost2', status: 'finished', age: 7200 });
+  // Two runs: the first clears the twenty older short rows, the second must
+  // reach the newer finished one. Before, every run re-asked the same twenty.
+  let recovered = 0;
+  for (const _ of [1, 2]) recovered += JSON.parse((await hitCron()).body).cryptoBackfill?.recovered ?? 0;
+  assert.equal(recovered, 1, 'the lost sale is recovered within a run or two, not after the shorts age out');
+  assert.equal(await attemptStatus(O_LOST2), 'completed');
+  assert.ok((await subRow('nowpayments', 'npid_lost2')) !== null, 'the sale that was starved is delivered');
+  // The short rows are left open on purpose — the buyer can still top them
+  // up — but they no longer come first for ever.
+  assert.equal(await attemptStatus(`np_${'e'.repeat(30)}00`), 'started');
+  for (let i = 0; i < 20; i += 1) await tq("UPDATE checkout_attempts SET status = 'expired' WHERE session_id = ?", [`np_${'e'.repeat(30)}${String(i).padStart(2, '0')}`]);
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════

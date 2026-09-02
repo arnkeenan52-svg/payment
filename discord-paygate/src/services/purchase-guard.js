@@ -46,7 +46,22 @@ export async function purchaseBlocked({ store, plan, uid, atSettlement = false }
   // store's server. Verified against Discord at purchase time — a chip on
   // the page is advice, this is the enforcement.
   if (plan.requiredRoleId) {
-    const member = await getGuildMember(uid, store.guildId).catch(() => null);
+    // getGuildMember answers null for exactly one thing — Unknown Member, the
+    // buyer really is not in the server. Everything else (a Discord 5xx, a
+    // timeout, the bot kicked out of the guild) throws.
+    //
+    // At checkout, swallowing that and refusing is right: nothing has been
+    // paid and the buyer can try again in a minute. At settlement the coins
+    // are already in the seller's wallet, and the answer becomes a red alert
+    // telling them this buyer is not allowed to have bought this and to
+    // refund them — word for word the same alert a genuine departure
+    // produces. A seller cannot tell the two apart, and acting on the wrong
+    // one costs them the refund and the sale. So a Discord that did not
+    // answer is raised here: the delivery 5xxs, its claim is released, and
+    // the next delivery or the hourly cron asks again.
+    const member = atSettlement
+      ? await getGuildMember(uid, store.guildId)
+      : await getGuildMember(uid, store.guildId).catch(() => null);
     if (!member || !(member.roles ?? []).includes(plan.requiredRoleId)) {
       return {
         status: 403,

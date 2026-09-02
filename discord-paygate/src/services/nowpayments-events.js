@@ -23,6 +23,8 @@ import { purchaseBlocked } from './purchase-guard.js';
 // Answers with what happened, because the caller's reply depends on it:
 //   'granted'      the sale landed here, just now — the one-and-only time
 //   'already'      the order was completed earlier; nothing to do twice
+//   'undelivered'  the money landed and could not be delivered; the seller
+//                  has been told, once, and the order is closed
 //   'in-progress'  another invocation holds the claim on this very work
 //   'pending' | 'short' | 'dead' | 'ignored'   nothing to grant (yet, or ever)
 //
@@ -60,10 +62,17 @@ export async function processNowPayment(payment) {
     // the shortfall to be findable, and a short payment is the one failure
     // mode that looks identical to success from the buyer's side.
     if (SHORT.has(status)) {
+      // The figure is quoted only when the provider reported one. Deriving it
+      // from the coin ratio assumes the deposit was in the coin the invoice
+      // asked for, which is exactly what an underpayment may not have been.
+      const settled = settledFiat(payment);
+      const total = `${Number(payment.price_amount ?? 0).toFixed(2)} ${normalizeCurrency(payment.price_currency ?? attempt.currency).toUpperCase()}`;
       console.warn(
         `[webhooks] nowpayments ${payment.payment_id} (order ${orderId}) is short: ` +
-          `${settledFiat(payment).toFixed(2)} of ${Number(payment.price_amount ?? 0).toFixed(2)} ` +
-          `${normalizeCurrency(payment.price_currency ?? attempt.currency).toUpperCase()} received — no access granted`,
+          (settled === null
+            ? `the provider did not report what the deposit was worth, against ${total} owed`
+            : `${settled.toFixed(2)} of ${total} received`) +
+          ' — no access granted',
       );
     } else if (DEAD.has(status)) {
       console.warn(`[webhooks] nowpayments ${payment.payment_id} (order ${orderId}) ended as ${status} — no access granted`);
@@ -82,6 +91,15 @@ export async function processNowPayment(payment) {
   // still be retried.)
   if (attempt.status === 'completed') return 'already';
 
+  // Money that landed and could not be delivered was answered once, in the
+  // seller's channel, and the order closed. That answer is terminal: nothing
+  // re-announces it, so a replayed IPN cannot post the same red embed again,
+  // and — the reason it matters — a guard that happens to pass again days
+  // later cannot grant a sale the seller was told to refund. Delivering it
+  // anyway stays available as what it should be: the seller's deliberate
+  // call, from Members.
+  if (attempt.status === 'undelivered') return 'undelivered';
+
   // Retakeable: a claim this old whose order is still not completed was left
   // by an invocation the platform killed before its catch could release it.
   // Longer than any invocation can live (the function limit is 60s), so a
@@ -89,8 +107,7 @@ export async function processNowPayment(payment) {
   const claim = `${payment.payment_id}:finished`;
   if (!(await db.claimEvent('nowpayments', claim, null, { retakeAfter: STALE_CLAIM }))) return 'in-progress';
   try {
-    await settle(payment, attempt, store, orderId);
-    return 'granted';
+    return await settle(payment, attempt, store, orderId);
   } catch (err) {
     await db.releaseEvent('nowpayments', claim);
     throw err;
@@ -107,13 +124,22 @@ async function settle(payment, attempt, store, orderId) {
 
   // Money that landed but cannot be delivered. Crypto has no chargeback and
   // the coins are already forwarded to the seller's wallet, so the only
-  // honest outcome is: nothing granted, the order left open (never
-  // 'completed' — that word means the buyer got what they paid for), the
-  // discount use not burned, and the SELLER told in the channel where a sale
-  // ping would otherwise have landed. Best-effort like the sale ping.
+  // honest outcome is: nothing granted, the order closed as 'undelivered'
+  // (never 'completed' — that word means the buyer got what they paid for),
+  // the discount use not burned, and the SELLER told in the channel where a
+  // sale ping would otherwise have landed. Best-effort like the sale ping.
+  //
+  // Closing the row is what makes the answer once-only. Left open it was
+  // re-asked by the hourly cron for the whole seven-day backfill window: the
+  // same red embed to the seller every hour, counted as a recovered sale
+  // every hour, and granted on its own the moment the blocking condition
+  // happened to clear — after the seller had been told to refund. The flip is
+  // the once-only signal here, exactly as markCheckoutCompleted is for the
+  // sale ping.
   const alertUndelivered = async (why, hint) => {
+    const first = await db.markCheckoutUndelivered(orderId);
     console.error(`[webhooks] nowpayments ${payment.payment_id} (order ${orderId}): ${attempt.discord_id} paid for "${attempt.plan_id}" but ${why} — nothing delivered, seller alerted`);
-    if (!store?.notifyChannelId) return;
+    if (!first || !store?.notifyChannelId) return;
     try {
       const user = await getUser(attempt.discord_id).catch(() => null);
       const buyer = user?.username ? `@${user.username}` : `<@${attempt.discord_id}>`;
@@ -146,7 +172,7 @@ async function settle(payment, attempt, store, orderId) {
       'that product is no longer in this store',
       'Refund them from your wallet, or re-create the product with the same link and add them from Members.',
     );
-    return;
+    return 'undelivered';
   }
   const blocked = await purchaseBlocked({ store, plan, uid: attempt.discord_id, atSettlement: true });
   if (blocked) {
@@ -154,7 +180,7 @@ async function settle(payment, attempt, store, orderId) {
       `the sale is not allowed any more (${blocked.error.replace(/\.$/, '')})`,
       'Refund them from your wallet, or add them from Members if the sale should stand.',
     );
-    return;
+    return 'undelivered';
   }
 
   const landed = await grant({
@@ -179,7 +205,7 @@ async function settle(payment, attempt, store, orderId) {
       'that product is no longer in this store',
       'Refund them from your wallet, or re-create the product with the same link and add them from Members.',
     );
-    return;
+    return 'undelivered';
   }
 
   // The row flip is the once-only signal: only the call that moved the order
@@ -187,7 +213,7 @@ async function settle(payment, attempt, store, orderId) {
   // A throw here releases the claim and 5xxs the delivery; the retry finds
   // the subscription row upserted and flips the order then.
   const flipped = await db.markCheckoutCompleted(orderId);
-  if (!flipped) return;
+  if (!flipped) return 'granted';
   if (attempt.discount_code && store?.id !== null && store?.id !== undefined) {
     await db.incrementDiscountUse(store.id, attempt.discount_code).catch(() => {});
   }
@@ -216,6 +242,7 @@ async function settle(payment, attempt, store, orderId) {
       console.error(`[webhooks] nowpayments sale ping for ${orderId} failed: ${err.message}`);
     }
   }
+  return 'granted';
 }
 
 // What the buyer's own pay screen polls for. Shaped for a browser, so it

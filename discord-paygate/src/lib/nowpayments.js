@@ -254,23 +254,25 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-// What actually landed, expressed in the ORDER's own fiat currency.
+// What actually landed, expressed in the ORDER's own fiat currency, or null
+// when nothing here can say.
 //
 // Wrong-asset auto-processing is ON, so the coin that arrives is not
 // necessarily `pay_currency`: a buyer who sends the wrong token to the
 // invoice address has it converted at the current rate and credited anyway.
 // That makes `actually_paid` — denominated in the coin the invoice ASKED for —
 // the wrong thing to reason about on its own. `actually_paid_at_fiat` is the
-// value of what genuinely arrived, so it wins whenever NOWPayments sends it;
-// the ratio fallback only runs when it does not.
+// value of what genuinely arrived, and it is the ONLY field that says so.
+//
+// There used to be a ratio fallback, `(actually_paid / pay_amount) * price`,
+// for payments that arrive without it. That is the wrong-asset assumption
+// spelled out — the very assumption paidInRequestedCoin below refuses to make
+// on the same evidence — so it turned an unknown into a precise-looking
+// dollar figure and put it in front of the buyer. One rule, one answer: no
+// fiat figure, no number quoted.
 export function settledFiat(p) {
   const atFiat = num(p?.actually_paid_at_fiat);
-  if (atFiat > 0) return atFiat;
-  const paid = num(p?.actually_paid);
-  const asked = num(p?.pay_amount);
-  const price = num(p?.price_amount);
-  if (paid > 0 && asked > 0 && price > 0) return (paid / asked) * price;
-  return 0;
+  return atFiat > 0 ? atFiat : null;
 }
 
 // True when the deposit is denominated in the coin the invoice asked for.
@@ -300,10 +302,14 @@ export function describeStatus(p, { currency } = {}) {
   if (GRANTS_ACCESS.has(s)) return { state: 'paid', message: 'Payment confirmed.' };
   if (SHORT.has(s)) {
     const cur = normalizeCurrency(currency ?? p?.price_currency ?? 'usd');
-    const owedFiat = Math.max(0, num(p?.price_amount) - settledFiat(p));
+    const settled = settledFiat(p);
+    const owedFiat = settled === null ? 0 : Math.max(0, num(p?.price_amount) - settled);
     // The shortfall is quoted in the order's own money, because that figure
-    // is true no matter which coin actually turned up. The coin amount is
-    // added only when the deposit really was in the coin they picked.
+    // is true no matter which coin actually turned up — but only when the
+    // provider said what the deposit was worth. Without that there is no
+    // shortfall to quote in any unit, so the wording below carries none. The
+    // coin amount is added only when the deposit really was in the coin they
+    // picked.
     if (owedFiat > 0) {
       const coin = String(p?.pay_currency ?? '').toUpperCase();
       const owedCoin = Math.max(0, num(p?.pay_amount) - num(p?.actually_paid));
@@ -315,7 +321,7 @@ export function describeStatus(p, { currency } = {}) {
         message: `Underpaid — ${formatAmount(owedFiat, cur)} of this order is still outstanding${inCoin}. Send the difference to the same address to complete it.`,
       };
     }
-    return { state: 'short', message: 'Underpaid — the amount received was below the order total.' };
+    return { state: 'short', message: 'Underpaid — the amount received was below the order total. Send the difference to the same address to complete it.' };
   }
   if (IN_FLIGHT.has(s)) return { state: 'pending', message: 'Confirming on-chain…' };
   if (DEAD.has(s)) return { state: 'dead', message: 'This payment did not complete.' };
