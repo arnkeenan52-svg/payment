@@ -89,14 +89,17 @@
     html:not([data-theme='light']) .btn-blurple:hover { background: #4752e8; }
     html:not([data-theme='light']) .dcx-btn.press { background: #4752e8; }
     html:not([data-theme='light']) .error-actions .dismiss:hover { background: var(--active-fill); }
-    html:not([data-theme='light']) .chart-tip { background: rgba(19, 27, 45, 0.92); }
+    /* Tokens, not literal navy: these four were the only night rules that
+       named #131b2d/#101827 directly, so on the black face the revenue tooltip
+       and the store preview's browser bar still painted navy on #0a0a0b. */
+    html:not([data-theme='light']) .chart-tip { background: color-mix(in srgb, var(--well) 92%, transparent); }
     html:not([data-theme='light']) .top-bar span { background: linear-gradient(90deg, rgba(61, 220, 132, 0.42), rgba(61, 220, 132, 0.82)); }
     html:not([data-theme='light']) .th-tile:hover .th-tile-thumb { border-color: rgba(148, 163, 190, 0.4); }
     html:not([data-theme='light']) .th-tile:focus-visible .th-tile-thumb { outline-color: #5865f2; }
     html:not([data-theme='light']) .th-tile.active .th-tile-thumb { border-color: #5865f2; }
-    html:not([data-theme='light']) .th-frame-bar { background: #131b2d; }
+    html:not([data-theme='light']) .th-frame-bar { background: var(--well); }
     html:not([data-theme='light']) .th-frame-dot { background: rgba(148, 163, 190, 0.28); }
-    html:not([data-theme='light']) .th-frame-url { background: #101827; border-color: rgba(148, 163, 190, 0.14); }
+    html:not([data-theme='light']) .th-frame-url { background: var(--bg); border-color: var(--hairline-2); }
     /* focus rings: blurple (the blurple pay/primary buttons keep their legible pale ring) */
     html:not([data-theme='light']) .btn-fill:focus-visible,
     html:not([data-theme='light']) .btn-secondary:focus-visible,
@@ -240,6 +243,9 @@
       --el-3: 0 6px 16px rgba(0, 0, 0, 0.60);
       --el-4: 0 12px 32px rgba(0, 0, 0, 0.68);
     }
+    /* The preview's window dots have no navy token to inherit; the rule above
+       is a navy alpha, so it gets the black edge here. */
+    html[data-dark='black']:not([data-theme='light']) .th-frame-dot { background: var(--edge-hot); }
 
     /* ── day: the same roles, on the flat white face ──────────────────────
        Black alphas over white. Step 10 DARKENS on both faces, which is a
