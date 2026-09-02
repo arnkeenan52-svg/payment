@@ -1079,6 +1079,47 @@ test('the free look: colours on every plan, wallpapers on a paid one', async () 
     `every paid plan must advertise all ${total} backgrounds`);
 });
 
+test('the pricing page prints TIERS — every price, yearly price and cap, by name', async () => {
+  // Every number on /pricing is hand-written HTML. The server charges what
+  // TIERS says (ensureTierPrice provisions a Stripe price from it), so the day
+  // TIERS moves and the page does not, Stripe bills one number while the page
+  // advertises another — the mirror image of the drift billing.js already
+  // documents once catching. Pinned card by card, by tier NAME, so a copy edit
+  // elsewhere on the card cannot pass for a price check.
+  const { TIERS } = await import('../src/services/billing.js');
+  const pricing = fs.readFileSync(new URL('../public/pricing.html', import.meta.url), 'utf8');
+  const cards = pricing.split(/<div class="plan(?: plan-pop)?">/).slice(1);
+  const usd = (n) => (n === 0 ? '$0' : '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  for (const tier of TIERS) {
+    const card = cards.find((c) => new RegExp(`<div class="plan-name"><b>${tier.name}</b>`).test(c));
+    assert.ok(card, `the pricing page must have a ${tier.name} card`);
+    const fig = card.match(/<span class="serif" data-monthly="([^"]*)" data-yearly="([^"]*)">([^<]*)</);
+    assert.ok(fig, `${tier.name} must carry both prices as data attributes`);
+    assert.equal(fig[1], usd(tier.priceUsd), `${tier.name} monthly price must be TIERS.priceUsd`);
+    assert.equal(fig[2], usd(tier.yearlyUsd), `${tier.name} yearly price must be TIERS.yearlyUsd`);
+    assert.equal(fig[3], fig[1], `${tier.name} must open on the monthly price the toggle starts on`);
+    // "2 months free" is only true while yearly is exactly ten monthlies.
+    assert.equal(Math.round(tier.yearlyUsd * 100), Math.round(tier.priceUsd * 100) * 10,
+      `${tier.name} yearly must be ten months or the "2 months free" toggle lies`);
+    const cap = card.match(/<div class="plan-cap"><b(?: class="cap-word")?>([^<]*)<\/b>/)?.[1];
+    assert.equal(cap, tier.maxMembers === null ? 'No limit' : String(tier.maxMembers),
+      `${tier.name} member cap must be TIERS.maxMembers`);
+  }
+  assert.equal(cards.length, TIERS.length, 'one card per tier, no card for a tier that does not exist');
+
+  // The paid cards describe a background IMPORT. The only control the product
+  // has for it is a URL field (dashboard #th-bgurl) — there is no file picker
+  // for a store background — so a card must not promise "uploads". If a picker
+  // is ever wired to bgUrl, this assertion is the one to drop.
+  const dash = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
+  assert.match(dash.match(/<input[^>]*id="th-bgurl"[^>]*>/)?.[0] ?? '', /type="url"/, 'the background import is a URL field');
+  for (const c of cards) {
+    if (/<b>Free<\/b>/.test(c)) continue;
+    const look = c.match(/class="plan-look">([^<]*)</)?.[1] ?? '';
+    assert.doesNotMatch(look, /upload/i, `a paid card must not advertise uploads the product does not take: "${look}"`);
+  }
+});
+
 test('every page on the site is named in the footer — checked against the filesystem', async () => {
   // A page nothing links to is a page nobody finds. The old version of this
   // test listed the twelve comparisons by hand and accepted an INDEX link for
