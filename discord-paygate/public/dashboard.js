@@ -1210,6 +1210,18 @@ const SECTIONS = [
 // on Android paints its bar from <meta name="theme-color">, which is a static
 // navy in the markup — theme.js only re-syncs it from the BODY background, and
 // on this page the body is transparent, so its sync silently no-ops here.
+// The last SAVED face also lives in localStorage, under the key the inline
+// script in dashboard.html's head reads, so a seller who chose black gets a
+// black first paint instead of a navy flash while /api/admin/payments loads.
+// Only viewStore writes it, from the stored preference — a Customize preview
+// never lands here, so an abandoned preview cannot outlive the page.
+const DARK_FACE_KEY = 'dues-dash-face';
+function savedDarkFace() {
+  try { return localStorage.getItem(DARK_FACE_KEY) === 'black' ? 'black' : 'navy'; } catch { return 'navy'; }
+}
+function rememberDarkFace(face) {
+  try { localStorage.setItem(DARK_FACE_KEY, face); } catch { /* private mode: the flash returns, nothing else */ }
+}
 function applyDarkFace(face) {
   const root = document.documentElement;
   if (face === 'black') root.dataset.dark = 'black';
@@ -2309,7 +2321,9 @@ async function viewStore(slug) {
   const dashAccent = /^#[0-9a-f]{6}$/i.test(String(dashPrefs.accent ?? '')) ? dashPrefs.accent : null;
   // The ground, re-derived from the stored preference on every render — which
   // is also what discards an unsaved preview the moment you navigate.
-  applyDarkFace(dashPrefs.darkStyle === 'black' ? 'black' : 'navy');
+  const darkFace = dashPrefs.darkStyle === 'black' ? 'black' : 'navy';
+  applyDarkFace(darkFace);
+  rememberDarkFace(darkFace);
   if (dashPrefs.defaultRange && state.rangePicked !== store.slug && RANGES.some(([k]) => k === dashPrefs.defaultRange)) {
     state.range = dashPrefs.defaultRange;
   }
@@ -3971,8 +3985,13 @@ async function route() {
   clearInterval(wiz.poll);
   const hash = location.hash || '#/';
   const parts = hash.slice(2).split('/');
-  if (parts[0] === 'setup' && parts[1]) return viewSetup(parts[1]);
   if (parts[0] === 'store' && parts[1]) return viewStore(parts[1]);
+  // No store, no per-store preference: the picker, setup and admin views wear
+  // the last saved face. Re-applied on every navigation, so an unsaved black
+  // preview from Customize does not follow the seller out to "All servers" —
+  // viewStore drops it for its own sections; nothing did for these.
+  applyDarkFace(savedDarkFace());
+  if (parts[0] === 'setup' && parts[1]) return viewSetup(parts[1]);
   if (parts[0] === 'admin') return viewAdmin();
   return viewPicker();
 }
