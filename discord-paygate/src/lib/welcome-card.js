@@ -28,7 +28,14 @@ const H = 600;
 // Truncation happens later, against the rendered headline width, not here:
 // escaping first would let a single "&" count as five characters ("&amp;")
 // toward the limit.
-const clean = (s) => String(s ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim();
+// The bidi formatting characters go with the C0 controls: they are invisible,
+// they survive escaping, and a name that opens an override flips the direction
+// of everything after it, so "<name> just joined the server" renders reversed.
+// A name written IN an RTL script is untouched by this — those are letters.
+const clean = (s) =>
+  String(s ?? '')
+    .replace(/[\u0000-\u001f\u007f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+    .trim();
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
 
@@ -37,13 +44,29 @@ const esc = (s) =>
 // case. The name is truncated first (a 32-char name plus the suffix would
 // otherwise shrink the line to nothing), then the size steps down until the
 // estimate fits. Both guards are needed - either alone still overflows.
+//
+// Characters are not all one width, and counting them as if they were is how a
+// CJK display name printed edge to edge: a full-width glyph is about one em,
+// twice the Latin average, so a 13-character Japanese name already filled all
+// 1200px at a size the count-based estimate called comfortable. Widths are
+// summed per character instead, which leaves ASCII names rendering exactly as
+// before and steps a wide-script name down until it fits.
 const SAFE_W = W - 120; // 60px of breathing room each side
 const NAME_MAX = 22;
-function fitHeadline(rawName) {
-  const name = rawName.length > NAME_MAX ? `${rawName.slice(0, NAME_MAX - 1)}\u2026` : rawName;
+// The East Asian Wide/Fullwidth blocks: CJK, kana, Hangul, fullwidth forms.
+const WIDE = /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua000-\ua4cf\ua960-\ua97f\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/;
+const emWidth = (s) => {
+  let em = 0;
+  for (const ch of s) em += WIDE.test(ch) ? 1 : 0.52;
+  return em;
+};
+export function fitHeadline(rawName) {
+  const cleaned = clean(rawName) || 'a new member';
+  const chars = [...cleaned];
+  const name = chars.length > NAME_MAX ? `${chars.slice(0, NAME_MAX - 1).join('')}\u2026` : cleaned;
   const line = `${name} just joined the server`;
   let size = 50;
-  while (size > 28 && line.length * size * 0.52 > SAFE_W) size -= 2;
+  while (size > 28 && emWidth(line) * size > SAFE_W) size -= 2;
   return { line: esc(line), size };
 }
 
@@ -142,14 +165,24 @@ async function logoLayer(sharp, t, theme, x, y, h) {
   const w = Math.round(h * LOGO_RATIO);
   const key = `${theme}:${h}`;
   if (!logoCache.has(key)) {
-    const mask = await sharp(LOGO).resize(w, h, { fit: 'contain' }).png().toBuffer();
-    const tinted = await sharp({ create: { width: w, height: h, channels: 4, background: t.mark } })
-      .composite([{ input: mask, blend: 'dest-in' }])
-      .png()
-      .toBuffer();
-    logoCache.set(key, `data:image/png;base64,${tinted.toString('base64')}`);
+    // Same bargain as the sky ground: the worker image copies assets one file
+    // at a time, and a card without the lockup still welcomes the member. An
+    // unreadable mark warns once and is left out rather than throwing away
+    // every join.
+    try {
+      const mask = await sharp(LOGO).resize(w, h, { fit: 'contain' }).png().toBuffer();
+      const tinted = await sharp({ create: { width: w, height: h, channels: 4, background: t.mark } })
+        .composite([{ input: mask, blend: 'dest-in' }])
+        .png()
+        .toBuffer();
+      logoCache.set(key, `data:image/png;base64,${tinted.toString('base64')}`);
+    } catch (err) {
+      console.warn(`[welcome-card] logo assets/dues-mark.png unreadable (${err.code ?? err.message}) — card renders without the lockup`);
+      logoCache.set(key, null);
+    }
   }
-  return `<image x="${x}" y="${y}" width="${w}" height="${h}" href="${logoCache.get(key)}" />`;
+  const href = logoCache.get(key);
+  return href ? `<image x="${x}" y="${y}" width="${w}" height="${h}" href="${href}" />` : '';
 }
 
 /**
@@ -167,7 +200,7 @@ export async function renderWelcomeCard({ username, avatarPng = null, memberNumb
   await fontsPresent();
   const t = THEMES[theme] ?? THEMES.dark;
   const logo = await logoLayer(sharp, t, theme, 64, 54, 40);
-  const headline = fitHeadline(clean(username) || 'a new member');
+  const headline = fitHeadline(username);
 
   // Avatar: circle-cropped through a mask so any square source works, then
   // inlined as a data URI. 260px on a 600px card keeps it dominant without
@@ -176,18 +209,27 @@ export async function renderWelcomeCard({ username, avatarPng = null, memberNumb
   const CY = 244;
   let avatarLayer = '';
   if (avatarPng) {
-    const circle = Buffer.from(
-      `<svg width="${AV}" height="${AV}"><circle cx="${AV / 2}" cy="${AV / 2}" r="${AV / 2}" fill="#fff"/></svg>`,
-    );
-    const cropped = await sharp(avatarPng)
-      .resize(AV, AV, { fit: 'cover' })
-      .composite([{ input: circle, blend: 'dest-in' }])
-      .png()
-      .toBuffer();
-    const href = `data:image/png;base64,${cropped.toString('base64')}`;
-    avatarLayer =
-      `<circle cx="${W / 2}" cy="${CY}" r="${AV / 2 + 7}" fill="none" stroke="${t.ring}" stroke-width="7" />` +
-      `<image x="${W / 2 - AV / 2}" y="${CY - AV / 2}" width="${AV}" height="${AV}" href="${href}" />`;
+    // These bytes are whatever the CDN handed back — an error page served with
+    // a 200, a format libvips was not built for. sharp throws on those, and
+    // that used to take the whole card with it: a member who joined got no
+    // welcome at all because their avatar would not decode. Drop the portrait,
+    // keep the card.
+    try {
+      const circle = Buffer.from(
+        `<svg width="${AV}" height="${AV}"><circle cx="${AV / 2}" cy="${AV / 2}" r="${AV / 2}" fill="#fff"/></svg>`,
+      );
+      const cropped = await sharp(avatarPng)
+        .resize(AV, AV, { fit: 'cover' })
+        .composite([{ input: circle, blend: 'dest-in' }])
+        .png()
+        .toBuffer();
+      const href = `data:image/png;base64,${cropped.toString('base64')}`;
+      avatarLayer =
+        `<circle cx="${W / 2}" cy="${CY}" r="${AV / 2 + 7}" fill="none" stroke="${t.ring}" stroke-width="7" />` +
+        `<image x="${W / 2 - AV / 2}" y="${CY - AV / 2}" width="${AV}" height="${AV}" href="${href}" />`;
+    } catch (err) {
+      console.warn(`[welcome-card] avatar could not be decoded (${err.message}) — card renders without it`);
+    }
   }
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -199,7 +241,7 @@ export async function renderWelcomeCard({ username, avatarPng = null, memberNumb
   ${avatarLayer}
   <text x="${W / 2}" y="452" text-anchor="middle" font-family="${GROTESK}" font-size="${headline.size}" font-weight="700" fill="${t.text}" letter-spacing="-1">${headline.line}</text>
   ${
-    memberNumber
+    Number.isFinite(Number(memberNumber)) && Number(memberNumber) > 0
       ? `<text x="${W / 2}" y="512" text-anchor="middle" font-family="${SANS}" font-size="33" fill="${t.sub}">Member #${Number(memberNumber)}</text>`
       : ''
   }
