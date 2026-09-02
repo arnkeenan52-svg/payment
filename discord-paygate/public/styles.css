@@ -2845,9 +2845,14 @@ html.menu-open, html.menu-open body { overflow: hidden; }
   display: flex; align-items: center; gap: 6px;
   width: fit-content; min-height: 30px; margin-top: 2px;
   font-size: 0.86em; font-weight: 600;
-  color: var(--accent); text-decoration: none;
+  /* The row's own ink, underlined — NOT the accent. The accent measures
+     3.41:1 against the navy dashboard's panel, under the 4.5:1 floor, and a
+     link nobody can read is not a link. The underline and the external mark
+     carry the affordance instead, which they do on all three faces. */
+  color: inherit; text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
 }
-.admin-live-link:hover { text-decoration: underline; }
+.admin-live-link:hover { text-decoration-color: currentColor; }
 .admin-live-link svg { flex: none; }
 .admin-live-none { display: block; margin-top: 2px; font-size: 0.86em; font-weight: 400; }
 @media (max-width: 760px) { .admin-live-link { min-height: 44px; } }
