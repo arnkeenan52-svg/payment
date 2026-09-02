@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#70a3e6" />
-  <title>Discord Subscription Bot — What It Is and How to Choose One</title>
-  <meta name="description" content="What a Discord subscription bot actually does, the checklist for choosing one, and the pricing traps to avoid: percentage fees, held funds, and manual role cleanup." />
-  <link rel="canonical" href="https://dues.gg/guides/discord-subscription-bot" />
+  <title>Crypto payments on Dues — coins, chains, payouts</title>
+  <meta name="description" content="Which coins a Dues store can take is read live from the crypto rail at checkout, never a hardcoded list. The chains Dues ranks first for settlement, why cheap gas comes first, and where the payout lands." />
+  <link rel="canonical" href="https://dues.gg/crypto" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Discord Subscription Bot — What It Is and How to Choose One" />
-  <meta property="og:description" content="What a Discord subscription bot actually does, the checklist for choosing one, and the pricing traps to avoid: percentage fees, held funds, and manual role cleanup." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=206" />
+  <meta property="og:title" content="Crypto payments on Dues — coins, chains, payouts" />
+  <meta property="og:description" content="Which coins a Dues store can take is read live from the crypto rail at checkout, never a hardcoded list. The chains Dues ranks first for settlement, why cheap gas comes first, and where the payout lands." />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=204" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -20,11 +20,11 @@
        unfurls as a bare screenshot from an unnamed domain. -->
   <meta property="og:site_name" content="Dues" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:url" content="https://dues.gg/guides/discord-subscription-bot" />
+  <meta property="og:url" content="https://dues.gg/crypto" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=206" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=204" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline 'Monetize your community.' and a field for claiming a store link" />
   <!-- Icons, all four at STABLE urls with no ?v= on them: Google caches the
        search-result favicon by URL and re-crawls it rarely, so a version query
@@ -38,7 +38,7 @@
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=206" />
+  <link rel="stylesheet" href="/styles.css?v=204" />
   <style>
 /* day-sky theme — overrides the monochrome tokens in styles.css (all states) */
 :root, :root[data-theme='light'], :root[data-theme='dark'] {
@@ -167,10 +167,9 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 /* search box as glass (discover) */
 .search-box { background: rgba(255,255,255,.62); border-color: rgba(255,255,255,.75); }
 </style>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://dues.gg/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://dues.gg/guides"},{"@type":"ListItem","position":3,"name":"What a Discord Subscription Bot Actually Does","item":"https://dues.gg/guides/discord-subscription-bot"}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the best Discord subscription bot?","acceptedAnswer":{"@type":"Answer","text":"The one whose pricing model fits your volume and whose automation you never think about. Judge candidates on fees, who holds funds, role-lifecycle automation, receipts, and lock-in — the checklist above."}},{"@type":"Question","name":"Can I run subscriptions without a bot?","acceptedAnswer":{"@type":"Answer","text":"You can collect payments with generic links and assign roles by hand, but every cancellation and failed renewal becomes manual work, and it scales exactly as badly as it sounds."}},{"@type":"Question","name":"Do subscription bots work with lifetime products?","acceptedAnswer":{"@type":"Answer","text":"Dues sells lifetime seats alongside monthly plans — one payment, permanent role, no renewal to manage."}}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"What a Discord Subscription Bot Actually Does","description":"What a Discord subscription bot actually does, the checklist for choosing one, and the pricing traps to avoid: percentage fees, held funds, and manual role cleanup.","author":{"@type":"Organization","name":"Dues"},"publisher":{"@type":"Organization","name":"Dues","url":"https://dues.gg"},"mainEntityOfPage":"https://dues.gg/guides/discord-subscription-bot"}</script>
-  <script src="/theme.js?v=206"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://dues.gg/"},{"@type":"ListItem","position":2,"name":"Crypto payments","item":"https://dues.gg/crypto"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many cryptocurrencies can I accept?","acceptedAnswer":{"@type":"Answer","text":"There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved."}},{"@type":"Question","name":"Which chain should I take payouts on?","acceptedAnswer":{"@type":"Answer","text":"Dues ranks 23 assets for settlement, cheapest first, and builds the coin picker in that order. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — which is why Solana, Tron, Polygon and Base are ranked ahead of Bitcoin and Ethereum. The current cost of a transfer on any of them is the chain's business, not ours to quote."}},{"@type":"Question","name":"Where does the crypto go?","acceptedAnswer":{"@type":"Answer","text":"To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold."}},{"@type":"Question","name":"Do I have to take crypto?","acceptedAnswer":{"@type":"Answer","text":"No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain."}}]}</script>
+  <script src="/theme.js?v=204"></script>
 </head>
 <body class="home seo-page">
 <i class="ui-tint" aria-hidden="true"></i>
@@ -178,7 +177,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=206" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=204" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/discover">Discover</a>
@@ -195,35 +194,74 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 
     <section class="xhero seo-hero">
       <div class="hero-inner">
-        <h1>What a Discord Subscription Bot Actually Does</h1>
-        <p class="hero-sub">A Discord subscription bot turns roles into products: it runs the checkout, grants the role when payment clears, and — the part people forget — takes the role away when payment stops. Here is what separates a good one from a spreadsheet with extra steps.</p>
+        <h1>Crypto payments on Dues</h1>
+        <p class="hero-sub">Which coins a buyer can pay in, which chains we rank first for settlement, and why this page does not print a number.</p>
       </div>
     </section>
     <section class="xsection">
       <div class="wrap narrow guide-body">
-        <h2>The job description</h2>
-        <p>Four things, end to end: a store page where buyers pay, verified payment processing (checkout by Stripe or similar), instant role delivery on payment, and automatic role removal on cancellation, failed renewal, or refund. If any of the four is manual, you have bought yourself a part-time job.</p>
-        <h2>The checklist for choosing one</h2>
-        <ul><li><strong>Who holds the money?</strong> Directly-to-your-Stripe beats platform-held funds paid out on their schedule.</li><li><strong>What does it take from each sale?</strong> 0% flat-plan pricing vs percentage fees changes everything at scale — <a href="/tools/discord-fee-calculator">run your numbers</a>.</li><li><strong>Does access heal itself?</strong> Lapse → role removed, automatically, with periodic re-checks.</li><li><strong>Do buyers get receipts?</strong> Emailed confirmations cut support load.</li><li><strong>Is there a real dashboard?</strong> Revenue, members, transactions, refund-safe controls.</li><li><strong>Can you leave?</strong> If your Stripe account and customers are yours, migration is painless. If the platform owns them, that is lock-in.</li></ul>
-        <h2>The pricing traps</h2>
-        <p>Three patterns to read carefully before connecting anything:</p><ul><li><strong>Percentage stacking</strong> — a platform percentage on top of card-processing fees, so your effective rate is far above the headline number.</li><li><strong>Held funds</strong> — revenue that sits with the platform, subject to their payout schedule and their freeze policies.</li><li><strong>Feature-gated basics</strong> — role removal or receipts locked behind higher tiers.</li></ul>
-        <h2>Where Dues sits</h2>
-        <p>Dues is the flat-fee shape of this category: free up to 10 paying members, flat plans after that, 0% of sales, checkout by Stripe into your own account, roles delivered in about two seconds and removed automatically on lapse. Compare it directly with <a href="/vs/whop">Whop</a>, <a href="/vs/launchpass">LaunchPass</a>, <a href="/vs/subscord">Subscord</a> or <a href="/vs">the whole field</a>.</p>
+        <h2>There is no coin list on this page, and that is deliberate</h2>
+        <p>Plenty of checkout pages advertise a big round number of supported cryptocurrencies. Dues cannot source one, so Dues does not print one &mdash; not on the homepage, and not here.</p>
+        <p>What Dues can tell you is where the list comes from. When a buyer opens a crypto checkout, Dues asks the crypto rail which coins its merchant account currently has switched on, and builds the picker out of the answer. The list is never written down in this site&rsquo;s code. Turn a coin off on the rail and it disappears from the picker within minutes, with nothing to deploy; a coin that is not enabled is refused before a payment is ever created, so a buyer cannot be sent to an address for something that would bounce.</p>
+        <p>If the rail cannot be reached at all, the checkout says so rather than showing an empty picker or a coin it cannot honour. A store with no payout wallet saved does not offer the option in the first place.</p>
+
+        <h2>The chains Dues ranks first, and why</h2>
+        <p>The coins come from the rail. The <em>order</em> they are offered in is ours, and it is not cosmetic.</p>
+        <p><strong>A payout is an on-chain transfer, and its fee is flat.</strong> It does not scale down for a small sale. On an expensive chain, moving $10 can cost a meaningful slice of the $10 — so the cheap chains are ranked first, and that is what keeps a small membership from losing money to its own settlement. 23 assets are ranked in three tiers; anything the rail offers that is not in the table sorts after them, rather than being hidden.</p>
+      </div>
+      <div class="wrap">
+        <div class="seo-grid crypto-tiers">
+          <div class="panel seo-card crypto-tier">
+            <strong>Ranked first</strong>
+            <p>The cheapest chains to settle on. The coin picker is built in this order, so a buyer meets these first.</p>
+            <p class="crypto-chains">Solana · Tron · USDT on Solana · USDC on Solana · USDT on Tron · USDC on Polygon · Polygon · USDT on Polygon · Base · USDC on Base</p>
+          </div>
+          <div class="panel seo-card crypto-tier">
+            <strong>Ranked next</strong>
+            <p>Offered above the expensive chains and below the cheap ones.</p>
+            <p class="crypto-chains">BNB Chain · USDT on BNB Chain · USDC on BNB Chain · Litecoin · Dogecoin · XRP · Cardano · Algorand</p>
+          </div>
+          <div class="panel seo-card crypto-tier">
+            <strong>Ranked last</strong>
+            <p>The chains everyone knows, and the ones whose flat transfer fee can rival a small membership. Still offered — just never what the picker opens on.</p>
+            <p class="crypto-chains">Bitcoin · Ethereum · USDT on Ethereum · USDC on Ethereum · DAI</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow guide-body">
+        <h2>Where the money goes</h2>
+        <p>The same place all your money goes on Dues: an account you own. You save a payout wallet and its chain in the dashboard, and every payment is created carrying that address, so settlement is a transfer out to you rather than a balance sitting somewhere with your name on it.</p>
+        <ul>
+          <li><strong>No wallet, no sale.</strong> If a store has crypto switched on but no payout address saved, checkout refuses and says so. Money Dues would have to hold is money Dues will not take.</li>
+          <li><strong>You pick the chain.</strong> The wallet is checked against the real rules of that chain before it saves, and typed a second time to confirm — an on-chain transfer cannot be undone.</li>
+          <li><strong>The role lands on a finished payment.</strong> Not on a pending one, and not on a short one: an underpayment stays open and the seller is told, rather than access being handed out for money that did not fully arrive.</li>
+        </ul>
+        <p>Crypto is opt-in per store, and it is still being rolled out. Until it reaches your store, card checkout is what your buyers see &mdash; on your own Stripe account, at <a href="/pricing">0% platform fee</a>, as always.</p>
+
+        <h2>The rail&rsquo;s own current list</h2>
+        <p>Dues&rsquo; crypto rail is <a href="https://nowpayments.io" rel="noopener">NOWPayments</a>. They publish a per-coin page showing what is available for payments and withdrawals right now, along with each coin&rsquo;s minimum payment amount &mdash; that page, not this one, is the live answer to &ldquo;can I pay in X today?&rdquo;:</p>
+        <ul>
+          <li><a href="https://nowpayments.io/status-page" rel="noopener">nowpayments.io/status-page</a> &mdash; per-coin availability and minimums, updated by the provider.</li>
+        </ul>
+        <p>Minimums matter more than the list does. Every coin has a floor below which a payment cannot be made, it differs per pair, and Dues quotes it from the rail at checkout for the exact pair the buyer is on rather than guessing.</p>
       </div>
     </section>
     <section class="xsection">
       <div class="wrap narrow">
         <h2 class="section-title center">Frequently asked</h2>
         <div class="faq">
-          <details class="panel faq-item"><summary>What is the best Discord subscription bot?</summary><p>The one whose pricing model fits your volume and whose automation you never think about. Judge candidates on fees, who holds funds, role-lifecycle automation, receipts, and lock-in — the checklist above.</p></details>
-          <details class="panel faq-item"><summary>Can I run subscriptions without a bot?</summary><p>You can collect payments with generic links and assign roles by hand, but every cancellation and failed renewal becomes manual work, and it scales exactly as badly as it sounds.</p></details>
-          <details class="panel faq-item"><summary>Do subscription bots work with lifetime products?</summary><p>Dues sells lifetime seats alongside monthly plans — one payment, permanent role, no renewal to manage.</p></details>
+          <details class="panel faq-item"><summary>How many cryptocurrencies can I accept?</summary><p>There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved.</p></details>
+          <details class="panel faq-item"><summary>Which chain should I take payouts on?</summary><p>Dues ranks 23 assets for settlement, cheapest first, and builds the coin picker in that order. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — which is why Solana, Tron, Polygon and Base are ranked ahead of Bitcoin and Ethereum. The current cost of a transfer on any of them is the chain's business, not ours to quote.</p></details>
+          <details class="panel faq-item"><summary>Where does the crypto go?</summary><p>To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold.</p></details>
+          <details class="panel faq-item"><summary>Do I have to take crypto?</summary><p>No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain.</p></details>
         </div>
       </div></section>
 
     <section class="xsection">
       <div class="wrap narrow center">
-        <h2 class="section-title">Start selling with 0% platform fees</h2>
+        <h2 class="section-title">Start selling — cards today, coins when you want them</h2>
         <p class="section-sub">Free for your first 10 paying members — no card required.</p>
         <p><a class="btn-fill btn-hero" href="/dashboard">Start free <span aria-hidden="true">→</span></a></p>
       </div>
@@ -232,7 +270,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=206" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=204" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>

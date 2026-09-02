@@ -1479,15 +1479,17 @@ test('landing polish holds: one gutter, centred community CTA, Cash App logotype
   // The right-aligned note beside "What sellers say." orphaned its last word.
   assert.match(css, /^\.mid-note\{[^}]*text-wrap:balance/m, '.mid-note balances its two lines');
 
-  // Cash App is the only white-on-brand-green logotype in the strip. Its size
-  // was set on a lone class, which .pay-chip b (0,1,1) outranks, so the rule
-  // never applied and the least legible chip was also the smallest.
-  const base = parseFloat(css.match(/^\.pay-chip b\{[^}]*font-size:([\d.]+)px/m)[1]);
-  const cash = css.match(/^\.pm-cashchip b\{([^}]*)\}/m);
-  assert.ok(cash, 'the Cash App logotype is styled through .pm-cashchip b, which can win');
-  assert.ok(parseFloat(cash[1].match(/font-size:([\d.]+)px/)[1]) >= base, 'Cash App is at least as large as the other chips');
-  assert.match(cash[1], /white-space:nowrap/, 'the two-word logotype never breaks across lines');
-  assert.doesNotMatch(css, /^\.pm-cash-ink\{/m, 'no dead lone-class rule for the Cash App text');
+  // The marks are BARE now — no chip under any of them — so nothing in this
+  // strip is a white pill with a logotype inside it, and the whole family of
+  // .pay-chip / .pm-*chip rules is gone rather than left orphaned. What
+  // replaces the old specificity trap: one `.pay-mark b` step for every
+  // wordmark, so a per-brand size can only be set by a rule that outranks it.
+  for (const dead of ['.pay-chip', '.pay-cap', '.pay-more', '.pay-crypto', 'pay-xtra', 'pm-cashchip', 'pm-linkchip', 'pm-amexchip', 'pm-klarnachip']) {
+    assert.ok(!css.includes(dead), `no ${dead} rule left behind by the chip-less strip`);
+    assert.ok(!index.includes(dead), `no ${dead} left in the markup`);
+  }
+  const markBase = parseFloat(css.match(/^\.pay-mark b\{[^}]*font-size:([\d.]+)px/m)[1]);
+  assert.ok(markBase >= 14, `the wordmark step is ${markBase}px — the bare marks are bigger than the chips were, not smaller`);
 
   // Comment / code agreement in the two copies of the theme-color and footer
   // scripts. The comment above tintWant() must name the token the code reads
@@ -1570,8 +1572,10 @@ test('the landing runs on one type scale, one vertical rhythm and one grid', () 
     assert.equal(last(s, 'font-size'), 'var(--t-sub)', `${s} takes the in-card heading step`);
   }
 
-  // ONE uppercase label: one size, one weight, one tracking
-  for (const s of ['.pay-cap', '.sec-eyebrow', '.save-rows-cap', '.save-cap']) {
+  // ONE uppercase label: one size, one weight, one tracking. (.pay-cap went
+  // with the payment strip's two captions — a heading and one sentence say
+  // what the strip is now, so a label repeating the marks under it is gone.)
+  for (const s of ['.sec-eyebrow', '.save-rows-cap', '.save-cap']) {
     assert.match(last(s, 'font') || '', /600 var\(--t-micro\)/, `${s} takes the one micro-label step`);
     assert.equal(last(s, 'letter-spacing'), '.1em', `${s} takes the one micro-label tracking`);
   }
@@ -4350,6 +4354,40 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   const llms = await get('/llms.txt');
   assert.equal(llms.status, 200);
   assert.match(llms.body, /0% of sales/);
+
+  // /crypto — where the payment strip's "see the full list" goes. It is a
+  // GENERATED page, so it carries the one nav, the grid footer and the day
+  // block like the other 48 rather than being a 49th hand-written shell.
+  //
+  // Two things it must never do. It must not print a coin COUNT: which coins
+  // a buyer can pay in is a live answer from the rail (merchantCoins reads
+  // /v1/merchant/coins and the list is deliberately never hardcoded), so a
+  // number here would be one this repository cannot source. And its chain
+  // table must be the SAME table the checkout sorts its picker by — the page
+  // is generated from CHAIN_RANK, so a chain added there appears here or the
+  // build fails, and a hand-copied second list cannot drift out of step.
+  const cry = await get('/crypto');
+  assert.equal(cry.status, 200);
+  assert.match(cry.body, /rel="canonical" href="https:\/\/dues\.gg\/crypto"/);
+  assert.match(cry.body, /<footer class="site-footer cols seo-footer">/, '/crypto uses the grid footer');
+  assert.deepEqual([...cry.body.matchAll(/<a class="nav-link" href="([^"]+)"/g)].map((m) => m[1]),
+    ['/discover', '/pricing', '/vs', '/tools'], '/crypto carries the site nav');
+  assert.doesNotMatch(cry.body, /\b\d+\+\s*(coins|cryptocurrencies|crypto)\b/i,
+    '/crypto must not print a coin count it cannot source');
+  assert.match(cry.body, /read live from|reads? live|asks the crypto rail/i, '/crypto says where the list comes from');
+  const { CHAIN_RANK } = await import('../src/lib/nowpayments.js');
+  const rankedCount = CHAIN_RANK.reduce((n, t) => n + t.length, 0);
+  assert.match(cry.body, new RegExp(`${rankedCount} assets are ranked`), `/crypto names the ${rankedCount} assets CHAIN_RANK actually ranks`);
+  for (const tier of CHAIN_RANK) {
+    for (const ticker of tier) {
+      // every ticker in the ordering has a human name on the page — the
+      // generator throws rather than ship a bare "usdcbase" at a seller
+      assert.ok(!cry.body.includes(`>${ticker}<`), `/crypto never shows the raw ticker ${ticker}`);
+    }
+  }
+  assert.match(cry.body, /nowpayments\.io\/status-page/, "/crypto points at the provider's own live per-coin page");
+  // and the homepage strip is what links it
+  assert.match((await get('/')).body, /href="\/crypto"/, 'the payment strip links /crypto');
   assert.match(sm.body, /\/guides\/how-to-monetize-a-discord-server<\/loc>/);
   assert.match(sm.body, /\/alternatives\/subscord-alternatives<\/loc>/);
   // The platform's own demo store is indexable, linked from the homepage and
@@ -5700,13 +5738,12 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   }
   const home = page('index.html');
   // The rest of what a visitor reads under 12px on the landing page, found by
-  // the same render sweep. .pay-chip b is the load-bearing one: it outranks
-  // every .pm-* class rule below it (the .pm-cashchip comment says so), so
-  // this single number is the size of EVERY wordmark chip on a phone — VISA,
-  // AMEX and both "Pay" marks all measured 11.5px at 390.
+  // the same render sweep. .pay-mark b is the load-bearing one: it outranks
+  // every bare .pm-* class rule below it, so this single number is the size of
+  // EVERY payment wordmark on a phone that no per-brand rule overrides.
   for (const [re, what] of [
     [/\.save-rows-cap\{\s*margin:26px 0 14px;font:600 ([\d.]+)px/, 'the calculator column caption'],
-    [/  \.pay-chip b\{font-size:([\d.]+)px\}/, 'the payment wordmark chips on a phone'],
+    [/  \.pay-mark b\{font-size:([\d.]+)px\}/, 'the payment wordmarks on a phone'],
     [/  \.save-hero small\{margin-top:2px;font-size:([\d.]+)px\}/, 'the savings sub-line on a desktop'],
     [/  \.sv-name em\{font-size:([\d.]+)px;margin-left:6px\}/, 'the plan tag in the comparison rows'],
     [/  \.fee-note\{font-size:([\d.]+)px;line-height:17px\}/, 'the fee footnote on a desktop'],
@@ -5715,7 +5752,6 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
     assert.ok(m, `index.html: ${what} must still match ${re}`);
     assert.ok(Number(m[1]) >= 12, `index.html: ${what} is ${m[1]}px, under the 12px floor`);
   }
-  assert.match(home, /\.pay-cap\{font:600 12px/, 'the payment caption is 12px');
   assert.match(home, /\.save-cap\{display:block;font:600 12px/, 'the savings caption is 12px');
   assert.doesNotMatch(home, /\.save-cap\{font-size:10\.5px\}/, 'no phone override drags it back under');
 
@@ -5800,30 +5836,57 @@ test('the homepage fold is copy and one field, and the calculator follows it', a
     assert.ok(!fs.existsSync(path.join(ROOT, 'public', file)), `${file} is deleted, not merely unreferenced`);
   }
 
-  // THE PAYMENT STRIP CARRIES BOTH RAILS, DIVIDED. Card money settles to the
-  // seller's own Stripe account and crypto settles to a wallet they nominate:
-  // two destinations, so the marks may not read as one undivided row.
-  assert.match(home, /<hr class="pay-split" \/>/, 'a drawn rule divides the two rails');
-  const cardsAt = home.indexOf('>Cards and wallets<');
-  const splitAt = home.indexOf('class="pay-split"');
-  const cryptoAt = home.indexOf('>Crypto<');
-  assert.ok(cardsAt > 0 && splitAt > cardsAt && cryptoAt > splitAt,
-    'cards, then the rule, then crypto — in that order');
-  // Eight coins, each with its REAL mark inlined the way the Mastercard, Apple
-  // Pay and Google Pay marks are — an SVG in the chip, not a letter standing in
-  // for a logo. The ticker takes the chip's ink: the mark carries the colour,
-  // so no per-coin text colour has to be measured against white twice.
-  for (const coin of ['BTC', 'ETH', 'USDT', 'USDC', 'SOL', 'LTC', 'DOGE', 'XRP']) {
-    const chip = home.match(new RegExp(`<span class="pay-chip pm-${coin.toLowerCase()}"[\\s\\S]*?</span>`));
-    assert.ok(chip, `the crypto row carries ${coin}`);
-    assert.match(chip[0], /<svg[\s\S]*?<\/svg>/, `${coin} is drawn, not spelled`);
-    assert.match(chip[0], new RegExp(`<b class="pm-ink">${coin}</b>`), `${coin} is labelled in the chip's ink`);
+  // THE PAYMENT STRIP IS ONE COMPOSITION, AND IT CARRIES BOTH RAILS, DIVIDED.
+  // Heading, one sentence, the coin marks, the line that says where the coin
+  // list comes from, the rule, the card marks, and who processes them. Card
+  // money settles to the seller's own Stripe account and coin money to a
+  // wallet they nominate: two destinations, so the marks may not read as one
+  // undivided row.
+  const order = ['class="pay-lede"', 'class="pay-say"', 'pay-marks pay-coins', 'href="/crypto"',
+    '<hr class="pay-split" />', 'pay-marks pay-cards', 'class="pay-note pay-close"'];
+  let seen = -1;
+  for (const mark of order) {
+    const at = home.indexOf(mark, seen + 1);
+    assert.ok(at > seen, `the strip reads in order: ${mark} follows what precedes it`);
+    seen = at;
   }
-  assert.doesNotMatch(home, /data-theme="light"\]\) \.pm-(btc|eth|usdt|usdc|sol|ltc|doge|xrp)/,
-    'no night-face variant for a mark that always sits on white');
-  // And the row does not pretend eight is the whole list.
-  assert.match(home, /class="pay-chip pay-more"[^>]*>\s*<b>\+ more<\/b>/, 'the row says there are more coins');
-  assert.match(home, /Eight of the coins the rail takes &#8212; there are more/, 'and the note says so in words');
+  // Eight coins, each with its REAL mark inlined the way the Mastercard, Apple
+  // Pay and Google Pay marks are — an SVG, not a letter standing in for a
+  // logo. The ticker beside each one is gone with the chip that held it: a
+  // bare 34px disc is the brand, and "BTC" next to the Bitcoin mark was the
+  // caption of a thing already named.
+  for (const coin of ['btc', 'eth', 'usdt', 'usdc', 'sol', 'ltc', 'doge', 'xrp']) {
+    const mark = home.match(new RegExp(`<span class="pay-mark pm-${coin}"[\\s\\S]*?</span>`));
+    assert.ok(mark, `the coin row carries ${coin}`);
+    assert.match(mark[0], /role="img" aria-label="[^"]+"/, `${coin} names itself for a screen reader`);
+    assert.match(mark[0], /<svg[\s\S]*?<\/svg>/, `${coin} is drawn, not spelled`);
+  }
+  // THE MARKS ARE BARE, so a per-FACE variant is now legitimate where it was
+  // not: the old rule ("no night-face variant") held because every mark sat on
+  // a white chip on both faces. What replaces it is the rule that actually
+  // matters — a night-face variant may hide a container or take the page's
+  // white, and may NOT restate somebody's brand hue as a different colour.
+  for (const m of home.matchAll(/html:not\(\[data-theme="light"\]\) \.pm-[a-z0-9 .,\n:()="\]-]*?\{([^}]*)\}/g)) {
+    const hexes = [...m[1].matchAll(/#([0-9a-f]{3,8})\b/gi)].map((h) => h[1].toLowerCase());
+    for (const h of hexes) {
+      assert.ok(['fff', 'ffffff'].includes(h), `a night-face mark rule paints #${h} — brand hues are not restated per face`);
+    }
+  }
+  // And the strip does not pretend eight is the whole list, or print a number
+  // it cannot source. WHICH coins a buyer may pay in is a live answer from the
+  // rail (src/lib/nowpayments.js merchantCoins), so the line says exactly that
+  // and the link leads to the page that explains it.
+  assert.match(home, /Which coins a buyer can pay in is read live from the crypto rail at checkout/,
+    'the strip sources the coin list instead of printing a count');
+  assert.doesNotMatch(home.slice(home.indexOf('<div class="pay">'), home.indexOf('</section>', home.indexOf('<div class="pay">'))),
+    /\d+\+\s*(coins|crypto|cryptocurrencies)/i, 'no unsourceable "100+" style count in the strip');
+  assert.match(home, /<a class="pay-link" href="\/crypto">See the full list<\/a>/, 'and "see the full list" goes somewhere real');
+  // The card row shows seven; the seven it does not show are named in words
+  // rather than dropped, together with the fact that decides which of them a
+  // buyer ever sees — nothing in this repo sets payment_method_types, so
+  // Checkout offers what the seller's own Stripe account has enabled.
+  assert.match(home, /Link, Cash App, iDEAL, MobilePay, Alipay, WeChat Pay and Afterpay too/, 'the methods without a mark are still named');
+  assert.match(home, /Checkout offers whatever your own Stripe account has switched on/, 'and the line says who decides which appear');
 
   // THE ROLE MARQUEE IS GONE, and nothing of it is left in the stylesheet.
   for (const gone of ['rolemarq', 'marq-track', 'marq-cap', 'keyframes marq']) {
@@ -5834,9 +5897,9 @@ test('the homepage fold is copy and one field, and the calculator follows it', a
   // the visitor about — what they charge, and what a rival's cut of it costs
   // them — so it comes before the explanation of how any of it works. The
   // payment marks close it, which is the last thing a buyer meets.
-  const order = ['class="save wrap" id="save"', 'class="how wrap" id="how"', 'class="pay"'];
+  const bands = ['class="save wrap" id="save"', 'class="how wrap" id="how"', 'class="pay"'];
   let cursor = 0;
-  for (const mark of order) {
+  for (const mark of bands) {
     const at = home.indexOf(mark, cursor);
     assert.ok(at > 0, `${mark} is on the page, after what precedes it`);
     cursor = at;

@@ -40,6 +40,7 @@ Key product facts:
 
 ## Help
 - [Every feature explained](https://dues.gg/help)
+- [Crypto payments: which coins, which chains, where payouts land](https://dues.gg/crypto)
 
 ## Tools
 - [Discord monetization fee calculator](https://dues.gg/tools/discord-fee-calculator)

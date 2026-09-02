@@ -15,6 +15,10 @@ import { fileURLToPath } from 'node:url';
 // (/api/community) and the receipt email read, so re-issuing it is one edit
 // plus a regenerate rather than a search-and-replace across every page here.
 import { config } from '../src/config.js';
+// The settlement ordering the crypto checkout actually sorts its coin picker
+// by. Imported rather than retyped: /crypto explains this table to sellers,
+// and a hand-written second copy is a page that silently stops being true.
+import { CHAIN_RANK } from '../src/lib/nowpayments.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
@@ -415,7 +419,7 @@ export const footerHtml = `
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
       <a href="/discover">Discover stores</a><a href="/pricing">Plans</a><a href="/pricing">Pricing</a><a href="/help">FAQ</a>
-      <a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a>
+      <a href="/help">Help</a><a href="/crypto">Crypto payments</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a>
       <a href="${config.communityInvite}" rel="noopener">Community Discord</a><a href="mailto:contact@dues.gg">contact@dues.gg</a></nav>
     <nav class="footer-col"><span class="footer-head">Compare</span>
       <a href="/vs/whop">Dues vs Whop</a><a href="/vs/launchpass">Dues vs LaunchPass</a>
@@ -1341,6 +1345,127 @@ ${cta()}`;
 const out = [];
 // ── /help — every feature in two minutes, each card linking to the real thing ─
 
+// ── /crypto ──────────────────────────────────────────────────────────────────
+//
+// The page the payment strip's "See the full list" leads to. It exists because
+// the strip cannot print a number: which coins a buyer may pay in is a live
+// answer from the rail's merchant account, not a constant in this repository,
+// so the honest link is to an explanation rather than to a list this build
+// invented.
+//
+// Everything factual here is read from the code that does the thing.
+// CHAIN_RANK is imported, not retyped — the ordering the checkout actually
+// sorts its picker by is the ordering this page describes, or the page is
+// wrong. A ticker added to that table with no label here fails the build
+// rather than shipping as a bare string.
+const CHAIN_LABEL = {
+  sol: 'Solana', trx: 'Tron', matic: 'Polygon', base: 'Base', bnb: 'BNB Chain',
+  ltc: 'Litecoin', doge: 'Dogecoin', xrp: 'XRP', ada: 'Cardano', algo: 'Algorand',
+  btc: 'Bitcoin', eth: 'Ethereum', dai: 'DAI',
+  usdtsol: 'USDT on Solana', usdcsol: 'USDC on Solana',
+  usdttrc20: 'USDT on Tron', usdtmatic: 'USDT on Polygon', usdcmatic: 'USDC on Polygon',
+  usdcbase: 'USDC on Base', usdtbsc: 'USDT on BNB Chain', usdcbsc: 'USDC on BNB Chain',
+  usdterc20: 'USDT on Ethereum', usdcerc20: 'USDC on Ethereum',
+};
+// Deliberately about the ORDER and not about absolute fees: what this
+// repository can source is which tier a chain is in and why the tiers are
+// ordered that way, not what a transfer costs on any of them this morning.
+const TIER_NOTE = [
+  ['Ranked first', 'The cheapest chains to settle on. The coin picker is built in this order, so a buyer meets these first.'],
+  ['Ranked next', 'Offered above the expensive chains and below the cheap ones.'],
+  ['Ranked last', 'The chains everyone knows, and the ones whose flat transfer fee can rival a small membership. Still offered — just never what the picker opens on.'],
+];
+
+function cryptoPage() {
+  const tiers = CHAIN_RANK.map((tier, i) => {
+    const names = tier.map((t) => {
+      const label = CHAIN_LABEL[t];
+      if (!label) throw new Error(`/crypto: CHAIN_RANK has "${t}" with no label in CHAIN_LABEL — add it`);
+      return label;
+    });
+    return `
+          <div class="panel seo-card crypto-tier">
+            <strong>${esc(TIER_NOTE[i][0])}</strong>
+            <p>${esc(TIER_NOTE[i][1])}</p>
+            <p class="crypto-chains">${names.map(esc).join(' · ')}</p>
+          </div>`;
+  }).join('');
+  const ranked = CHAIN_RANK.reduce((n, t) => n + t.length, 0);
+
+  const faq = [
+    [
+      'How many cryptocurrencies can I accept?',
+      'There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved.',
+    ],
+    [
+      'Which chain should I take payouts on?',
+      `Dues ranks ${ranked} assets for settlement, cheapest first, and builds the coin picker in that order. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — which is why Solana, Tron, Polygon and Base are ranked ahead of Bitcoin and Ethereum. The current cost of a transfer on any of them is the chain's business, not ours to quote.`,
+    ],
+    [
+      'Where does the crypto go?',
+      'To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold.',
+    ],
+    [
+      'Do I have to take crypto?',
+      'No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain.',
+    ],
+  ];
+
+  const body = `
+    <section class="xhero seo-hero">
+      <div class="hero-inner">
+        <h1>Crypto payments on Dues</h1>
+        <p class="hero-sub">Which coins a buyer can pay in, which chains we rank first for settlement, and why this page does not print a number.</p>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow guide-body">
+        <h2>There is no coin list on this page, and that is deliberate</h2>
+        <p>Plenty of checkout pages advertise a big round number of supported cryptocurrencies. Dues cannot source one, so Dues does not print one &mdash; not on the homepage, and not here.</p>
+        <p>What Dues can tell you is where the list comes from. When a buyer opens a crypto checkout, Dues asks the crypto rail which coins its merchant account currently has switched on, and builds the picker out of the answer. The list is never written down in this site&rsquo;s code. Turn a coin off on the rail and it disappears from the picker within minutes, with nothing to deploy; a coin that is not enabled is refused before a payment is ever created, so a buyer cannot be sent to an address for something that would bounce.</p>
+        <p>If the rail cannot be reached at all, the checkout says so rather than showing an empty picker or a coin it cannot honour. A store with no payout wallet saved does not offer the option in the first place.</p>
+
+        <h2>The chains Dues ranks first, and why</h2>
+        <p>The coins come from the rail. The <em>order</em> they are offered in is ours, and it is not cosmetic.</p>
+        <p><strong>A payout is an on-chain transfer, and its fee is flat.</strong> It does not scale down for a small sale. On an expensive chain, moving $10 can cost a meaningful slice of the $10 — so the cheap chains are ranked first, and that is what keeps a small membership from losing money to its own settlement. ${ranked} assets are ranked in three tiers; anything the rail offers that is not in the table sorts after them, rather than being hidden.</p>
+      </div>
+      <div class="wrap">
+        <div class="seo-grid crypto-tiers">${tiers}
+        </div>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow guide-body">
+        <h2>Where the money goes</h2>
+        <p>The same place all your money goes on Dues: an account you own. You save a payout wallet and its chain in the dashboard, and every payment is created carrying that address, so settlement is a transfer out to you rather than a balance sitting somewhere with your name on it.</p>
+        <ul>
+          <li><strong>No wallet, no sale.</strong> If a store has crypto switched on but no payout address saved, checkout refuses and says so. Money Dues would have to hold is money Dues will not take.</li>
+          <li><strong>You pick the chain.</strong> The wallet is checked against the real rules of that chain before it saves, and typed a second time to confirm — an on-chain transfer cannot be undone.</li>
+          <li><strong>The role lands on a finished payment.</strong> Not on a pending one, and not on a short one: an underpayment stays open and the seller is told, rather than access being handed out for money that did not fully arrive.</li>
+        </ul>
+        <p>Crypto is opt-in per store, and it is still being rolled out. Until it reaches your store, card checkout is what your buyers see &mdash; on your own Stripe account, at <a href="/pricing">0% platform fee</a>, as always.</p>
+
+        <h2>The rail&rsquo;s own current list</h2>
+        <p>Dues&rsquo; crypto rail is <a href="https://nowpayments.io" rel="noopener">NOWPayments</a>. They publish a per-coin page showing what is available for payments and withdrawals right now, along with each coin&rsquo;s minimum payment amount &mdash; that page, not this one, is the live answer to &ldquo;can I pay in X today?&rdquo;:</p>
+        <ul>
+          <li><a href="https://nowpayments.io/status-page" rel="noopener">nowpayments.io/status-page</a> &mdash; per-coin availability and minimums, updated by the provider.</li>
+        </ul>
+        <p>Minimums matter more than the list does. Every coin has a floor below which a payment cannot be made, it differs per pair, and Dues quotes it from the rail at checkout for the exact pair the buyer is on rather than guessing.</p>
+      </div>
+    </section>
+    <section class="xsection">${faqHtml(faq)}</section>
+${cta('Start selling — cards today, coins when you want them')}`;
+
+  return page({
+    urlPath: '/crypto',
+    title: 'Crypto payments on Dues — coins, chains, payouts',
+    desc: 'Which coins a Dues store can take is read live from the crypto rail at checkout, never a hardcoded list. The chains Dues ranks first for settlement, why cheap gas comes first, and where the payout lands.',
+    body,
+    jsonld: [faqJsonld(faq)],
+    crumbs: [['Crypto payments', '/crypto']],
+  });
+}
+
 function helpPage() {
   const FEATURES = [
     ['Your store page', 'One link with everything you sell — your name, banner, about section and colors. Buyers browse products and check out without leaving the page.', '/demo', 'See the demo store'],
@@ -1433,6 +1558,7 @@ for (const [slug, g] of Object.entries(GUIDES)) emit(`guides/${slug}.html`, guid
 
 emit('alternatives/index.html', altIndex());
 emit('help.html', helpPage());
+emit('crypto.html', cryptoPage());
 for (const [slug, a] of Object.entries(ALTERNATIVES)) emit(`alternatives/${slug}.html`, altPage(slug, a));
 
 // llms.txt: the emerging convention answer engines read for a site summary.
@@ -1481,6 +1607,7 @@ Key product facts:
 
 ## Help
 - [Every feature explained](${BASE}/help)
+- [Crypto payments: which coins, which chains, where payouts land](${BASE}/crypto)
 
 ## Tools
 - [Discord monetization fee calculator](${BASE}/tools/discord-fee-calculator)
@@ -1499,7 +1626,7 @@ const urls = ['/', '/pricing', '/vs', ...Object.keys(COMPETITORS).map((s) => `/v
   '/use-cases', ...Object.keys(USE_CASES).map((s) => `/use-cases/${s}`),
   '/guides', ...Object.keys(GUIDES).map((s) => `/guides/${s}`),
   '/alternatives', ...Object.keys(ALTERNATIVES).map((s) => `/alternatives/${s}`),
-  '/discover', '/help', '/demo'];
+  '/discover', '/help', '/crypto', '/demo'];
 const today = new Date().toISOString().slice(0, 10);
 emit(
   'sitemap.xml',

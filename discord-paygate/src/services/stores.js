@@ -343,7 +343,7 @@ const RESERVED_SLUGS = new Set([
   'api', 'auth', 'webhooks', 's', 'admin', 'checkout', 'login', 'logout',
   'pricing', 'docs', 'help', 'support', 'status', 'assets', 'static',
   'vs', 'tools', 'use-cases', 'compare', 'blog', 'sitemap', 'robots',
-  'guides', 'alternatives', 'llms', 'discover', 'demo',
+  'guides', 'alternatives', 'llms', 'discover', 'demo', 'crypto',
 ]);
 
 // The fixed category list for /discover. An enum, not free text — the

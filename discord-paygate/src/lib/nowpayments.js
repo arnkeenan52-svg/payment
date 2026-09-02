@@ -148,7 +148,11 @@ export function verifyIpnSignature(parsedBody, header) {
 // flat, so on an expensive chain it can cost more than a small membership is
 // worth — cheap chains first is what keeps a $10 sale from losing money to
 // its own settlement.
-const CHAIN_RANK = [
+//
+// Exported because the public /crypto page explains this ordering to sellers,
+// and a second copy of it written out by hand in the page generator is a list
+// that silently stops matching the one the checkout actually sorts by.
+export const CHAIN_RANK = [
   ['sol', 'trx', 'usdtsol', 'usdcsol', 'usdttrc20', 'usdcmatic', 'matic', 'usdtmatic', 'base', 'usdcbase'],
   ['bnb', 'usdtbsc', 'usdcbsc', 'ltc', 'doge', 'xrp', 'ada', 'algo'],
   ['btc', 'eth', 'usdterc20', 'usdcerc20', 'dai'],
