@@ -327,7 +327,7 @@ html[data-footer-revealed] .nav{
 .nav-links a{transition:color .2s ease}
 .nav-links a:hover{color:var(--ink)}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:14px}
-.nav-login{font-size:14.5px;font-weight:500;color:var(--ink);opacity:.85;transition:opacity .2s ease}
+.nav-login{font-size:14.5px;font-weight:500;color:var(--ink);opacity:.85;transition:opacity .2s ease;padding:10px 0;margin:-10px 0}  /* 24px of text, a 44px hit box */
 .nav-login:hover{opacity:1}
 .theme-btn{
   width:44px;height:44px;border-radius:50%;flex:none;   /* 44px: the minimum a thumb can hit */
@@ -1531,13 +1531,13 @@ html:not([data-theme="light"]) .calc{background:rgba(15,22,38,.55);border-color:
   position:relative;display:flex;align-items:center;justify-content:center;gap:26px;
   padding:10px 24px 30px;font-size:13.5px;font-weight:500;
 }
-.hero-foot a{color:inherit;opacity:.72;transition:opacity .2s ease;display:inline-flex;align-items:center;min-height:32px}
+.hero-foot a{color:inherit;opacity:.72;transition:opacity .2s ease;display:inline-flex;align-items:center;min-height:44px;margin:-6px 0}  /* a 44px hit box that takes the 32px of row it always did */
 .hero-foot a:hover{opacity:1}
 .hf-sep{width:1px;height:14px;background:currentColor;opacity:.28}
 /* qualified with the ancestor on purpose: `.hero-foot a` sets min-height:32px
    at (0,1,1) and a bare .hf-ic at (0,1,0) loses to it, so the icons stayed
    32px tall however large the min-height on them said they were. */
-.hero-foot a.hf-ic{min-width:44px;min-height:44px;justify-content:center}  /* the svg alone is 17px */
+.hero-foot a.hf-ic{min-width:44px;min-height:44px;margin:0;justify-content:center}  /* the svg alone is 17px */
 .hf-ic svg{width:17px;height:17px;fill:currentColor;display:block}
 html[data-theme="light"] .hero-foot{color:#0f1626}
 html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
@@ -1676,7 +1676,7 @@ html[data-theme="light"] .footer{
   display:inline-flex;align-items:center;justify-content:center;position:relative;
   width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;transition:background .15s;
 }
-.footer .soc-tile::after{content:"";position:absolute;inset:-4px}
+.footer .soc-tile::after{content:"";position:absolute;inset:-6px}  /* 32px tile, 44px hit box */
 .footer .soc-tile:hover{background:rgba(255,255,255,.26)}
 .footer .soc-tile svg{width:15px;height:15px;fill:currentColor}
 .footer .fcol{display:flex;flex-direction:column;gap:11px;min-width:0}
@@ -1685,8 +1685,12 @@ html[data-theme="light"] .footer{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   font-size:10.5px;font-weight:500;line-height:1.25;letter-spacing:.08em;text-transform:uppercase;
 }
-.footer .fcol a{display:inline-flex;align-items:center;min-height:21px;padding:0;color:rgba(255,255,255,.82);font-size:14px;line-height:1.5;transition:color .15s}
+.footer .fcol a{position:relative;display:inline-flex;align-items:center;min-height:21px;padding:0;color:rgba(255,255,255,.82);font-size:14px;line-height:1.5;transition:color .15s}
 .footer .fcol a:hover{color:#fff}
+/* A 25px hit box on a 20px row, reaching up into the gap above. Not 44: these
+   rows sit inside the footer fit budget, and the column balancer counts overflow
+   BELOW a box, so the box can only grow upward without growing the footer. */
+.footer .fcol a::after{content:"";position:absolute;inset:-5px 0 0}
 /* day footer runs on the kit's dark ink over the light ground. The title used
    to stay white here and measured 1.91:1 against #bcd5f0 — under even the 3:1
    large-text floor — so it takes the ink too. */

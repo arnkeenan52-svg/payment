@@ -3827,6 +3827,31 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   }
   const demo = await (await fetch(`${appUrl}/api/plans?store=demo`)).json();
   assert.equal(demo.store.followable, false, 'the demo store is not followable, so its Follow button is hidden — and must actually vanish');
+
+  // Touch targets: the phone pass had stopped at 40px, and several controls
+  // were never sized for a finger at all. Hit boxes, not drawn boxes.
+  const phone = css.slice(css.indexOf('@media (max-width: 560px) {\n  .shop-avatar'));
+  assert.match(phone, /\.shop-icon-btn \{ width: 44px; height: 44px;/, 'share button is 44px on phones');
+  assert.match(phone, /\.shop-btn \{ flex: 1; height: 44px; \}/, 'Join / Follow are 44px on phones');
+  assert.match(rules('.menu-btn')[0], /min-width: 44px; min-height: 44px/, 'the /discover hamburger is 44px');
+  assert.match(rules('.shop-mlink')[0], /padding: 4px; margin: -4px;/, 'store links carry a 24px pointer hit box');
+  const touch = css.slice(css.indexOf('@media (pointer: coarse) {'));
+  assert.ok(touch.length > 30, 'the touch pass exists');
+  assert.match(touch, /\.shop-mlink \{ width: 44px; height: 44px; align-items: center; justify-content: center; margin: -13\.5px; \}/, 'store links reach 44px under a finger');
+  assert.match(touch, /\.shop-mgroup \{ gap: 27px; \}/, 'store links sit a 44px pitch apart, so the hit boxes do not overlap');
+  assert.match(touch, /\.disc-chip \{ padding-top: 14px; padding-bottom: 14px; \}/, 'discover chips grow to 44px');
+  assert.match(touch, /\.powered-community::after \{ content: ""; position: absolute; inset: -12px 0; \}/, 'the community link reaches 44px');
+  assert.match(touch, /\.footer-col a \{ display: inline-flex; align-items: center; min-height: 38px; \}/, 'footer rows grow to a 44px pitch');
+  for (const file of ['index.html', 'pricing.html']) {
+    const html = page(file);
+    assert.match(html, /\.nav-login\{[^}]*padding:10px 0;margin:-10px 0\}/, `${file}: Log in has a 44px hit box`);
+    assert.match(html, /\.hero-foot a\{[^}]*min-height:44px;margin:-6px 0\}/, `${file}: the hero footer links have a 44px hit box in a 32px row`);
+    assert.match(html, /\.footer \.soc-tile::after\{content:"";position:absolute;inset:-6px\}/, `${file}: social tiles reach 44px`);
+    // The landing footer has a fit budget (the phone reveal disarms when it
+    // outgrows the viewport), so these rows cannot grow: the hit box reaches
+    // UP into the gap above the row, which is the whole pitch on a phone.
+    assert.match(html, /\.footer \.fcol a::after\{content:"";position:absolute;inset:-5px 0 0\}/, `${file}: footer links grow only upward, never the footer`);
+  }
 });
 
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {

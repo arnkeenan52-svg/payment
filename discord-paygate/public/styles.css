@@ -1828,7 +1828,7 @@ a.price-cta.btn-secondary { display: inline-flex; align-items: center; text-deco
 /* ── mobile header: one row + hamburger menu (home) ─────────────────────────── */
 .menu-btn {
   display: none; background: transparent; border: 1px solid var(--edge); border-radius: 6px;
-  color: var(--ink); min-width: 40px; min-height: 40px; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--ink); min-width: 44px; min-height: 44px; align-items: center; justify-content: center; cursor: pointer;
 }
 .menu-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .mobile-menu {
@@ -3178,7 +3178,10 @@ body[data-material='solid'].has-bg .shop-col {
 #shop-desc-more { display: block; width: fit-content; padding-left: 0; margin-top: 2px; }
 .shop-metaline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 15px; color: var(--dim); font-size: 16px; }
 .shop-mgroup { display: inline-flex; align-items: center; gap: 14px; }
-.shop-mlink { color: var(--dim); display: inline-flex; }
+/* The icon is 17px; the hit box is not. Padding grows it to 25px for a
+   pointer and the negative margin gives the layout the 17px back, so the
+   row keeps its rhythm. The touch pass below takes the same box to 44. */
+.shop-mlink { color: var(--dim); display: inline-flex; padding: 4px; margin: -4px; }
 .shop-mlink:hover { color: var(--ink); }
 .shop-metaline[hidden] { display: none; }
 
@@ -3399,8 +3402,8 @@ body[data-material='solid'].has-bg .shop-col {
   .shop-name { font-size: 24px; }
   .shop-titlebar { flex-direction: column; align-items: stretch; gap: 12px; }
   .shop-actions { gap: 8px; }
-  .shop-icon-btn { width: 40px; height: 40px; flex: none; }
-  .shop-btn { flex: 1; height: 40px; }
+  .shop-icon-btn { width: 44px; height: 44px; flex: none; }
+  .shop-btn { flex: 1; height: 44px; }
   .shop-tab { height: 52px; font-size: 14px; }
   .shop-tab.active::after { width: 48px; }
 }
@@ -3415,6 +3418,30 @@ body[data-material='solid'].has-bg .shop-col {
 
 /* the hidden attribute must win over the layout display rules above */
 .order-card[hidden], .shop[hidden] { display: none !important; }
+
+/* ── touch: 44px hit boxes for the controls the phone pass above missed ──
+   Sized by the pointer, not the viewport width, because that is what decides
+   whether a finger or a cursor lands on them. Each grows its HIT box, not
+   its drawn box: padding plus the matching negative margin, or a pseudo
+   element, so nothing on the page moves and the layout budgets (the phone
+   footer's fit guard) are untouched. */
+@media (pointer: coarse) {
+  /* A 44px box around the 17px icon, and the negative margin hands the 17px
+     back to the row. The icons sit 17px apart plus a 14px gap: a 31px pitch,
+     so two 44px boxes would overlap and a finger got 31 of them. Gap 27
+     makes the pitch 44. */
+  .shop-mlink { width: 44px; height: 44px; align-items: center; justify-content: center; margin: -13.5px; }
+  .shop-mgroup { gap: 27px; }
+  /* The chip rows wrap with an 8px gap, so a pseudo-element reaching out
+     for the missing height would land on the row below; the chip itself
+     grows instead: 16px of text + 2 x 14px + the border = 44. */
+  .disc-chip { padding-top: 14px; padding-bottom: 14px; }
+  .powered-community { position: relative; }
+  .powered-community::after { content: ""; position: absolute; inset: -12px 0; }
+  /* The footer directory has no fit budget on these pages, so the rows can
+     genuinely grow: 38px + the 6px gap is a 44px pitch. */
+  .footer-col a { display: inline-flex; align-items: center; min-height: 38px; }
+}
 
 /* ── shop page: about, empty state ────────────────────────────────────────── */
 /* NOTE: `.prod-roles` is still declared here as a flex row, but the storefront
