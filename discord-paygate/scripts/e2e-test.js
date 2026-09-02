@@ -3825,6 +3825,12 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   );
   const demoProd = await (await fetch(`${appUrl}/demo/vip-access`)).text();
   assert.match(demoProd, /VIP Access — Dues Membership/, 'demo product links carry product previews');
+  // ...and canonicalise to themselves, the way a real store's product page
+  // does. The demo branch hardcoded /demo, which told Google to index the
+  // store instead of the product page it was on.
+  assert.match(demoProd, /<link rel="canonical" href="[^"]*\/demo\/vip-access"/, 'a demo product page is its own canonical');
+  assert.match(demoProd, /property="og:url" content="[^"]*\/demo\/vip-access"/, 'a demo product page shares as itself');
+  assert.match(page, /<link rel="canonical" href="[^"]*\/demo"/, 'the demo store itself still canonicalises to /demo');
   // /store/<slug> is the same overall URL, everywhere.
   const red = await fetch(`${appUrl}/store/demo`, { redirect: 'manual' });
   assert.equal(red.status, 308);
