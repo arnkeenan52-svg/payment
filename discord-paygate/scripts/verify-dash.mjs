@@ -75,6 +75,8 @@ const payment = (i) => ({
   status: i % 9 === 0 ? 'past_due' : 'active',
   entitled: i % 9 !== 0,
   lifetime: i % 3 === 0,
+  durationDays: i % 3 === 0 ? null : 31,
+  renews: i % 3 !== 0,
 });
 const payments = Array.from({ length: 34 }, (_, i) => payment(i));
 

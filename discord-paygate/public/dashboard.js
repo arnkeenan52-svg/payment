@@ -1281,7 +1281,11 @@ function sectionOverview(data, store, slug) {
 
 
   // Each row at its MONTHLY rate, not its period price: see monthlyRate().
-  const mrrRows = data.payments.filter((p) => p.entitled && !p.lifetime).map((p) => ({ ...p, amountUsd: monthlyRate(p) }));
+  // Only rows that BILL AGAIN — the server marks them `renews`. A crypto pass
+  // is a fixed term nothing renews (the buyer is told exactly that on
+  // /account) and a manual grant was never charged; counting either as
+  // recurring revenue gives a store an MRR that expires on its own.
+  const mrrRows = data.payments.filter((p) => p.entitled && !p.lifetime && p.renews).map((p) => ({ ...p, amountUsd: monthlyRate(p) }));
   const mrrNewRows = mrrRows.filter((p) => inWin(p, win.cur));
   const mrrNew = sum(mrrNewRows);
 
@@ -1297,7 +1301,7 @@ function sectionOverview(data, store, slug) {
     rev: sparkSvg(series.curVals),
     sales: sparkSvg(bucketSeries(data.payments, win, () => 1).curVals),
     members: sparkSvg(bucketSeries(firstBuys, win, () => 1).curVals),
-    mrr: sparkSvg(bucketSeries(data.payments.filter((p) => !p.lifetime), win, monthlyRate).curVals),
+    mrr: sparkSvg(bucketSeries(data.payments.filter((p) => !p.lifetime && p.renews), win, monthlyRate).curVals),
   };
 
   // Top products with per-product change vs the previous window.

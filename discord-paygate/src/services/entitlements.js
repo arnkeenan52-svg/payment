@@ -245,6 +245,11 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
     // as 'usd' and a yen store's history reads as dollars — the amount would
     // be right and its label wrong, which is the worst of the two.
     currency: currency ?? plan.currency ?? target?.currency ?? 'usd',
+    // The term this sale was made on, kept on the row: the seller can delete
+    // the product tomorrow (a hard DELETE) while this member keeps renewing,
+    // and the dashboard reads a missing term as monthly — a $600 yearly
+    // member would jump from $50 of MRR to $600 the moment the plan is gone.
+    durationDays: plan.lifetime || !(Number(plan.durationDays) > 0) ? null : Number(plan.durationDays),
   });
   // Buying another option of the SAME product — Monthly to Yearly, Monthly
   // to Lifetime — is an upgrade, not a second membership: the previous

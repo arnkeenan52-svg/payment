@@ -1270,6 +1270,14 @@ test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black
   assert.equal(Math.round(monthlyRate({ amountUsd: 10, durationDays: 7 }) * 100) / 100, 43.45, 'a weekly $10 is ~4.35 weeks a month');
   assert.match(dash, /mrrRows = data\.payments\.filter\([^\n]*\.map\(\(p\) => \(\{ \.\.\.p, amountUsd: monthlyRate\(p\) \}\)\)/,
     'the MRR card must sum monthly rates, not period prices');
+  // …and only over rows that BILL AGAIN. api/admin/payments.js marks them
+  // `renews`; a crypto pass is a fixed term nothing renews, so counting it
+  // gives a crypto-heavy store an MRR that expires on its own. The card and
+  // its sparkline are two separate filters and both were missing the test.
+  assert.match(dash, /mrrRows = data\.payments\.filter\(\(p\) => p\.entitled && !p\.lifetime && p\.renews\)/,
+    'the MRR card counts only rows that renew');
+  assert.match(dash, /mrr: sparkSvg\(bucketSeries\(data\.payments\.filter\(\(p\) => !p\.lifetime && p\.renews\)/,
+    'and so does the sparkline under it');
 
   // Top Products and the Revenue card sit side by side and must agree that
   // no change is not growth: 0% is flat in both, never a green ▲0%.
@@ -6408,6 +6416,89 @@ test('the discount preview budgets misses, so it cannot be walked as an oracle',
   assert.equal((await ask('LAUNCH20')).status, 200, "another asker's budget is their own");
 });
 
+
+test('dashboard money: a crypto pass is not recurring revenue, and a deleted product does not turn a yearly member into a monthly one', async () => {
+  // Two facts the Overview MRR card reads straight off this endpoint, and
+  // gets wrong in opposite directions when either is missing.
+  const ownerCookie = await signInAs('code_u7_mrr', '507700000000000007', 'vip_owner');
+  const rowsFor = async (extra = '') =>
+    (await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals${extra}`, { headers: { cookie: ownerCookie } })).json());
+
+  // 1. RENEWS. MRR is revenue that bills again. Stripe runs every term plan
+  //    in subscription mode, so a card row does; a crypto purchase is a fixed
+  //    term that simply ends — /account tells the buyer "a one-time payment,
+  //    nothing renews" — and a manual grant was never charged at all. Counted
+  //    as MRR, a store selling mostly crypto passes shows a figure that falls
+  //    to zero on its own at term end.
+  const seen = await rowsFor();
+  assert.ok(seen.payments.length, 'the store has sales to judge');
+  // The platform view, for the rails this one store has not sold on.
+  const adminCookie = await signInAs('code_u1', U1, 'trader_one');
+  const every = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: adminCookie } })).json();
+  for (const p of [...seen.payments, ...every.payments]) {
+    assert.equal(typeof p.renews, 'boolean', `every row says whether it bills again (${p.planId}/${p.provider})`);
+    assert.equal(p.renews, p.provider === 'stripe' && !p.lifetime, `${p.provider}${p.lifetime ? ' lifetime' : ''} row: renews`);
+  }
+  const fixedTerm = every.payments.find((p) => p.provider !== 'stripe' && p.provider !== 'manual' && !p.lifetime);
+  assert.ok(fixedTerm, 'a fixed-term crypto pass is on the books to judge');
+  assert.equal(fixedTerm.renews, false, 'a crypto pass is bought once and ends — never recurring revenue');
+  assert.ok(every.payments.some((p) => p.renews), 'while card subscriptions still count');
+
+  // 2. THE TERM SURVIVES THE PRODUCT. deleteStorePlan is a hard DELETE, and
+  //    product-delete refuses while anyone LIVE holds the product — but a
+  //    member whose card failed and whose grace has run out is not live, so
+  //    the delete goes through, and Stripe's own retry brings them back
+  //    afterwards (customer.subscription.updated reactivates the row without
+  //    consulting the catalog). The plan row is gone; the member is still
+  //    billed $600 a YEAR. Reading the term off the catalog left no term at
+  //    all there, and no term reads as monthly: $600 of MRR where there is $50.
+  const storeId = seen.stores.find((s) => s.slug === 'vip-signals').id;
+  const post = (path, body) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: ownerCookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const made = await (await post('/api/onboard', { step: 'product', storeId, name: 'Desk Yearly', description: 'A year at the desk.', priceUsd: 600, lifetime: false, durationDays: 365 })).json();
+  const yearlyKey = made.plan?.planKey;
+  assert.ok(yearlyKey, `the yearly product must be created: ${JSON.stringify(made)}`);
+
+  const YEARLY_BUYER = '523300000000000023';
+  const SUB = 'sub_desk_yearly';
+  discord.members.set(YEARLY_BUYER, new Set());
+  stripe.periodEnds[SUB] = nowSec() + 365 * 86400;
+  const signed = (evt) => deliverStripe(evt, { path: `/webhooks/stripe/${storeId}`, header: signStripe(JSON.stringify(evt), nowSec(), AUTO_ENDPOINT_SECRET) });
+  assert.equal(
+    (await signed({
+      id: 'evt_desk_yearly',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_desk_yearly', mode: 'subscription', subscription: SUB, payment_status: 'paid', amount_total: 60000, client_reference_id: YEARLY_BUYER, metadata: { plan_id: yearlyKey, discord_id: YEARLY_BUYER, store_id: String(storeId) } } },
+    })).status,
+    200,
+  );
+  const mine = async () => (await rowsFor()).payments.find((p) => p.discordId === YEARLY_BUYER);
+  const sold = await mine();
+  assert.ok(sold, 'the yearly sale landed');
+  assert.equal(sold.durationDays, 365, 'the sale goes on the books as a yearly');
+  assert.equal(sold.renews, true, 'a card subscription bills again');
+
+  // Their card fails and the grace window runs out. Only the clock is faked.
+  await tq("UPDATE subscriptions SET status = 'past_due', grace_until = ? WHERE provider = 'stripe' AND provider_ref = ?", [nowSec() - 60, SUB]);
+  // Nobody is live on the product now, so the seller may retire it.
+  const gone = await post('/api/onboard', { step: 'product-delete', storeId, planKey: yearlyKey });
+  assert.equal(gone.status, 200, await gone.text());
+  // Stripe recovers the payment: active again, on a plan row that is gone.
+  assert.equal(
+    (await signed({
+      id: 'evt_desk_yearly_up',
+      type: 'customer.subscription.updated',
+      data: { object: { id: SUB, status: 'active', items: { data: [{ current_period_end: nowSec() + 365 * 86400 }] } } },
+    })).status,
+    200,
+  );
+
+  const after = await mine();
+  assert.equal(after.entitled, true, 'the member is entitled again');
+  assert.equal(after.planName, yearlyKey, 'and the catalog really has nothing left to name them by');
+  assert.equal(after.durationDays, 365, 'the term the sale was made on outlives the product row');
+  assert.equal(after.amountUsd, sold.amountUsd, 'and so does what they paid');
+});
 
 test('crypto: buyer-facing copy never promises a renewal or a cancellation the rail cannot do', async () => {
   // A crypto grant is a fixed term (periodEnd null → plan.durationDays) that

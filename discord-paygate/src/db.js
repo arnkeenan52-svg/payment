@@ -36,6 +36,7 @@ const ddl = (dialect) => {
     current_period_end ${int},
     grace_until   ${int},
     cancels_at    ${int},               -- set when the buyer cancels; access runs to here
+    duration_days ${int},               -- the term this sale was made on; NULL for lifetime and for rows sold before this column
     created_at    ${int} NOT NULL,
     updated_at    ${int} NOT NULL,
     UNIQUE (provider, provider_ref)
@@ -316,6 +317,13 @@ function db() {
       // What the buyer actually paid (post-discount) — display surfaces
       // prefer this over the plan's list price when present.
       await driver.exec('ALTER TABLE subscriptions ADD COLUMN paid_usd REAL').catch(onlyDuplicateColumn);
+      // The term the sale was made on. The plan catalog is the source while
+      // the plan exists, but deleteStorePlan is a hard DELETE and its members
+      // keep running — and the dashboard reads a missing term as "monthly",
+      // which booked a deleted yearly plan's members at twelve times their
+      // real monthly rate. Pre-existing rows stay NULL and keep pricing off
+      // the catalog, exactly as before.
+      await driver.exec(`ALTER TABLE subscriptions ADD COLUMN duration_days ${intType}`).catch(onlyDuplicateColumn);
       // Store-page customization: long about text, social links (JSON of
       // known keys), and the opt-in live member-count badge.
       await driver.exec('ALTER TABLE stores ADD COLUMN about TEXT').catch(onlyDuplicateColumn);
@@ -621,10 +629,10 @@ export async function getSubscriptionByRef(provider, providerRef) {
   return rows[0] ?? null;
 }
 
-export async function upsertSubscription({ discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil = null, storeId = null, paidUsd = null, currency = 'usd' }) {
+export async function upsertSubscription({ discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil = null, storeId = null, paidUsd = null, currency = 'usd', durationDays = null }) {
   await q(
-    `INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, current_period_end, grace_until, paid_usd, currency, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, current_period_end, grace_until, paid_usd, currency, duration_days, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (provider, provider_ref) DO UPDATE SET
        store_id = excluded.store_id,
        discord_id = excluded.discord_id,
@@ -634,8 +642,9 @@ export async function upsertSubscription({ discordId, planId, provider, provider
        grace_until = excluded.grace_until,
        paid_usd = COALESCE(excluded.paid_usd, subscriptions.paid_usd),
        currency = excluded.currency,
+       duration_days = COALESCE(excluded.duration_days, subscriptions.duration_days),
        updated_at = excluded.updated_at`,
-    [storeId, discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil, paidUsd, currency, now(), now()],
+    [storeId, discordId, planId, provider, providerRef, status, currentPeriodEnd, graceUntil, paidUsd, currency, durationDays, now(), now()],
   );
   return getSubscriptionByRef(provider, providerRef);
 }
