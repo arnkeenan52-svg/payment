@@ -90,6 +90,9 @@ const stripe = {
   failSubFetchOnce: new Set(),  // subscription ids whose next GET answers 500
   subFetches: {},               // subscription id -> fetch count
   failCheckoutSessionsWith: null, // when set, POST /v1/checkout/sessions answers 400 with this message
+  delayCheckoutSessionsMs: 0,   // how long POST /v1/checkout/sessions takes to answer — the window a
+                                // checkout's reservation has to survive, and what makes the two-buyers
+                                // -at-once scenario a real race rather than a coincidence
   charges: {},                  // charge id -> { payment_intent, invoice } for refund/dispute lookups
   invoices: {},                 // invoice id -> { subscription }
   subDeletes: [],               // DELETE /v1/subscriptions/:id calls (platform-plan switches/cancels)
@@ -108,7 +111,7 @@ const AUTO_ENDPOINT_SECRET = 'whsec_auto_e2e_secret_1';
 const coinbase = { charges: [] };
 // NOWPayments: the crypto rail. `payments` is mutable so a test can advance a
 // payment through its statuses the way the real provider would.
-const nowpayments = { created: [], payments: new Map(), n: 0, minAmount: [] };
+const nowpayments = { created: [], payments: new Map(), n: 0, minAmount: [], delayCreateMs: 0 };
 const NOW_KEY = 'np_key_e2e';
 const NOW_IPN_SECRET = 'np_ipn_secret_e2e';
 const resend = { emails: [] };
@@ -546,6 +549,7 @@ async function stripeHandler(req, res) {
       return;
     }
     const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
+    if (stripe.delayCheckoutSessionsMs) await sleep(stripe.delayCheckoutSessionsMs);
     stripe.checkoutSessions.push(form);
     json(res, 200, { id: `cs_${stripe.checkoutSessions.length}`, url: `https://stripe.mock/pay/cs_${stripe.checkoutSessions.length}` });
     return;
@@ -649,6 +653,7 @@ async function nowpaymentsHandler(req, res) {
       json(res, 400, { message: 'Amount is too small: minimal amount is 1' });
       return;
     }
+    if (nowpayments.delayCreateMs) await sleep(nowpayments.delayCreateMs);
     nowpayments.created.push(body);
     const id = `npid_${++nowpayments.n}`;
     const payment = {
@@ -6364,7 +6369,16 @@ test("crypto: an open invoice holds its seat and its discount use for the invoic
   assert.equal(a1.status, 200, await a1.clone().text());
   const aOrder = await a1.json();
   const rowOf = async (id) => (await tq('SELECT * FROM checkout_attempts WHERE session_id = ?', [id])).rows[0];
-  assert.ok(asNum((await rowOf(aOrder.orderId)).expires_at) > nowSec() + 15 * 60, "the row carries the provider's own expiry, not the card-form TTL");
+  // The hold is the provider's payment window (a week), NOT the rate quote's
+  // expiry the pay screen counts down to (the mock's estimate is 20 minutes
+  // out, the card TTL is 35) — the deposit address stays payable long past
+  // that quote, and a late `finished` grants, so a seat released at the quote
+  // is a seat sold twice. Three distinct numbers, so neither the old estimate
+  // nor the card-form fallback can satisfy this.
+  assert.ok(Math.abs(asNum((await rowOf(aOrder.orderId)).expires_at) - (nowSec() + 7 * 86400)) < 120,
+    "the row holds its seat for the provider's whole payment window, not the rate quote's expiry");
+  assert.ok(Math.abs(Date.parse(aOrder.expiresAt) / 1000 - (nowSec() + 20 * 60)) < 120,
+    "the buyer's countdown is still the quoted amount's expiry");
   // B is refused the seat, and the code — a subscriptions row lands only when
   // the IPN does, and a crypto invoice can sit unpaid for hours before that.
   const bSeat = await start(bCookie, { planId: seat.planKey });
@@ -6373,6 +6387,13 @@ test("crypto: an open invoice holds its seat and its discount use for the invoic
   assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: null })).status, 200);
   const bCode = await start(bCookie, { planId: seat.planKey, discountCode: 'NPONE' });
   assert.equal(bCode.status, 400, await bCode.text());
+  // ...and the Apply button says the same thing the Pay button will. The
+  // preview used to answer on `uses < max_uses` alone, so it reported "NPONE
+  // applied, you save $4" for a use A's open invoice was holding — a promise
+  // the next click broke, for as long as that invoice lives.
+  const previewOf = (cookie) => fetch(`${appUrl}/api/discount?store=vip-signals&code=NPONE&plan=${seat.planKey}`, { headers: { cookie } });
+  assert.equal((await previewOf(bCookie)).status, 404, "the preview refuses a use another buyer's open checkout holds");
+  assert.equal((await previewOf(aCookie)).status, 200, "the holder's own reservation is never held against them");
   assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: 1 })).status, 200);
   // Older than any card form could live, but the provider still takes money
   // for it: the seat is still A's.
@@ -6414,7 +6435,11 @@ test("crypto: an open invoice holds its seat and its discount use for the invoic
     const { rows } = await tq('SELECT * FROM checkout_attempts WHERE discord_id = ? AND plan_id = ?', [A, tiny.planKey]);
     assert.equal(rows.length, 1);
     assert.equal(rows[0].provider_ref, null);
-    assert.ok(asNum(rows[0].expires_at) <= nowSec(), 'an attempt the provider refused holds nothing');
+    // NOT NULL first: a released row must carry a real, passed expiry —
+    // `null <= nowSec()` is true in JavaScript, so the bare comparison also
+    // passed for a row that was never released and went on holding its seat.
+    assert.ok(rows[0].expires_at !== null && rows[0].expires_at !== undefined && asNum(rows[0].expires_at) <= nowSec(),
+      'an attempt the provider refused holds nothing');
   }
 
   // A buyer gets a few live addresses, not a loop's worth: each one holds a
@@ -6434,10 +6459,73 @@ test("crypto: an open invoice holds its seat and its discount use for the invoic
   assert.equal((await start(bCookie, { planId: loop.planKey })).status, 200, "one buyer's cap is not another's");
   await tq('UPDATE checkout_attempts SET expires_at = ? WHERE session_id = ?', [nowSec() - 1, cOrders[0]]);
   assert.equal((await start(cCookie, { planId: loop.planKey })).status, 200, 'an expired invoice no longer counts');
+
+  // And the cap holds when the clicks are in flight TOGETHER. Counted before
+  // the row was written, six parallel starts each read "none open yet" and
+  // each got an address — six live invoices, six held seats, from one buyer.
+  const D = '529000000000000030';
+  discord.members.set(D, new Set());
+  const dCookie = await signInAs('code_np_d', D, 'np_d');
+  const burstFrom = nowpayments.created.length;
+  // The provider takes its time, which is what made the old check-then-create
+  // window wide enough to drive a lorry through.
+  nowpayments.delayCreateMs = 150;
+  try {
+    const burst = await Promise.all([...Array(6)].map(() => start(dCookie, { planId: loop.planKey })));
+    assert.deepEqual(burst.map((r) => r.status).sort(), [200, 200, 200, 429, 429, 429], 'three invoices and three refusals, not six invoices');
+    assert.equal(nowpayments.created.length, burstFrom + 3, 'the provider was asked exactly three times');
+  } finally {
+    nowpayments.delayCreateMs = 0;
+  }
   // Cleanup: park the products.
   for (const key of [seat.planKey, tiny.planKey, loop.planKey]) {
     assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: key, active: false })).status, 200);
   }
+});
+
+test('a one-seat product is sold once when two buyers click Pay in the same instant, on either rail', async () => {
+  // The purchase limit used to be checked and then written on either side of
+  // a call to the payment provider: both buyers passed the check, both waited
+  // on Stripe or NOWPayments, and both were handed a checkout for the last
+  // seat. The card rail has no settlement-time re-check to catch it either —
+  // whoever paid, paid — so a one-seat product delivered twice. The seat is
+  // taken by the INSERT that records the attempt, so only one of them gets it.
+  const post = (path, body, cookie = npCookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: npCookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const seat = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Single Seat', priceUsd: 50, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: seat.planKey, roleId: R2_VIP })).status, 200);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: 1 })).status, 200);
+  const buyers = ['529100000000000031', '529200000000000032', '529300000000000033', '529400000000000034'];
+  for (const u of buyers) discord.members.set(u, new Set());
+  const [w, x, y, z] = await Promise.all(buyers.map((u, i) => signInAs(`code_seat_${i}`, u, `seat_${i}`)));
+  const card = (cookie) => post('/api/checkout/stripe', { planId: seat.planKey }, cookie);
+  const crypto_ = (cookie) => post('/api/checkout/crypto', { planId: seat.planKey, payCurrency: 'sol' }, cookie);
+  const started = async () => (await tq("SELECT discord_id FROM checkout_attempts WHERE plan_id = ? AND status = 'started'", [seat.planKey])).rows;
+
+  // The window is the provider's answer, so the mocks take their time here:
+  // without it the two requests do not really overlap and the scenario proves
+  // nothing about the ordering it exists to pin.
+  stripe.delayCheckoutSessionsMs = 200;
+  nowpayments.delayCreateMs = 200;
+  try {
+    const mixed = await Promise.all([card(w), crypto_(x)]);
+    assert.deepEqual(mixed.map((r) => r.status).sort(), [200, 409], 'one card and one crypto checkout for one seat: exactly one of them');
+    assert.equal((await started()).length, 1, 'and exactly one buyer is holding it');
+    await tq('DELETE FROM checkout_attempts WHERE plan_id = ?', [seat.planKey]);
+
+    const twoCards = await Promise.all([card(y), card(z)]);
+    assert.deepEqual(twoCards.map((r) => r.status).sort(), [200, 409], 'two card buyers in the same instant: exactly one of them');
+    assert.equal((await started()).length, 1, 'one seat, one reservation');
+    // The reservation is a real attempt row under Stripe's own session id, not
+    // a placeholder left behind: the completion webhook matches on that id.
+    assert.match((await tq('SELECT session_id FROM checkout_attempts WHERE plan_id = ? ORDER BY id DESC', [seat.planKey])).rows[0].session_id, /^cs_/);
+  } finally {
+    stripe.delayCheckoutSessionsMs = 0;
+    nowpayments.delayCreateMs = 0;
+  }
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, active: false })).status, 200);
 });
 
 test('an option of a switched-off product is not for sale on either rail', async () => {
@@ -6500,6 +6588,24 @@ test('the discount preview budgets misses, so it cannot be walked as an oracle',
   }
   assert.equal((await ask('LAUNCH20', { 'x-forwarded-for': '10.9.9.9' })).status, 200, 'a real code still previews once a store is over its cap');
   assert.equal((await ask('NOPE', { 'x-forwarded-for': '10.9.9.9' })).status, 429, 'guessing past the store cap is refused');
+});
+
+  // The budget is in the database, not in the process. This ships as
+  // serverless functions: a module-level Map is a fresh eight answers on
+  // every instance and every cold start, which is no budget at all.
+  assert.ok(Number((await tq('SELECT COUNT(*) AS n FROM discount_misses WHERE asker = ?', [`u:${'529900000000000029'}`])).rows[0].n) >= 8,
+    "the asker's misses are counted in shared storage");
+  // And no store-wide budget: a stranger with a spread of addresses must not
+  // be able to switch a seller's advertised code off for every buyer. Every
+  // one of these askers stays inside their own eight, and none is refused.
+  for (let ip = 0; ip < 45; ip += 1) {
+    for (let i = 0; i < 8; i += 1) {
+      const r = await ask(`WALK${ip}X${i}`, { 'x-forwarded-for': `198.51.100.${ip}` });
+      assert.equal(r.status, 404, `a fresh asker is answered on their own budget (${ip}/${i})`);
+    }
+  }
+  assert.equal((await ask('LAUNCH20', { 'x-forwarded-for': '203.0.113.77' })).status, 200,
+    "360 misses across the store later, the seller's real code still previews for everybody else");
 });
 
 

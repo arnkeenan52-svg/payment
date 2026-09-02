@@ -70,14 +70,11 @@ export async function purchaseBlocked({ store, plan, uid, atSettlement = false }
     }
   }
   // Purchase limit: caps total distinct buyers, never a returning one.
-  if (plan.purchaseLimit !== null && plan.purchaseLimit !== undefined) {
-    const own = (await db.subscriptionsForMember(uid)).some((s) => {
-      const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
-      return sid === (store.id ?? null) && s.plan_id === plan.id;
-    });
+  const limit = await seatLimitFor({ store, plan, uid });
+  if (limit !== null) {
     // Buyers still on the card form hold a seat for the life of their session.
     const taken = await db.countBuyersOfPlan(store.id ?? null, plan.id, { exceptUid: uid, reservedSince: atSettlement ? null : Math.floor(Date.now() / 1000) - CHECKOUT_TTL_SECONDS });
-    if (!own && taken >= plan.purchaseLimit) {
+    if (taken >= limit) {
       return { status: 409, error: 'This product is sold out.' };
     }
   }
@@ -93,11 +90,34 @@ export async function purchaseBlocked({ store, plan, uid, atSettlement = false }
   return null;
 }
 
+// The purchase limit this buyer's checkout has to hold to, or null when
+// nothing caps them: either the product has no limit, or they already bought
+// it — a returning buyer never takes a second seat, so the limit is not theirs
+// to hit. Exported because the answer is needed twice: once here for the
+// sentence the buyer reads, and once at the checkout row's INSERT, which is
+// where the limit is actually enforced against a second buyer clicking Pay at
+// the same moment.
+export async function seatLimitFor({ store, plan, uid }) {
+  if (plan.purchaseLimit === null || plan.purchaseLimit === undefined) return null;
+  const own = (await db.subscriptionsForMember(uid)).some((s) => {
+    const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
+    return sid === (store.id ?? null) && s.plan_id === plan.id;
+  });
+  return own ? null : plan.purchaseLimit;
+}
+
 // A discount code checked against this store and product. Shared for the same
 // reason as the guard above: a code that is expired, used up or scoped to
 // another product must be equally dead on every rail.
 //
 // Returns { code, row, priceAfter } or { error }.
+// The guessing budget that goes with the validator: an answer separating
+// "no such code" from "here is the discount", given away with no limit, is an
+// oracle. The counting lives in the database (src/db.js) because this ships as
+// serverless functions; these are the numbers every caller shares.
+export const DISCOUNT_WINDOW_SECONDS = 10 * 60;
+export const MAX_DISCOUNT_MISSES = 8;
+
 export async function resolveDiscount({ store, plan, code, uid = null }) {
   const codeRaw = typeof code === 'string' ? code.trim().toUpperCase() : '';
   if (!codeRaw) return { code: null, row: null, priceAfter: plan.priceUsd };
@@ -106,8 +126,11 @@ export async function resolveDiscount({ store, plan, code, uid = null }) {
   // A use is counted when the grant lands, so between "code applied" and
   // "paid" the counter has not moved: other buyers with this code on an open
   // checkout hold a use for the life of their session, like a seat. (A crypto
-  // invoice holds it until the provider's own expiry — see db.OPEN_ATTEMPT.)
-  const reserved = d && d.maxUses !== null && uid
+  // invoice holds it for as long as the provider would still settle it — see
+  // db.OPEN_ATTEMPT and api/checkout/crypto.js.)
+  // Asked without a uid too — that is the public preview, and the honest
+  // answer for "anyone but you" when nobody is signed in is "everyone".
+  const reserved = d && d.maxUses !== null
     ? await db.countReservedDiscountUses(store.id, codeRaw, now - CHECKOUT_TTL_SECONDS, uid)
     : 0;
   const valid =
@@ -124,39 +147,3 @@ export async function resolveDiscount({ store, plan, code, uid = null }) {
   return { code: codeRaw, row: d, priceAfter: Math.max(0, roundAmount(plan.priceUsd - off, cur)) };
 }
 
-// The guessing budget that goes with it, and for the same reason: an answer
-// that separates "no such code" from "here is the discount", given away with
-// no limit, is an oracle — walk a wordlist and every private code a store
-// ever made falls out, discount and all. Budgeting only the preview moved
-// that oracle one endpoint over: checkout answers the same question, just as
-// fast and to any Discord account. So the budget lives here, next to the
-// validator, and every caller of resolveDiscount shares one count.
-//
-// Misses are counted per asker (the session when there is one, else the
-// address) and per store. A valid code never costs anything: only guessing
-// does, and a store's own cap must never be the reason a real code is
-// refused — see the callers.
-//
-// In memory, so a runtime that spreads the endpoints across instances gives
-// each its own copy — as the preview's own count always did. It bounds a
-// walk from one session; it is not a distributed rate limiter.
-export const TOO_MANY_CODE_ATTEMPTS = 'Too many code attempts — try again in a few minutes.';
-export const GUESS_WINDOW_SECONDS = 10 * 60;
-export const MAX_MISSES_PER_ASKER = 8;
-export const MAX_MISSES_PER_STORE = 300;
-const discountMisses = new Map(); // key → [unix seconds of each miss in the window]
-
-export function discountMissesIn(key, now = Math.floor(Date.now() / 1000)) {
-  const list = (discountMisses.get(key) ?? []).filter((t) => t > now - GUESS_WINDOW_SECONDS);
-  if (list.length) discountMisses.set(key, list); else discountMisses.delete(key);
-  return list.length;
-}
-
-export function recordDiscountMiss(keys, now = Math.floor(Date.now() / 1000)) {
-  // Kept small: entries older than the window are dropped on every write.
-  if (discountMisses.size > 5000) for (const k of discountMisses.keys()) discountMissesIn(k, now);
-  for (const key of keys) {
-    const list = (discountMisses.get(key) ?? []).filter((t) => t > now - GUESS_WINDOW_SECONDS);
-    discountMisses.set(key, [...list, now]);
-  }
-}
