@@ -1088,7 +1088,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 }
 
 /* ── what you actually pay ─────────────────────────────────────────────── */
-.fees{padding:72px 24px 8px;text-align:center}
+.fees{padding-block:72px 8px;text-align:center}
 .fees-title,.faq-title{
   font-family:var(--jakarta);font-weight:600;color:var(--ink);
   font-size:clamp(28px,3.4vw,40px);line-height:1.12;letter-spacing:-.02em;
@@ -1110,7 +1110,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 .fees-note{max-width:640px;margin:26px auto 0;font-size:13.5px;line-height:22px;color:var(--micro)}
 
 /* ── questions ─────────────────────────────────────────────────────────── */
-.faq{padding:64px 24px 96px;text-align:center}
+.faq{padding-block:64px 96px;text-align:center}
 .faq-list{
   max-width:760px;margin:32px auto 0;text-align:left;
   background:var(--glass);border:1px solid var(--glass-brd);border-radius:20px;
@@ -1138,7 +1138,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 @media (max-width:860px){
   .fees-grid{grid-template-columns:1fr;max-width:460px}
   .fees{padding-top:56px}
-  .faq{padding:48px 20px 72px}
+  .faq{padding-block:48px 72px}
 }
 
 /* ============ faq ============ */
@@ -1247,7 +1247,9 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .crescendo{padding:72px 32px 80px}
 }
 @media (max-width:600px){
-  .wrap{padding-inline:20px}
+  /* the phone gutter, declared once: 16px is what .slab (100% - 32px) and
+     .hero-core already sit at, so every section lines up with the hero. */
+  .wrap{padding-inline:16px}
   .announce{font-size:13px;line-height:18px}
   .slab{width:calc(100% - 32px)}
   .hero-core{padding:64px 16px 0}
@@ -1759,13 +1761,13 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 
 
 /* ── pricing page ── */
-.page-hero{padding:calc(148px + env(safe-area-inset-top,0px)) 0 6px;text-align:center}
+.page-hero{padding-block:calc(148px + env(safe-area-inset-top,0px)) 6px;text-align:center}
 .page-hero h1{font-family:var(--jakarta);font-weight:600;font-size:clamp(42px,4.8vw,64px);letter-spacing:-.03em;word-spacing:.06em;line-height:1.06;color:var(--ink)}
 .page-hero .sec-eyebrow{margin-bottom:16px}
 .page-hero-sub{margin:18px auto 0;max-width:560px;font-size:17px;line-height:27px;color:var(--sec)}
 html:not([data-theme="light"]) .page-hero-sub{color:#c6d0e2}
 .crescendo{margin-top:40px}
-@media (max-width:600px){.page-hero{padding:calc(120px + env(safe-area-inset-top,0px)) 20px 0}}
+@media (max-width:600px){.page-hero{padding-block:calc(120px + env(safe-area-inset-top,0px)) 0}}
 
 /* ── pricing on the open sky: the dark slab dissolves, tiers ride glass ── */
 .crescendo{margin-block:28px 40px;background:none;box-shadow:none;padding:24px 0 40px;color:var(--ink)}
@@ -1952,9 +1954,10 @@ html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
       <span class="glyph" aria-hidden="true"></span><span>Dues</span>
     </a>
     <div class="nav-links">
-      <a href="/pricing" aria-current="page">Pricing</a>
       <a href="/discover">Discover</a>
-      <a href="/api/invite">Invite Dues &#8599;</a>
+      <a href="/pricing" aria-current="page">Pricing</a>
+      <a href="/vs">Compare</a>
+      <a href="/tools">Tools</a>
     </div>
     <div class="nav-right">
       <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch between day and night theme">

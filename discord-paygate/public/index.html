@@ -1221,7 +1221,9 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .crescendo{padding:72px 32px 80px}
 }
 @media (max-width:600px){
-  .wrap{padding-inline:20px}
+  /* the phone gutter, declared once: 16px is what .slab (100% - 32px) and
+     .hero-core already sit at, so every section lines up with the hero. */
+  .wrap{padding-inline:16px}
   .announce{font-size:13px;line-height:18px}
   .slab{width:calc(100% - 32px)}
   .hero-core{padding:64px 16px 0}
@@ -1954,7 +1956,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   .fee-note{font-size:11.5px;line-height:17px}
 }
 /* payment methods: real brand marks on white chips, its own section */
-.pay{padding:8px 24px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.pay{padding-block:8px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
 .pay-cap{font:600 12px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--micro)}
 .pay-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:800px}
 /* desktop: all 14 marks in a strict symmetric 7x2 grid of equal cells */
@@ -2015,7 +2017,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 }
 @media (max-width:600px){
   .sky-grain{display:none}
-  .save{padding:44px 16px 64px}
+  .save{padding-block:44px 64px}
 }
 
 /* ── phones and touch devices: the sky is a FIXED backdrop (out of flow —
@@ -2103,8 +2105,8 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
   font-size:clamp(26px,3.4vw,38px);line-height:1.12;letter-spacing:-.02em;color:var(--ink);
 }
 @media (max-width:600px){
-  .how{padding:48px 16px 24px}
-  .why{padding:4px 16px 28px}
+  .how{padding-block:48px 24px}
+  .why{padding-block:4px 28px}
 }
 
 /* ── what sellers say: featured editorial card + stacked rail ── */
@@ -2167,7 +2169,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
   .voice-lead blockquote{max-width:none}
 }
 @media (max-width:600px){
-  .voices{padding:26px 16px 22px}
+  .voices{padding-block:26px 22px}
   .voice-lead{padding:24px 22px 26px}
 }
 
@@ -2203,7 +2205,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   .comm-btn{justify-content:center}
 }
 @media (max-width:600px){
-  .comm{padding:22px 16px 48px}
+  .comm{padding-block:22px 48px}
 }
 
 /* ── payment band framing: hairline-flanked caption + settle note ── */
@@ -2351,9 +2353,10 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
       <span class="glyph" aria-hidden="true"></span><span>Dues</span>
     </a>
     <div class="nav-links">
-      <a href="/pricing">Pricing</a>
       <a href="/discover">Discover</a>
-      <a href="/api/invite">Invite Dues &#8599;</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/vs">Compare</a>
+      <a href="/tools">Tools</a>
     </div>
     <div class="nav-right">
       <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch between day and night theme">
@@ -2488,7 +2491,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 
 
 <!-- 5.5 · payment methods -->
-<section class="pay">
+<section class="pay wrap">
   <p class="pay-cap">Payments run on Stripe</p>
   <div class="pay-chips" aria-label="Supported payment methods">
     <span class="pay-chip" aria-label="Visa"><b class="pm-visa">VISA</b></span>
