@@ -67,6 +67,60 @@ const ICON_CHECK =
 const ICON_LOCK =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 
+// ── per-product wallpaper ────────────────────────────────────────────────────
+// The document arrives wearing the STORE's background, server-rendered by
+// api/store-page.js. A product that set one of its own swaps it while its
+// checkout is on screen, and going back to the shop puts the store's back.
+//
+// Nothing here decides what a background IS: `plan.bgView` arrives from
+// /api/plans already built by src/lib/theme.js from validated tokens — the
+// same function that wrote the layer in the page — so a product's own link
+// and a click-through to the same product cannot render differently.
+//
+// The store's layer is HIDDEN, never removed: the live cloud presets mount a
+// WebGL canvas that /sky.js binds once at load, and a layer rebuilt from
+// markup would come back as a dead canvas over a bare gradient.
+const STORE_BG = {
+  cls: document.body.classList.contains('has-bg'),
+  id: document.body.dataset.bg ?? null,
+  material: document.body.dataset.material ?? null,
+  light: document.documentElement.dataset.theme === 'light',
+};
+let bgApplied = null; // the bgView id on screen; null = the store's own
+
+function applyPlanBg(view) {
+  const id = view?.id ?? null;
+  if (id === bgApplied) return;
+  bgApplied = id;
+  const storeLayer = document.querySelector('.store-bg:not(.plan-bg)');
+  document.querySelector('.store-bg.plan-bg')?.remove();
+  if (!view) {
+    if (storeLayer) storeLayer.hidden = false;
+    document.body.classList.toggle('has-bg', STORE_BG.cls);
+    if (STORE_BG.id) document.body.dataset.bg = STORE_BG.id;
+    else delete document.body.dataset.bg;
+    if (STORE_BG.material) document.body.dataset.material = STORE_BG.material;
+    else delete document.body.dataset.material;
+    if (STORE_BG.light) document.documentElement.dataset.theme = 'light';
+    else delete document.documentElement.dataset.theme;
+    return;
+  }
+  if (storeLayer) storeLayer.hidden = true;
+  const el = document.createElement('div');
+  el.className = 'store-bg plan-bg';
+  el.dataset.bg = view.id;
+  el.setAttribute('aria-hidden', 'true');
+  // Server-built from validated tokens by bgLayer() — the identical string
+  // api/store-page.js writes into the document for the same background.
+  el.innerHTML = view.inner ?? '';
+  document.body.prepend(el);
+  document.body.classList.add('has-bg');
+  document.body.dataset.bg = view.id;
+  document.body.dataset.material = view.material ?? STORE_BG.material ?? 'glass';
+  if (view.lightTone) document.documentElement.dataset.theme = 'light';
+  else delete document.documentElement.dataset.theme;
+}
+
 const state = {
   plans: [],
   capabilities: { stripe: false, crypto: false, nowpayments: false },
@@ -1194,6 +1248,8 @@ function render() {
     const storeName = String(state.brand ?? state.server?.name ?? '').trim();
     back.textContent = multi ? '← All products' : `← ${storeName || 'Store page'}`;
   }
+  // The shop page is the store's own; a checkout belongs to its product.
+  applyPlanBg(state.view === 'shop' ? null : (state.plans.find((p) => p.id === state.planId)?.bgView ?? null));
   if (state.view === 'shop') {
     renderShop();
     return;
@@ -1515,6 +1571,18 @@ function productCard(plan) {
   // absolutely-positioned .prod-name stays inside .prod-card's overflow:hidden.
   const shot = card.querySelector('.prod-shot');
   if (shot) shot.onerror = () => { shot.outerHTML = ph; };
+  // The card wears the product's OWN wallpaper when it set one, behind
+  // everything else in the card. A product with none wears the store's, which
+  // is already the ground this card sits on — so there is nothing to draw.
+  if (plan.bgView) {
+    const layer = document.createElement('span');
+    layer.className = 'store-bg prod-bg';
+    layer.dataset.bg = plan.bgView.id;
+    layer.setAttribute('aria-hidden', 'true');
+    layer.innerHTML = plan.bgView.inner ?? ''; // server-built, validated tokens only
+    card.prepend(layer);
+    card.classList.add('has-prod-bg');
+  }
   card.onclick = () => openCheckout(plan.id);
   return card;
 }

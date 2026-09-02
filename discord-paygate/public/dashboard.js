@@ -1971,8 +1971,13 @@ function contrastRatio(a, b) {
   return (x + 0.05) / (y + 0.05);
 }
 
-function appearanceBody(store) {
+// `products` is the store's own catalogue (price options excluded — an option
+// shares its product's page, so it shares that page's background). The panel
+// customises ONE thing at a time and says which at the top: the store, or a
+// named product.
+function appearanceBody(store, products) {
   const t = { ...THEME_DEFAULTS, ...(store.theme ?? {}) };
+  const prods = (products ?? []).filter((p) => !p.variantOf);
   const ink = (hex) => {
     const n = parseInt(hex.slice(1), 16);
     return ((((n >> 16) & 255) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000) >= 150 ? '#0a0a0a' : '#ffffff';
@@ -2002,6 +2007,23 @@ function appearanceBody(store) {
   return `
   <div class="th-layout">
     <div class="th-controls">
+      ${/* What this picker is pointed at. A store has one look; each product
+            may carry its own BACKGROUND inside it, and nothing else — the
+            colours, corners, type and material are the store's, so those
+            blocks step aside while a product is selected rather than
+            pretending to be per-product. */ ''}
+      <div class="th-block th-target-block">
+        <span class="th-block-lab">Customising</span>
+        <select id="th-target" class="store-switch" aria-label="What this picker changes">
+          <option value="">The whole store</option>
+          ${prods.map((p) => `<option value="${esc(p.planKey)}">Product: ${esc(p.name)}</option>`).join('')}
+        </select>
+        <p class="field-help th-block-help">${
+          prods.length
+            ? 'Colours, corners, type and material belong to the store. Each product can carry its own background.'
+            : 'Add a product and it can carry a background of its own; until then this is the store’s look.'
+        }</p>
+      </div>
       ${/* "Store theme", not "Theme". These tiles and the dashboard's own
             three faces sat one screen apart wearing the same word, and the
             owner read them as one broken control. They are not the same
@@ -2009,13 +2031,16 @@ function appearanceBody(store) {
             of a CHECKOUT, they are named for the buyer, and the dashboard's
             faces are a row of small ground chips under "Theme" in Dashboard
             -> Appearance. */ ''}
-      <div class="th-block">
+      <div class="th-block th-store-only">
         <span class="th-block-lab">Store theme</span>
         <p class="field-help th-block-help">What buyers see on your store page. Your own dashboard's light/dark is a separate setting, in Dashboard &rarr; Appearance.</p>
         <div class="th-tiles" role="group" aria-label="Store theme presets">${THEME_PRESETS.map(tile).join('')}</div>
       </div>
       <div class="th-block">
         <span class="th-block-lab">Background</span>
+        ${/* Never an empty state: a product with no background of its own is
+              not unset, it is INHERITING, and this line says so by name. */ ''}
+        <p class="field-help th-inherit" id="th-inherit" hidden></p>
         <details class="bgp-dd">
           <summary class="bgp-sum"><span class="bgp-cur" id="bgp-current">None</span><svg class="bgp-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
           <div class="bgp-pop">
@@ -2038,7 +2063,7 @@ function appearanceBody(store) {
           </div>
         </details>
       </div>
-      <div class="th-block">
+      <div class="th-block th-store-only">
         <span class="th-block-lab">Material</span>
         <div class="th-seg" id="th-material-seg" role="group" aria-label="Card material" data-value="${esc(t.material ?? 'glass')}">
           <button type="button" class="th-seg-btn${(t.material ?? 'glass') === 'glass' ? ' active' : ''}" data-material="glass">Glass</button>
@@ -2047,17 +2072,17 @@ function appearanceBody(store) {
         </div>
         <p class="note-help bgp-mat-note">Material shapes the cards over a background — glassy blur or solid panels. Corners at 0 make the store square.</p>
       </div>
-      <div class="th-block">
+      <div class="th-block th-store-only">
         <span class="th-block-lab">Colors <span class="th-badge-warn" id="th-contrast" hidden>Low contrast</span></span>
         <div class="th-swatches">
           ${sw('bg', 'Background')}${sw('panel', 'Cards')}${sw('text', 'Text')}${sw('accent', 'Accent')}${sw('pay', 'Pay')}
         </div>
       </div>
-      <div class="th-block">
+      <div class="th-block th-store-only">
         <span class="th-block-lab">Corners</span>
         <div class="th-range"><input type="range" id="th-radius" min="0" max="24" step="1" value="${t.radius}" aria-label="Corner radius" /><code id="th-radius-out">${t.radius}px</code></div>
       </div>
-      <div class="th-block">
+      <div class="th-block th-store-only">
         <span class="th-block-lab">Type</span>
         <div class="th-seg" id="th-font-seg" role="group" aria-label="Storefront typeface" data-value="${esc(t.font)}">
           ${seg('default', 'Grotesk', '')}${seg('system', 'System', THEME_FONT_STACKS.system)}${seg('serif', 'Serif', THEME_FONT_STACKS.serif)}${seg('mono', 'Mono', THEME_FONT_STACKS.mono)}
@@ -2070,7 +2095,7 @@ function appearanceBody(store) {
       ${
         store.status === 'live'
           ? `<div class="th-frame">
-               <div class="th-frame-bar"><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-url">${esc(location.host)}/${esc(store.slug)}</span>
+               <div class="th-frame-bar"><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-dot"></span><span class="th-frame-url" id="th-frame-url">${esc(location.host)}/${esc(store.slug)}</span>
                  <div class="th-device" role="group" aria-label="Preview device">
                    <button type="button" class="th-dev-btn" data-device="desktop" aria-label="Desktop preview" title="Desktop"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
                    <button type="button" class="th-dev-btn" data-device="phone" aria-label="Phone preview" title="Phone"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18.5h2"/></svg></button>
@@ -2097,7 +2122,7 @@ function appearanceBody(store) {
   </div>`;
 }
 
-function sectionStore(store, link) {
+function sectionStore(store, link, products) {
   const linkRow = `<div class="share-row"><code class="share-link">${esc(link)}</code><button class="btn-secondary" id="copy-link">${I.copy} Copy</button><a class="btn-secondary st-open" href="${esc(link)}" target="_blank" rel="noopener">${I.external} Open</a></div>`;
   if (store.isDefault) {
     return `
@@ -2211,11 +2236,11 @@ function sectionStore(store, link) {
     ${setCard({
       id: 'st-card-theme',
       title: 'Appearance',
-      sub: 'Make the store yours — colors, corners and type. Buyers see it instantly.',
+      sub: 'Make the store yours — colors, corners and type, and a background for the store or for one product. Buyers see it instantly.',
       // Nothing here is gated: every colour, every background and an imported
       // URL are free on every plan. A shop window is what sells the seller's
       // roles — charging for it taxed the thing this platform lives on.
-      body: `<div class="th-wrap">${appearanceBody(store)}</div>`,
+      body: `<div class="th-wrap">${appearanceBody(store, products)}</div>`,
       foot: `<span class="appearance-foot"><button class="btn-pill" id="th-save">Save appearance</button>
         <button class="btn-ghost" id="th-reset">Reset to default</button>
         <span class="note-help" id="th-note" role="status"></span></span>`,
@@ -2521,7 +2546,9 @@ async function viewStore(slug) {
   // Tenant-only management data, fetched only for the sections that need it.
   let products = null;
   let discounts = null;
-  if (!store.isDefault && (section === 'products' || section === 'discounts')) {
+  // The Store section needs them too: its Appearance panel customises the
+  // store OR one named product, and it cannot name products it never fetched.
+  if (!store.isDefault && (section === 'products' || section === 'discounts' || section === 'store')) {
     try {
       products = await loadProducts(store);
     } catch (err) {
@@ -2545,7 +2572,7 @@ async function viewStore(slug) {
     body = store.isDefault
       ? '<h2 class="sec-title">Discounts</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store. Set up your server’s own store to create discount codes here.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
       : sectionDiscounts(discounts, products, slug);
-  else if (section === 'store') body = sectionStore(store, link);
+  else if (section === 'store') body = sectionStore(store, link, products);
   else if (section === 'customize')
     body = store.isDefault
       ? '<h2 class="sec-title">Dashboard</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store — its dashboard uses the platform look. Set up your server’s own store to customize.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
@@ -2799,7 +2826,7 @@ async function viewStore(slug) {
   if (section === 'members') wireMembers(slug);
   if (section === 'products' && !store.isDefault) wireProducts(store, slug, products);
   if (section === 'discounts' && !store.isDefault) wireDiscounts(store, slug);
-  if (section === 'store' && !store.isDefault) { wireStoreSettings(store, slug); wireAppearance(store, slug); wireDiscovery(store, slug); }
+  if (section === 'store' && !store.isDefault) { wireStoreSettings(store, slug); wireAppearance(store, slug, products); wireDiscovery(store, slug); }
   if (section === 'customize' && !store.isDefault) wireCustomize(store, slug);
   if (section === 'billing') {
     renderBillingPanel().catch(() => {
@@ -3316,7 +3343,7 @@ function wireDiscounts(store, slug) {
   });
 }
 
-function wireAppearance(store, slug) {
+function wireAppearance(store, slug, products) {
   // Nothing in Appearance is gated any more: every theme tile, every
   // background, the material and type buttons and the import-your-own-URL
   // field are live on every plan. The rule that outlived the gate is the one
@@ -3339,6 +3366,23 @@ function wireAppearance(store, slug) {
   // The background the picker currently has selected ('' = none). Seeded from
   // the saved theme; clicks update it.
   let draftBg = store.theme?.bgPreset ?? '';
+
+  // ── what the picker is pointed at ──────────────────────────────────────
+  // '' is the store; anything else is a product's planKey. Only the
+  // BACKGROUND is per-product, so switching target swaps the two background
+  // fields and hides the blocks that belong to the store. Unsaved edits are
+  // kept per target rather than thrown away on every switch.
+  const prods = (products ?? []).filter((p) => !p.variantOf);
+  const prodOf = (key) => prods.find((p) => p.planKey === key) ?? null;
+  // Remembered across the re-render a save triggers: a seller who just gave
+  // one product a background is still customising that product afterwards.
+  let target = state.thTarget?.slug === slug && prods.some((p) => p.planKey === state.thTarget.key) ? state.thTarget.key : '';
+  const drafts = new Map([['', { bgPreset: draftBg, bgUrl: store.theme?.bgUrl ?? '' }]]);
+  for (const p of prods) drafts.set(p.planKey, { bgPreset: p.bg?.bgPreset ?? '', bgUrl: p.bg?.bgUrl ?? '' });
+  const stashDraft = () => drafts.set(target, { bgPreset: draftBg, bgUrl: ($('#th-bgurl')?.value ?? '').trim() });
+  const savedBgOf = (key) =>
+    key === '' ? (store.theme?.bgPreset || store.theme?.bgUrl ? { bgPreset: store.theme?.bgPreset ?? '', bgUrl: store.theme?.bgUrl ?? '' } : null)
+    : (prodOf(key)?.bg ?? null);
   // Paint the draft background into the same-origin preview frame. Media
   // elements are built with createElement — an owner-typed URL never becomes
   // markup. Live cloud presets preview as their still (no shader in a frame).
@@ -3434,7 +3478,61 @@ function wireAppearance(store, slug) {
         : `<span class="bgp-cur-thumb"><span class="store-bg sbg-thumb" data-bg="${def.id}"><span class="sbg-a"></span><span class="sbg-b"></span><span class="sbg-c"></span></span></span>`)
         + `<b>${def.label}</b>`;
     }
+    syncTarget();
   };
+
+  // What the panel shows for the thing being customised. A product only owns
+  // its background, so the store's blocks stand down while one is selected —
+  // and a product with no background of its own is described as INHERITING
+  // the store's, by name, rather than shown an empty picker that reads as a
+  // broken control.
+  function syncTarget() {
+    const p = prodOf(target);
+    const sel = $('#th-target');
+    if (sel && sel.value !== target) sel.value = target;
+    document.querySelectorAll('.th-store-only').forEach((el) => { el.hidden = Boolean(p); });
+    const saveBtn = $('#th-save');
+    if (saveBtn && !saveBtn.disabled) saveBtn.textContent = p ? `Save ${p.name}` : 'Save appearance';
+    const resetBtn = $('#th-reset');
+    if (resetBtn && !resetBtn.disabled) resetBtn.textContent = p ? 'Use the store\u2019s background' : 'Reset to default';
+    const note = $('#th-inherit');
+    if (!note) return;
+    if (!p) {
+      note.hidden = true;
+      note.textContent = '';
+      return;
+    }
+    const own = draftBg || ($('#th-bgurl')?.value ?? '').trim();
+    const storeBg = store.theme?.bgUrl
+      ? 'an image you imported'
+      : (BG_CATALOG.find((b) => b.id === store.theme?.bgPreset)?.label ?? null);
+    note.hidden = false;
+    note.textContent = own
+      ? `${p.name} has a background of its own. \u201cUse the store\u2019s background\u201d puts it back on the store\u2019s.`
+      : storeBg
+        ? `${p.name} has no background of its own, so it wears the store\u2019s \u2014 ${storeBg}. Pick one below to give it its own.`
+        : `${p.name} has no background of its own, so it wears the store\u2019s, which is the plain Dues ground. Pick one below to give it its own.`;
+  }
+
+  // Point the picker at something else: stash the edits in flight, load that
+  // target's background into the two fields, and send the preview frame to
+  // the page that target actually renders.
+  const retarget = (next) => {
+    stashDraft();
+    target = next;
+    state.thTarget = { slug, key: target };
+    const d = drafts.get(target) ?? { bgPreset: '', bgUrl: '' };
+    draftBg = d.bgPreset;
+    if ($('#th-bgurl')) $('#th-bgurl').value = d.bgUrl;
+    const p = prodOf(target);
+    const seg = p ? `/${encodeURIComponent(p.linkSlug ?? p.planKey)}` : '';
+    const bar = $('#th-frame-url');
+    if (bar) bar.textContent = `${location.host}/${store.slug}${seg}`;
+    const f = $('#th-preview');
+    if (f) f.src = `/${store.slug}${seg}`; // its load handler repaints the draft
+    paint();
+  };
+  $('#th-target')?.addEventListener('change', (e) => retarget(e.target.value));
   for (const id of ['th-bg', 'th-panel', 'th-text', 'th-accent', 'th-pay', 'th-radius']) {
     $(`#${id}`)?.addEventListener('input', paint);
     $(`#${id}`)?.addEventListener('change', paint);
@@ -3509,7 +3607,10 @@ function wireAppearance(store, slug) {
         );
       } catch { /* nothing reachable to guard */ }
     });
-    f.src = `/${vp.dataset.slug ?? ''}`;
+    // The page the current target actually renders — the store's, or the
+    // product's own, so a product's background previews where it will appear.
+    const shown = prodOf(target);
+    f.src = `/${vp.dataset.slug ?? ''}${shown ? `/${encodeURIComponent(shown.linkSlug ?? shown.planKey)}` : ''}`;
     vp.appendChild(f);
     const b = $('#th-preview-open');
     if (b) b.hidden = true;
@@ -3542,7 +3643,11 @@ function wireAppearance(store, slug) {
   document.querySelectorAll('.bgp').forEach((b) => {
     b.onclick = () => {
       draftBg = b.dataset.bgp ?? '';
-      if (draftBg && $('#th-bgurl')) $('#th-bgurl').value = ''; // a preset replaces a custom import
+      // Any pick from this grid replaces a custom import — "None" included.
+      // It used to clear the field only for a real preset, which made None a
+      // no-op: an import outranks a preset in bgLayer, so the store kept
+      // showing the image the seller had just chosen to remove.
+      if ($('#th-bgurl')) $('#th-bgurl').value = '';
       paint();
     };
   });
@@ -3557,25 +3662,63 @@ function wireAppearance(store, slug) {
       paint();
     };
   });
+  // Land on the remembered target with ITS background in the fields.
+  if (target) {
+    const d = drafts.get(target) ?? { bgPreset: '', bgUrl: '' };
+    draftBg = d.bgPreset;
+    if ($('#th-bgurl')) $('#th-bgurl').value = d.bgUrl;
+    const p = prodOf(target);
+    const bar = $('#th-frame-url');
+    if (bar && p) bar.textContent = `${location.host}/${store.slug}/${p.linkSlug ?? p.planKey}`;
+  }
   paint();
 
+  // Save writes to whatever the picker is pointed at: the store's theme, or
+  // one product's background. A product only ever sends the two background
+  // tokens — its colours, corners and type are the store's and are not this
+  // form's to send.
   $('#th-save').onclick = async () => {
     const btn = $('#th-save');
+    const p = prodOf(target);
     fieldErr('theme', '');
     btn.disabled = true;
     btn.textContent = 'Saving…';
     try {
-      await api('/api/admin/store', { store: slug, theme: read() });
+      if (p) {
+        const bg = { bgPreset: draftBg, bgUrl: ($('#th-bgurl')?.value ?? '').trim() };
+        await api('/api/onboard', {
+          step: 'product-update', storeId: store.id, planKey: p.planKey,
+          bg: bg.bgPreset || bg.bgUrl ? bg : null,
+        });
+        state.products = null;
+      } else {
+        await api('/api/admin/store', { store: slug, theme: read() });
+      }
       state.data = null;
       await viewStore(slug);
       flashSaved('#th-note');
     } catch (err) {
       btn.disabled = false;
-      btn.textContent = 'Save appearance';
+      btn.textContent = p ? `Save ${p.name}` : 'Save appearance';
       fieldErr('theme', err.message);
     }
   };
+  // The one obvious way back: a product drops its own background and inherits
+  // the store's again; the store drops the whole look and takes the default.
   $('#th-reset').onclick = async () => {
+    const p = prodOf(target);
+    if (p) {
+      if (!confirm(`Put ${p.name} back on the store’s background?`)) return;
+      try {
+        await api('/api/onboard', { step: 'product-update', storeId: store.id, planKey: p.planKey, bg: null });
+        state.products = null;
+        state.data = null;
+        viewStore(slug);
+      } catch (err) {
+        fieldErr('theme', err.message);
+      }
+      return;
+    }
     if (!confirm('Reset the store to the default Dues look?')) return;
     try {
       await api('/api/admin/store', { store: slug, theme: null });

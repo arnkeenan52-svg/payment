@@ -9,7 +9,7 @@ import { guard, sendText } from '../src/lib/http.js';
 import { config } from '../src/config.js';
 import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.js';
 import { DEMO_SLUG, DEMO_NAME, DEMO_THEME, demoPlans } from '../src/services/demo-store.js';
-import { validateTheme, themeCss, bgLayer } from '../src/lib/theme.js';
+import { validateTheme, themeCss, bgLayer, themeWithBg } from '../src/lib/theme.js';
 import { storeTheme } from '../src/services/billing.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -66,12 +66,23 @@ export default guard(async (req, res) => {
   } else if (/^[a-z0-9-]{1,40}$/.test(slug)) {
     const store = await storeBySlug(slug).catch(() => null);
     if (store) {
+      const plans = await sellablePlansOf(store).catch(() => []);
+      const matched = productSeg ? matchPlan(plans, productSeg) : null;
+      // A link may name a price OPTION of a product — the page (and its
+      // unfurl) belongs to the product itself: parent name and photo, the
+      // option's own price.
+      const linkedPlan = matched?.variantOf ? plans.find((p) => p.id === matched.variantOf) ?? matched : matched;
       // The owner's theme, server-rendered so the page never flashes the
       // default look. Re-validated here: only tokens ever reach the CSS,
       // whatever ended up in the database. Every store gets its own look on
       // every plan — a storefront is a shop window, not an upsell.
+      //
+      // On a PRODUCT link the look is the store's with one substitution: the
+      // product's own wallpaper, when it set one. themeWithBg owns that rule
+      // (src/lib/theme.js) so the server, the storefront script and the
+      // dashboard preview cannot disagree about what a product inherits.
       try {
-        const theme = validateTheme(await storeTheme(store));
+        const theme = validateTheme(themeWithBg(await storeTheme(store), linkedPlan?.bg ?? null));
         if (theme) {
           themeStyle = `\n  <style id="store-theme">${themeCss(theme)}</style>`;
           bg = bgLayer(theme);
@@ -79,12 +90,6 @@ export default guard(async (req, res) => {
       } catch {
         /* an unusable stored theme renders the default look */
       }
-      const plans = await sellablePlansOf(store).catch(() => []);
-      const matched = productSeg ? matchPlan(plans, productSeg) : null;
-      // A link may name a price OPTION of a product — the page (and its
-      // unfurl) belongs to the product itself: parent name and photo, the
-      // option's own price.
-      const linkedPlan = matched?.variantOf ? plans.find((p) => p.id === matched.variantOf) ?? matched : matched;
       // The preview image is the product's own photo when there is one
       // (uploads serve from /api/img over https); the platform shot otherwise.
       const productImg = (linkedPlan ? [linkedPlan] : plans)
@@ -149,9 +154,20 @@ export default guard(async (req, res) => {
   }
   res.writeHead(200, {
     'content-type': 'text/html; charset=utf-8',
-    // Short shared cache: link unfurlers and buyers get fresh store data
-    // within a minute of an edit, without a function hit per page view.
-    'cache-control': 'public, s-maxage=60, stale-while-revalidate=300',
+    // NOT shared-cached, and that is the whole point. This HTML carries the
+    // seller's look — the theme CSS and the background layer are baked into
+    // it — and a seller has no way to purge a CDN. With `s-maxage=60,
+    // stale-while-revalidate=300` the edge served the PREVIOUS render for a
+    // minute and then kept serving it stale for five more while it
+    // revalidated behind the scenes, so "I chose a background and saved and
+    // it doesn't show on my live store" was true for up to six minutes, on
+    // the seller's own store and inside the dashboard's preview frame (which
+    // loads this same URL). The cache also bought less than it looked: every
+    // real visitor's page immediately fetches /api/plans, which is
+    // uncacheable, so the only requests it spared were the JS-less unfurlers.
+    // Same header /api/plans already answers with, so the two halves of one
+    // page view now agree about how fresh a store is.
+    'cache-control': 'public, max-age=0, must-revalidate',
   });
   res.end(html);
 });

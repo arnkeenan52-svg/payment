@@ -54,8 +54,8 @@ export const THEME_KEYS = ['bg', 'panel', 'text', 'accent', 'pay', 'radius', 'fo
 // local photo layer.
 export const BG_PRESETS = {
   // clouds — the brand sky, drifting live
-  'clouds-day': { tone: 'light', live: true, label: 'Clouds · day' },
-  'clouds-night': { tone: 'dark', live: true, label: 'Clouds · night' },
+  'clouds-day': { tone: 'light', live: true, still: '/sky-day-tall.jpg', label: 'Clouds · day' },
+  'clouds-night': { tone: 'dark', live: true, still: '/sky-night-tall.jpg', label: 'Clouds · night' },
   // stills of the same sky
   'sky-day': { tone: 'light', img: '/sky-day-tall.jpg', label: 'Sky photo · day' },
   'sky-night': { tone: 'dark', img: '/sky-night-tall.jpg', label: 'Sky photo · night' },
@@ -148,6 +148,41 @@ export function validateTheme(input) {
   return Object.keys(out).length ? out : null;
 }
 
+// A PRODUCT's own background. A store has one look; a product may swap the
+// wallpaper inside it, and nothing else — not the colours, not the corners,
+// not the type. So this validates exactly the two background tokens, and it
+// does it by handing them to validateTheme above rather than re-deciding
+// anything: the catalogue lives there and validateBgUrl below is still the
+// only gate an imported URL passes through. Keys other than the two are
+// dropped, and a value that means "no background" comes back null, which is
+// what clears the column.
+export function validatePlanBg(input) {
+  if (input === null || input === undefined) return null;
+  if (typeof input !== 'object' || Array.isArray(input)) throw new Error('a product background must be an object');
+  return validateTheme({ bgPreset: input.bgPreset, bgUrl: input.bgUrl });
+}
+
+// The inheritance rule, in one place, so every surface agrees on it: a
+// product wears the STORE's whole look and replaces only the wallpaper with
+// its own. A product carrying no background of its own gets the store's
+// theme back untouched — that is the whole of "inherits", and it is why
+// nothing here invents a value when `bg` is empty.
+//
+// Both of the store's background keys are cleared before the product's one
+// is applied. bgLayer gives an imported URL priority over a preset, so a
+// store with an imported image and a product with a chosen preset would
+// otherwise render the store's image on the product's page.
+export function themeWithBg(theme, bg) {
+  const has = bg && (bg.bgPreset || bg.bgUrl);
+  if (!has) return theme ?? null;
+  const out = { ...(theme ?? {}) };
+  delete out.bgPreset;
+  delete out.bgUrl;
+  if (bg.bgPreset) out.bgPreset = bg.bgPreset;
+  if (bg.bgUrl) out.bgUrl = bg.bgUrl;
+  return out;
+}
+
 // An owner-imported background: a GIF, image, or MP4/WebM the owner hosts.
 // Never reaches CSS (no url() injection surface) — it renders as a media
 // ELEMENT with an escaped attribute. https only, a real parseable URL, and a
@@ -194,7 +229,12 @@ const escAttr = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<':
 //   bodyAttrs — attributes for the <body> tag (bg id + material)
 //   lightTone — flip the page onto the light token set
 //   needsSky — mount /sky.js (live cloud presets)
-export function bgLayer(theme) {
+// `still` swaps the live cloud shader for the photograph of the same sky.
+// /sky.js drives the canvases it finds when it loads, so a layer built after
+// that — a product card, a checkout the storefront swaps in without a page
+// load — would get an empty canvas and a bare gradient. The still is the same
+// picture, held.
+export function bgLayer(theme, { still = false } = {}) {
   const t = theme ?? {};
   const custom = t.bgUrl ?? null;
   const preset = !custom && t.bgPreset ? t.bgPreset : null;
@@ -220,7 +260,7 @@ export function bgLayer(theme) {
       ? `<video src="${escAttr(custom)}" autoplay muted loop playsinline disablepictureinpicture referrerpolicy="no-referrer" aria-hidden="true"></video>`
       : `<img src="${escAttr(custom)}" alt="" aria-hidden="true" referrerpolicy="no-referrer" />`;
   } else if (def.live) {
-    inner = '<canvas data-dues-sky></canvas>';
+    inner = still ? `<img src="${escAttr(def.still)}" alt="" aria-hidden="true" />` : '<canvas data-dues-sky></canvas>';
   } else if (def.img) {
     inner = `<img src="${escAttr(def.img)}" alt="" aria-hidden="true" />`;
   } else {
@@ -229,10 +269,18 @@ export function bgLayer(theme) {
   }
   const material = t.material ?? 'glass';
   return {
+    // id, material and inner ride along so a caller that is not writing an
+    // HTML document — the storefront swapping one product's wallpaper in,
+    // or painting one behind a product card — can build the layer's own
+    // wrapper element and drop `inner` into it, without parsing bodyAttrs
+    // back apart and without a second copy of the media decision.
+    id,
+    material,
+    inner,
     markup: `<div class="store-bg" data-bg="${escAttr(id)}" aria-hidden="true">${inner}</div>`,
     bodyAttrs: ` class="has-bg" data-bg="${escAttr(id)}" data-material="${escAttr(material)}"`,
     lightTone: Boolean(def?.tone === 'light'),
-    needsSky: Boolean(def?.live),
+    needsSky: Boolean(def?.live && !still),
   };
 }
 

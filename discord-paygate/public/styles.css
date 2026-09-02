@@ -2906,6 +2906,17 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .th-block { display: flex; flex-direction: column; gap: 10px; }
 .th-block-lab { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--dim); }
 
+/* "Customising: the store / a named product" — the panel's first control,
+   because it decides what every control under it writes to. */
+.th-target-block .store-switch { width: 100%; }
+/* A product with no background of its own is INHERITING, and this line says
+   whose. It is a statement, not a field, so it wears a plate rather than
+   sitting loose among the controls. */
+.th-inherit {
+  margin: 0; padding: 9px 11px; border: 1px solid var(--edge); border-radius: 9px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
 .th-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .th-tile { padding: 0; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 6px; text-align: left; }
 .th-tile-thumb {
@@ -4072,6 +4083,38 @@ body[data-material='solid'] .panel, body[data-material='solid'] .prod-card, body
 .sbg-thumb { position: relative; inset: auto; z-index: 0; width: 100%; height: 100%; border-radius: 9px; display: block; }
 .sbg-thumb::after { content: none; }
 .sbg-thumb .sbg-a, .sbg-thumb .sbg-b, .sbg-thumb .sbg-c { inset: -20%; }
+
+/* ── a PRODUCT's own wallpaper, inside its card ──
+   Same preset vocabulary above, contained instead of fixed. The card's own
+   panel fill steps aside so the wallpaper is the card's ground; the letter
+   tile goes transparent so it shows through the picture area; and the price
+   strip keeps a panel wash, because that is where the numbers live and a
+   photograph is not something to read a price off. No extra scrim here —
+   .prod-media::after already darkens the strip the product name sits on. */
+.prod-bg { position: absolute; inset: 0; z-index: 0; }
+.prod-bg::after { content: none; }
+.prod-bg .sbg-a, .prod-bg .sbg-b, .prod-bg .sbg-c { inset: -20%; }
+/* Must stay AFTER the material block above: those rules name .prod-card at
+   the same weight, so source order is what lets a product's wallpaper through
+   the glass/liquid/solid fill that would otherwise paint over it. */
+.prod-card.has-prod-bg,
+html body[data-material] .prod-card.has-prod-bg {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.prod-card.has-prod-bg .prod-media, .prod-card.has-prod-bg .prod-foot { position: relative; z-index: 1; }
+.prod-card.has-prod-bg .prod-ph { background: transparent; color: #fff; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55); }
+.prod-card.has-prod-bg .prod-foot {
+  background: color-mix(in srgb, var(--panel) 74%, transparent);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+body[data-material='solid'] .prod-card.has-prod-bg .prod-foot {
+  background: var(--panel);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
 
 /* ── quiet gradients ── */
 .store-bg[data-bg='midnight'] { background: linear-gradient(180deg, #0b1026, #1b2a52 55%, #2b3a67); }
