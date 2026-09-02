@@ -5777,14 +5777,21 @@ test('the homepage fold is copy and one field, and the calculator follows it', a
   const cryptoAt = home.indexOf('>Crypto<');
   assert.ok(cardsAt > 0 && splitAt > cardsAt && cryptoAt > splitAt,
     'cards, then the rule, then crypto — in that order');
-  for (const coin of ['BTC', 'ETH', 'USDT', 'USDC', 'SOL', 'LTC', 'DOGE']) {
-    assert.match(home, new RegExp(`class="pay-chip pm-${coin.toLowerCase()}"[^>]*>.*?${coin}`),
-      `the crypto row carries ${coin}`);
+  // Eight coins, each with its REAL mark inlined the way the Mastercard, Apple
+  // Pay and Google Pay marks are — an SVG in the chip, not a letter standing in
+  // for a logo. The ticker takes the chip's ink: the mark carries the colour,
+  // so no per-coin text colour has to be measured against white twice.
+  for (const coin of ['BTC', 'ETH', 'USDT', 'USDC', 'SOL', 'LTC', 'DOGE', 'XRP']) {
+    const chip = home.match(new RegExp(`<span class="pay-chip pm-${coin.toLowerCase()}"[\\s\\S]*?</span>`));
+    assert.ok(chip, `the crypto row carries ${coin}`);
+    assert.match(chip[0], /<svg[\s\S]*?<\/svg>/, `${coin} is drawn, not spelled`);
+    assert.match(chip[0], new RegExp(`<b class="pm-ink">${coin}</b>`), `${coin} is labelled in the chip's ink`);
   }
-  // The chip's ground is #fff on BOTH faces, so a night-face override would be
-  // lightening a colour against white. The first version did exactly that.
-  assert.doesNotMatch(home, /data-theme="light"\]\) \.pm-(btc|eth|usdt|usdc|sol|ltc|doge)/,
+  assert.doesNotMatch(home, /data-theme="light"\]\) \.pm-(btc|eth|usdt|usdc|sol|ltc|doge|xrp)/,
     'no night-face variant for a mark that always sits on white');
+  // And the row does not pretend eight is the whole list.
+  assert.match(home, /class="pay-chip pay-more"[^>]*>\s*<b>\+ more<\/b>/, 'the row says there are more coins');
+  assert.match(home, /Eight of the coins the rail takes &#8212; there are more/, 'and the note says so in words');
 
   // THE ROLE MARQUEE IS GONE, and nothing of it is left in the stylesheet.
   for (const gone of ['rolemarq', 'marq-track', 'marq-cap', 'keyframes marq']) {
