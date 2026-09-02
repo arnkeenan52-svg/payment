@@ -44,7 +44,14 @@ export default guard(async function handler(req, res) {
         sendJson(res, 409, { error: 'That code already exists.' });
         return;
       }
-      const kind = body.kind === 'fixed' ? 'fixed' : 'percent';
+      // Exactly one of the two kinds, or the default. Anything else — 'FIXED'
+      // from a hand-written client, a typo in an integration — used to fall
+      // through to percent, and "$50 off" was booked as "50% off" with a 200.
+      const kind = body.kind === undefined || body.kind === null || body.kind === '' ? 'percent' : body.kind;
+      if (kind !== 'fixed' && kind !== 'percent') {
+        sendJson(res, 400, { error: "A discount is either 'percent' or 'fixed'." });
+        return;
+      }
       // A fixed discount is denominated in the store's currency, so it rounds
       // and bounds by that currency — not by cents and dollars.
       const dcur = normalizeCurrency(store.currency);

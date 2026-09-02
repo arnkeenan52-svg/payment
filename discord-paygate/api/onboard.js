@@ -164,6 +164,7 @@ export default guard(async function handler(req, res) {
     case 'product': {
       const row = await ownedStore(uid, body.storeId, req);
       if (!row) return sendJson(res, 403, { error: 'not your store' });
+      if (!isText(body.name) || !isText(body.description)) return sendJson(res, 400, { error: 'The product name and description must be text.' });
       const name = String(body.name ?? '').trim().slice(0, 80);
       const description = String(body.description ?? '').trim().slice(0, 300);
       // Priced in the store's own currency, and checked against Stripe's real
@@ -197,7 +198,9 @@ export default guard(async function handler(req, res) {
         return sendJson(res, 400, { error: 'That photo could not be read — use a JPG, PNG, WebP or GIF under 1.5MB.' });
       }
       const uploaded = isImageDataUrl(body.imageData) ? body.imageData : null;
-      const linked = /^https:\/\/\S+$/.test(String(body.imageUrl ?? '').trim()) ? String(body.imageUrl).trim().slice(0, 500) : null;
+      const pasted = String(body.imageUrl ?? '').trim();
+      if (pasted.length > MAX_URL) return sendJson(res, 400, { error: `The photo link tops out at ${MAX_URL} characters.` });
+      const linked = /^https:\/\/\S+$/.test(pasted) ? pasted : null;
       const imageUrl = uploaded
         ? `${config.publicBaseUrl}/api/img?store=${encodeURIComponent(row.slug)}&plan=${encodeURIComponent(planKey)}`
         : linked;
@@ -427,12 +430,13 @@ export default guard(async function handler(req, res) {
       const existing = await db.getStorePlan(row.id, planKey);
       if (!existing) return sendJson(res, 404, { error: 'unknown product' });
       const fields = {};
+      if (!isText(body.name) || !isText(body.description)) return sendJson(res, 400, { error: 'The product name and description must be text.' });
       if (body.name !== undefined) {
-        const name = String(body.name).trim().slice(0, 80);
+        const name = String(body.name ?? '').trim().slice(0, 80);
         if (!name) return sendJson(res, 400, { error: 'Name your product.' });
         fields.name = name;
       }
-      if (body.description !== undefined) fields.description = String(body.description).trim().slice(0, 300);
+      if (body.description !== undefined) fields.description = String(body.description ?? '').trim().slice(0, 300);
       if (body.imageData !== undefined) {
         if (body.imageData === null || body.imageData === '') {
           fields.imageData = null;
@@ -450,16 +454,22 @@ export default guard(async function handler(req, res) {
       // the product's current URL is "unchanged", never a replacement link.
       // (Treating the product's own /api/img URL as a pasted link silently
       // deleted the uploaded photo on any ordinary edit.)
-      if (body.imageUrl !== undefined && typeof fields.imageData !== 'string' && String(body.imageUrl).trim() !== (existing.imageUrl ?? '')) {
-        const u = String(body.imageUrl).trim();
-        const linked = /^https:\/\/\S+$/.test(u) ? u.slice(0, 500) : null;
+      if (body.imageUrl !== undefined && typeof fields.imageData !== 'string' && String(body.imageUrl ?? '').trim() !== (existing.imageUrl ?? '')) {
+        const u = String(body.imageUrl ?? '').trim();
+        // Over-length links are refused, never cut: a URL truncated at 500
+        // characters is still a valid https link — to something else.
+        if (u.length > MAX_URL) return sendJson(res, 400, { error: `The photo link tops out at ${MAX_URL} characters.` });
+        const linked = /^https:\/\/\S+$/.test(u) ? u : null;
         if (linked || fields.imageUrl === undefined) fields.imageUrl = linked;
         if (linked && existing.hasImageData) fields.imageData = null; // link replaces upload
       }
       if (body.successUrl !== undefined) {
-        const u = String(body.successUrl).trim();
+        const u = String(body.successUrl ?? '').trim();
         if (u && !/^https:\/\/\S+$/.test(u)) return sendJson(res, 400, { error: 'The success URL must start with https://' });
-        fields.successUrl = u ? u.slice(0, 500) : null;
+        // A success URL carries the buyer's redirect; cut at 500 it would
+        // still pass the regex and send them somewhere the seller never chose.
+        if (u.length > MAX_URL) return sendJson(res, 400, { error: `The success URL tops out at ${MAX_URL} characters.` });
+        fields.successUrl = u || null;
       }
       if (body.purchaseLimit !== undefined) {
         const n = body.purchaseLimit === null || body.purchaseLimit === '' ? null : Math.round(Number(body.purchaseLimit));
@@ -608,6 +618,12 @@ export default guard(async function handler(req, res) {
       return sendJson(res, 400, { error: 'unknown step' });
   }
 });
+
+// Text or nothing. String() on an object or a boolean persisted
+// "[object Object]" (and the plan key "object-object") behind a 200.
+const isText = (v) => v === undefined || v === null || typeof v === 'string';
+// Longest link the plan columns hold. Refused past this, never truncated.
+const MAX_URL = 500;
 
 // Term length in days for a non-lifetime product: whole, 1..366. Null when
 // the value is not a number at all — Math.max/Math.min pass NaN straight

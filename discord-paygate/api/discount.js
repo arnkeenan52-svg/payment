@@ -8,6 +8,32 @@ import { DEMO_SLUG, DEMO_DISCOUNT, demoPlans } from '../src/services/demo-store.
 import { getDiscount } from '../src/db.js';
 import { roundAmount, minCharge, formatAmount, normalize as normalizeCurrency } from '../src/lib/currency.js';
 
+// This route is anonymous and answers "valid or not" for any code on any
+// store, and codes may be as short as two characters — so without a ceiling
+// it is an enumeration oracle (300 guesses a second, measured). A buyer
+// retyping a code hits Apply a handful of times; thirty a minute from one
+// address is nobody's checkout. Per warm instance, like every in-memory
+// window here; the checkout itself validates the code again regardless.
+const WINDOW_MS = 60_000;
+const MAX_LOOKUPS_PER_WINDOW = 30;
+const lookups = new Map(); // ip → { count, until }
+
+function throttled(req) {
+  const now = Date.now();
+  if (lookups.size > 5000) {
+    for (const [ip, w] of lookups) if (w.until <= now) lookups.delete(ip);
+  }
+  const forwarded = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
+  const ip = forwarded || req.socket?.remoteAddress || 'unknown';
+  const w = lookups.get(ip);
+  if (!w || w.until <= now) {
+    lookups.set(ip, { count: 1, until: now + WINDOW_MS });
+    return false;
+  }
+  w.count += 1;
+  return w.count > MAX_LOOKUPS_PER_WINDOW;
+}
+
 export default guard(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const slug = url.searchParams.get('store') ?? '';
@@ -15,6 +41,9 @@ export default guard(async (req, res) => {
   const planId = url.searchParams.get('plan') ?? '';
   if (!/^[a-z0-9-]{1,40}$/.test(slug) || !/^[A-Z0-9_-]{2,32}$/.test(code) || !planId) {
     return sendJson(res, 400, { error: 'bad request' });
+  }
+  if (throttled(req)) {
+    return sendJson(res, 429, { error: 'Too many code attempts — wait a minute and try again.' });
   }
   if (slug === DEMO_SLUG) {
     const plan = demoPlans().find((p) => p.id === planId);

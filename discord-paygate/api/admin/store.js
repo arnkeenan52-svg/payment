@@ -16,6 +16,20 @@ import { validateAddress, chainFamily } from '../../src/lib/crypto-address.js';
 import { merchantCoins } from '../../src/lib/nowpayments.js';
 import { capabilities } from '../../src/config.js';
 
+// The free-text fields of this form, with the name each one has in the
+// dashboard. Checked for type before any of them is read.
+const TEXT_FIELDS = [
+  ['name', 'store name'],
+  ['description', 'description'],
+  ['about', 'about text'],
+  ['creatorName', 'creator name'],
+  ['teamHeading', 'team heading'],
+  ['bannerUrl', 'banner URL'],
+];
+// Longest link the columns hold. Over-length links are refused, never cut.
+const MAX_URL = 500;
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
 // Store identity settings: name, description, banner, custom link (slug).
 // Tenant stores only — the built-in store is env-configured.
 export default guard(async function handler(req, res) {
@@ -265,16 +279,29 @@ export default guard(async function handler(req, res) {
     }
     fields.category = body.category || null;
   }
+  // Text fields are text: a string, or null/absent to leave or clear them.
+  // String() on anything else persisted "[object Object]" or "true" as the
+  // store's name with a 200, and the only way back was to notice and retype.
+  for (const [key, label] of TEXT_FIELDS) {
+    if (body[key] !== undefined && body[key] !== null && typeof body[key] !== 'string') {
+      return sendJson(res, 400, { error: `The ${label} must be text.` });
+    }
+  }
   if (body.name !== undefined) {
-    const name = String(body.name).trim().slice(0, 60);
+    const name = String(body.name ?? '').trim().slice(0, 60);
     if (!name) return sendJson(res, 400, { error: 'Give your store a name.' });
     fields.name = name;
   }
-  if (body.description !== undefined) fields.description = String(body.description).trim().slice(0, 500) || null;
+  if (body.description !== undefined) fields.description = String(body.description ?? '').trim().slice(0, 500) || null;
   // Store-page extras: a longer about block, social links from a fixed key
   // set (https only), and the opt-in live member-count badge.
-  if (body.about !== undefined) fields.about = String(body.about).trim().slice(0, 2000) || null;
+  if (body.about !== undefined) fields.about = String(body.about ?? '').trim().slice(0, 2000) || null;
   if (body.links !== undefined) {
+    // Present but the wrong shape (a string, a list) used to read as "no
+    // links", wipe the stored set and answer 200. null is the one way to clear.
+    if (body.links !== null && !isPlainObject(body.links)) {
+      return sendJson(res, 400, { error: 'Links must be an object of platform → URL.' });
+    }
     const ALLOWED = ['discord', 'x', 'youtube', 'instagram', 'tiktok', 'website'];
     const clean = {};
     for (const key of ALLOWED) {
@@ -293,6 +320,10 @@ export default guard(async function handler(req, res) {
   if (body.dashboardPrefs !== undefined) {
     if (body.dashboardPrefs === null) {
       fields.dashboardPrefs = null;
+    } else if (!isPlainObject(body.dashboardPrefs)) {
+      // Same silent-wipe shape as links: a bare '#aabbcc' has no keys to
+      // read, so the prefs went to NULL behind a 200.
+      return sendJson(res, 400, { error: 'Dashboard preferences must be an object.' });
     } else {
       const p = body.dashboardPrefs;
       const clean = {};
@@ -354,12 +385,12 @@ export default guard(async function handler(req, res) {
   // same class as `about` — stored and rendered, never verified, and never
   // presented with any marker that would imply the platform checked it.
   if (body.creatorName !== undefined) {
-    const v = String(body.creatorName).trim();
+    const v = String(body.creatorName ?? '').trim();
     if (v.length > 40) return sendJson(res, 400, { error: 'A creator name tops out at 40 characters.' });
     fields.creatorName = v || null;
   }
   if (body.teamHeading !== undefined) {
-    const v = String(body.teamHeading).trim();
+    const v = String(body.teamHeading ?? '').trim();
     if (v.length > 30) return sendJson(res, 400, { error: 'A team heading tops out at 30 characters.' });
     fields.teamHeading = v || null;
   }
@@ -370,6 +401,11 @@ export default guard(async function handler(req, res) {
     const team = [];
     for (const m of raw) {
       if (!m || typeof m !== 'object') return sendJson(res, 400, { error: 'Each team member must be a name and an optional handle and title.' });
+      for (const k of ['name', 'handle', 'title']) {
+        if (m[k] !== undefined && m[k] !== null && typeof m[k] !== 'string') {
+          return sendJson(res, 400, { error: 'Each team member must be a name and an optional handle and title.' });
+        }
+      }
       const name = String(m.name ?? '').trim();
       if (!name) return sendJson(res, 400, { error: 'Every team member needs a name.' });
       if (name.length > 40) return sendJson(res, 400, { error: 'A team member name tops out at 40 characters.' });
@@ -387,9 +423,12 @@ export default guard(async function handler(req, res) {
   }
 
   if (body.bannerUrl !== undefined) {
-    const u = String(body.bannerUrl).trim();
+    const u = String(body.bannerUrl ?? '').trim();
     if (u && !/^https:\/\/\S+$/.test(u)) return sendJson(res, 400, { error: 'The banner URL must start with https:// (1600×533 works best).' });
-    fields.bannerUrl = u ? u.slice(0, 500) : null;
+    // Refused, not truncated: a URL cut at 500 characters is still a valid
+    // https link — to a different picture.
+    if (u.length > MAX_URL) return sendJson(res, 400, { error: `The banner URL tops out at ${MAX_URL} characters.` });
+    fields.bannerUrl = u || null;
   }
   // The uploaded banner, three-state like every other picker in the dashboard:
   // absent leaves it alone, empty clears it, a data URL replaces it. Validated

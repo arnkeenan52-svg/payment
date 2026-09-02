@@ -43,12 +43,35 @@ export function readRawBody(req, maxBytes = MAX_BODY) {
 // accessing the Vercel getter is fine because we want the parsed value.
 export async function readJsonBody(req, { maxBytes = MAX_BODY } = {}) {
   if (req.body !== undefined && req.body !== null && !Buffer.isBuffer(req.body) && typeof req.body === 'object') {
-    return req.body;
+    return cleanBody(req.body);
   }
-  if (typeof req.body === 'string') return req.body.length ? JSON.parse(req.body) : {};
+  if (typeof req.body === 'string') return cleanBody(req.body.length ? JSON.parse(req.body) : {});
   const raw = await readRawBody(req, maxBytes);
   if (raw.length === 0) return {};
-  return JSON.parse(raw.toString('utf8'));
+  return cleanBody(JSON.parse(raw.toString('utf8')));
+}
+
+// What every handler may assume about a parsed body: it is an object, and
+// none of its strings carry U+0000. The literal `null` is valid JSON, so
+// JSON.parse hands it back and the `.catch(() => ({}))` every caller wraps
+// this in never fires — the next `body.store` was a TypeError and a 500.
+// The NUL byte has no place in any field Dues stores, and the two storage
+// engines disagree about it in the worst way: Postgres refuses it with a 500
+// ("invalid byte sequence for encoding UTF8"), SQLite silently truncates the
+// string at it. Strip it once here rather than in each of the forty fields.
+function cleanBody(parsed) {
+  if (!parsed || typeof parsed !== 'object') return {};
+  return stripNul(parsed);
+}
+
+function stripNul(v) {
+  if (typeof v === 'string') return v.includes('\0') ? v.replaceAll('\0', '') : v;
+  if (Array.isArray(v)) {
+    for (let i = 0; i < v.length; i++) v[i] = stripNul(v[i]);
+  } else if (v && typeof v === 'object') {
+    for (const k of Object.keys(v)) v[k] = stripNul(v[k]);
+  }
+  return v;
 }
 
 // On Vercel there is no outer router to catch a throwing handler — an
@@ -87,7 +110,16 @@ export function parseCookies(req) {
   for (const part of (req.headers.cookie ?? '').split(';')) {
     const i = part.indexOf('=');
     if (i === -1) continue;
-    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+    // A value that will not decode is still a value: one stray `%` in ANY
+    // cookie on the domain must not turn every session-reading route into a
+    // 500. An undecodable session simply fails the HMAC check downstream.
+    let value = part.slice(i + 1).trim();
+    try {
+      value = decodeURIComponent(value);
+    } catch {
+      // keep the raw value
+    }
+    out[part.slice(0, i).trim()] = value;
   }
   return out;
 }
