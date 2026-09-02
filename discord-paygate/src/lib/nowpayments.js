@@ -236,13 +236,19 @@ export function settledFiat(p) {
 // True when the deposit is denominated in the coin the invoice asked for.
 // A false here means "do not quote them a figure in pay_currency" — telling
 // someone who paid in ETH to send more SOL is worse than saying nothing.
+//
+// It takes evidence to answer true. `actually_paid_at_fiat` is the only
+// field that says what the deposit was worth independently of the coin the
+// invoice asked for; without it, "nothing contradicts it" is also "nothing
+// supports it", and the wrong-asset case — the one this exists for — is
+// exactly the one that arrives without a fiat figure to contradict.
 export function paidInRequestedCoin(p) {
   const atFiat = num(p?.actually_paid_at_fiat);
   const paid = num(p?.actually_paid);
   const asked = num(p?.pay_amount);
   const price = num(p?.price_amount);
   if (paid <= 0 || asked <= 0 || price <= 0) return false;
-  if (atFiat <= 0) return true; // nothing contradicts it
+  if (atFiat <= 0) return false; // no evidence either way — say nothing
   // If the fiat value of the deposit disagrees with what that many units of
   // pay_currency would be worth, a different asset arrived and was converted.
   const impliedFiat = (paid / asked) * price;
@@ -273,7 +279,11 @@ export function describeStatus(p, { currency } = {}) {
   }
   if (IN_FLIGHT.has(s)) return { state: 'pending', message: 'Confirming on-chain…' };
   if (DEAD.has(s)) return { state: 'dead', message: 'This payment did not complete.' };
-  return { state: 'pending', message: 'Confirming on-chain…' };
+  // A status none of the sets know (or none at all) is not an on-chain
+  // confirmation in progress — claiming one would tell the buyer the money
+  // is on its way when nothing here knows that. Neutral wording, still
+  // polled; the webhook side logs the status so it can be found.
+  return { state: 'pending', message: 'Checking on this payment…' };
 }
 
 // Crypto amounts are long and mostly zeros; 8 significant decimals is the
