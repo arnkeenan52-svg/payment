@@ -37,6 +37,7 @@ const ddl = (dialect) => {
     grace_until   ${int},
     cancels_at    ${int},               -- set when the buyer cancels; access runs to here
     duration_days ${int},               -- the term this sale was made on; NULL for lifetime and for rows sold before this column
+    audited_at    ${int},               -- when the drift audit last looked at this (store, member); orders its rotating batch
     created_at    ${int} NOT NULL,
     updated_at    ${int} NOT NULL,
     UNIQUE (provider, provider_ref)
@@ -399,6 +400,14 @@ function db() {
       // real monthly rate. Pre-existing rows stay NULL and keep pricing off
       // the catalog, exactly as before.
       await driver.exec(`ALTER TABLE subscriptions ADD COLUMN duration_days ${intType}`).catch(onlyDuplicateColumn);
+      // When the drift audit last checked this (store, member) for a managed
+      // role held without an entitlement. It orders the audit's batch, so a
+      // member the audit cannot finish with — Discord refusing the removal,
+      // the bot below the role — takes their turn at the back rather than
+      // filling the batch ahead of every other former member for ever.
+      // NULL on every pre-existing row, which sorts first: the backlog is
+      // worked oldest-unseen-first the first time this ships.
+      await driver.exec(`ALTER TABLE subscriptions ADD COLUMN audited_at ${intType}`).catch(onlyDuplicateColumn);
       // Store-page customization: long about text, social links (JSON of
       // known keys), and the opt-in live member-count badge.
       await driver.exec('ALTER TABLE stores ADD COLUMN about TEXT').catch(onlyDuplicateColumn);
@@ -1512,6 +1521,48 @@ export async function membersWithLiveSubscriptions(at = now()) {
     [at - 7 * 86400],
   );
   return rows.map((r) => ({ storeId: r.store_id === null ? null : Number(r.store_id), discordId: r.discord_id }));
+}
+
+// The other half of the same job, and the half that has no time floor:
+// (store_id, discord_id) pairs with NO live entitlement left in that store —
+// every former member, whether they lapsed yesterday or two years ago —
+// least recently audited first.
+//
+// The week above heals a LOST CALL. This heals a role that came back AFTER
+// the removal succeeded, which is not drift Dues caused: someone re-added it
+// in Discord by hand. That has no deadline, so neither can the revisit — the
+// bound moves to the batch instead (see the drift audit in
+// services/entitlements.js). `audited_at` orders it, so the whole backlog is
+// worked round-robin and one member the audit can never finish with cannot
+// hold the head of the queue.
+export async function formerMembersToAudit({ limit = 25, at = now() } = {}) {
+  // isEntitled() in SQL, the same predicate countLiveMembers prices on: a
+  // pair with any live row is the sweep's business, not the audit's.
+  const live = "((status = 'active' AND (current_period_end IS NULL OR current_period_end > ?))"
+    + " OR (status = 'past_due' AND grace_until IS NOT NULL AND grace_until > ?))";
+  const { rows } = await q(
+    `SELECT store_id, discord_id, MIN(COALESCE(audited_at, 0)) AS audited
+     FROM subscriptions
+     GROUP BY store_id, discord_id
+     HAVING SUM(CASE WHEN ${live} THEN 1 ELSE 0 END) = 0
+     ORDER BY audited ASC, discord_id ASC
+     LIMIT ?`,
+    [at, at, limit],
+  );
+  return rows.map((r) => ({ storeId: r.store_id === null ? null : Number(r.store_id), discordId: r.discord_id }));
+}
+
+// Deliberately NOT updated_at: that column is what the week-long revisit
+// window above reads, and bumping it would keep every audited member in the
+// hourly sweep for ever.
+export async function markMembersAudited(pairs, at = now()) {
+  for (const { storeId, discordId } of pairs) {
+    const noStore = storeId === null || storeId === undefined;
+    await q(
+      `UPDATE subscriptions SET audited_at = ? WHERE discord_id = ? AND store_id ${noStore ? 'IS NULL' : '= ?'}`,
+      noStore ? [at, discordId] : [at, discordId, storeId],
+    );
+  }
 }
 
 // How many distinct members currently hold a live membership across these

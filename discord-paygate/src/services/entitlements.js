@@ -2,7 +2,7 @@ import { config } from '../config.js';
 import * as db from '../db.js';
 import { effectiveRolePlan, effectiveManagedRoleIds, guildRolesCached, resolveAgainstGuild } from './plan-config.js';
 import { defaultStore, storeById, plansOf, planOf } from './stores.js';
-import { getGuildMember, addRole, removeRole, joinGuildWithRoles, dmUser } from '../lib/discord.js';
+import { getGuildMember, addRole, removeRole, joinGuildWithRoles, dmUser, postChannelMessage } from '../lib/discord.js';
 import { stripeFetch, subscriptionPeriodEnd } from '../lib/stripe.js';
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -331,11 +331,126 @@ export async function cancel(provider, providerRef) {
   return db.getSubscriptionByRef(provider, providerRef);
 }
 
+// ── the drift audit ──────────────────────────────────────────────────────────
+//
+// A ROLE DUES DELIVERS IS A ROLE DUES OWNS. While a role id sits in the
+// managed ledger, holding it without a live entitlement is a state Dues
+// corrects — for the people Dues has a record of.
+//
+// The trick this closes: a seller revokes a paying member here, which drops
+// their live-member count and keeps them under their Dues plan limit, and
+// then hands the same paid role straight back inside Discord. The buyer keeps
+// access, the seller pays for a smaller plan than they are using. Every
+// route into it — the Revoke button, a refund, a chargeback, a lapse — ends
+// the same way: a dead row plus a managed role, so the audit does not care
+// which one it was.
+//
+// It used to work because nothing ever looked again. membersWithLiveSubscriptions
+// revisits a dead row for seven days (that window heals a REMOVAL CALL THAT
+// FAILED, and a week is the right size for that), and after it nothing in this
+// repo asked about that person again. A role re-added by hand on day eight was
+// permanent. There is no deadline on someone re-adding a role, so there can be
+// no deadline on the revisit either.
+//
+// WHAT IT DOES NOT DO: someone who never bought anything, handed the role by
+// the seller — a moderator, a friend, a giveaway winner — is left alone.
+// Twice over. Dues cannot see them (listing a guild's members needs the
+// GUILD_MEMBERS privileged intent, which this app does not enable — see
+// scripts/presence.js, which identifies with intents: 0 unless welcome cards
+// are switched on and documents the portal toggle that gates it), and even
+// with the intent, stripping a role from someone Dues never sold to would be
+// Dues deleting the seller's own decision inside the seller's own server.
+// Dues owns what Dues delivered, to whom Dues delivered it.
+//
+// So gifting has to be the CONVENIENT path, not just an available one: the
+// dashboard's Add member writes a real row — counted by countLiveMembers,
+// priced at zero revenue, revocable — and the alert below names it, because a
+// seller who is corrected without being told where to go is a seller who
+// leaves.
+//
+// BOUNDED like the crypto backfill (services/backfill.js): a batch per run and
+// a wall-clock budget, least recently audited first. This runs inside the
+// hourly cron's own time limit (60s, vercel.json) alongside the unbounded live
+// sweep, the webhook heal and both sale backfills, so it gets a small, fixed
+// slice of it — one member fetch each, ~40 of them, and it stops at 8 seconds
+// however few it got through. Nothing is lost by stopping: the batch is
+// ordered oldest-audit-first, so whoever was skipped is at the head of the
+// next hour's queue.
+const AUDIT_BATCH = 40;
+const AUDIT_BUDGET_MS = 8_000;
+
+// The seller-facing alarm, in the channel the sale ping lands in. Silently
+// stripping a role a seller may have added on purpose is how a platform loses
+// a seller; this says what moved, to whom, and what to do instead.
+async function alertRoleTakenBack(store, discordId, roleIds) {
+  if (!store?.notifyChannelId) return;
+  const user = await db.getUser(discordId).catch(() => null);
+  const who = user?.username ? `@${user.username}` : `<@${discordId}>`;
+  const roles = roleIds.map((id) => `<@&${id}>`).join(' ');
+  await postChannelMessage(store.notifyChannelId, {
+    embeds: [{
+      title: '⚠️ A paid role was added outside Dues',
+      description:
+        `**${who}** was holding ${roles} in this server with no membership in **${store.name ?? config.brand}**, ` +
+        `so Dues took ${roleIds.length === 1 ? 'it' : 'them'} back — a role Dues delivers is a role Dues manages.\n\n` +
+        'If you meant to give them access, use **Members → Add member**. That is a real membership: it shows on your ' +
+        'dashboard, you can revoke it, and it counts towards your Dues plan. Adding the role by hand in Discord does ' +
+        'none of that, and will be undone again.',
+      color: 0xed4245,
+      thumbnail: { url: 'https://dues.gg/icon-192.png' },
+      footer: { text: store.name ?? config.brand },
+      timestamp: new Date().toISOString(),
+    }],
+  });
+}
+
+async function auditDrift({ at, seen, guildsWithoutBot, batch, budgetMs }) {
+  const started = Date.now();
+  const candidates = await db.formerMembersToAudit({ limit: batch, at });
+  const asked = [];
+  let checked = 0;
+  let corrected = 0;
+  for (const pair of candidates) {
+    if (Date.now() - started > budgetMs) break;
+    // Audited, whatever the answer was — the same rule the crypto backfill
+    // marks its batch by. A member whose removal Discord keeps refusing (the
+    // paid role dragged above the bot) would otherwise sit at the head of
+    // this queue for ever and starve every other former member out of it.
+    asked.push(pair);
+    const key = `${pair.storeId ?? 'default'}:${pair.discordId}`;
+    if (seen.has(key)) continue; // the sweep above already reconciled them this run
+    checked++;
+    try {
+      const store = await storeById(pair.storeId);
+      if (!store) continue;
+      if (guildsWithoutBot.has(String(store.guildId))) continue;
+      const { removed } = await reconcile(pair.discordId, store);
+      if (!removed.length) continue;
+      corrected++;
+      console.warn(`[sweep] ${pair.discordId} held ${removed.join(', ')} in store ${pair.storeId ?? 'default'} with no membership — taken back, seller alerted`);
+      await alertRoleTakenBack(store, pair.discordId, removed);
+    } catch (err) {
+      if (err.code === 'bot_not_in_guild') {
+        guildsWithoutBot.add(err.guildId);
+        continue;
+      }
+      console.error(`[sweep] audit of ${pair.discordId} (store ${pair.storeId ?? 'default'}) failed: ${err.message}`);
+    }
+  }
+  await db.markMembersAudited(asked, at).catch((err) => {
+    // Without this the same batch is re-audited next run for ever and the
+    // backlog behind it never moves. It is worth saying out loud.
+    console.error(`[sweep] recording the audited batch failed: ${err.message}`);
+  });
+  return { checked, corrected, ...(candidates.length >= batch ? { auditBacklog: true } : {}) };
+}
+
 // Cron-driven safety net (there is no long-lived process on Vercel, so this
 // runs from /api/cron/reconcile): expire lapsed subscriptions, then reconcile
 // every (store, member) pair affected or still live so drift heals on its
-// own. Lifetime rows have NULL expiry and are structurally immune.
-export async function sweepExpirations(at = now()) {
+// own. Lifetime rows have NULL expiry and are structurally immune. Then the
+// drift audit above takes its bounded turn through the former members.
+export async function sweepExpirations(at = now(), { auditBatch = AUDIT_BATCH, auditBudgetMs = AUDIT_BUDGET_MS } = {}) {
   const lapsed = await db.lapseOverdueSubscriptions(at);
   const pairs = new Map();
   for (const s of lapsed) {
@@ -367,9 +482,17 @@ export async function sweepExpirations(at = now()) {
       console.error(`[sweep] reconcile ${discordId} (store ${storeId ?? 'default'}) failed: ${err.message}`);
     }
   }
+  // An add-on to the sweep, and never allowed to break it: the expiries above
+  // are what keeps paid access honest, and they have already landed.
+  const drift = await auditDrift({ at, seen: pairs, guildsWithoutBot, batch: auditBatch, budgetMs: auditBudgetMs })
+    .catch((err) => {
+      console.error(`[sweep] drift audit failed: ${err.message}`);
+      return { checked: 0, corrected: 0, failed: err.message };
+    });
   return {
     lapsed: lapsed.length,
     membersReconciled: reconciled,
+    drift,
     ...(guildsWithoutBot.size ? { guildsWithoutBot: [...guildsWithoutBot] } : {}),
   };
 }
