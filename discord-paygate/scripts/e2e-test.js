@@ -1340,18 +1340,35 @@ test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black
   assert.equal(Math.round(monthlyRate({ amountUsd: 10, durationDays: 7 }) * 100) / 100, 43.45, 'a weekly $10 is ~4.35 weeks a month');
   assert.match(dash, /mrrRows = data\.payments\.filter\([^\n]*\.map\(\(p\) => \(\{ \.\.\.p, amountUsd: monthlyRate\(p\) \}\)\)/,
     'the MRR card must sum monthly rates, not period prices');
+  // …and only over rows that BILL AGAIN. api/admin/payments.js marks them
+  // `renews`; a crypto pass is a fixed term nothing renews, so counting it
+  // gives a crypto-heavy store an MRR that expires on its own. The card and
+  // its sparkline are two separate filters and both were missing the test.
+  assert.match(dash, /mrrRows = data\.payments\.filter\(\(p\) => p\.entitled && !p\.lifetime && p\.renews\)/,
+    'the MRR card counts only rows that renew');
+  assert.match(dash, /mrr: sparkSvg\(bucketSeries\(data\.payments\.filter\(\(p\) => !p\.lifetime && p\.renews\)/,
+    'and so does the sparkline under it');
 
   // Top Products and the Revenue card sit side by side and must agree that
   // no change is not growth: 0% is flat in both, never a green ▲0%.
   const deltaChip = lift('deltaChip', /function deltaChip\(delta\) \{[\s\S]*?\n\}/)();
   const pct = (cur, prev) => (prev <= 0 ? null : ((cur - prev) / prev) * 100);
-  const prev = new Map([['VIP', 200], ['Up', 100], ['Down', 100]]);
-  const topDelta = lift('topDelta', /const topDelta = \(name, v\) => \{[\s\S]*?\n  \};/, 'byPlanPrev', 'pct')(prev, pct);
+  const prev = new Map([['VIP', 200], ['Up', 100], ['Down', 100], ['Nudge', 100]]);
+  const topDelta = lift('topDelta', /const topDelta = \(name, v\) => \{[\s\S]*?\n  \};|const topDelta = \(name, v\) => [^\n]*;/, 'byPlanPrev', 'pct', 'deltaChip')(prev, pct, deltaChip);
   assert.equal(topDelta('VIP', 200), '<span class="delta flat">0%</span>');
   assert.equal(deltaChip(0), '<span class="delta flat">0%</span>');
   assert.match(topDelta('Up', 150), /class="delta up".*▲.*50%/);
   assert.match(topDelta('Down', 50), /class="delta down".*▼.*50%/);
   assert.equal(topDelta('New', 50), '', 'nothing to compare against says nothing');
+  // …and they must agree ROUNDING too, not just the flat rule. A second copy
+  // of the formatter kept whole percents here while the card beside it kept a
+  // decimal below 10%, so $1,000 -> $1,004 read ▲0.4% on the Revenue card and
+  // a flat 0% on the very same product: two chips, one number, opposite
+  // stories about whether it grew.
+  for (const v of [100.4, 99.6, 100.6, 104, 150, 250, 100]) {
+    assert.equal(topDelta('Nudge', v), deltaChip(pct(v, 100)), `Top Products and the Revenue card must print ${v} vs 100 identically`);
+  }
+  assert.match(topDelta('Nudge', 100.4), /class="delta up".*0\.4%/, 'a +0.4% product is growth, not flat');
 
   // The black face: stamped before first paint from the key dashboard.js
   // remembers the SAVED face under, and re-applied by route() for the views
@@ -1361,7 +1378,36 @@ test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black
   const html = fs.readFileSync(new URL('../public/dashboard.html', import.meta.url), 'utf8');
   const key = dash.match(/const DARK_FACE_KEY = '([a-z-]+)'/)?.[1];
   assert.ok(key, 'dashboard.js names the face key');
-  assert.ok(html.includes(`localStorage.getItem('${key}') === 'black'`), 'the head script reads the same key');
+  // The face is a per-STORE preference. Under one browser-wide key it was
+  // whichever store was opened last, so a seller running one black and one
+  // navy store got the wrong first paint on every cold load of the other —
+  // the flash the key exists to stop, moved rather than removed. The head
+  // script is lifted out and RUN, against a fake localStorage: a rewrite is
+  // fine, reading the wrong store's face is not.
+  const headSrc = html.match(/<script>(try \{[^<]*dues-dash-face[^<]*)<\/script>/)?.[1];
+  assert.ok(headSrc, 'dashboard.html still stamps the face before first paint');
+  const firstPaint = (saved, hash) => {
+    const root = { dataset: {} };
+    new Function('localStorage', 'location', 'document', headSrc)(
+      { getItem: (k) => (k in saved ? saved[k] : null) },
+      { hash },
+      { documentElement: root },
+    );
+    return root.dataset.dark ?? 'navy';
+  };
+  // Two stores, two faces, and the bare key left on whichever was opened last.
+  const twoStores = { [key]: 'black', [`${key}:ink`]: 'black', [`${key}:sky`]: 'navy' };
+  assert.equal(firstPaint(twoStores, '#/store/sky'), 'navy', 'the navy store paints navy even when the black one was opened last');
+  assert.equal(firstPaint(twoStores, '#/store/ink'), 'black', 'and the black store still paints black');
+  // A store never opened here, and the store-less views, fall back to the
+  // last saved face — the behaviour the single key always had.
+  assert.equal(firstPaint(twoStores, '#/store/brand-new'), 'black', 'an unseen store falls back to the last saved face');
+  assert.equal(firstPaint(twoStores, '#/'), 'black', 'so does the picker');
+  assert.equal(firstPaint({ [`${key}:sky`]: 'navy' }, '#/'), 'navy', 'and nothing saved is navy, never a crash');
+  // dashboard.js must WRITE the per-store key, or the head script reads a key
+  // that is never set and the fallback quietly becomes the only path.
+  assert.match(dash, /rememberDarkFace\(darkFace, store\.slug\)/, 'viewStore remembers the face under the store it belongs to');
+  assert.match(dash, /localStorage\.setItem\(darkFaceKey\(slug\), face\)/, 'rememberDarkFace writes the per-store key');
   const routeSrc = dash.match(/async function route\(\) \{[\s\S]*?\n\}/)[0];
   const at = (needle) => { const i = routeSrc.indexOf(needle); assert.ok(i >= 0, `route() must contain ${needle}`); return i; };
   assert.ok(at('applyDarkFace(savedDarkFace())') < at('viewSetup(') && at('applyDarkFace(savedDarkFace())') < at('viewAdmin()') && at('applyDarkFace(savedDarkFace())') < at('viewPicker()'),
@@ -6682,6 +6728,89 @@ test('the discount preview budgets misses, so it cannot be walked as an oracle',
     "a quiet store still answers a stranger's miss");
 });
 
+
+test('dashboard money: a crypto pass is not recurring revenue, and a deleted product does not turn a yearly member into a monthly one', async () => {
+  // Two facts the Overview MRR card reads straight off this endpoint, and
+  // gets wrong in opposite directions when either is missing.
+  const ownerCookie = await signInAs('code_u7_mrr', '507700000000000007', 'vip_owner');
+  const rowsFor = async (extra = '') =>
+    (await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals${extra}`, { headers: { cookie: ownerCookie } })).json());
+
+  // 1. RENEWS. MRR is revenue that bills again. Stripe runs every term plan
+  //    in subscription mode, so a card row does; a crypto purchase is a fixed
+  //    term that simply ends — /account tells the buyer "a one-time payment,
+  //    nothing renews" — and a manual grant was never charged at all. Counted
+  //    as MRR, a store selling mostly crypto passes shows a figure that falls
+  //    to zero on its own at term end.
+  const seen = await rowsFor();
+  assert.ok(seen.payments.length, 'the store has sales to judge');
+  // The platform view, for the rails this one store has not sold on.
+  const adminCookie = await signInAs('code_u1', U1, 'trader_one');
+  const every = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: adminCookie } })).json();
+  for (const p of [...seen.payments, ...every.payments]) {
+    assert.equal(typeof p.renews, 'boolean', `every row says whether it bills again (${p.planId}/${p.provider})`);
+    assert.equal(p.renews, p.provider === 'stripe' && !p.lifetime, `${p.provider}${p.lifetime ? ' lifetime' : ''} row: renews`);
+  }
+  const fixedTerm = every.payments.find((p) => p.provider !== 'stripe' && p.provider !== 'manual' && !p.lifetime);
+  assert.ok(fixedTerm, 'a fixed-term crypto pass is on the books to judge');
+  assert.equal(fixedTerm.renews, false, 'a crypto pass is bought once and ends — never recurring revenue');
+  assert.ok(every.payments.some((p) => p.renews), 'while card subscriptions still count');
+
+  // 2. THE TERM SURVIVES THE PRODUCT. deleteStorePlan is a hard DELETE, and
+  //    product-delete refuses while anyone LIVE holds the product — but a
+  //    member whose card failed and whose grace has run out is not live, so
+  //    the delete goes through, and Stripe's own retry brings them back
+  //    afterwards (customer.subscription.updated reactivates the row without
+  //    consulting the catalog). The plan row is gone; the member is still
+  //    billed $600 a YEAR. Reading the term off the catalog left no term at
+  //    all there, and no term reads as monthly: $600 of MRR where there is $50.
+  const storeId = seen.stores.find((s) => s.slug === 'vip-signals').id;
+  const post = (path, body) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: ownerCookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const made = await (await post('/api/onboard', { step: 'product', storeId, name: 'Desk Yearly', description: 'A year at the desk.', priceUsd: 600, lifetime: false, durationDays: 365 })).json();
+  const yearlyKey = made.plan?.planKey;
+  assert.ok(yearlyKey, `the yearly product must be created: ${JSON.stringify(made)}`);
+
+  const YEARLY_BUYER = '523300000000000023';
+  const SUB = 'sub_desk_yearly';
+  discord.members.set(YEARLY_BUYER, new Set());
+  stripe.periodEnds[SUB] = nowSec() + 365 * 86400;
+  const signed = (evt) => deliverStripe(evt, { path: `/webhooks/stripe/${storeId}`, header: signStripe(JSON.stringify(evt), nowSec(), AUTO_ENDPOINT_SECRET) });
+  assert.equal(
+    (await signed({
+      id: 'evt_desk_yearly',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_desk_yearly', mode: 'subscription', subscription: SUB, payment_status: 'paid', amount_total: 60000, client_reference_id: YEARLY_BUYER, metadata: { plan_id: yearlyKey, discord_id: YEARLY_BUYER, store_id: String(storeId) } } },
+    })).status,
+    200,
+  );
+  const mine = async () => (await rowsFor()).payments.find((p) => p.discordId === YEARLY_BUYER);
+  const sold = await mine();
+  assert.ok(sold, 'the yearly sale landed');
+  assert.equal(sold.durationDays, 365, 'the sale goes on the books as a yearly');
+  assert.equal(sold.renews, true, 'a card subscription bills again');
+
+  // Their card fails and the grace window runs out. Only the clock is faked.
+  await tq("UPDATE subscriptions SET status = 'past_due', grace_until = ? WHERE provider = 'stripe' AND provider_ref = ?", [nowSec() - 60, SUB]);
+  // Nobody is live on the product now, so the seller may retire it.
+  const gone = await post('/api/onboard', { step: 'product-delete', storeId, planKey: yearlyKey });
+  assert.equal(gone.status, 200, await gone.text());
+  // Stripe recovers the payment: active again, on a plan row that is gone.
+  assert.equal(
+    (await signed({
+      id: 'evt_desk_yearly_up',
+      type: 'customer.subscription.updated',
+      data: { object: { id: SUB, status: 'active', items: { data: [{ current_period_end: nowSec() + 365 * 86400 }] } } },
+    })).status,
+    200,
+  );
+
+  const after = await mine();
+  assert.equal(after.entitled, true, 'the member is entitled again');
+  assert.equal(after.planName, yearlyKey, 'and the catalog really has nothing left to name them by');
+  assert.equal(after.durationDays, 365, 'the term the sale was made on outlives the product row');
+  assert.equal(after.amountUsd, sold.amountUsd, 'and so does what they paid');
+});
 
 test('crypto: buyer-facing copy never promises a renewal or a cancellation the rail cannot do', async () => {
   // A crypto grant is a fixed term (periodEnd null → plan.durationDays) that

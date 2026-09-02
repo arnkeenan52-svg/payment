@@ -290,8 +290,13 @@
   <script src="/theme.js?v=197"></script>
   <!-- The black face, before first paint. dashboard.js re-derives it from the
        store's saved preference once /api/admin/payments answers; without this
-       a seller who chose black watched navy become black on every load. -->
-  <script>try { if (localStorage.getItem('dues-dash-face') === 'black') document.documentElement.dataset.dark = 'black'; } catch (e) { /* private mode */ }</script>
+       a seller who chose black watched navy become black on every load. The
+       face belongs to the STORE, so the route's slug picks the key: one
+       browser-wide key held whichever store was opened last and gave the
+       seller's other store the wrong first paint on every cold load. The bare
+       key stays the fallback — for a store never opened here, and for the
+       picker/setup/admin views, which have no store. -->
+  <script>try { var dfM = location.hash.match(/^#\/store\/([^/?]+)/); var dfF = (dfM && localStorage.getItem('dues-dash-face:' + dfM[1])) || localStorage.getItem('dues-dash-face'); if (dfF === 'black') document.documentElement.dataset.dark = 'black'; } catch (e) { /* private mode */ }</script>
 </head>
 <body class="app">
 <i class="ui-tint" aria-hidden="true"></i>

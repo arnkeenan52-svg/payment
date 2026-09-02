@@ -87,6 +87,9 @@ export default guard(async function handler(req, res) {
         currentPeriodEnd: plan.lifetime ? null : now() + (plan.durationDays ?? 31) * 86400,
         graceUntil: null,
         storeId: store.id ?? null,
+        // The term granted, kept on the row so the dashboard still knows it
+        // after the product is deleted (see src/db.js duration_days).
+        durationDays: plan.lifetime ? null : plan.durationDays ?? 31,
       });
       const result = await reconcile(memberId, store);
       sendJson(res, 200, { ok: true, granted: plan.id, added: result.added, joined: result.joined });
