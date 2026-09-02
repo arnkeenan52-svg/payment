@@ -3140,7 +3140,11 @@ html.menu-open .top {
 body.shop-view .checkout { width: 100%; max-width: none; padding: 0 0 calc(64px + env(safe-area-inset-bottom, 0px)); gap: 0; }
 .shop {
   --shop-col: 640px;      /* rails included */
-  --shop-gutter: 16px;    /* every block insets by this; banner + tabs do not */
+  /* Every block insets by this; the banner and the tab bar do not. 16px was a
+     phone measurement applied to a 640px column, which left the name and the
+     description sitting almost on the rail. The phone keeps 16 (see the 560
+     block below), where the viewport edge is the only rail there is. */
+  --shop-gutter: 24px;
   --shop-ground: var(--bg);
   width: min(var(--shop-col), 100%); margin: 0 auto;
 }
@@ -3166,10 +3170,17 @@ body[data-material='solid'].has-bg .shop-col {
 
 /* ── banner: square, flush to the rails, always in the layout ── */
 .shop-hero { position: relative; aspect-ratio: 3 / 1; }
+/* No banner uploaded. The slot still has to be there — the avatar hangs off
+   its lower edge — so it is a cover in the store's own accent rather than an
+   empty band. At 6% ink over a bright ground the old one was invisible on the
+   light face, which read as a page that had not finished loading. Two lights
+   from opposite corners give it a direction; nothing here is loud enough to
+   compete with a real banner beside it in the same layout. */
 .shop-hero.no-banner {
   background:
-    radial-gradient(120% 140% at 78% 10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 62%),
-    color-mix(in srgb, var(--ink) 6%, transparent);
+    radial-gradient(120% 150% at 82% 6%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 58%),
+    radial-gradient(90% 130% at 4% 96%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
+    color-mix(in srgb, var(--ink) 9%, transparent);
 }
 .shop-banner {
   width: 100%; height: 100%; object-fit: cover; object-position: center;
@@ -3196,6 +3207,12 @@ body[data-material='solid'].has-bg .shop-col {
 
 /* ── identity block ── */
 .shop-head { display: flex; flex-direction: column; padding: 65px var(--shop-gutter) 40px; }
+/* A store whose seller has filled in nothing but a name. It is the common
+   case, not the broken one, so it gets measured for what it holds rather than
+   left with the gaps where the missing lines would have gone: the block closes
+   up under the name and the catalogue comes up to meet it. */
+.shop[data-bare="on"] .shop-head { padding-bottom: 22px; }
+.shop[data-bare="on"] .shop-pane { padding-top: 22px; }
 .shop-titlebar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .shop-name {
   margin: 0; font-family: var(--font-head); font-size: 28px; font-weight: 700;
@@ -3232,8 +3249,24 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-follow[data-following='1']:hover .f-on { display: none; }
 .shop-follow[data-following='1']:hover .f-un { display: inline; }
 
+/* ── the metadata row: one wrapped line carrying the server, the seller's
+   links and the seller's own byline. Each child had its own top margin when
+   they were three stacked lines; inside the row the row owns the spacing. ── */
+.shop-meta {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 10px 20px; margin-top: 16px;
+}
+.shop-meta[hidden] { display: none; }
+/* No rules between the groups, on purpose: any child of this row can be
+   hidden, and a sibling-combinator hairline lands in front of whichever child
+   happens to be first on screen rather than between two of them. The gap is
+   wide enough to separate them without one. */
+.shop-meta > * { margin: 0 !important; }
 .shop-sub { margin: 8px 0 0; display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--dim); }
 .shop-sub svg { flex: none; }
+/* The server's name is the invite when the seller pasted one. */
+.shop-sublink { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; min-height: 24px; }
+.shop-sublink:hover { color: var(--ink); }
 /* Primary ink, deliberately: in the reference the bio is the same colour as
    the title. Demoting it to --dim is what made the old page read flat. */
 .shop-desc { margin: 16px 0 0; color: var(--ink); font-size: 16px; line-height: 20px; }
@@ -3275,9 +3308,18 @@ body[data-material='solid'].has-bg .shop-col {
 /* Below the threshold there is no number, so the star would be labelling
    nothing — the count carries the line on its own. */
 .shop-rating.unrated .shop-rating-star { display: none; }
-.shop-creator { margin: 12px 0 0; color: var(--dim); font-size: 15px; }
+/* The seller's byline. The reference sets a photograph beside the name; we
+   have none, so it is their initials — which is the right stand-in for a
+   PERSON, and exactly why it was the wrong one for a role. */
+.shop-creator { margin: 12px 0 0; color: var(--dim); font-size: 15px; display: flex; align-items: center; gap: 7px; }
 .shop-creator b { color: var(--ink); font-weight: 600; }
 .shop-creator[hidden] { display: none; }
+.shop-cr-face {
+  display: inline-grid; place-items: center; flex: none;
+  width: 22px; height: 22px; border-radius: 50%; margin-left: 2px;
+  font: 700 9.5px/1 var(--font-body, inherit); letter-spacing: 0.02em;
+  color: var(--ink); background: color-mix(in srgb, var(--ink) 15%, transparent);
+}
 
 .shop-rvhead { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .shop-rvscore { display: inline-flex; align-items: baseline; gap: 7px; font-size: 15px; color: var(--dim); margin-bottom: 30px; }
@@ -3377,11 +3419,42 @@ body[data-material='solid'].has-bg .shop-col {
   .tm-fields { grid-template-columns: 1fr; }
   .tm-actions { justify-content: flex-end; }
 }
-.shop-joined { display: flex; gap: 24px; margin: 18px 0 0; font-size: 16px; color: var(--dim); }
+.shop-joined { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 18px 0 0; font-size: 16px; color: var(--dim); }
 .shop-joined b { color: var(--ink); font-weight: 700; }
-/* Real roles in the idiom the reference uses for member faces — we will not
-   invent people, and the roles are what a buyer actually receives. */
-.shop-roleline { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 16px; color: var(--dim); }
+
+/* ── a Discord role, drawn as a Discord role ──────────────────────────────────
+   The dot is the role's own colour, the name is the role's own name. This
+   replaced a 24px grey disc holding the first two letters — the initial-avatar
+   this interface uses for PEOPLE, standing in for a thing that is not one and
+   telling a buyer nothing about it. `--rc` is set inline from the colour the
+   guild reported; a role left on Discord's default colour has none, and .plain
+   draws the neutral dot that role genuinely has. */
+.rolechip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 4px 11px 4px 9px; border-radius: 99px; max-width: 100%;
+  font: 600 13.5px/1.35 var(--font-body, inherit); white-space: nowrap;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--rc, var(--ink)) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rc, var(--ink)) 32%, transparent);
+}
+.rolechip-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex: none;
+  background: var(--rc, currentColor);
+}
+.rolechip.plain { background: color-mix(in srgb, var(--ink) 9%, transparent); border-color: var(--edge); }
+.rolechip.plain .rolechip-dot { background: color-mix(in srgb, var(--ink) 42%, transparent); }
+/* The overflow counter is a chip in shape only — it names no role, so it
+   carries no dot and no colour. */
+.rolechip.more { color: var(--dim); background: none; border-color: var(--edge); padding: 4px 10px; }
+
+/* Where the reference stacks member faces. We hold no faces and will not draw
+   invented ones, so the slot carries what a buyer is here for. */
+.shop-roleline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 16px; }
+.shop-rolelead { font-size: 15px; color: var(--dim); }
+.shop-rolechips { display: flex; flex-wrap: wrap; gap: 7px; min-width: 0; }
+/* Retired markup, kept styled on purpose: a browser can be running a cached
+   app.js that still emits the old initial discs against this stylesheet, and
+   an unstyled 2-letter span is worse than the shape it used to have. */
 .shop-rolestack { display: inline-flex; flex: none; }
 .shop-rolechip {
   width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
@@ -3397,10 +3470,18 @@ body[data-material='solid'].has-bg .shop-col {
    column count the markup has to agree with. A hard count wraps to a second
    row the moment the DOM disagrees — which a browser running this stylesheet
    against a cached store.html can do. */
+/* Left-aligned, each tab the width of its own label. Equal fractions of the
+   column put two tabs 200px apart with a 56px pill floating in the middle of
+   each — a bar that looked like a segmented control rather than the section
+   list the reference has. The row scrolls rather than wraps, because a tab bar
+   that reflows onto a second line stops reading as one. */
 .shop-tabs {
-  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  display: flex; align-items: stretch;
+  padding: 0 calc(var(--shop-gutter) - 14px);
   border-bottom: 1px solid var(--hairline-2);
+  overflow-x: auto; scrollbar-width: none;
 }
+.shop-tabs::-webkit-scrollbar { display: none; }
 /* The bar is hidden outright for a store with no About — one tab is not a tab
    bar. `display: grid` above would beat the UA's [hidden] rule, so say it
    here, the same way .shop[hidden] has to. */
@@ -3414,23 +3495,42 @@ body[data-material='solid'].has-bg .shop-col {
    on a hidden element. A hidden pane cannot show a border either way. */
 .shop[data-tabs="off"] .shop-pane { border-top: 1px solid var(--hairline-2); }
 .shop-tab {
-  height: 56px; background: none; border: 0; cursor: pointer; position: relative;
-  font: 500 15px var(--font-body, inherit); color: var(--dim);
+  height: 54px; padding: 0 14px; flex: none;
+  background: none; border: 0; cursor: pointer; position: relative;
+  font: 600 15px var(--font-body, inherit); color: var(--dim); white-space: nowrap;
 }
-.shop-tab:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.shop-tab:hover { color: var(--ink); }
 .shop-tab.active { color: var(--ink); }
 .shop-tab.active::after {
-  content: ""; position: absolute; left: 50%; translate: -50% 0; bottom: 0;
-  width: 56px; height: 5px; border-radius: 99px; background: var(--blurple);
+  content: ""; position: absolute; left: 10px; right: 10px; bottom: 0;
+  height: 3px; border-radius: 99px 99px 0 0; background: var(--ink);
 }
 
 /* ── panes ── */
-.shop-pane { padding: 21px var(--shop-gutter) 0; }
-.shop-sec { font: 600 17px var(--font-head); letter-spacing: -0.01em; color: var(--ink); margin: 0 0 30px; }
+.shop-pane { padding: 24px var(--shop-gutter) 0; }
+.shop-sec { font: 600 17px var(--font-head); letter-spacing: -0.01em; color: var(--ink); margin: 0 0 20px; }
+/* With the bar on screen the tab already says "Products" — the heading under
+   it was the same word twice, 20px apart. It stays for a store with no bar,
+   where nothing else names the section. Kept as a visually-hidden heading
+   rather than removed: the pane is still a section and still needs a name in
+   the document outline. */
+.shop[data-tabs="on"] #shop-pane-products > .shop-sec {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; margin: 0;
+}
 
 /* ── product cards: image flush to the card edge, title ON the image,
    price alone in a bare footer strip ── */
 .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 13px; }
+/* One product is a shop window, not the first of a row: a half-width card with
+   300px of nothing beside it is the shape that made a new store look unfinished.
+   Set from the render so it does not depend on :has(). */
+.shop-grid[data-count="1"] { grid-template-columns: 1fr; }
+/* …and its media takes a wider crop rather than a 16:9 slab a third of the
+   page tall. */
+.shop-grid[data-count="1"] .prod-shot,
+.shop-grid[data-count="1"] .prod-ph { aspect-ratio: 3 / 1; }
+@media (max-width: 520px) { .shop-grid[data-count="1"] .prod-shot, .shop-grid[data-count="1"] .prod-ph { aspect-ratio: 2 / 1; } }
 .prod-card {
   background: var(--panel); border: 1px solid var(--edge); border-radius: 12px;
   padding: 0; overflow: hidden; display: flex; flex-direction: column;
@@ -3451,11 +3551,25 @@ body[data-material='solid'].has-bg .shop-col {
   width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block;
   border-radius: 0; border: 0;
 }
+/* A product with no photograph. The letter was 34px in a tile up to 590px
+   wide — a small mark adrift in a large empty rectangle, which is what made a
+   photoless catalogue look unfinished. It is a monogram now: large, quiet, and
+   lit from one corner so the tile has a direction. */
 .prod-ph {
   display: grid; place-items: center;
-  font: 700 34px/1 var(--font-head); color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  font: 700 clamp(44px, 13vw, 76px)/1 var(--font-head);
+  color: color-mix(in srgb, var(--accent) 62%, transparent);
+  /* The bottom band traces the SAME curve as the title scrim over it
+     (.prod-media::after: black to transparent across the lower 62%), so the
+     two stack into one ramp instead of meeting at a seam. And the ground is a
+     real tint, not a 9% whisper: on the light face that whisper left a
+     near-white tile with a black stain across its bottom third. */
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.34) 0%, transparent 62%),
+    radial-gradient(110% 130% at 20% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 66%),
+    color-mix(in srgb, var(--accent) 24%, var(--panel));
 }
+@media (min-width: 521px) { .prod-ph { font-size: clamp(40px, 7vw, 68px); } }
 .prod-name {
   position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 1;
   color: #fff; font: 600 15px var(--font-head); line-height: 1.25; letter-spacing: -0.01em;
@@ -3465,21 +3579,38 @@ body[data-material='solid'].has-bg .shop-col {
 .prod-price { font: 600 15px var(--font-body, inherit); color: var(--blurple-text); font-variant-numeric: tabular-nums; }
 .prod-per { color: inherit; font-size: inherit; font-weight: inherit; }
 .prod-from { font-weight: 500; font-size: 13px; color: var(--faint); margin-right: 2px; }
-.prod-meta { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; color: var(--faint); }
+.prod-meta { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--dim); min-width: 0; }
 .prod-meta svg { flex: none; }
+/* The role's colour, at footer scale. Several roles keep their colours and
+   let the count carry the words — two full names do not fit beside a price. */
+.prod-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: var(--rc, currentColor);
+  box-shadow: 0 0 0 1.5px var(--panel);
+}
+.prod-dot.plain { background: color-mix(in srgb, var(--ink) 40%, transparent); }
+.prod-dot + .prod-dot { margin-left: -4px; }
+.prod-rolename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 1px; }
 @media (max-width: 640px) {
   .shop-col { border-inline: 0; min-height: 0; }
 }
 @media (max-width: 560px) {
   .shop-avatar { width: 80px; height: 80px; bottom: -40px; outline-width: 4px; }
-  .shop-head { padding: 54px 16px 32px; }
+  /* The viewport edge is the only rail on a phone, so the desktop inset is
+     spent on nothing — 16px back, and every block that reads the token follows
+     it, including the avatar above and the tab bar below. (The avatar leads
+     this block because the suite anchors the phone pass on it.) */
+  .shop { --shop-gutter: 16px; }
+  .shop-head { padding: 54px var(--shop-gutter) 30px; }
   .shop-name { font-size: 24px; }
   .shop-titlebar { flex-direction: column; align-items: stretch; gap: 12px; }
   .shop-actions { gap: 8px; }
   .shop-icon-btn { width: 44px; height: 44px; flex: none; }
   .shop-btn { flex: 1; height: 44px; }
-  .shop-tab { height: 52px; font-size: 14px; }
-  .shop-tab.active::after { width: 48px; }
+  .shop-tab { height: 52px; font-size: 14px; padding: 0 12px; }
+  /* The separators are drawn for a row; stacked on a phone they would be
+     hairlines hanging off the left of each line. */
+  .shop-meta { gap: 9px 16px; }
 }
 @media (max-width: 520px) {
   .shop-grid { grid-template-columns: 1fr; }

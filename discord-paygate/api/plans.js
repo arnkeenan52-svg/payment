@@ -1,6 +1,6 @@
 import { config, capabilities } from '../src/config.js';
 import { sendJson, guard } from '../src/lib/http.js';
-import { getGuild, guildIconUrl } from '../src/lib/discord.js';
+import { getGuild, guildIconUrl, getGuildRoles } from '../src/lib/discord.js';
 import { effectiveRoleMap } from '../src/services/plan-config.js';
 import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.js';
 import { DEMO_SLUG, demoPlansPayload } from '../src/services/demo-store.js';
@@ -27,6 +27,76 @@ async function serverInfo(guildId, nameOverride = null) {
   return info;
 }
 
+// A Discord role is a NAME and a COLOUR. The storefront used to draw one as
+// two letters in a grey disc — the initial-avatar we use for people — which
+// says nothing about the role and is the wrong metaphor for a thing that is
+// not a person. The guild's own role list carries both, so it is fetched here
+// once per guild and cached for the same five minutes as the guild's name and
+// icon: one extra REST call per warm instance per store, on a response that
+// already makes one.
+//
+// It fails SILENTLY and on purpose. A role list we could not fetch must cost
+// the page a colour, never the line — the stored names still render, uncoloured.
+const roleCache = new Map(); // guildId -> { at, byId, byName }
+
+// Discord ships a role's colour as an integer, and 0 means "no colour set" —
+// those roles inherit their member's next colour down, so there is no hex we
+// could honestly print for one. null, and the client draws the neutral chip.
+const roleColor = (n) => (Number.isInteger(n) && n > 0 ? `#${n.toString(16).padStart(6, '0')}` : null);
+
+async function guildRoles(guildId) {
+  const cached = roleCache.get(guildId);
+  if (cached && Date.now() - cached.at < GUILD_TTL_MS) return cached;
+  let list = null;
+  try {
+    list = await getGuildRoles(guildId);
+  } catch {
+    // The bot kicked, the guild gone, Discord down — all the same to this
+    // page. Cached as an empty answer so a broken guild is not re-fetched on
+    // every storefront hit.
+    list = null;
+  }
+  const entry = { at: Date.now(), byId: new Map(), byName: new Map() };
+  for (const r of Array.isArray(list) ? list : []) {
+    if (!r || typeof r.name !== 'string') continue;
+    // @everyone shares the guild's id and is held by every member already.
+    // Printing it would tell a buyer they are paying for what they have.
+    if (String(r.id) === String(guildId)) continue;
+    const role = { name: r.name, color: roleColor(r.color) };
+    entry.byId.set(String(r.id), role);
+    const key = r.name.toLowerCase();
+    if (!entry.byName.has(key)) entry.byName.set(key, role);
+  }
+  roleCache.set(guildId, entry);
+  return entry;
+}
+
+// What a buyer actually receives, resolved the same way the GRANT resolves it
+// (src/services/plan-config.js): configured ids first, and the stored names
+// ONLY when none of those ids exist in the guild. Mixing the two would print a
+// renamed role twice — once under the name the guild has now and once under
+// the name plans.json remembers.
+function planRoles(guild, ids, names) {
+  const out = [];
+  const seen = new Set();
+  for (const id of ids ?? []) {
+    const role = guild.byId.get(String(id));
+    if (!role || seen.has(role.name.toLowerCase())) continue;
+    seen.add(role.name.toLowerCase());
+    out.push(role);
+  }
+  if (out.length) return out;
+  for (const raw of names ?? []) {
+    // The '@' is a sigil the seller may or may not have typed; the role's name
+    // does not include it and the page adds its own.
+    const name = String(raw ?? '').replace(/^@/, '').trim();
+    if (!name || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    out.push(guild.byName.get(name.toLowerCase()) ?? { name, color: null });
+  }
+  return out;
+}
+
 export default guard(async function handler(req, res) {
   const url = new URL(req.url, 'http://localhost');
   const slugParam = url.searchParams.get('store') ?? '';
@@ -47,6 +117,7 @@ export default guard(async function handler(req, res) {
   const { name, iconUrl } = await serverInfo(store.guildId, store.isDefault ? config.discord.guildName : store.name);
   const roleMap = store.isDefault ? await effectiveRoleMap() : null;
   const plans = await sellablePlansOf(store);
+  const guildRoleIndex = await guildRoles(store.guildId);
   const banner = await bannerFor(store);
   // The built-in store is virtual (id null): no row, so no follow ledger.
   const followable = store.id !== null && store.id !== undefined;
@@ -122,6 +193,15 @@ export default guard(async function handler(req, res) {
       imageUrl: p.imageUrl ?? null,
       mediaKind: p.mediaKind ?? null,
       roleNames: (roleMap ? roleMap.get(p.id)?.roleNames : null) ?? p.roleNames ?? [],
+      // The same roles again, as the guild defines them: live name, live
+      // colour. `roleNames` stays beside it because it is what the checkout
+      // and the receipt have always read, and a client running against a
+      // cached older payload still has something to draw.
+      roles: planRoles(
+        guildRoleIndex,
+        (roleMap ? roleMap.get(p.id)?.roleIds : null) ?? p.roleIds ?? [],
+        (roleMap ? roleMap.get(p.id)?.roleNames : null) ?? p.roleNames ?? [],
+      ),
       descriptionHighlight: p.descriptionHighlight ?? null,
       linkSlug: p.linkSlug ?? null,
       variantOf: p.variantOf ?? null,
