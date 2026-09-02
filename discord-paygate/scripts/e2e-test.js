@@ -1572,6 +1572,20 @@ test('vercel.json: the old domain 301s to dues.gg with the path kept; the webhoo
     ['/webhooks/stripe/:storeid', '/api/webhooks/stripe?store=:storeid'],
     ['/s/:slug', '/api/store-page?store=:slug'],
   ]) assert.equal(rewritten.get(source), destination, `${source} rewrite must be kept`);
+  // Every function that makes a provider call the platform default cannot
+  // outlive declares its own limit. A crypto checkout POST is up to three
+  // serial NOWPayments round trips of 15s each (coin list, create payment,
+  // and the minimum lookup on a minimum error); killed halfway it leaves an
+  // order row holding a seat and a discount use with no payment id, and an
+  // invoice the provider minted that no buyer is ever shown.
+  for (const fn of [
+    'api/webhooks/stripe.js',
+    'api/webhooks/coinbase.js',
+    'api/webhooks/nowpayments.js',
+    'api/cron/reconcile.js',
+    'api/checkout/crypto.js',
+    'api/admin/store.js',
+  ]) assert.ok((vercel.functions?.[fn]?.maxDuration ?? 0) >= 60, `${fn} must declare a maxDuration above the provider timeouts it can stack`);
 });
 
 test('the community invite is one setting: the site hop and the receipt read the same value, either name works', async () => {
