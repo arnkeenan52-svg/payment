@@ -11,7 +11,6 @@ import { config } from '../config.js';
 import * as db from '../db.js';
 import { stripeFetch, subscriptionPeriodEnd, getSubscription } from '../lib/stripe.js';
 import { storesOwnedBy } from './stores.js';
-import { freeLook } from '../lib/theme.js';
 
 // yearlyUsd = 10 months — two months free on yearly, like the reference.
 export const TIERS = [
@@ -47,35 +46,27 @@ export async function billingFor(ownerDiscordId) {
   return { tier, row, exempt: false };
 }
 
-// A CUSTOM STOREFRONT LOOK IS A PAID FEATURE.
+// A STOREFRONT'S LOOK IS FREE, ON EVERY PLAN.
 //
-// Which is a rendering rule, not a storage rule: the tokens stay on the row
-// whichever plan the owner is on. A lapsed plan parks a store's look, it never
-// deletes it, and re-subscribing brings the exact same colours back with no
-// work — the same reasoning as the member limit above, where nobody who
-// already paid loses anything.
+// It was a paid feature until a seller pointed out the obvious: the shop
+// window is what sells the seller's roles, so charging for it taxed the thing
+// the platform lives on. Every colour, corner, typeface, material, every
+// background in the catalogue and an image imported by URL are all free now.
+// What a plan buys is member capacity.
 //
-// Enforced HERE rather than at the write, because a write-only gate is not a
-// paid feature: an owner could theme a store, cancel, and keep the look for
-// nothing. Both storefront render paths (api/store-page.js server-side, and
-// api/plans.js for the client) go through this, so a free store shows the
-// platform's own black on both.
-export async function themeIfPaid(store) {
-  if (!store || !store.theme) return null;
-  // The built-in store IS the platform — its look is not a customer's.
-  if (store.isDefault) return store.theme;
-  const { tier, exempt } = await billingFor(store.ownerDiscordId);
-  if (exempt || (tier && tier.id !== 'free')) return store.theme;
-  // A free store used to be sent back the signature black wholesale, which
-  // threw away colours the seller had chosen and could keep. It keeps its
-  // whole look now — every colour, corner, type, material and every
-  // background in the catalogue — and loses only an imported URL, the one
-  // part of a look this platform does not serve itself.
-  return freeLook(store.theme);
+// This function stays because both render paths go through it (api/store-page.js
+// server-side and api/plans.js for the client) and because it still answers a
+// real question — what look should this store be shown in — even though the
+// answer no longer depends on a plan.
+export async function storeTheme(store) {
+  return store?.theme ?? null;
 }
 
-// The same question, for the dashboard and the settings endpoint.
-export async function canCustomise(ownerDiscordId) {
+// Whether this owner's plan is a paid one. The look no longer asks; nothing
+// else does either today, and the dashboard's Appearance panel is open to
+// everyone. Kept because the billing state itself is worth naming, and a
+// future paid feature should ask this rather than reinvent it.
+export async function onPaidPlan(ownerDiscordId) {
   const { tier, exempt } = await billingFor(ownerDiscordId);
   return Boolean(exempt || (tier && tier.id !== 'free'));
 }

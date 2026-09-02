@@ -5,8 +5,7 @@ import * as db from '../../src/db.js';
 import { adminStoreBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
 import { stripeFetch, isStripeKey } from '../../src/lib/stripe.js';
-import { validateTheme, usesPaidLook } from '../../src/lib/theme.js';
-import { canCustomise } from '../../src/services/billing.js';
+import { validateTheme } from '../../src/lib/theme.js';
 import { isStoreCategory } from '../../src/services/stores.js';
 import { getGuildChannels, postChannelMessage } from '../../src/lib/discord.js';
 import { parseUploadDataUrl, uploadKind, UPLOAD_BODY_LIMIT } from '../../src/lib/upload.js';
@@ -360,25 +359,6 @@ export default guard(async function handler(req, res) {
       clean = validateTheme(body.theme);
     } catch (err) {
       return sendJson(res, 400, { error: err.message });
-    }
-    // A custom look is a paid feature. Clearing back to the platform's own
-    // black stays open to everyone — nobody should need a subscription to
-    // undo something, and a free owner whose plan lapsed must still be able
-    // to tidy up. The rendering gate in billing.js is what actually decides
-    // what a visitor sees; this only stops a free owner filling the field.
-    // The whole look is free — every colour, corner, type and material, and
-    // every background in the catalogue, photographs and animated grounds
-    // included. They are served from this origin and cost nothing per store,
-    // and a storefront that looks like it cost something is what sells the
-    // seller's roles. The one part still on a plan is an IMPORTED URL: an
-    // image from the seller's own host, which is not ours to serve. Clearing
-    // back to the platform's black stays open to everyone: nobody should need
-    // a subscription to undo something.
-    if (clean && usesPaidLook(clean) && !(await canCustomise(store.ownerDiscordId))) {
-      return sendJson(res, 402, {
-        error: 'Importing your own background image is on the Pro plan and up. Every background in the picker, and every colour, corner and type setting, is yours on every plan.',
-        upgrade: true,
-      });
     }
     fields.theme = clean ? JSON.stringify(clean) : null;
   }

@@ -1828,7 +1828,7 @@ function contrastRatio(a, b) {
   return (x + 0.05) / (y + 0.05);
 }
 
-function appearanceBody(store, paid) {
+function appearanceBody(store) {
   const t = { ...THEME_DEFAULTS, ...(store.theme ?? {}) };
   const ink = (hex) => {
     const n = parseInt(hex.slice(1), 16);
@@ -1880,8 +1880,8 @@ function appearanceBody(store, paid) {
                <span class="bgp-name">${b.label}</span>
              </button>`).join('')}
         </div>
-        <label class="bgp-url-row${paid ? '' : ' bgp-locked'}">
-          <span class="th-sw-name">Or import your own — a GIF, image, or MP4/WebM video URL${paid ? '' : ' · Pro'}</span>
+        <label class="bgp-url-row">
+          <span class="th-sw-name">Or import your own — a GIF, image, or MP4/WebM video URL</span>
           <input type="url" id="th-bgurl" placeholder="https://…/background.gif" value="${esc(t.bgUrl ?? '')}" spellcheck="false" />
         </label>
           </div>
@@ -1946,7 +1946,7 @@ function appearanceBody(store, paid) {
   </div>`;
 }
 
-function sectionStore(store, link, paid = true) {
+function sectionStore(store, link) {
   const linkRow = `<div class="share-row"><code class="share-link">${esc(link)}</code><button class="btn-secondary" id="copy-link">${I.copy} Copy</button><a class="btn-secondary st-open" href="${esc(link)}" target="_blank" rel="noopener">${I.external} Open</a></div>`;
   if (store.isDefault) {
     return `
@@ -2061,12 +2061,10 @@ function sectionStore(store, link, paid = true) {
       id: 'st-card-theme',
       title: 'Appearance',
       sub: 'Make the store yours — colors, corners and type. Buyers see it instantly.',
-      // One field is locked rather than hidden: an owner deciding whether to
-      // upgrade should be able to SEE what they would get. What they set there
-      // is refused by the server anyway, so it is disabled rather than merely
-      // discouraged, and Reset stays live — undoing never needs a plan.
-      body: (paid ? '' : `<div class="lock-note">${I.lock ?? ''}<span><b>The whole look is yours on every plan</b> — all six themes, your own colours, corners, type, and every background in the picker. Importing your own image by URL is on Pro and up.</span><a class="btn-pill" href="#/store/${esc(store.slug)}/billing">See plans</a></div>`)
-        + `<div class="th-wrap">${appearanceBody(store, paid)}</div>`,
+      // Nothing here is gated: every colour, every background and an imported
+      // URL are free on every plan. A shop window is what sells the seller's
+      // roles — charging for it taxed the thing this platform lives on.
+      body: `<div class="th-wrap">${appearanceBody(store)}</div>`,
       foot: `<span class="appearance-foot"><button class="btn-pill" id="th-save">Save appearance</button>
         <button class="btn-ghost" id="th-reset">Reset to default</button>
         <span class="note-help" id="th-note" role="status"></span></span>`,
@@ -2385,7 +2383,7 @@ async function viewStore(slug) {
     body = store.isDefault
       ? '<h2 class="sec-title">Discounts</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store. Set up your server’s own store to create discount codes here.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
       : sectionDiscounts(discounts, products, slug);
-  else if (section === 'store') body = sectionStore(store, link, state.data?.canCustomise !== false);
+  else if (section === 'store') body = sectionStore(store, link);
   else if (section === 'customize')
     body = store.isDefault
       ? '<h2 class="sec-title">Dashboard</h2><section class="panel wiz-panel"><p class="note-help">This is the built-in store — its dashboard uses the platform look. Set up your server’s own store to customize.</p><a class="btn-pill" style="align-self:flex-start;text-decoration:none" href="#/">Set up your store</a></section>'
@@ -3157,18 +3155,13 @@ function wireDiscounts(store, slug) {
 }
 
 function wireAppearance(store, slug) {
-  // pointer-events:none stops a mouse and nothing else. Tab still reached all
-  // six theme tiles and the material and type buttons, Enter still applied
-  // them, and the live preview still repainted — then Save was disabled and
-  // the work vanished with no explanation. A control that cannot be saved
-  // must be honestly disabled, not merely unclickable.
-  // pointer-events:none stops a mouse and nothing else — Tab still reached
-  // these, Enter still applied them, the preview still repainted, and then the
-  // save was refused with nothing said. A control that cannot be used must be
-  // honestly disabled. Only the import-your-own-URL field is locked now;
-  // every colour control and every background in the picker is live on every
-  // plan.
-  document.querySelectorAll('.bgp-locked, .bgp-locked input').forEach((el) => { el.disabled = true; });
+  // Nothing in Appearance is gated any more: every theme tile, every
+  // background, the material and type buttons and the import-your-own-URL
+  // field are live on every plan. The rule that outlived the gate is the one
+  // worth keeping — a control that cannot be used must be honestly disabled,
+  // never merely unclickable, because pointer-events:none stops a mouse and
+  // nothing else: Tab still reaches it, Enter still applies it, the preview
+  // still repaints, and then the save is refused with nothing said.
   const read = () => ({
     bg: $('#th-bg').value,
     panel: $('#th-panel').value,

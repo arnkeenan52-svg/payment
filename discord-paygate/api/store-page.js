@@ -10,7 +10,7 @@ import { config } from '../src/config.js';
 import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.js';
 import { DEMO_SLUG, DEMO_NAME, DEMO_THEME, demoPlans } from '../src/services/demo-store.js';
 import { validateTheme, themeCss, bgLayer } from '../src/lib/theme.js';
-import { themeIfPaid } from '../src/services/billing.js';
+import { storeTheme } from '../src/services/billing.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -68,11 +68,10 @@ export default guard(async (req, res) => {
     if (store) {
       // The owner's theme, server-rendered so the page never flashes the
       // default look. Re-validated here: only tokens ever reach the CSS,
-      // whatever ended up in the database. themeIfPaid returns null for a
-      // store on the free plan, so a free storefront renders the platform's
-      // own black — the tokens are parked on the row, not lost.
+      // whatever ended up in the database. Every store gets its own look on
+      // every plan — a storefront is a shop window, not an upsell.
       try {
-        const theme = validateTheme(await themeIfPaid(store));
+        const theme = validateTheme(await storeTheme(store));
         if (theme) {
           themeStyle = `\n  <style id="store-theme">${themeCss(theme)}</style>`;
           bg = bgLayer(theme);
