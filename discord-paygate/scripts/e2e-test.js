@@ -70,6 +70,10 @@ const discord = {
   userGuilds: {},               // uid -> guilds visible to /users/@me/guilds
   failRolesFetchOnce: false,    // next GET /guilds/:id/roles answers 500
   extraRoles: [],               // appended to the role list (e.g. a same-named decoy)
+  kickedFrom: null,             // a guild id the bot was removed from: every guild route answers as Discord does then
+  kickedMemberGets: 0,          // GET member calls that hit the kicked guild
+  phantomJoinsFor: new Set(),   // uids whose guilds.join answers 204 "already a member" while GET member keeps 404ing
+  phantomJoins: 0,
   oauthUsers: {
     code_u1: { id: U1, username: 'trader_one' },
     code_u3: { id: U3, username: 'trader_three' },
@@ -188,6 +192,21 @@ async function discordHandler(req, res) {
   const p = url.pathname;
   let m;
 
+  // The bot was kicked from this guild (or the server was deleted): Discord
+  // answers 404 Unknown Guild (10004) on its guild routes and 403 Missing
+  // Access (50001) to guilds.join — the same shape whether or not the BUYER
+  // is in the server, which is exactly what the app must not misread.
+  if ((m = p.match(/^\/guilds\/([^/]+)/)) && discord.kickedFrom && m[1] === discord.kickedFrom) {
+    const memberRoute = /^\/guilds\/[^/]+\/members\/[^/]+$/.test(p);
+    if (memberRoute && req.method === 'PUT') {
+      json(res, 403, { message: 'Missing Access', code: 50001 });
+      return;
+    }
+    if (memberRoute && req.method === 'GET') discord.kickedMemberGets++;
+    json(res, 404, { message: 'Unknown Guild', code: 10004 });
+    return;
+  }
+
   if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)\/roles\/([^/]+)$/)) && (req.method === 'PUT' || req.method === 'DELETE')) {
     const [, , uid, roleId] = m;
     if (discord.rateLimit429Remaining > 0) {
@@ -229,6 +248,13 @@ async function discordHandler(req, res) {
   if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'PUT') {
     const [, , uid] = m;
     const body = JSON.parse(await readBody(req));
+    // 204 "already a member" from a guild whose member fetch still says 404:
+    // a consistency window the app must survive without spinning.
+    if (discord.phantomJoinsFor.has(uid)) {
+      discord.phantomJoins++;
+      res.writeHead(204).end();
+      return;
+    }
     if (discord.members.has(uid)) {
       res.writeHead(204).end();
       return;
@@ -247,7 +273,7 @@ async function discordHandler(req, res) {
   if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'GET') {
     const [, , uid] = m;
     if (!discord.members.has(uid)) {
-      json(res, 404, { message: 'Unknown Member' });
+      json(res, 404, { message: 'Unknown Member', code: 10007 });
       return;
     }
     json(res, 200, { user: { id: uid }, roles: [...discord.members.get(uid)] });
@@ -5262,6 +5288,105 @@ test('the public discount preview is not a code oracle: one address gets thirty 
   assert.equal((await lookup('bad code!')).status, 400, 'malformed input is still refused as malformed, before the window');
   const elsewhere = await fetch(`${appUrl}/api/discount?store=vip-signals&code=LAUNCH20&plan=${plan.id}`);
   assert.equal(elsewhere.status, 200, 'the window is per address — a buyer somewhere else is not paying for it');
+});
+
+test('a kicked bot is named as the cause (not a buyer who has not joined), the sweep stops hammering that guild, and a phantom "already a member" join cannot spin', async () => {
+  // Discord answers 404 to GET member for two very different reasons:
+  // Unknown Member (the buyer is not in the server) and Unknown Guild (the
+  // BOT is not in the server). Both used to become null, so a kicked bot
+  // read as "buyer not in guild → try guilds.join → 403 Missing Access" once
+  // per member per sweep — the log blamed every buyer's join, and the guild
+  // took two doomed calls per member every hour.
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const member = (body) =>
+    fetch(`${appUrl}/api/admin/member`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: u7Cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const plans = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans;
+  const plan = plans.find((p) => !p.variantOf && !p.requiredRoleName);
+  const logSince = (mark) => appLog.slice(mark).join('');
+
+  // Two live members of the store, both in the server, both holding the role.
+  const KA = '531100000000000031';
+  const KB = '532200000000000032';
+  for (const uid of [KA, KB]) {
+    discord.members.set(uid, new Set());
+    const granted = await member({ action: 'grant', discordId: uid, planId: plan.id });
+    assert.equal(granted.status, 200, await granted.text());
+    assert.ok(memberRoles(uid).has(R2_VIP), 'the grant delivered the role');
+  }
+
+  discord.kickedFrom = G2;
+  discord.kickedMemberGets = 0;
+  try {
+    // A resync of a member who IS in the server: the failure names the bot,
+    // never a join the buyer supposedly still owes.
+    const mark = appLog.length;
+    const resync = await member({ action: 'resync', discordId: KA });
+    assert.equal(resync.status, 500, 'the outage is a failure, not a silent no-op');
+    await waitFor('the resync failure to name the bot', () => /the bot is not in guild 900000000000000002/.test(logSince(mark)));
+    assert.doesNotMatch(logSince(mark), /join .* to guild failed/, 'no guilds.join is attempted for a guild the bot is gone from');
+    assert.equal(discord.joins.filter((j) => j.uid === KA).length, 0, 'no join was sent');
+
+    // The hourly sweep: one line naming the guild, one member fetch against
+    // it (the store's other members are skipped this run), the guild carried
+    // in the cron response, and every OTHER store still reconciled.
+    const sweepMark = appLog.length;
+    discord.kickedMemberGets = 0;
+    const cron = await hitCron();
+    assert.equal(cron.status, 200, cron.body);
+    const sweep = JSON.parse(cron.body);
+    assert.deepEqual(sweep.guildsWithoutBot, [G2], 'the cron response carries the guild the bot is missing from');
+    assert.ok(sweep.membersReconciled > 0, 'members of the other stores were still reconciled');
+    assert.equal(discord.kickedMemberGets, 1, 'exactly one member fetch hit the kicked guild — the rest of that store was skipped');
+    await waitFor('the sweep to name the guild', () => /\[sweep\] the bot is not in guild/.test(logSince(sweepMark)));
+    const sweepLog = logSince(sweepMark);
+    assert.equal((sweepLog.match(/\[sweep\] the bot is not in guild 900000000000000002/g) ?? []).length, 1, 'the outage is logged once per sweep, not once per member');
+    assert.doesNotMatch(sweepLog, /join .* to guild failed with 403/, 'no member of that store is blamed for a join failure');
+    assert.doesNotMatch(sweepLog, /not in guild 900000000000000002 and no OAuth token/, 'nobody there is diagnosed as a buyer who has not joined');
+  } finally {
+    discord.kickedFrom = null;
+  }
+  // The bot is re-invited: the next sweep reconciles the store again, as before.
+  const back = JSON.parse((await hitCron()).body);
+  assert.equal(back.guildsWithoutBot, undefined);
+  assert.ok(memberRoles(KA).has(R2_VIP) && memberRoles(KB).has(R2_VIP), 'nothing was torn off during the outage');
+
+  // The recursion bound. A buyer with a stored guilds.join token is missing
+  // from the server; Discord answers the join with 204 "already a member" yet
+  // keeps answering 404 to the member fetch. reconcileNow used to call itself
+  // until the two agreed — thousands of requests inside one sweep. Now: one
+  // join, one more look, one warning, and the next reconcile tries again.
+  const KC = '533300000000000033';
+  discord.oauthUsers.code_kc = { id: KC, username: 'phantom_member' };
+  discord.members.set(KC, new Set());
+  await loginAs('code_kc'); // stores the OAuth token the join path needs
+  const granted = await member({ action: 'grant', discordId: KC, planId: plan.id });
+  assert.equal(granted.status, 200, await granted.text());
+  discord.members.delete(KC);
+  discord.phantomJoinsFor.add(KC);
+  discord.phantomJoins = 0;
+  try {
+    const mark = appLog.length;
+    const t0 = Date.now();
+    const cron = await hitCron();
+    assert.equal(cron.status, 200, cron.body);
+    assert.ok(Date.now() - t0 < 5000, 'the sweep returned promptly');
+    assert.equal(discord.phantomJoins, 1, 'exactly one join attempt, then the reconcile stopped');
+    await waitFor('the disagreement to be logged and left for the next reconcile', () =>
+      /Discord reports 533300000000000033 already in guild 900000000000000002 but the member fetch still answers 404/.test(logSince(mark)));
+  } finally {
+    discord.phantomJoinsFor.delete(KC);
+  }
+  // Once Discord agrees with itself, the next reconcile lands the role.
+  assert.equal((await member({ action: 'resync', discordId: KC })).status, 200);
+  assert.deepEqual(discord.joins.filter((j) => j.uid === KC).map((j) => j.roles), [[R2_VIP]], 'the real join carried the role');
+  assert.ok(memberRoles(KC).has(R2_VIP));
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════

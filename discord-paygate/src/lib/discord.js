@@ -84,9 +84,29 @@ export async function getGuildRoles(guildId = config.discord.guildId) {
 
 // ── guild members and roles ───────────────────────────────────────────────────
 
+// Thrown when the BOT is not in the guild (kicked, or the server deleted):
+// an outage for every member of that store, not a fact about one buyer.
+// Callers key on `code` so a sweep can stop hammering the guild.
+export function botNotInGuildError(guildId) {
+  const err = new Error(`discord: the bot is not in guild ${guildId} (kicked, or the server was deleted) — re-invite it; no role there can be granted or removed until then`);
+  err.code = 'bot_not_in_guild';
+  err.guildId = String(guildId);
+  return err;
+}
+
+// A 404 here means one of two very different things. Unknown Member (10007)
+// is the buyer not being in the server — null, and the caller may pull them
+// in. Unknown Guild (10004), like 403 Missing Access (50001), is the BOT not
+// being in the server; folding that into null made a kicked bot read as a
+// per-buyer join failure in every log line and every webhook of the store.
 export async function getGuildMember(discordId, guildId = config.discord.guildId) {
   const res = await discordFetch(`/guilds/${guildId}/members/${discordId}`);
-  if (res.status === 404) return null;
+  if (res.status === 404 || res.status === 403) {
+    const data = await res.json().catch(() => ({}));
+    if (data.code === 10004 || data.code === 50001 || data.message === 'Unknown Guild') throw botNotInGuildError(guildId);
+    if (res.status === 404) return null;
+    throw new Error(`discord: get member ${discordId} failed with 403: ${JSON.stringify(data).slice(0, 300)}`);
+  }
   await expect(res, [200], `get member ${discordId}`);
   return res.json();
 }
