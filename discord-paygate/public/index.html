@@ -499,7 +499,7 @@ html[data-theme="light"] .chip-film-embed{border-color:rgba(15,22,38,.12)}
 /* ============ role marquee strip ============ */
 .rolemarq{padding:96px 0 12px;overflow:hidden}
 .marq-cap{
-  text-align:center;font-size:11.5px;font-weight:500;letter-spacing:.14em;
+  text-align:center;font-size:12px;font-weight:500;letter-spacing:.14em;
   text-transform:uppercase;color:var(--micro);margin-bottom:20px;
 }
 
@@ -1018,7 +1018,7 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 .billing-toggle button.on{background:#f5f5f4;color:#101010}
 .billing-toggle button:focus-visible{outline:2px solid #f5f5f4;outline-offset:2px}
 .tog-save{
-  font-size:11px;font-weight:500;line-height:1;letter-spacing:.02em;
+  font-size:12px;font-weight:500;line-height:1;letter-spacing:.02em;
   color:#4ade80;background:rgba(74,222,128,.14);
   padding:4px 9px;border-radius:999px;white-space:nowrap;
 }
@@ -1333,7 +1333,7 @@ h2.sec-display{
 }
 .t2{color:var(--gl-blue)}
 .kicker{
-  display:block;font:600 11.5px/1 var(--sans);letter-spacing:.16em;
+  display:block;font:600 12px/1 var(--sans);letter-spacing:.16em;
   text-transform:uppercase;color:var(--gl-micro);
 }
 
@@ -1680,10 +1680,12 @@ html[data-theme="light"] .footer{
 .footer .soc-tile:hover{background:rgba(255,255,255,.26)}
 .footer .soc-tile svg{width:15px;height:15px;fill:currentColor}
 .footer .fcol{display:flex;flex-direction:column;gap:11px;min-width:0}
+/* 12px, not 10.5: the phone floor. Leading 1.1 keeps the 13px line box the
+   10.5px label had, so the footer height (and its fit budget) is unchanged. */
 .footer .fcol b{
   margin:0 0 3px;color:rgba(255,255,255,.64);
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:10.5px;font-weight:500;line-height:1.25;letter-spacing:.08em;text-transform:uppercase;
+  font-size:12px;font-weight:500;line-height:1.1;letter-spacing:.08em;text-transform:uppercase;
 }
 .footer .fcol a{position:relative;display:inline-flex;align-items:center;min-height:21px;padding:0;color:rgba(255,255,255,.82);font-size:14px;line-height:1.5;transition:color .15s}
 .footer .fcol a:hover{color:#fff}
@@ -1831,7 +1833,7 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 .save-field input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:var(--blue)}
 .save-field input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--blue);border:2.5px solid #fff}
 .save-hero{margin:26px 0 22px;padding:20px 16px;border-radius:18px;text-align:center;background:rgba(88,101,242,.1);border:1px solid rgba(88,101,242,.28)}
-.save-cap{display:block;font:600 11.5px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
+.save-cap{display:block;font:600 12px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
 .save-hero b{display:block;margin-top:6px;font-family:var(--grotesk);font-weight:700;font-size:clamp(36px,5vw,46px);letter-spacing:-.02em;color:#3ddc84}
 html[data-theme="light"] .save-hero b{color:#177245}
 .save-hero small{display:block;margin-top:4px;font-size:12.5px;color:var(--micro)}
@@ -1917,7 +1919,6 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   .save-field input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-5px;border-width:2px}
   .save-field input[type=range]::-moz-range-thumb{width:15px;height:15px;border-width:2px}
   .save-hero{margin:20px 0 0;padding:14px 16px;border-radius:14px}
-  .save-cap{font-size:10.5px}
   .save-hero b{margin-top:3px;font-size:34px}
   .save-hero small{margin-top:2px;font-size:11.5px}
   .save-rows{gap:15px}
@@ -1930,7 +1931,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 }
 /* payment methods: real brand marks on white chips, its own section */
 .pay{padding:8px 24px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
-.pay-cap{font:600 11px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--micro)}
+.pay-cap{font:600 12px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--micro)}
 .pay-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:800px}
 /* desktop: all 14 marks in a strict symmetric 7x2 grid of equal cells */
 @media (min-width:640px){

@@ -3852,6 +3852,29 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
     // UP into the gap above the row, which is the whole pitch on a phone.
     assert.match(html, /\.footer \.fcol a::after\{content:"";position:absolute;inset:-5px 0 0\}/, `${file}: footer links grow only upward, never the footer`);
   }
+
+  // Phone text floor: nothing a buyer reads sits under 12px.
+  const px = (body) => [...body.matchAll(/font(?:-size)?:\s*(?:\d+\s+)?([\d.]+)px/g)].map((m) => Number(m[1]));
+  for (const sel of ['.shop-rolechip', '.alt-ours', '.footer-head', '.calc-note', '.calc-bar-sub', '.footer-disclaimer']) {
+    const sizes = rules(sel).flatMap(px);
+    assert.ok(sizes.length, `${sel} declares a size`);
+    assert.ok(sizes.every((n) => n >= 12), `${sel} must not go under 12px (got ${sizes})`);
+  }
+  for (const file of ['index.html', 'pricing.html']) {
+    const html = page(file);
+    for (const re of [/\.tog-save\{\s*font-size:([\d.]+)px/, /\.marq-cap\{\s*text-align:center;font-size:([\d.]+)px/, /\.kicker\{\s*display:block;font:600 ([\d.]+)px/, /\.footer \.fcol b\{[^}]*font-size:([\d.]+)px/]) {
+      const m = html.match(re);
+      assert.ok(m, `${file}: ${re} must still match`);
+      assert.ok(Number(m[1]) >= 12, `${file}: ${re} is ${m[1]}px, under the 12px floor`);
+    }
+    // the footer heading grew from 10.5px inside a fit-budgeted footer: the
+    // leading is what keeps its line box (and the phone budget) unchanged
+    assert.match(html, /\.footer \.fcol b\{[^}]*line-height:1\.1;/, `${file}: footer headings keep their 13px line box`);
+  }
+  const home = page('index.html');
+  assert.match(home, /\.pay-cap\{font:600 12px/, 'the payment caption is 12px');
+  assert.match(home, /\.save-cap\{display:block;font:600 12px/, 'the savings caption is 12px');
+  assert.doesNotMatch(home, /\.save-cap\{font-size:10\.5px\}/, 'no phone override drags it back under');
 });
 
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {

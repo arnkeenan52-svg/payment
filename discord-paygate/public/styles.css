@@ -970,7 +970,7 @@ footer {
 .footer-col { display: flex; flex-direction: column; gap: 6px; }
 .footer-col a { color: var(--dim); text-decoration: none; font-size: 13px; }
 .footer-col a:hover { color: var(--ink); }
-.footer-head { font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 2px; }
+.footer-head { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 2px; }
 
 /* ── dashboard app: picker, wizard, tabs, chart ───────────────────────────── */
 .dash-head h1 { font-size: 24px; margin: 0 0 4px; }
@@ -1383,8 +1383,8 @@ body.home .landing { overflow-x: clip; }
 .calc-bar { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 10%, transparent); overflow: hidden; }
 .calc-bar span { display: block; height: 100%; border-radius: 4px; background: color-mix(in srgb, var(--ink) 28%, transparent); transition: width 260ms cubic-bezier(0.2, 0, 0, 1); }
 .calc-bar.mine span { background: var(--accent); }
-.calc-bar-sub { font-size: 11.5px; color: color-mix(in srgb, var(--ink) 40%, transparent); }
-.calc-note { font-size: 11.5px; color: color-mix(in srgb, var(--ink) 35%, transparent); line-height: 1.5; margin: 4px 0 0; }
+.calc-bar-sub { font-size: 12px; color: color-mix(in srgb, var(--ink) 40%, transparent); }
+.calc-note { font-size: 12px; color: color-mix(in srgb, var(--ink) 35%, transparent); line-height: 1.5; margin: 4px 0 0; }
 @media (prefers-reduced-motion: reduce) { .calc-bar span { transition: none; } }
 
 /* fee trio */
@@ -2703,7 +2703,7 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .alt-card { cursor: default; }
 .alt-ours {
   margin-left: 8px; vertical-align: 2px; background: #ededed; color: var(--accent-ink);
-  border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 750;
+  border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 750;
   letter-spacing: 0.06em; text-transform: uppercase;
 }
 .alt-grid { grid-template-columns: 1fr; }
@@ -3310,12 +3310,12 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-roleline { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 16px; color: var(--dim); }
 .shop-rolestack { display: inline-flex; flex: none; }
 .shop-rolechip {
-  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
-  font: 700 10px/1 var(--font-body, inherit); color: var(--ink);
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 12px/1 var(--font-body, inherit); color: var(--ink);
   background: color-mix(in srgb, var(--ink) 18%, transparent);
   box-shadow: 0 0 0 1.5px var(--shop-ground);
 }
-.shop-rolechip + .shop-rolechip { margin-left: -8px; }
+.shop-rolechip + .shop-rolechip { margin-left: -9px; }
 .shop-roleline b { color: var(--ink); font-weight: 600; }
 
 /* ── tabs: rail to rail, exact fractions, pill underline on the divider ── */
