@@ -62,10 +62,17 @@ export async function processNowPayment(payment) {
     // the shortfall to be findable, and a short payment is the one failure
     // mode that looks identical to success from the buyer's side.
     if (SHORT.has(status)) {
+      // The figure is quoted only when the provider reported one. Deriving it
+      // from the coin ratio assumes the deposit was in the coin the invoice
+      // asked for, which is exactly what an underpayment may not have been.
+      const settled = settledFiat(payment);
+      const total = `${Number(payment.price_amount ?? 0).toFixed(2)} ${normalizeCurrency(payment.price_currency ?? attempt.currency).toUpperCase()}`;
       console.warn(
         `[webhooks] nowpayments ${payment.payment_id} (order ${orderId}) is short: ` +
-          `${settledFiat(payment).toFixed(2)} of ${Number(payment.price_amount ?? 0).toFixed(2)} ` +
-          `${normalizeCurrency(payment.price_currency ?? attempt.currency).toUpperCase()} received — no access granted`,
+          (settled === null
+            ? `the provider did not report what the deposit was worth, against ${total} owed`
+            : `${settled.toFixed(2)} of ${total} received`) +
+          ' — no access granted',
       );
     } else if (DEAD.has(status)) {
       console.warn(`[webhooks] nowpayments ${payment.payment_id} (order ${orderId}) ended as ${status} — no access granted`);

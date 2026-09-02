@@ -6492,13 +6492,20 @@ const npAttemptStatus = async (orderId) =>
   (await tq('SELECT status FROM checkout_attempts WHERE session_id = ?', [orderId])).rows[0].status;
 
 test('crypto: no coin figure without evidence, and a status nobody knows is "checking", never "confirming"', async () => {
-  const { describeStatus, paidInRequestedCoin } = await import('../src/lib/nowpayments.js');
+  const { describeStatus, paidInRequestedCoin, settledFiat } = await import('../src/lib/nowpayments.js');
   // Wrong-asset auto-processing is ON, so a deposit with no fiat valuation
-  // attached could be any coin. The shortfall is still quoted in the order's
-  // money; the coin figure needs actually_paid_at_fiat to vouch for it.
+  // attached could be any coin. actually_paid_at_fiat is the only evidence of
+  // what turned up, and ONE rule follows from its absence: no coin figure and
+  // no money figure either. The shortfall used to be quoted in dollars from
+  // (actually_paid / pay_amount) × price — the same wrong-asset assumption
+  // the coin figure is withheld for, dressed up as a precise number.
   const bare = { payment_status: 'partially_paid', pay_currency: 'sol', pay_amount: 0.5, actually_paid: 0.35, price_amount: 49.99, price_currency: 'usd' };
   assert.equal(paidInRequestedCoin(bare), false, 'no actually_paid_at_fiat is no evidence, not proof of the requested coin');
+  assert.equal(settledFiat(bare), null, 'and no evidence of what it was worth either');
   assert.doesNotMatch(describeStatus(bare, { currency: 'usd' }).message, /SOL/);
+  assert.doesNotMatch(describeStatus(bare, { currency: 'usd' }).message, /[$\d]/, 'no figure at all, in any unit, when nothing here knows one');
+  assert.match(describeStatus(bare, { currency: 'usd' }).message, /same address/, 'they can still top it up');
+  assert.match(describeStatus({ ...bare, actually_paid_at_fiat: 34.99 }, { currency: 'usd' }).message, /\$15\.00/, 'a reported fiat value is quoted');
   assert.equal(paidInRequestedCoin({ ...bare, actually_paid_at_fiat: 34.99 }), true, 'a fiat value that agrees with the coin maths is the evidence');
 
   for (const status of ['something_new', '', undefined]) {
