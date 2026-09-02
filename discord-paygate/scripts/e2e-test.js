@@ -4732,6 +4732,100 @@ test('whole numbers bound for bigint columns are safe integers, and an oversized
   }
 });
 
+test('the input boundary: bad cookies, null bodies, NUL bytes, wrong types and over-length links are refused, never 500s or silent rewrites', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const u1Cookie = await loginAs('code_u1'); // the platform owner
+  const post = (path, body, cookie = u7Cookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: typeof body === 'string' ? body : JSON.stringify({ store: 'vip-signals', ...body }) });
+  const storeRow = async () => (await (await post('/api/admin/store', {})).json()).store;
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf);
+
+  // One undecodable cookie ANYWHERE in the jar used to be a URIError and a
+  // 500 on every session-reading route. It is "no such cookie", nothing more.
+  const me = await fetch(`${appUrl}/api/me`, { headers: { cookie: `junk=%E0%A4%A; ${u7Cookie}` } });
+  assert.equal(me.status, 200, 'a stray malformed cookie does not take the session down with it');
+  assert.equal((await me.json()).discordId, '507700000000000007', 'the valid session beside it still signs in');
+  const bad = await fetch(`${appUrl}/api/me`, { headers: { cookie: 'tl_session=%' } });
+  assert.deepEqual(await bad.json(), { loggedIn: false }, 'an undecodable session is simply not a session');
+
+  // The literal JSON `null` parses fine, so the .catch() around readJsonBody
+  // never fired and the next `body.store` was a TypeError.
+  for (const path of ['/api/admin/store', '/api/admin/discounts']) {
+    assert.equal((await post(path, 'null')).status, 404, `${path} with a null body is "unknown store", not a 500`);
+  }
+  assert.equal((await post('/api/admin/settings', 'null', u1Cookie)).status, 200, 'a null settings body changes nothing');
+
+  // U+0000: Postgres refuses the byte with a 500, SQLite silently truncates
+  // the string at it. It is stripped once, at the body boundary, for everyone.
+  assert.equal((await post('/api/admin/store', { name: 'Ev\u0000il' })).status, 200);
+  assert.equal((await storeRow()).name, 'Evil', 'a NUL byte in a store name is dropped, and the rest of the name survives');
+  const nulPlan = await (await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, description: 'a\u0000b' })).json();
+  assert.equal(nulPlan.plan.description, 'ab', 'the same at every text field, product descriptions included');
+
+  // A discount kind that is not exactly one of the two must not become a
+  // percentage: "$50 off" booked as "50% off" is a materially different sale.
+  assert.equal((await post('/api/admin/discounts', { action: 'create', code: 'KIND1', kind: 'FIXED', amount: 50 })).status, 400, "'FIXED' is not 'fixed'");
+  assert.equal((await post('/api/admin/discounts', { action: 'create', code: 'KIND1', kind: 'coupon', amount: 50 })).status, 400);
+  assert.equal((await post('/api/admin/discounts', { action: 'create', code: 'KIND1', amount: 10 })).status, 200, 'omitting the kind still means percent');
+  assert.equal((await post('/api/admin/discounts', { action: 'delete', code: 'KIND1' })).status, 200);
+
+  // Links pass the https regex at full length and were then cut at 500 —
+  // still a valid URL, to somewhere the seller never chose.
+  const long = 'https://a.test/?utm=' + 'x'.repeat(900);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, successUrl: long })).status, 400, 'an over-length success URL is refused');
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, imageUrl: long })).status, 400, 'an over-length photo link is refused');
+  assert.equal((await post('/api/onboard', { step: 'product', storeId, name: 'Long pic', priceUsd: 10, lifetime: true, imageUrl: long })).status, 400);
+  assert.equal((await post('/api/admin/store', { bannerUrl: long })).status, 400, 'an over-length banner URL is refused');
+  const okUrl = 'https://a.test/ok?' + 'y'.repeat(470);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, successUrl: okUrl })).status, 200, 'a link that fits is stored whole');
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, successUrl: '' })).status, 200);
+
+  // The wrong type for links or prefs used to read as "no keys" and wiped the
+  // stored value behind a 200. null clears; anything else that is not an
+  // object is refused with the stored value untouched.
+  assert.equal((await post('/api/admin/store', { dashboardPrefs: { accent: '#aabbcc', defaultRange: '90' }, links: { x: 'https://x.com/vip' } })).status, 200);
+  assert.equal((await post('/api/admin/store', { dashboardPrefs: '#aabbcc' })).status, 400, 'a bare string is not a prefs object');
+  assert.equal((await post('/api/admin/store', { links: 'abc' })).status, 400, 'links must be an object');
+  assert.equal((await post('/api/admin/store', { links: [] })).status, 400, 'a list is not a links object either');
+  const kept = await storeRow();
+  assert.deepEqual(kept.dashboardPrefs, { accent: '#aabbcc', defaultRange: '90' }, 'the refused save left the prefs alone');
+  assert.deepEqual(kept.links, { x: 'https://x.com/vip' }, 'the refused save left the links alone');
+  assert.equal((await post('/api/admin/store', { dashboardPrefs: null, links: null })).status, 200, 'null is the one way to clear');
+  const cleared = await storeRow();
+  assert.equal(cleared.dashboardPrefs, null);
+  assert.equal(cleared.links, null);
+
+  // Text fields are text. String() persisted "[object Object]" as the store
+  // name with a 200, and the plan key "object-object" for a product.
+  for (const value of [{ a: 1 }, true, [1, 2], 7]) {
+    assert.equal((await post('/api/admin/store', { name: value })).status, 400, `store name ${JSON.stringify(value)}`);
+    assert.equal((await post('/api/admin/store', { description: value })).status, 400, `store description ${JSON.stringify(value)}`);
+    assert.equal((await post('/api/onboard', { step: 'product', storeId, name: value, priceUsd: 10, lifetime: true })).status, 400, `product name ${JSON.stringify(value)}`);
+    assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, name: value })).status, 400, `product rename ${JSON.stringify(value)}`);
+  }
+  assert.equal((await storeRow()).name, 'Evil', 'none of those wrote anything');
+  assert.equal((await post('/api/admin/store', { name: 'VIP Signals' })).status, 200);
+
+  // The receipt sender is the From header of every receipt: an address, or a
+  // name in front of one. Resend rejects anything else and the only symptom
+  // used to be receipts quietly stopping.
+  for (const from of ['not an email at all', '<script>alert(1)</script>', 'Dues <a@b>', 'Dues <a@b.c', 'x\r\nbcc: y@z.io']) {
+    assert.equal((await post('/api/admin/settings', { receiptFrom: from }, u1Cookie)).status, 400, `receiptFrom ${JSON.stringify(from)}`);
+  }
+  const settings = await (await fetch(`${appUrl}/api/admin/settings`, { headers: { cookie: u1Cookie } })).json();
+  assert.equal(settings.receiptFrom, 'Dues <receipts@tradeleaks.e2e>', 'the refused senders changed nothing');
+  assert.equal((await post('/api/admin/settings', { receiptFrom: 'Dues <receipts@tradeleaks.e2e>' }, u1Cookie)).status, 200, 'a real Name <address> sender is accepted');
+});
+
 test('a buyer on the card form holds a seat and a discount use; an option upgrade ends the earlier option', async () => {
   const loginAs = async (code) => {
     const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
@@ -5051,6 +5145,27 @@ test('crypto: an IPN whose order is not ours is answered, and grants nothing', a
   const res = await deliverNow({ payment_id: 'npid_stranger', payment_status: 'finished', order_id: 'np_ffffffffffffffffffffffffffffffff' });
   assert.equal(res.status, 200);
   assert.equal(await subRow('nowpayments', 'npid_stranger'), null);
+});
+
+// The window is per address and outlives the test, so the guesses come from
+// an address of their own: the suite's loopback keeps previewing codes, and
+// the pin does not depend on how many of those happened in the last minute.
+test('the public discount preview is not a code oracle: one address gets thirty lookups a minute, then a 429', async () => {
+  const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf);
+  const lookup = (code) =>
+    fetch(`${appUrl}/api/discount?store=vip-signals&code=${code}&plan=${plan.id}`, { headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.1' } });
+  // 300 anonymous guesses used to come back in under a second, every one of
+  // them an honest yes/no — a two-character code space is 1,444 guesses.
+  const statuses = [];
+  for (let i = 0; i < 40; i++) statuses.push((await lookup(`GUESS${i}`)).status);
+  assert.ok(statuses.slice(0, 30).every((s) => s === 404), 'a buyer retyping a code a few times is never in the way');
+  assert.ok(statuses.slice(30).every((s) => s === 429), 'past the window the answer is 429 for every guess');
+  const throttled = await lookup('LAUNCH20');
+  assert.equal(throttled.status, 429, 'a real code from a throttled address is not confirmed either');
+  assert.match((await throttled.json()).error, /wait a minute/, 'the Apply button shows the reason');
+  assert.equal((await lookup('bad code!')).status, 400, 'malformed input is still refused as malformed, before the window');
+  const elsewhere = await fetch(`${appUrl}/api/discount?store=vip-signals&code=LAUNCH20&plan=${plan.id}`);
+  assert.equal(elsewhere.status, 200, 'the window is per address — a buyer somewhere else is not paying for it');
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════
