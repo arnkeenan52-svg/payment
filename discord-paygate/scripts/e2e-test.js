@@ -1241,6 +1241,40 @@ test('a failed Discord token exchange explains itself and spends the state cooki
   assert.equal(refresh.headers.get('location'), '/auth/login?retry=1');
 });
 
+test('sign-out is a POST; a GET confirms instead of clearing the session', async () => {
+  // SameSite=Lax rides on cross-site top-level GETs, so a GET that cleared
+  // the cookie would let any third-party link sign a seller out mid-task.
+  const get = await fetch(`${appUrl}/auth/logout`, { redirect: 'manual', headers: { cookie: u1Cookie } });
+  assert.equal(get.status, 200);
+  assert.match(get.headers.get('content-type'), /text\/html/);
+  assert.deepEqual(get.headers.getSetCookie(), [], 'a GET must not touch the session');
+  assert.match(await get.text(), /<form method="post" action="\/auth\/logout"/, 'the confirm page posts the real sign-out');
+
+  // A cross-site POST cannot carry the Lax cookie: nothing to clear, nothing cleared.
+  const foreign = await fetch(`${appUrl}/auth/logout`, { method: 'POST', redirect: 'manual' });
+  assert.equal(foreign.status, 302);
+  assert.deepEqual(foreign.headers.getSetCookie(), [], 'no session cookie, no clears');
+
+  // The page's own button: a same-site POST carrying the session clears both
+  // the domain-scoped cookie and any older host-only one.
+  const post = await fetch(`${appUrl}/auth/logout`, { method: 'POST', redirect: 'manual', headers: { cookie: u1Cookie } });
+  assert.equal(post.status, 302);
+  assert.equal(post.headers.get('location'), '/');
+  const clears = post.headers.getSetCookie().filter((c) => /^tl_session=;.*Max-Age=0/.test(c));
+  assert.equal(clears.length, 2, 'domain-scoped and host-only clears');
+  assert.ok(clears.some((c) => /Domain=tradeleaks\.e2e/.test(c)) && clears.some((c) => !/Domain=/.test(c)));
+
+  assert.equal((await fetch(`${appUrl}/auth/logout`, { method: 'PUT', redirect: 'manual' })).status, 405);
+
+  // And every Sign out button in the product submits that POST — none of
+  // them navigates to the GET.
+  for (const f of ['app.js', 'account.js', 'dashboard.js', 'home.js']) {
+    const src = fs.readFileSync(path.join(ROOT, 'public', f), 'utf8');
+    assert.ok(!src.includes("location.href = '/auth/logout'"), `${f} must not sign out via GET`);
+    assert.match(src, /f\.method = 'post';\s*f\.action = '\/auth\/logout';/, `${f} must sign out via a POST form`);
+  }
+});
+
 test('checkout endpoint creates a Stripe session with the buyer wired in', async () => {
   const res = await fetch(`${appUrl}/api/checkout/stripe`, {
     method: 'POST',

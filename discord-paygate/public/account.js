@@ -1,5 +1,14 @@
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Sign out is a POST: the session cookie rides on cross-site GETs, so a
+// GET link could be fired by any third-party page (see api/auth/logout.js).
+const signOut = () => {
+  const f = document.createElement('form');
+  f.method = 'post';
+  f.action = '/auth/logout';
+  document.body.appendChild(f);
+  f.submit();
+};
 const fmtDate = (unix) => new Date(unix * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
 let server = null;
@@ -103,7 +112,7 @@ async function load() {
   const account = $('#account');
   if (me.loggedIn) {
     account.innerHTML = `${me.isOwner || me.seller ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
-    $('#logout').onclick = () => (window.location.href = '/auth/logout');
+    $('#logout').onclick = signOut;
   } else {
     account.innerHTML = '';
   }

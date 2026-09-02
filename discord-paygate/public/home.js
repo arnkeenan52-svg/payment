@@ -1,5 +1,14 @@
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Sign out is a POST: the session cookie rides on cross-site GETs, so a
+// GET link could be fired by any third-party page (see api/auth/logout.js).
+const signOut = () => {
+  const f = document.createElement('form');
+  f.method = 'post';
+  f.action = '/auth/logout';
+  document.body.appendChild(f);
+  f.submit();
+};
 
 async function load() {
   const me = await (await fetch('/api/me')).json().catch(() => ({ loggedIn: false }));
@@ -11,11 +20,16 @@ async function load() {
       `<a class="nav-link" href="/account">Account</a>` +
       `<a class="nav-link" href="/dashboard">Dashboard</a>` +
       `<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
-    $('#logout').onclick = () => (window.location.href = '/auth/logout');
-    if (menuAccount)
+    $('#logout').onclick = signOut;
+    if (menuAccount) {
       menuAccount.innerHTML =
         `<a href="/dashboard">Dashboard</a><a href="/account">Account</a>` +
-        `<a href="/auth/logout">Sign out <span class="dim">@${esc(me.username ?? me.discordId)}</span></a>`;
+        `<a href="/auth/logout" id="menu-logout">Sign out <span class="dim">@${esc(me.username ?? me.discordId)}</span></a>`;
+      $('#menu-logout').onclick = (e) => {
+        e.preventDefault();
+        signOut();
+      };
+    }
   } else {
     account.innerHTML = '<button class="btn-pill" id="login">Sign in with Discord</button>';
     $('#login').onclick = () => (window.location.href = '/auth/login');
