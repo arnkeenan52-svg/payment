@@ -734,6 +734,17 @@ function deltaChip(delta) {
   return `<span class="delta ${delta > 0 ? 'up' : 'down'}"><span aria-hidden="true">${delta > 0 ? '▲' : '▼'}</span>${n}%</span>`;
 }
 
+// A save that ends in a full re-render lands on a screen identical to the one
+// before the click, so nothing said it worked. Settings' payment key says
+// "Updated ✓" for 1.6s; these sections say so through their status slot,
+// which is looked up AFTER the re-render because the old one is gone.
+function flashSaved(sel) {
+  const el = $(sel);
+  if (!el) return;
+  el.textContent = 'Saved ✓';
+  setTimeout(() => { if (el.isConnected) el.textContent = ''; }, 1600);
+}
+
 function statCard(label, value, icon, delta = null, sub = '', spark = '') {
   return `<div class="panel stat"><div class="stat-top"><span class="stat-label">${label}</span><span class="stat-ic">${icon}</span></div><span class="stat-value">${value}${deltaChip(delta)}</span>${spark}${sub ? `<span class="stat-sub">${sub}</span>` : ''}</div>`;
 }
@@ -2091,8 +2102,9 @@ function sectionCustomize(store) {
           <p class="field-help dc-help">The range your analytics open on.</p></div>
         <p class="field-err" id="dc-note" role="alert"></p>
       </div>`,
-      foot: `<button class="btn-pill" id="dc-save">Save</button>
-        <button class="btn-ghost" id="dc-reset">Reset to default</button>`,
+      foot: `<span class="appearance-foot"><button class="btn-pill" id="dc-save">Save</button>
+        <button class="btn-ghost" id="dc-reset">Reset to default</button>
+        <span class="note-help" id="dc-ok" role="status"></span></span>`,
     })}
     ${/* Not a card. This panel had a title, a sentence and one link, and spent
           169px of a phone screen saying where something else lives — 115px of
@@ -2144,7 +2156,8 @@ function wireCustomize(store, slug) {
     try {
       await api('/api/admin/store', { store: slug, dashboardPrefs: prefsBody });
       state.data = null;
-      viewStore(slug);
+      await viewStore(slug);
+      flashSaved('#dc-ok');
     } catch (err) {
       btn.disabled = false;
       btn.textContent = 'Save';
@@ -3322,7 +3335,8 @@ function wireAppearance(store, slug) {
     try {
       await api('/api/admin/store', { store: slug, theme: read() });
       state.data = null;
-      viewStore(slug);
+      await viewStore(slug);
+      flashSaved('#th-note');
     } catch (err) {
       btn.disabled = false;
       btn.textContent = 'Save appearance';
