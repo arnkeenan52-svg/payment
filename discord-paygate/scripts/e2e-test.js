@@ -4526,6 +4526,45 @@ test('managed store: a role deleted and re-created under its name still lands â€
   assert.equal((await onboard({ step: 'product-update', storeId, planKey: plan.planKey, active: false })).status, 200);
 });
 
+test('a sealed Stripe key that no longer opens: no Stripe call on any path, and the owner is told', async () => {
+  // The tenant key is sealed with a key derived from SESSION_SECRET. Rotate
+  // that secret and the blob still exists but will not open â€” a state that
+  // must never fall back to the platform's key, on the session OR the coupon
+  // call, and that the owner's checklist must name instead of hiding.
+  const app2 = await spawnApp({ ...phase1Env, SESSION_SECRET: 'rotated-e2e-session-secret-9876543210-zyxw' });
+  try {
+    const loginAs = async (code) => {
+      const login = await fetch(`${app2.url}/auth/login`, { redirect: 'manual' });
+      const st = new URL(login.headers.get('location')).searchParams.get('state');
+      const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+      const cb = await fetch(`${app2.url}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+      return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+    };
+    const plansRes = await (await fetch(`${app2.url}/api/plans?store=vip-signals`)).json();
+    assert.equal(plansRes.capabilities.stripe, false, 'buyers see the card rail as not ready, not a dead button');
+    const plan = plansRes.plans.find((p) => !p.variantOf && !p.requiredRoleName);
+    assert.ok(plan, 'vip-signals still lists an open product');
+    const buyer = await loginAs('code_gate');
+    const sessionsBefore = stripe.checkoutSessions.length;
+    const couponsBefore = stripe.coupons.length;
+    const plain = await fetch(`${app2.url}/api/checkout/stripe`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: buyer }, body: JSON.stringify({ store: 'vip-signals', planId: plan.id }) });
+    assert.equal(plain.status, 502);
+    assert.match((await plain.json()).error, /payment could not be started/i);
+    const withCode = await fetch(`${app2.url}/api/checkout/stripe`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: buyer }, body: JSON.stringify({ store: 'vip-signals', planId: plan.id, discountCode: 'launch20' }) });
+    assert.equal(withCode.status, 502);
+    assert.match((await withCode.json()).error, /payment could not be started/i, 'a code does not turn the refusal into "the discount is broken"');
+    assert.equal(stripe.checkoutSessions.length, sessionsBefore, 'no session on any Stripe account');
+    assert.equal(stripe.coupons.length, couponsBefore, 'no coupon on any Stripe account');
+    // The owner's own view says so, in the checklist's words.
+    const owner = await loginAs('code_u7');
+    const mine = (await (await fetch(`${app2.url}/api/admin/payments`, { headers: { cookie: owner } })).json()).stores.find((s) => s.slug === 'vip-signals');
+    assert.equal(mine.hasStripeKey, false, 'a key that cannot be read is not a connected one');
+    assert.equal(mine.stripeKeyBroken, true);
+  } finally {
+    app2.child.kill();
+  }
+});
+
 test('crypto: waiting and partially_paid show progress and grant nothing', async () => {
   const payment = nowpayments.payments.get('npid_1');
   assert.equal((await deliverNow({ payment_id: 'npid_1', payment_status: 'waiting', order_id: npOrder.orderId })).status, 200);

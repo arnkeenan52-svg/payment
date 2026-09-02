@@ -40,6 +40,18 @@ export default guard(async function handler(req, res) {
     sendJson(res, blocked.status, { error: blocked.error });
     return;
   }
+  // A managed store whose sealed key will not open (a rotated SESSION_SECRET)
+  // must not reach Stripe at all — not for a coupon, not for a session. The
+  // session builder refuses on its own, but the coupon call ran BEFORE it and
+  // told a buyer with a code that the discount was broken, with `null` as the
+  // bearer. Same sentence as the session failure: the cause is the same.
+  if (store.id !== null && store.id !== undefined && !store.stripeKey) {
+    console.error(`[checkout] store ${store.slug}: its Stripe key cannot be read — reconnect Stripe in Settings before selling`);
+    sendJson(res, 502, {
+      error: "Payment could not be started — the store's payment setup is incomplete. Please try again shortly.",
+    });
+    return;
+  }
   // Discount code → a one-shot Stripe coupon on the store's own account.
   // Validated here; the completed-checkout webhook counts the use.
   let couponId = null;

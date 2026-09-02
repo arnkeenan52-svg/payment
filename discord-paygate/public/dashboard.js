@@ -1379,9 +1379,11 @@ async function renderChecklist(store, slug) {
       // at all. The built-in store rides on the platform's own key.
       {
         ok: Boolean(store.isDefault || store.hasStripeKey),
-        label: 'Payment method connected — Stripe',
+        label: store.stripeKeyBroken ? 'Stripe key needs re-entering' : 'Payment method connected — Stripe',
         href: `#/store/${slug}/settings`,
-        hint: 'Add your Stripe secret key in Settings — until then no one can pay you.',
+        hint: store.stripeKeyBroken
+          ? 'Your saved Stripe key can no longer be read — paste it again in Settings. Until then no one can pay you.'
+          : 'Add your Stripe secret key in Settings — until then no one can pay you.',
       },
       { ok: products.length > 0, label: 'First product created', href: `#/store/${slug}/products` },
       { ok: store.status === 'live' && withRoles.length > 0, label: 'Store published with a role to deliver', href: `#/store/${slug}/products` },

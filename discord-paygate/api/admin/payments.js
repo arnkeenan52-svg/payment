@@ -130,7 +130,10 @@ export default guard(async function handler(req, res) {
         id: s.id, slug: s.slug, name: s.name, status: s.status, guildId: s.guildId, isDefault: s.isDefault,
         // whether a key EXISTS — never the key, and never anything derived
         // from it. The setup checklist used to hard-code this as true.
-        hasStripeKey: Boolean(s.hasOwnStripeKey),
+        // A sealed key that no longer opens (rotated SESSION_SECRET) is not a
+        // connected one: the checklist must go red, not hide itself.
+        hasStripeKey: Boolean(s.hasOwnStripeKey) && !s.stripeKeyBroken,
+        stripeKeyBroken: Boolean(s.stripeKeyBroken),
         notifyChannelId: s.notifyChannelId ?? null, theme: s.theme ?? null,
         discoverable: Boolean(s.discoverable), category: s.category ?? null,
         description: s.description ?? null,
