@@ -3152,7 +3152,15 @@ test('discover: opt-in directory of live stores, real numbers only', async () =>
   // The page itself serves, and the platform paths cannot be claimed as slugs.
   const page = await fetch(`${appUrl}/discover`);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /Find your next community/);
+  const discoverHtml = await page.text();
+  assert.match(discoverHtml, /Find your next community/);
+  // It is the first link in every footer and the one page in the sitemap that
+  // shipped with no image card: Discord and Slack unfurled it as bare text and
+  // X, with no twitter:card at all, as a plain link. The same block every
+  // other page carries.
+  assert.match(discoverHtml, /property="og:url" content="https:\/\/dues\.gg\/discover"/, '/discover names its own og:url');
+  assert.match(discoverHtml, /property="og:image" content="https:\/\/dues\.gg\/og-card\.jpg/, '/discover unfurls with the site card');
+  assert.match(discoverHtml, /name="twitter:card" content="summary_large_image"/, '/discover gets the large X card like every other page');
   assert.equal((await fetch(`${appUrl}/api/plans?store=discover`)).status, 404);
 
   // Opting out delists immediately.
