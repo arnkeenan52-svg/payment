@@ -6712,9 +6712,11 @@ test('crypto: money that lands for a product that cannot be delivered is never a
 // signed in until it expires and "Sign out" only clears one browser. Every
 // cookie now carries the account's session generation; "Log out everywhere"
 // bumps it and anything issued before is refused. Cookies minted before
-// generations existed carry none and must keep working until they expire —
-// a deploy must not sign everyone out.
-test('session revocation: log out everywhere kills every cookie, a fresh login works, legacy cookies survive', async () => {
+// generations existed carry none: a deploy must not sign everyone out, so
+// they count as generation 0 (what every account starts at) — valid until the
+// account revokes, and dead the moment it does. A permanent exemption would
+// spare exactly the stolen-before-deploy device the button exists for.
+test('session revocation: log out everywhere kills every cookie, a fresh login works, pre-generation cookies die with it', async () => {
   const UID = '516000000000000016';
   const meWith = async (cookie) => (await (await fetch(`${appUrl}/api/me`, { headers: { cookie } })).json()).loggedIn;
   const logoutAll = (headers, body = '{}') => fetch(`${appUrl}/api/auth/logout-all`, { method: 'POST', headers, body });
@@ -6733,6 +6735,9 @@ test('session revocation: log out everywhere kills every cookie, a fresh login w
   assert.equal(await meWith(phone), true);
   const issued = JSON.parse(Buffer.from(laptop.split('=')[1].split('.')[0], 'base64url').toString('utf8'));
   assert.equal(typeof issued.gen, 'number', 'a login cookie carries the session generation');
+  // Deploy safety: a cookie minted before generations existed still works for
+  // an account that has never revoked, so shipping this signs nobody out.
+  assert.equal(await meWith(mint({ uid: UID, exp })), true, 'a pre-generation cookie is still good until the account revokes');
 
   // CSRF shape: a same-origin JSON POST from a signed-in browser, nothing else.
   assert.equal((await fetch(`${appUrl}/api/auth/logout-all`, { headers: { cookie: laptop } })).status, 405, 'GET never revokes');
@@ -6754,12 +6759,47 @@ test('session revocation: log out everywhere kills every cookie, a fresh login w
   const reissued = JSON.parse(Buffer.from(again.split('=')[1].split('.')[0], 'base64url').toString('utf8'));
   assert.ok(reissued.gen > issued.gen, 'the generation moved forward');
 
-  // Legacy cookie: same user, valid signature, no generation field.
-  assert.equal(await meWith(mint({ uid: UID, exp })), true, 'a pre-generation cookie stays valid until it expires');
+  // Legacy cookie: same user, valid signature, no generation field. It read as
+  // generation 0 above; the revoke moved the account past 0, so it is gone —
+  // and it cannot revoke on its own behalf either.
+  assert.equal(await meWith(mint({ uid: UID, exp })), false, 'a pre-generation cookie is refused once the account has logged out everywhere');
+  assert.equal((await logoutAll({ cookie: mint({ uid: UID, exp }), 'content-type': 'application/json' })).status, 401, 'and it cannot act');
   assert.equal(await meWith(mint({ uid: UID, exp, gen: issued.gen })), false, 'a stale generation is refused even with a valid signature');
   assert.equal(await meWith(mint({ uid: UID, exp, gen: reissued.gen })), true, 'the current generation is accepted');
   assert.equal(await meWith(mint({ uid: UID, exp, gen: String(reissued.gen) })), false, 'a generation that is not a number fails closed');
   assert.equal(await meWith(mint({ uid: '516000000000000099', exp, gen: 0 })), false, 'a generation cookie for an account that never signed in fails closed');
+});
+
+// The generation is cached per process for a minute to keep reads off the DB,
+// and in production every api/*.js is its OWN process — so a revoke run by the
+// logout-all function is invisible to every other endpoint until its entry
+// ages out. Reads may live with that lag. Writes may not: api/admin/store.js
+// (and api/onboard.js) rotate the store's Stripe key and hand the CALLER a
+// replacement cookie carrying the new generation, so a cached check there let
+// the holder of a revoked cookie mint themselves seven fresh days, lock the
+// seller out of their own account, and point the store's payouts at their key.
+test('session revocation: a revoke on another instance stops writes here at once, not in a minute', async () => {
+  const UID = '516000000000000017';
+  const meWith = async (cookie) => (await (await fetch(`${appUrl}/api/me`, { headers: { cookie } })).json()).loggedIn;
+  const cookie = await signInAs('code_u17', UID, 'rotator');
+  assert.equal(await meWith(cookie), true, 'this read warms the instance cache with the current generation');
+
+  // A "log out everywhere" served by another instance: the row moves, this
+  // process's cache does not. Written straight to the DB, which is exactly
+  // what the other process's bump looks like from here.
+  await tq('UPDATE users SET session_gen = session_gen + 1 WHERE discord_id = ?', [UID]);
+  assert.equal(await meWith(cookie), true, 'a read may still trust the cached generation for up to a minute');
+
+  const rotate = await fetch(`${appUrl}/api/admin/store`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie },
+    body: JSON.stringify({ store: 'no-such-store', stripeKey: 'sk_test_attacker_key' }),
+  });
+  // 404 would mean the revoked cookie got past the door and was only stopped
+  // by the store lookup.
+  assert.equal(rotate.status, 401, 'a mutating admin call re-reads the generation and refuses the revoked cookie');
+  assert.deepEqual(rotate.headers.getSetCookie().filter((c) => c.startsWith('tl_session=')), [], 'and mints no replacement cookie');
+  assert.equal((await fetch(`${appUrl}/api/auth/logout-all`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: '{}' })).status, 401, 'nor can it revoke again from a stale cache');
 });
 
 async function main() {

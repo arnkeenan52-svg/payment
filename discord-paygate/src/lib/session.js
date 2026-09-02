@@ -6,9 +6,11 @@ import { sessionGeneration, bumpSessionGeneration } from '../db.js';
 export const SESSION_COOKIE = 'tl_session';
 const SESSION_TTL_SECONDS = 7 * 24 * 3600;
 // How long a user's session generation is trusted in-process before the DB
-// is asked again. Keeps the hot path free of a read per request; a revoke on
-// another instance takes effect there within this window (the instance that
-// performed it refreshes its own cache at once).
+// is asked again. Every api/*.js is its own process in production, so this
+// cache is per-instance: a revoke performed elsewhere is invisible here until
+// the entry ages out. Read paths accept that lag; anything that can change
+// state re-reads the generation (see sessionUserId), so "log out everywhere"
+// stops writes — and stops a replacement cookie being minted — at once.
 const GENERATION_CACHE_MS = 60 * 1000;
 
 const sign = (payload) =>
@@ -37,9 +39,9 @@ export function clearSessionCookie() {
 // uid -> { gen, at } — the generation last read for that user, and when.
 const generationCache = new Map();
 
-async function currentGeneration(uid) {
+async function currentGeneration(uid, fresh) {
   const hit = generationCache.get(uid);
-  if (hit && Date.now() - hit.at < GENERATION_CACHE_MS) return hit.gen;
+  if (!fresh && hit && Date.now() - hit.at < GENERATION_CACHE_MS) return hit.gen;
   const gen = await sessionGeneration(uid);
   // Entries are never evicted individually; a flat cap keeps the map from
   // growing with every user that ever signed in on this instance.
@@ -77,12 +79,21 @@ export async function sessionUserId(req) {
   // exp must be a real number: a payload missing it must fail closed, never
   // be treated as a non-expiring session (undefined < now is false).
   if (!uid || typeof exp !== 'number' || exp < Math.floor(Date.now() / 1000)) return null;
-  // Cookies issued before generations existed carry none; they stay valid
-  // until their own expiry so a deploy does not log everyone out, and the
-  // next login issues one with a generation. Anything else that is not a
-  // number is a forgery attempt, and a stale generation is a revoked session.
-  if (gen !== undefined) {
-    if (typeof gen !== 'number' || gen !== (await currentGeneration(String(uid)))) return null;
-  }
+  // Cookies issued before generations existed carry none. Every users row
+  // starts at generation 0, so reading a missing one as 0 keeps those cookies
+  // working across the deploy that added generations — while still letting the
+  // account's first "log out everywhere" kill them, which the old exemption
+  // never did (the stolen-before-deploy device is exactly the one the button
+  // exists for). Anything else that is not a number is a forgery attempt, and
+  // a stale generation is a revoked session.
+  const g = gen === undefined ? 0 : gen;
+  // A read may trust the cached generation for up to GENERATION_CACHE_MS.
+  // Anything that can change state — or mint a replacement cookie, as the
+  // Stripe-key rotation in api/admin/store.js and api/onboard.js does — asks
+  // the DB, so a revoke performed on another instance is honoured here now
+  // instead of within a minute. It is one indexed primary-key select.
+  const method = String(req.method ?? '').toUpperCase();
+  const fresh = method !== 'GET' && method !== 'HEAD';
+  if (typeof g !== 'number' || g !== (await currentGeneration(String(uid), fresh))) return null;
   return String(uid);
 }
