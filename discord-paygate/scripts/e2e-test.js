@@ -1458,6 +1458,72 @@ test('the landing runs on one type scale, one vertical rhythm and one grid', () 
   }
 });
 
+test('the first screen earns its height: a capped well, a grounded claim field, a role band with a floor', () => {
+  // Measured on this machine at 1440x900 before the change: 256px of hero
+  // content adrift in a 752px well, so two thirds of the first screen was
+  // empty sky with a bouncing chevron as the only evidence the page continued.
+  // The claim field — the ONLY input above the fold and the only thing on that
+  // screen a visitor can act on — rode --glass, which is 6% white on the night
+  // face and 55% on the day face, so over a bright cloud it had no edge at all
+  // and read as chrome rather than an invitation. And the role marquee was two
+  // rows of solid pills on bare sky: on the day face the brightest object on
+  // the page, louder than the headline above it, with nothing marking where
+  // the first screen ended and the argument began.
+  //
+  // Every number below is a composition decision, so it is pinned here rather
+  // than left to the next person's eye.
+  const index = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  const css = index.slice(index.indexOf('<style>'), index.indexOf('</style>'));
+
+  // 1 · THE WELL. Above the phone breakpoint the hero is capped, which lets the
+  // top of the role band sit inside the fold — a floor under the hero, and a
+  // better reason to scroll than the chevron was, so the chevron goes there.
+  const wide = css.match(/@media \(min-width:601px\)\{([\s\S]*?)\n\}/);
+  assert.ok(wide, 'the desktop-and-up hero block is where it was written');
+  assert.match(wide[1], /\.hero\{min-height:clamp\(620px,86svh,820px\)/,
+    'the first screen is capped, so a tall window shows more page rather than more sky');
+  assert.match(wide[1], /\.hero-scrollhint\{display:none\}/,
+    'and the chevron stands down where the role band is the floor');
+  // the phone keeps the full-screen hero the footer reveal is built on
+  assert.match(css, /\.hero\{min-height:100vh;min-height:100lvh\}/,
+    'the phone hero still owns the whole screen — the blind depends on it');
+
+  // 2 · THE CLAIM FIELD. A ground of its own on BOTH faces, an address set in
+  // ink rather than in the placeholder grey, and a submit that inverts the
+  // field it sits in — at a thumb's size on a phone, where it is the only
+  // action on the screen and was 34px tall.
+  assert.match(css, /html:not\(\[data-theme="light"\]\) \.capture\{background:rgba\(13,20,32,\.68\)/,
+    'the night field has a ground of its own, not 6% white over the clouds');
+  assert.match(css, /html\[data-theme="light"\] \.capture\{background:rgba\(255,255,255,\.74\)/,
+    'the day field has a ground of its own');
+  assert.match(css, /\.capture-prefix\{font-size:17px;font-weight:600;color:var\(--ink\)/,
+    'dues.gg\/ is set in ink, so the field reads as an address being handed over');
+  assert.match(css, /html:not\(\[data-theme="light"\]\) \.btn-capture\{background:#f4f7fd/,
+    'the night submit inverts the field rather than sitting two steps off it');
+  assert.match(css, /\.btn-capture\{\n  display:inline-flex[^}]*min-height:44px/,
+    'the submit is 44px');
+  assert.match(css, /@media \(max-width:600px\)\{[\s\S]*?\.btn-capture\{min-height:44px/,
+    'and stays 44px under a thumb');
+
+  // 3 · THE CLOSING EVIDENCE. What the rail is, is a different claim from what
+  // it costs; middot-chained onto the end of the free-tier note it read as the
+  // tail of the fine print.
+  assert.match(css, /\.mc-compat\{display:block/, 'Compatible with … is its own line');
+  assert.doesNotMatch(index, /<span class="mc-compat"> &#183;/,
+    'and is no longer chained onto the free-tier note by a middot');
+
+  // 4 · THE ROLE BAND. A ground with a hairline top and bottom on both faces,
+  // and chips that stopped shouting: no solid card colour, no drop shadow.
+  assert.match(css, /html:not\(\[data-theme="light"\]\) \.rolemarq\{background:rgba\(13,20,32,\.42\);border-block:1px solid/,
+    'the night role band stands on a ground, not on bare sky');
+  assert.match(css, /html\[data-theme="light"\] \.rolemarq\{background:rgba\(255,255,255,\.44\);border-block:1px solid/,
+    'the day role band stands on a ground');
+  const pill = css.match(/\n\.pill\{([^}]*)\}/);
+  assert.ok(pill, '.pill still has a rule');
+  assert.doesNotMatch(pill[1], /var\(--cream\)/, 'the chips are no longer a solid card colour');
+  assert.doesNotMatch(pill[1], /box-shadow/, 'and carry no drop shadow floating on the sky');
+});
+
 test('one nav: every page in the site shows the same header links, in the same order', () => {
   // The site grew three different desktop navs. The landing and /pricing had
   // Pricing / Discover / Invite Dues; the SEO and legal pages had

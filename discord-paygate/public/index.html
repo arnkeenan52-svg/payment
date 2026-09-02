@@ -353,6 +353,17 @@ html[data-theme="light"] .theme-btn .i-moon{display:block}
   padding-top:calc(64px + env(safe-area-inset-top,0px));
   display:flex;flex-direction:column;min-height:100svh;
 }
+/* 100svh is right on a phone — the first screen is the whole screen there,
+   and the reveal below depends on it. On a desktop it produced a 752px well
+   around 256px of content: two thirds empty sky, with a chevron floating in it
+   as the only evidence the page continued. 86svh keeps the sky full-bleed (the
+   slab below is unaffected) while letting the role band's top edge sit inside
+   the fold, which is a floor under the hero and a better invitation to scroll
+   than the chevron was — so the chevron goes, on desktop only. */
+@media (min-width:601px){
+  .hero{min-height:clamp(620px,86svh,820px)}   /* and a ceiling, so a tall window shows more page rather than more sky */
+  .hero-scrollhint{display:none}
+}
 /* the sky: a sticky viewport-filling slab INSIDE the sheet, so the clouds are
    clipped to the sheet and lift away with it — the fixed footer underneath is
    revealed like a window blind. CSS photo fallback behind the shader canvas. */
@@ -389,21 +400,32 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 
 /* the glass capture BOX — foundable's hero anatomy: prompt line up top,
-   submit tucked inside the bottom-right corner */
+   submit tucked inside the bottom-right corner.
+   It is the ONLY input above the fold and the only thing on the first screen
+   a visitor can act on, so it is sized as the action rather than as a field:
+   the address type is 17px (the sub above it is 17px, not a step down), and
+   the box carries a ground of its own instead of --glass, which at 6% white
+   on the night sky and 55% white on the day sky left the field with no edge
+   over a bright cloud — the input dissolved into the photograph. */
 .capture{
-  margin-top:30px;width:min(480px,100%);
+  margin-top:30px;width:min(540px,100%);
   display:flex;flex-direction:row;align-items:center;gap:8px;
-  padding:6px 6px 6px 16px;border-radius:16px;
+  padding:8px 8px 8px 20px;border-radius:18px;
   background:var(--glass);border:1px solid var(--glass-brd);
   box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
   transition:border-color .2s ease;
 }
+html:not([data-theme="light"]) .capture{background:rgba(13,20,32,.68);border-color:rgba(255,255,255,.16)}  /* .55 left the placeholder at 3.1:1 when a bright cloud drifted behind the field */
+html[data-theme="light"] .capture{background:rgba(255,255,255,.74);border-color:rgba(255,255,255,.92)}
 .capture:focus-within{border-color:var(--blue)}
 .capture-line{display:flex;align-items:center;gap:2px;cursor:text;flex:1;min-width:0}
-.capture-prefix{font-size:16px;font-weight:500;color:var(--micro);flex:none}
+/* the prefix was --micro, the same grey as the placeholder, so "dues.gg/" and
+   "your-server" read as one run of empty chrome. In ink it reads as an address
+   the visitor is being handed, with the blank at the end to fill. */
+.capture-prefix{font-size:17px;font-weight:600;color:var(--ink);flex:none}
 .capture input{
-  flex:1;min-width:0;height:30px;background:none;border:0;outline:none;
-  font:inherit;font-size:16px;color:var(--ink);text-align:left;
+  flex:1;min-width:0;height:36px;background:none;border:0;outline:none;
+  font:inherit;font-size:17px;color:var(--ink);text-align:left;
 }
 .capture input::placeholder{color:var(--micro);opacity:.85}
 .capture-actions{flex:none}
@@ -433,13 +455,17 @@ html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
 }
 .btn-capture{
   display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
-  min-height:36px;padding:7px 13px;border:0;border-radius:10px;
-  background:#2c313a;color:#fff;font:inherit;font-size:13.5px;font-weight:700;
+  min-height:44px;padding:0 20px;border:0;border-radius:12px;
+  background:#2c313a;color:#fff;font:inherit;font-size:14.5px;font-weight:700;
   cursor:pointer;transition:background .15s ease,transform .15s ease;
 }
 .btn-capture:hover{background:#3a404b;transform:translateY(-1px)}
-html:not([data-theme="light"]) .btn-capture{background:#333947;border:1px solid rgba(255,255,255,.14)}
-html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
+/* the button is always the inverse of the field it sits in: near-black on the
+   day face's white glass, near-white on the night face's navy. #333947 on the
+   navy ground was a two-step difference — the one action on the first screen
+   read as an inset panel rather than a button. */
+html:not([data-theme="light"]) .btn-capture{background:#f4f7fd;color:#111a2b}
+html:not([data-theme="light"]) .btn-capture:hover{background:#ffffff}
 /* on wide screens the capture collapses to one compact row */
 /* Wide: copy on the left, the product on the right. The bouncing chevron that
    used to sit at the fold is gone with it — a frame cut off by the bottom of
@@ -462,12 +488,17 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#414859}
 @media (max-width:600px){.hero-demo{margin-top:30px}}
 .hero .microcopy{margin-top:16px;font-size:13.5px;color:var(--sec)}
 .discord-inline{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;vertical-align:-1px}
-.discord-inline svg{width:17px;height:13px;display:inline-block}
+.discord-inline svg{width:19px;height:15px;display:inline-block}
 .discord-inline b{font-weight:700;letter-spacing:-.01em}
 .stripe-wordmark{
-  display:inline-block;height:15px;width:auto;
-  vertical-align:-3px;margin-left:3px;color:var(--ink);opacity:.85;
+  display:inline-block;height:16px;width:auto;
+  vertical-align:-3px;margin-left:3px;color:var(--ink);opacity:1;
 }
+/* the closing evidence is a different claim from the two before it — what the
+   rail is, not what it costs — and middot-chained onto the end of them it read
+   as the tail of a fine-print run. Its own line, with the two marks at a size
+   you can recognise them at, makes it the hero's last word. */
+.mc-compat{display:block;margin-top:9px;color:var(--sec)}
 
 /* the film: glass browser frame floating on the live sky */
 .hero-stage{position:relative;padding:76px 24px 110px}
@@ -571,6 +602,15 @@ html[data-theme="light"] .chip-film-embed{border-color:rgba(15,22,38,.12)}
   text-align:center;font-size:12px;font-weight:500;letter-spacing:.14em;
   text-transform:uppercase;color:var(--micro);margin-bottom:20px;
 }
+/* Against the bare sky the two rows read as chips someone scattered under the
+   hero: nothing said where the first screen ended and the argument began, and
+   on the day face solid-white pills were the brightest object on the page —
+   louder than the headline above them. The strip gets a ground of its own and
+   a hairline top and bottom, so it is a shelf between the sky and the page
+   rather than a decoration floating on it. */
+html:not([data-theme="light"]) .rolemarq{background:rgba(13,20,32,.42);border-block:1px solid rgba(255,255,255,.10)}
+html[data-theme="light"] .rolemarq{background:rgba(255,255,255,.44);border-block:1px solid rgba(15,22,38,.09)}
+.rolemarq .marq:last-child{margin-bottom:0}
 
 /* ============ how it works · ugc.foundable four-step ============ */
 .steps{
@@ -791,8 +831,11 @@ html[data-theme="light"] .steps{
 /* marquees */
 .marq{
   overflow:hidden;margin-bottom:12px;
-  -webkit-mask-image:linear-gradient(to right,transparent,#000 10%,#000 90%,transparent);
-  mask-image:linear-gradient(to right,transparent,#000 10%,#000 90%,transparent);
+  /* the fade is a fixed distance, not a percentage: at 10% it ate a chip and a
+     half at each end of a 1440 band and only 39px of a 390 one — the opposite
+     of what each width needs. */
+  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 48px,#000 calc(100% - 48px),transparent 100%);
+  mask-image:linear-gradient(to right,transparent 0,#000 48px,#000 calc(100% - 48px),transparent 100%);
 }
 .marq-track{display:flex;gap:10px;width:max-content;animation:marq-l 30s linear infinite}
 .marq-rev .marq-track{animation:marq-r 35s linear infinite}
@@ -800,10 +843,10 @@ html[data-theme="light"] .steps{
 @keyframes marq-l{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @keyframes marq-r{from{transform:translateX(-50%)}to{transform:translateX(0)}}
 .pill{
-  background:var(--cream);border:1px solid var(--hair);border-radius:999px;
-  padding:8px 16px;font-size:13.5px;white-space:nowrap;color:var(--ink);
-  box-shadow:var(--shadow);
+  background:rgba(13,20,32,.62);border:1px solid rgba(255,255,255,.12);border-radius:999px;
+  padding:8px 16px;font-size:13.5px;white-space:nowrap;color:var(--sec);
 }
+html[data-theme="light"] .pill{background:rgba(255,255,255,.70);border-color:rgba(15,22,38,.10);color:var(--sec)}
 
 /* the live appearance toy */
 .applayout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:stretch}
@@ -1285,9 +1328,9 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
     background:radial-gradient(circle at 38% 34%,#f6f8ff 0%,#dde6f6 52%,#b6c6e2 100%);
     box-shadow:0 0 40px 16px rgba(214,228,255,.26),0 0 110px 46px rgba(180,202,246,.13);
   }
-  .capture{padding:5px 5px 5px 12px;border-radius:14px}
-  .btn-capture{min-height:34px;padding:6px 10px;font-size:12.5px}
-  .capture-prefix,.capture input{font-size:15px}
+  .capture{padding:5px 5px 5px 14px;border-radius:16px}
+  .btn-capture{min-height:44px;padding:0 14px;font-size:13px}   /* was 34px tall — the one action on the phone screen, under a thumb */
+  .capture-prefix,.capture input{font-size:16px}
   .hero-stage{padding:44px 0 72px}
   .film{width:calc(100% - 24px)}
   .film-frame{border-radius:12px}
@@ -2620,7 +2663,7 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
         <button class="btn btn-capture" type="submit">Open your store <span aria-hidden="true">&#8594;</span></button>
       </div>
     </form>
-    <p class="microcopy">No card required &#183; Free up to 10 paying members<span class="mc-compat"> &#183; Compatible with
+    <p class="microcopy">No card required &#183; Free up to 10 paying members<span class="mc-compat">Compatible with
       <svg class="stripe-wordmark" viewBox="54 36 360 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stripe"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M414,113.4c0-25.6-12.4-45.8-36.1-45.8c-23.8,0-38.2,20.2-38.2,45.6c0,30.1,17,45.3,41.4,45.3c11.9,0,20.9-2.7,27.7-6.5v-20c-6.8,3.4-14.6,5.5-24.5,5.5c-9.7,0-18.3-3.4-19.4-15.2h48.9C413.8,121,414,115.8,414,113.4z M364.6,103.9c0-11.3,6.9-16,13.2-16c6.1,0,12.6,4.7,12.6,16H364.6z M301.1,67.6c-9.8,0-16.1,4.6-19.6,7.8l-1.3-6.2h-22v116.6l25-5.3l0.1-28.3c3.6,2.6,8.9,6.3,17.7,6.3c17.9,0,34.2-14.4,34.2-46.1C335.1,83.4,318.6,67.6,301.1,67.6z M295.1,136.5c-5.9,0-9.4-2.1-11.8-4.7l-0.1-37.1c2.6-2.9,6.2-4.9,11.9-4.9c9.1,0,15.4,10.2,15.4,23.3C310.5,126.5,304.3,136.5,295.1,136.5z M223.8,61.7l25.1-5.4V36l-25.1,5.3V61.7z M223.8,69.3h25.1v87.5h-25.1V69.3z M196.9,76.7l-1.6-7.4h-21.6v87.5h25V97.5c5.9-7.7,15.9-6.3,19-5.2v-23C214.5,68.1,202.8,65.9,196.9,76.7z M146.9,47.6l-24.4,5.2l-0.1,80.1c0,14.8,11.1,25.7,25.9,25.7c8.2,0,14.2-1.5,17.5-3.3V135c-3.2,1.3-19,5.9-19-8.9V90.6h19V69.3h-19L146.9,47.6z M79.3,94.7c0-3.9,3.2-5.4,8.5-5.4c7.6,0,17.2,2.3,24.8,6.4V72.2c-8.3-3.3-16.5-4.6-24.8-4.6C67.5,67.6,54,78.2,54,95.9c0,27.6,38,23.2,38,35.1c0,4.6-4,6.1-9.6,6.1c-8.3,0-18.9-3.4-27.3-8v23.8c9.3,4,18.7,5.7,27.3,5.7c20.8,0,35.1-10.3,35.1-28.2C117.4,100.6,79.3,105.9,79.3,94.7z"/></svg> and <span class="discord-inline" role="img" aria-label="Discord"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="currentColor" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg><b>Discord</b></span></span>
     </p>
    </div>
