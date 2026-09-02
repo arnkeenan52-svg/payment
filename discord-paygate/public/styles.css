@@ -3170,10 +3170,17 @@ body[data-material='solid'].has-bg .shop-col {
 
 /* ── banner: square, flush to the rails, always in the layout ── */
 .shop-hero { position: relative; aspect-ratio: 3 / 1; }
+/* No banner uploaded. The slot still has to be there — the avatar hangs off
+   its lower edge — so it is a cover in the store's own accent rather than an
+   empty band. At 6% ink over a bright ground the old one was invisible on the
+   light face, which read as a page that had not finished loading. Two lights
+   from opposite corners give it a direction; nothing here is loud enough to
+   compete with a real banner beside it in the same layout. */
 .shop-hero.no-banner {
   background:
-    radial-gradient(120% 140% at 78% 10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 62%),
-    color-mix(in srgb, var(--ink) 6%, transparent);
+    radial-gradient(120% 150% at 82% 6%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 58%),
+    radial-gradient(90% 130% at 4% 96%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
+    color-mix(in srgb, var(--ink) 9%, transparent);
 }
 .shop-banner {
   width: 100%; height: 100%; object-fit: cover; object-position: center;
