@@ -2,10 +2,10 @@ import { config } from '../config.js';
 import * as db from '../db.js';
 import { getUser } from '../db.js';
 import { grant } from './entitlements.js';
-import { storeById, defaultStore, planOf } from './stores.js';
+import { storeById, storeByGuild, defaultStore, planOf } from './stores.js';
 import { postChannelMessage } from '../lib/discord.js';
 import { formatAmount, normalize as normalizeCurrency } from '../lib/currency.js';
-import { GRANTS_ACCESS, IN_FLIGHT, SHORT, DEAD, settledFiat, describeStatus } from '../lib/nowpayments.js';
+import { GRANTS_ACCESS, IN_FLIGHT, SHORT, DEAD, settledFiat, describeStatus, getPayment } from '../lib/nowpayments.js';
 import { purchaseBlocked } from './purchase-guard.js';
 
 // What to do with a NOWPayments payment.
@@ -25,12 +25,24 @@ import { purchaseBlocked } from './purchase-guard.js';
 //   'already'      the order was completed earlier; nothing to do twice
 //   'undelivered'  the money landed and could not be delivered; the seller
 //                  has been told, once, and the order is closed
+//   'extra'        a repeat deposit on an order that is already closed — the
+//                  seller was sent money that is not a sale, and told so
+//   'topup'        a repeat deposit on an order still open; not delivered
+//                  (the provider says not to), the seller was told
+//   'orphan'       a payment that resolves to no order of ours at all; the
+//                  platform's own channel was told
 //   'in-progress'  another invocation holds the claim on this very work
 //   'pending' | 'short' | 'dead' | 'ignored'   nothing to grant (yet, or ever)
 //
 // How long a claim on the finished work may stand with the order still open
 // before a later delivery may take it over — see below.
 export const STALE_CLAIM = 5 * 60;
+
+// A deposit the PROVIDER minted rather than one we asked for carries no
+// order_id of its own — it is linked to the invoice only by
+// parent_payment_id. A parent can in principle itself be one of those, so the
+// walk is bounded and loop-proof rather than a single hop.
+const MAX_PARENT_HOPS = 3;
 
 // The idempotency claim lives HERE and is keyed on the payment id plus the
 // outcome, never on the IPN body's status. NOWPayments delivers one IPN per
@@ -40,22 +52,38 @@ export const STALE_CLAIM = 5 * 60;
 // is claimed instead: one grant, one discount use, one sale ping per
 // payment, whichever delivery (or the cron's backfill) got there first.
 export async function processNowPayment(payment) {
-  const orderId = String(payment?.order_id ?? '').trim();
   const status = String(payment?.payment_status ?? '').toLowerCase();
-  if (!orderId) {
-    console.warn(`[webhooks] nowpayments ${payment?.payment_id}: payment without order_id, ignoring`);
-    return 'ignored';
-  }
-  // The order row is the ONLY link from "money arrived" back to which buyer
-  // bought which product: the IPN carries our order id and nothing else.
-  const attempt = await db.getCheckoutAttempt(orderId);
-  if (!attempt) {
-    console.warn(`[webhooks] nowpayments ${payment.payment_id}: order ${orderId} is not one of ours, ignoring`);
-    return 'ignored';
+  const ownOrderId = String(payment?.order_id ?? '').trim();
+  let attempt = null;
+  let orderId = ownOrderId;
+  // The payment this one was spawned from, when it is not one we created.
+  let parent = null;
+  if (ownOrderId) {
+    // The order row is the link from "money arrived" back to which buyer
+    // bought which product, for every payment we created ourselves.
+    attempt = await db.getCheckoutAttempt(ownOrderId);
+    if (!attempt) {
+      console.warn(`[webhooks] nowpayments ${payment.payment_id}: order ${orderId} is not one of ours, ignoring`);
+      return 'ignored';
+    }
+  } else {
+    // No order_id is not "not ours". NOWPayments mints a payment of its own
+    // for a second deposit to an address it has already used ("Repeated
+    // deposits to the same addresses will automatically create a new payment
+    // with another id") and, with extra-deposits auto processing on, for a
+    // deposit in a coin the invoice was not created for. Those carry
+    // order_id: null and name the invoice they came from in
+    // parent_payment_id — so that is the link to walk. Ignoring them is how
+    // money reaches the seller with nobody told anything.
+    const found = await resolveByParent(payment);
+    if (!found) return await alertUnattributed(payment);
+    ({ attempt, orderId, parent } = found);
   }
   const store = attempt.store_id === null || attempt.store_id === undefined
     ? defaultStore()
     : await storeById(attempt.store_id);
+
+  if (parent) return await handleRepeatDeposit({ payment, parent, attempt, orderId, store, status });
 
   if (!GRANTS_ACCESS.has(status)) {
     // Logged rather than silent: a seller asking "where is my sale?" needs
@@ -112,6 +140,170 @@ export async function processNowPayment(payment) {
     await db.releaseEvent('nowpayments', claim);
     throw err;
   }
+}
+
+// Walk from a provider-minted deposit up to the invoice we created.
+//
+// Every hop RE-READS the parent from the API. The IPN body is not trusted for
+// status or amount anywhere on this path, and it must not be trusted for
+// parentage either: the only thing taken from it is the id to ask about.
+//
+// A parent that answers 404 is not ours (or not there any more) and the
+// deposit is unattributable — that is an alarm, not a retry. Any other
+// failure is the provider being unreachable, which IS a retry, so it throws.
+async function resolveByParent(payment) {
+  const seen = new Set([String(payment?.payment_id ?? '')]);
+  let id = payment?.parent_payment_id;
+  for (let hop = 0; hop < MAX_PARENT_HOPS; hop += 1) {
+    const key = String(id ?? '').trim();
+    if (!key || seen.has(key)) return null;
+    seen.add(key);
+    let parent;
+    try {
+      parent = await getPayment(key);
+    } catch (err) {
+      if (!/failed with 404/.test(err.message)) throw err;
+      console.warn(`[webhooks] nowpayments ${payment.payment_id}: parent payment ${key} is unknown to the provider`);
+      return null;
+    }
+    const orderId = String(parent?.order_id ?? '').trim();
+    if (orderId) {
+      const attempt = await db.getCheckoutAttempt(orderId);
+      return attempt ? { attempt, orderId, parent } : null;
+    }
+    id = parent?.parent_payment_id;
+  }
+  return null;
+}
+
+// A deposit NOWPayments booked as its own payment against one of our orders.
+//
+// It is never delivered automatically, whatever the order looks like. Their
+// API documentation is explicit — "We do not recommend configuring your
+// system to automatically provide services or ship goods based on any
+// repeated-deposit status" — and there is a second reason of our own: the
+// figures on a child payment describe THAT deposit, not the order, so nothing
+// here can say whether the two together cover the price. What is not in
+// doubt is that the coins are already on their way to the seller's wallet, so
+// the seller is the one who has to hear about it.
+async function handleRepeatDeposit({ payment, parent, attempt, orderId, store, status }) {
+  const where = `a repeat deposit on ${parent.payment_id} (order ${orderId})`;
+  if (!GRANTS_ACCESS.has(status)) {
+    // Not money yet: an in-flight or dead child deposit has nothing for the
+    // seller to act on. Logged with the order named so it can be found.
+    console.warn(`[webhooks] nowpayments ${payment.payment_id}: ${where} is "${status}" — nothing to tell the seller yet`);
+    return DEAD.has(status) ? 'dead' : SHORT.has(status) ? 'short' : 'pending';
+  }
+  const closed = attempt.status === 'completed' || attempt.status === 'undelivered';
+  const outcome = closed ? 'extra' : 'topup';
+  console.error(
+    `[webhooks] nowpayments ${payment.payment_id}: ${where} finished against an order that is "${attempt.status}" — ` +
+      'money reached the seller and nothing was delivered for it, seller alerted',
+  );
+  // Once per deposit, whoever gets here first — a replayed IPN, a second
+  // transition, the same delivery twice. Released again if the alert cannot
+  // be posted, so the provider's retry gets another go at it.
+  const claim = `${payment.payment_id}:deposit`;
+  if (!(await db.claimEvent('nowpayments', claim, null, { retakeAfter: STALE_CLAIM }))) return outcome;
+
+  const currency = normalizeCurrency(parent.price_currency ?? attempt.currency);
+  const coin = String(payment.pay_currency ?? parent.pay_currency ?? '').toUpperCase();
+  const fiat = settledFiat(payment);
+  const landed = Number(payment.actually_paid ?? 0);
+  // Only what the provider actually reported. A second deposit has no price
+  // of its own to fall back on, and inventing one puts a figure the seller
+  // may act on in front of them.
+  const amount = fiat !== null
+    ? `**${formatAmount(fiat, currency)}**${coin ? ` in ${coin}` : ''}`
+    : landed > 0 && coin
+      ? `**${landed} ${coin}**`
+      : 'a further payment';
+
+  const user = await getUser(attempt.discord_id).catch(() => null);
+  const buyer = user?.username ? `@${user.username}` : `<@${attempt.discord_id}>`;
+  const description = closed
+    ? `**${buyer}** sent ${amount} to the deposit address for **${attempt.plan_id}** — an order that is already ` +
+      `${attempt.status === 'completed' ? 'delivered' : 'closed as undelivered'}. NOWPayments books a second ` +
+      `transfer to a used address as a SEPARATE payment (\`${payment.payment_id}\`), so this is not a new sale and ` +
+      'nothing was granted for it. The coins are on their way to your wallet: refund them, or add the buyer from ' +
+      'Members if it was meant as another purchase.'
+    : `**${buyer}** sent ${amount} to the deposit address for **${attempt.plan_id}**, but NOWPayments booked it as a ` +
+      `SEPARATE payment (\`${payment.payment_id}\`) — a second transfer, or a coin the invoice was not created for. ` +
+      'Their order stays open and nothing was delivered, because a repeat deposit is not something to deliver on ' +
+      'automatically. Check the payment in your NOWPayments dashboard, then add them from Members if the sale ' +
+      'should stand, or refund them from your wallet.';
+
+  if (!store?.notifyChannelId) {
+    console.error(`[webhooks] nowpayments ${payment.payment_id}: no notification channel on the store — the seller cannot be told about ${where}`);
+    return outcome;
+  }
+  const posted = await postChannelMessage(store.notifyChannelId, {
+    embeds: [{
+      title: closed ? '⚠️ Extra crypto payment — not a new sale' : '⚠️ Crypto payment that did not complete the order',
+      description,
+      color: 0xed4245,
+      thumbnail: { url: 'https://dues.gg/icon-192.png' },
+      footer: { text: store.name ?? config.brand },
+      timestamp: new Date().toISOString(),
+    }],
+  });
+  if (!posted) {
+    // The alert IS the outcome here — there is no row, no grant, nothing else
+    // that records this money. A delivery whose alert did not land must come
+    // back, so the claim goes and the caller is told to fail.
+    await db.releaseEvent('nowpayments', claim);
+    throw new Error(`nowpayments ${payment.payment_id}: the seller could not be alerted about ${where}`);
+  }
+  return outcome;
+}
+
+// A payment that belongs to no order of ours: no order_id, and no parent we
+// can walk to. Nothing here can say whose it is — the deposit address is the
+// only thread, and only the NOWPayments dashboard holds that end of it.
+//
+// It still cannot be a log line in a serverless function. This is a payment
+// on the platform's own merchant account, so it goes to the platform's own
+// notification channel — the same seller-facing alarm every other "money
+// landed, nothing sold" answer uses.
+async function alertUnattributed(payment) {
+  const id = String(payment?.payment_id ?? '');
+  const parentId = payment?.parent_payment_id ?? null;
+  console.error(
+    `[webhooks] nowpayments ${id}: a payment with no order_id and no parent order of ours ` +
+      `(parent ${parentId ?? 'none'}, purchase ${payment?.purchase_id ?? 'none'}, status ${payment?.payment_status ?? 'unknown'}) — ` +
+      'money may have settled with nothing sold for it',
+  );
+  const store = config.discord.guildId ? await storeByGuild(config.discord.guildId).catch(() => null) : null;
+  if (!store?.notifyChannelId) return 'orphan';
+  if (!(await db.claimEvent('nowpayments', `${id}:orphan`))) return 'orphan';
+  const coin = String(payment?.pay_currency ?? '').toUpperCase();
+  const landed = Number(payment?.actually_paid ?? 0);
+  const fiat = settledFiat(payment);
+  const amount = fiat !== null
+    ? `**${formatAmount(fiat, normalizeCurrency(payment?.price_currency ?? 'usd'))}**${coin ? ` in ${coin}` : ''}`
+    : landed > 0 && coin
+      ? `**${landed} ${coin}**`
+      : 'A payment';
+  const posted = await postChannelMessage(store.notifyChannelId, {
+    embeds: [{
+      title: '⚠️ Crypto payment that matches no order',
+      description:
+        `${amount} arrived on payment \`${id}\`${parentId ? ` (from \`${parentId}\`)` : ''} with no order of ours attached — ` +
+        'status `' + String(payment?.payment_status ?? 'unknown') + '`. Nothing was delivered and nobody can be told whose it is ' +
+        'from here. Look the payment up in your NOWPayments dashboard: its deposit address says which invoice it was sent to.',
+      color: 0xed4245,
+      thumbnail: { url: 'https://dues.gg/icon-192.png' },
+      footer: { text: store.name ?? config.brand },
+      timestamp: new Date().toISOString(),
+    }],
+  });
+  if (!posted) {
+    // Same rule as a repeat deposit: the alarm is the whole outcome, so a
+    // delivery that could not raise it has to come back.
+    await db.releaseEvent('nowpayments', `${id}:orphan`);
+    throw new Error(`nowpayments ${id}: the unattributed-payment alarm could not be posted`);
+  }
+  return 'orphan';
 }
 
 async function settle(payment, attempt, store, orderId) {

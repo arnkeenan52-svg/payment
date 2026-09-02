@@ -399,11 +399,16 @@ Three provider behaviours the code is built around:
 - **Short payments default to Partially Paid** — `partially_paid` is a buyer
   who still owes money. Roles are granted on `finished` and nothing else; the
   buyer is shown what is outstanding.
-- **Wrong-asset auto-processing is on** — a buyer who sends the wrong coin has
-  it converted at the current rate, so `pay_currency` is not necessarily what
-  arrived. Shortfalls are therefore computed in the order's own fiat currency
-  (`actually_paid_at_fiat`), and the coin figure is quoted only when the
-  deposit really was in the coin the buyer picked.
+- **Wrong-asset auto-processing is on** — a buyer who sends a coin the invoice
+  was not created for has the deposit processed rather than bounced, but not
+  against that invoice: NOWPayments mints a **new payment** with its own id,
+  linked back by `parent_payment_id` and carrying no `order_id`. The same is
+  true of a second transfer to a deposit address already used. Neither is ever
+  delivered on automatically (their own advice); the webhook walks
+  `parent_payment_id` back to the order and tells the seller that money
+  arrived which is not a sale. Shortfall figures are computed in the order's
+  own fiat currency (`actually_paid_at_fiat`), and the coin figure is quoted
+  only when the deposit really was in the coin the buyer picked.
 
 The IPN carries no timestamp or nonce, so there is nothing to bound a replay
 against: the webhook re-reads the payment from the API and acts on its current

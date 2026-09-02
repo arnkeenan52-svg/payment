@@ -85,7 +85,10 @@ partners@nowpayments.io.
 2. Whether `POST /payout/validate-address` answers from an un-whitelisted IP
    (checklist item 10). Call it from the deployed function, not from a laptop.
 3. Whether a wrong-asset or repeated deposit arrives carrying our `order_id`
-   or a null one (see §6, item 3).
+   or a null one, and what `parent_payment_id` it names (see §6, item 3). The
+   handler is built for the documented shape — null order, parent set — and
+   alerts rather than delivering; the sandbox is what turns that from
+   documented into observed.
 4. That the pay screen's countdown matches the real `expiration_estimate_date`
    for a fixed-rate payment (see §6, item 1).
 
@@ -337,32 +340,43 @@ could act on and send below the real minimum, which produces a `failed` payment
 the provider says usually cannot be refunded. Now sends both flags; pinned in
 `scripts/e2e-test.js`.
 
-### 3. Wrong-asset and repeated deposits arrive as a *different payment* — **unverified, treat as a release blocker**
+### 3. Wrong-asset and repeated deposits arrive as a *different payment* — **fixed**
 
-The header of `src/lib/nowpayments.js` says a buyer who sends the wrong coin
-"has it converted at the current rate and credited anyway", and `settledFiat()`
-/ `paidInRequestedCoin()` are built on reading `actually_paid_at_fiat` off
-**that same payment**.
-
-Their documentation describes something different. Both wrong-asset deposits
-(with auto-processing on) and repeated deposits to the same address produce a
-**new payment with a new `payment_id`**, linked to the original by
-`parent_payment_id` — "Repeated deposits to the same addresses will
-automatically create a new payment with another id" — and their integration
+The header of `src/lib/nowpayments.js` used to say a buyer who sends the wrong
+coin "has it converted at the current rate and credited anyway" — credited to
+the payment the invoice created. Their documentation describes something else.
+Both wrong-asset deposits (with auto-processing on) and repeated deposits to
+the same address produce a **new payment with a new `payment_id`**, linked to
+the original by `parent_payment_id` — "Repeated deposits to the same addresses
+will automatically create a new payment with another id" — carrying
+`"order_id": null` in their own example webhook body, and their integration
 advice is to track `parent_payment_id` and *not* to grant automatically on one.
 
-Nothing in this repository reads `parent_payment_id`. `processNowPayment()`
-resolves everything through our own `order_id`, and their example webhook body
-for such a payment shows `"order_id": null`. If that is what really arrives,
-the follow-up payment reaches our webhook, fails to find an order, logs
-`payment without order_id, ignoring`, and answers 200 — while the money has
-already been forwarded to the seller. The buyer paid and gets nothing, silently.
+`processNowPayment()` resolved everything through our own `order_id`, so that
+IPN logged `payment without order_id, ignoring` and answered 200 while the
+coins were already on their way to the seller: money in, buyer silent, nobody
+told. What it does now:
 
-The money is safe (it went to the seller, never to Dues). The delivery is not.
-**Test in the sandbox before release:** create a payment, trigger a re-deposit,
-and record what `order_id` and `parent_payment_id` the follow-up IPN carries.
-If `order_id` is null, the webhook needs a `parent_payment_id` fallback that
-re-reads the parent to find the order.
+| the deposit | what happens |
+| --- | --- |
+| its parent order is **already delivered** | nothing granted; the seller is alerted once — "Extra crypto payment — not a new sale", with the child payment id and the coin, so they can refund it or place it by hand |
+| its parent order is **still open** (the top-up, and the wrong-coin case) | nothing granted and the order is **left open**; the seller is alerted — the money arrived, the order did not complete, finishing it is their call in the NOWPayments dashboard or from Members |
+| it resolves to **no order of ours** | the platform's own notification channel is alerted with the payment id: only the dashboard holds the deposit address that says whose it was |
+
+Never delivered automatically, in any of the three: the provider says "We do
+not recommend configuring your system to automatically provide services or ship
+goods based on any repeated-deposit status", and a child payment carries no
+price of its own from which anything here could work out whether the order is
+now covered. The parent is re-read from the API for the walk — the IPN body is
+trusted for the parent id and nothing else. Pinned in `scripts/e2e-test.js`
+("a second deposit on a delivered order", "a wrong-coin deposit is a CHILD
+payment", "resolves to no order of ours"), whose mock now mints child payments
+the way the provider documents them.
+
+**Still worth a sandbox run before release:** create a payment, trigger a
+re-deposit, and record what `order_id` and `parent_payment_id` the follow-up
+IPN really carries. This is written to the documentation, not to an
+observation.
 
 ### 4. `listPayments()` is dead code that would not work — **cosmetic**
 
