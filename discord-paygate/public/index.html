@@ -1992,7 +1992,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
    lands close to the face behind it — Klarna's pink block by day (1.2:1
    against the glass), Visa's navy one by night (1.2:1 against the panel). It
    draws the edge of the block; it does not touch anybody's colour. */
-.pay{--pay-edge:rgba(15,22,38,.16)}
+.pay{--pay-edge:rgba(15,22,38,.22)}
 html:not([data-theme="light"]) .pay{--pay-edge:rgba(255,255,255,.22)}
 .pay-lede{
   margin:0;font-family:var(--jakarta);font-weight:600;font-size:var(--t-sub);
@@ -2000,7 +2000,7 @@ html:not([data-theme="light"]) .pay{--pay-edge:rgba(255,255,255,.22)}
 }
 .pay-say{
   max-width:54ch;margin:0;font-size:var(--t-body);line-height:24px;
-  color:var(--sec);text-align:center;text-wrap:pretty;
+  color:var(--sec);text-align:center;text-wrap:balance;
 }
 .pay-marks{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:18px 24px;margin:4px 0}
 .pay-mark{display:inline-flex;align-items:center;justify-content:center;gap:5px;color:var(--ink)}
@@ -2013,7 +2013,7 @@ html:not([data-theme="light"]) .pay{--pay-edge:rgba(255,255,255,.22)}
 .pay-coins .pay-mark svg{display:block;width:34px;height:34px;border-radius:50%;box-shadow:0 0 0 1px var(--pay-edge)}
 .pay-cards{max-width:620px}
 .pay-cards .pay-mark svg{display:block;height:20px;width:auto}
-.pm-mc svg{height:24px}
+.pm-mc svg{height:34px}
 .pm-apple svg{height:19px}
 .pm-gpay svg{height:19px}
 /* the three marks that ARE a block: their own fill, their own type, on the
@@ -2044,7 +2044,7 @@ html:not([data-theme="light"]) .pm-xrp .pm-plate{display:none}
 html:not([data-theme="light"]) .pm-sol svg,
 html:not([data-theme="light"]) .pm-xrp svg{box-shadow:none}
 html:not([data-theme="light"]) .pm-sol svg>g,
-html:not([data-theme="light"]) .pm-xrp svg>path{transform-box:fill-box;transform-origin:center;transform:scale(1.42)}
+html:not([data-theme="light"]) .pm-xrp svg>path{transform-box:fill-box;transform-origin:center;transform:scale(1.58)}
 /* the sourced lines under each row, and the close */
 .pay-link{color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
 .pay-close{display:flex;align-items:center;justify-content:center;gap:8px}
@@ -2063,7 +2063,7 @@ html:not([data-theme="light"]) .pm-xrp svg>path{transform-box:fill-box;transform
   .pm-amex b{font-size:12.5px}
   .pm-klarna b{font-size:14px}
   .pm-paypal b{font-size:15px}
-  .pm-mc svg{height:22px}
+  .pm-mc svg{height:32px}
   .pm-apple svg{height:17px}
   .pm-gpay svg{height:17px}
   .pay-stripe svg{height:18px}
