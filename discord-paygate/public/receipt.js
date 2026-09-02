@@ -80,8 +80,14 @@ async function main() {
   const [plansRes, meRes] = await Promise.all([fetch(`/api/plans${storeQS}`), fetch('/api/me')]);
   let me = await meRes.json();
   renderAccount(me);
-  if (!plansRes.ok) return showNotFound(); // an unknown store: nothing to name and nothing to poll for
-  const plansBody = await plansRes.json();
+  // Only a 404 proves there is nothing here: that is the one answer /api/plans
+  // gives for an unknown store. Every other failure — a 5xx out of guard(), a
+  // 429, an edge blip — is the platform stumbling, and a buyer arriving from
+  // Stripe on a good link must never be told their purchase does not exist.
+  // Fall through on an empty catalogue instead: the buyer's own subscription
+  // row still names what they bought, and the entitlement poll below still runs.
+  if (plansRes.status === 404) return showNotFound(); // an unknown store: nothing to name and nothing to poll for
+  const plansBody = plansRes.ok ? await plansRes.json().catch(() => ({})) : {};
   const plans = plansBody.plans ?? [];
   const server = plansBody.server ?? {};
   // Plan ids are unique only WITHIN a store ("vip" exists in many), so every

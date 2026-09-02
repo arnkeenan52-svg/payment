@@ -4895,7 +4895,13 @@ test('storefront client: the failure states the suite cannot drive in a browser 
   // A receipt with no order behind it says so, rather than sitting on
   // "Payment received / Finishing up your order…" forever.
   const receipt = read('receipt.js');
-  assert.match(receipt, /if \(!plansRes\.ok\) return showNotFound\(\)/, 'an unknown store renders the not-found receipt');
+  // ...and ONLY a receipt with no order behind it. 404 is the single answer
+  // /api/plans gives for an unknown store; a 5xx out of guard() or a 429 is a
+  // blip, and telling a buyer who just paid that their link points at nothing
+  // is a false claim the old stuck-pending page never made.
+  assert.match(receipt, /if \(plansRes\.status === 404\) return showNotFound\(\)/, 'only a 404 renders the not-found receipt');
+  assert.doesNotMatch(receipt, /if \(!plansRes\.ok\) return showNotFound\(\)/, 'a transient /api/plans failure must not claim the order does not exist');
+  assert.match(receipt, /plansRes\.ok \? await plansRes\.json\(\)/, 'a failed catalogue degrades to empty so the buyer\'s own subscription row still names the order');
   assert.match(receipt, /if \(!plan\) return showNotFound\(\)/, 'a missing ?plan renders the not-found receipt');
   assert.match(read('receipt.html'), /<section class="panel" id="r-details">/, 'the details panel is addressable so the not-found state can hide its dashes');
 });
