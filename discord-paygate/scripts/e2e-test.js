@@ -3875,6 +3875,10 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   assert.match(home, /\.pay-cap\{font:600 12px/, 'the payment caption is 12px');
   assert.match(home, /\.save-cap\{display:block;font:600 12px/, 'the savings caption is 12px');
   assert.doesNotMatch(home, /\.save-cap\{font-size:10\.5px\}/, 'no phone override drags it back under');
+
+  // The legal footnote ran ~185 characters a line on a desktop: capped like
+  // every other body block.
+  assert.match(rules('.footer-disclaimer')[0], /max-width: 78ch/, 'the footer disclaimer is capped to a readable measure');
 });
 
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {

@@ -1922,7 +1922,9 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 .bt-free span { color: var(--dim); font-weight: 500; }
 #billing-body .bill-toggle { justify-content: flex-start; margin: 4px 0 12px; }
 
-.footer-disclaimer { flex-basis: 100%; color: color-mix(in srgb, var(--ink) 35%, transparent); font-size: 12px; margin: 14px 0 0; }
+/* Capped like every other body block: full-width it ran ~185 characters a
+   line at 12px, twice the measure a reader can track back from. */
+.footer-disclaimer { flex-basis: 100%; max-width: 78ch; color: color-mix(in srgb, var(--ink) 35%, transparent); font-size: 12px; margin: 14px 0 0; }
 
 /* ── hero: browser-chrome frame around the video (reference look) ───────────── */
 .browser-frame { border-color: color-mix(in srgb, var(--accent) 30%, rgba(255,255,255,0.1)); position: relative; }
