@@ -355,14 +355,13 @@ html[data-theme="light"] .theme-btn .i-moon{display:block}
 }
 /* 100svh is right on a phone — the first screen is the whole screen there,
    and the reveal below depends on it. On a desktop it produced a 752px well
-   around 256px of content: two thirds empty sky, with a chevron floating in it
-   as the only evidence the page continued. 86svh keeps the sky full-bleed (the
-   slab below is unaffected) while letting the role band's top edge sit inside
-   the fold, which is a floor under the hero and a better invitation to scroll
-   than the chevron was — so the chevron goes, on desktop only. */
+   around 256px of content: two thirds empty sky, with nothing but the fold
+   itself to say the page continued. 86svh keeps the sky full-bleed (the slab
+   below is unaffected) while letting the role band's top edge sit inside the
+   fold — a floor under the hero, and a better invitation to scroll than any
+   marker in an empty half. */
 @media (min-width:601px){
   .hero{min-height:clamp(620px,86svh,820px)}   /* and a ceiling, so a tall window shows more page rather than more sky */
-  .hero-scrollhint{display:none}
 }
 /* the sky: a sticky viewport-filling slab INSIDE the sheet, so the clouds are
    clipped to the sheet and lift away with it — the fixed footer underneath is

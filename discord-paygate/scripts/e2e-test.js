@@ -1477,13 +1477,17 @@ test('the first screen earns its height: a capped well, a grounded claim field, 
 
   // 1 · THE WELL. Above the phone breakpoint the hero is capped, which lets the
   // top of the role band sit inside the fold — a floor under the hero, and a
-  // better reason to scroll than the chevron was, so the chevron goes there.
+  // better reason to scroll than a marker in an empty half ever was.
+  //
+  // There is no chevron rule to pin beside this one. The scroll hint was
+  // deleted with the empty sky it pointed into, element and all, and the
+  // homepage scenario asserts the string is gone from the page — so a rule
+  // switching it off would be a rule about nothing, and the two pins would
+  // contradict each other. The cap is the whole change here.
   const wide = css.match(/@media \(min-width:601px\)\{([\s\S]*?)\n\}/);
   assert.ok(wide, 'the desktop-and-up hero block is where it was written');
   assert.match(wide[1], /\.hero\{min-height:clamp\(620px,86svh,820px\)/,
     'the first screen is capped, so a tall window shows more page rather than more sky');
-  assert.match(wide[1], /\.hero-scrollhint\{display:none\}/,
-    'and the chevron stands down where the role band is the floor');
   // the phone keeps the full-screen hero the footer reveal is built on
   assert.match(css, /\.hero\{min-height:100vh;min-height:100lvh\}/,
     'the phone hero still owns the whole screen — the blind depends on it');
