@@ -1517,7 +1517,14 @@ export async function membersWithLiveSubscriptions(at = now()) {
 // How many distinct members currently hold a live membership across these
 // stores — the number the owner's Dues plan is priced on. storeIds may mix
 // concrete ids and null (the built-in default store).
-export async function countLiveMembers(storeIds) {
+//
+// `except` drops specific Discord ids from the count. It exists for one case,
+// and it is not a nicety: a seller buying their own role to see what their
+// buyers see is testing their shop, not gaining a member. Counted, that test
+// spends one of the ten seats Free gives them — and on a store with ten real
+// members it stops the eleventh sale. The seller is excluded from their own
+// store's count everywhere the count is shown or billed on.
+export async function countLiveMembers(storeIds, { except = [] } = {}) {
   const parts = [];
   const params = [];
   const concrete = storeIds.filter((x) => x !== null && x !== undefined);
@@ -1537,10 +1544,12 @@ export async function countLiveMembers(storeIds) {
   const at = now();
   const live = "((status = 'active' AND (current_period_end IS NULL OR current_period_end > ?))"
     + " OR (status = 'past_due' AND grace_until IS NOT NULL AND grace_until > ?))";
+  const skip = [...new Set((Array.isArray(except) ? except : [except]).filter(Boolean).map(String))];
+  const notMe = skip.length ? ` AND discord_id NOT IN (${skip.map(() => '?').join(', ')})` : '';
   const { rows } = await q(
     `SELECT COUNT(DISTINCT discord_id) AS n FROM subscriptions
-     WHERE ${live} AND (${parts.join(' OR ')})`,
-    [at, at, ...params],
+     WHERE ${live} AND (${parts.join(' OR ')})${notMe}`,
+    [at, at, ...params, ...skip],
   );
   return Number(rows[0]?.n ?? 0);
 }

@@ -3903,6 +3903,40 @@ test('platform billing: Free gates at 10 members, paid tiers unlock, switch canc
   }
   assert.equal((await billingState(u7Cookie)).usage.members, 10);
 
+  // THE SELLER IS NOT ONE OF THEIR OWN MEMBERS. Sellers buy their own role to
+  // check the checkout works; that test used to spend a seat on the plan they
+  // are billed for — and on a full Free store it also refused them, so the one
+  // person who most needs to test the shop was the one who could not. Sitting
+  // at exactly 10/10: the owner's own purchase is allowed, and it does not move
+  // the number.
+  const U7_SELF = '507700000000000007';
+  if (!discord.members.has(U7_SELF)) discord.members.set(U7_SELF, new Set());
+  const ownTest = await fetch(`${appUrl}/api/checkout/stripe`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u7Cookie },
+    body: JSON.stringify({ planId, store: 'vip-signals' }),
+  });
+  assert.equal(ownTest.status, 200, `a seller at their limit can still test their own checkout: ${await ownTest.text()}`);
+  const selfGrant = await fetch(`${appUrl}/api/admin/member`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u7Cookie },
+    body: JSON.stringify({ store: 'vip-signals', action: 'grant', discordId: U7_SELF, planId }),
+  });
+  assert.equal(selfGrant.status, 200, await selfGrant.text());
+  assert.equal((await billingState(u7Cookie)).usage.members, 10, 'the owner is never counted against their own plan');
+  // ...and the public badge tells the same story as the bill.
+  const badgeStore = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  assert.ok(
+    badgeStore.store.memberCount === null || badgeStore.store.memberCount === 10,
+    `the storefront badge excludes the owner too, saw ${badgeStore.store.memberCount}`,
+  );
+  const selfRevoke = await fetch(`${appUrl}/api/admin/member`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: u7Cookie },
+    body: JSON.stringify({ store: 'vip-signals', action: 'revoke', discordId: U7_SELF }),
+  });
+  assert.equal(selfRevoke.status, 200, await selfRevoke.text());
+
   // A brand-new buyer is refused at checkout; the platform's own store is not.
   const U10 = '511000000000000010';
   discord.oauthUsers.code_u10 = { id: U10, username: 'late_buyer' };

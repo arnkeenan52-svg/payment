@@ -68,8 +68,11 @@ export default guard(async function handler(req, res) {
       bannerUrl: banner.url, bannerKind: banner.kind, theme: await storeTheme(store),
       about: store.about ?? null, links: store.links ?? null,
       // Live members, only when the owner switched the badge on — the count
-      // is the same real number the dashboard bills on.
-      memberCount: store.showMembers ? await countLiveMembers([store.id ?? null]) : null,
+      // is the same real number the dashboard bills on, seller excluded from
+      // their own store on both sides.
+      memberCount: store.showMembers
+        ? await countLiveMembers([store.id ?? null], { except: [store.ownerDiscordId] })
+        : null,
       // COUNT(*) of the follow ledger and nothing else — never seeded, never
       // rounded. A store nobody can follow reports null rather than 0.
       followers: followable ? await countStoreFollowers(store.id) : null,

@@ -39,7 +39,7 @@ export default guard(async function handler(req, res) {
         // Public directory: stores here price in different currencies, so the
         // cheapest number is meaningless without the code that goes with it.
         currency: plans[0]?.currency ?? s.currency ?? 'usd',
-        members: await countLiveMembers([s.id]),
+        members: await countLiveMembers([s.id], { except: [s.ownerDiscordId] }),
         createdAt: s.createdAt ?? null,
       });
     }

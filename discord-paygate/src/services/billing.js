@@ -72,11 +72,13 @@ export async function onPaidPlan(ownerDiscordId) {
 }
 
 // Distinct live members across every store this owner runs — the number
-// their plan is priced on.
+// their plan is priced on. The owner is never one of them: sellers buy their
+// own role to check the checkout works, and that test must not spend a seat
+// on the plan they are being billed for.
 export async function memberUsage(ownerDiscordId) {
   const stores = await storesOwnedBy(ownerDiscordId);
   if (!stores.length) return 0;
-  return db.countLiveMembers(stores.map((s) => s.id ?? null));
+  return db.countLiveMembers(stores.map((s) => s.id ?? null), { except: [ownerDiscordId] });
 }
 
 // Checkout gate: does creating a NEW membership in this store exceed the
@@ -85,6 +87,11 @@ export async function memberUsage(ownerDiscordId) {
 export async function memberLimitBlocks(store, buyerDiscordId) {
   const owner = store?.ownerDiscordId;
   if (!owner) return false;
+  // The seller buying from their own shop is a test of the shop. It does not
+  // count towards their plan (memberUsage excludes them), so it must not be
+  // refused by it either — otherwise a seller sitting on their limit cannot
+  // check their own checkout still works.
+  if (buyerDiscordId && String(buyerDiscordId) === String(owner)) return false;
   const { tier, exempt } = await billingFor(owner);
   if (exempt || tier.maxMembers === null) return false;
   if (buyerDiscordId) {
