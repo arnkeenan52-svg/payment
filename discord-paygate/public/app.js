@@ -541,6 +541,20 @@ function renderCta() {
   }
   btn.onclick = () => pay(btn, plan);
   area.append(btn);
+  // The demo store makes none of the promises below — nothing there is for
+  // sale, so nothing renews and nothing can be cancelled. The store's own
+  // "nothing here is for sale" line lives on the shop page, which a visitor
+  // who deep-links to a product never reads; this is the last place to say
+  // what the button does BEFORE it is pressed.
+  if (state.capabilities.demo) {
+    const demoNote = document.createElement('p');
+    demoNote.className = 'pay-assure';
+    demoNote.textContent =
+      'Demo store — nothing here is for sale. This opens a preview of the checkout your buyers see; '
+      + 'no card is taken and nothing is charged.';
+    area.append(demoNote);
+    return;
+  }
   // One quiet, factual line under the buy action: renewing plans really can
   // be cancelled from /account; lifetime plans really never bill again. A
   // crypto term is neither: there is no card to charge again, so the grant
@@ -856,11 +870,29 @@ function showPayError(message, retry) {
 // field is a <div> whose textContent is written by a timer. A page that looks
 // like a checkout must be incapable of accepting a card number rather than
 // merely uninterested in one. The number shown is 4242 4242 4242 4242, the
-// test card Stripe publishes, and a Demo badge sits on the panel throughout.
+// test card Stripe publishes; a Demo badge sits on the panel throughout and a
+// Demo strip spans the top of it, above anything shaped like a form.
+//
+// WHAT IT COPIES is the composition a buyer meets on the hosted page: summary
+// left and payment right, the same fields in the same order, Pay or Subscribe
+// on the button, the subscription mandate under it, the "Powered by Stripe"
+// trust line. WHAT IT DOES NOT COPY is Stripe's identity — no logo, wordmark,
+// colours or type. The panel is drawn in the seller's own theme, which is what
+// their buyers actually see once Stripe brands the page to their account.
 function demoCheckout(plan) {
   const price = fmtPrice(plan.priceUsd);
   const role = plan.roleNames?.[0] ? `@${plan.roleNames[0]}` : '@VIP';
-  const recurring = plan.interval ? ` / ${plan.interval}` : '';
+  // Stripe's own page splits on mode: a recurring price is headed "Subscribe
+  // to <product>" and pays with a Subscribe button, a one-off is headed
+  // "Pay <merchant>" and pays with Pay. The amount carries "per month"
+  // beside it rather than glued to the figure.
+  const sub = Boolean(plan.interval);
+  const merchant = state.brand ?? 'Dues Membership';
+  const thumb = plan.imageUrl
+    ? `<img class="dcx-thumb" src="${esc(plan.imageUrl)}" alt="" />`
+    : `<span class="dcx-thumb" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`;
+  const legal = 'Powered by Stripe<span class="dcx-sep" aria-hidden="true">&middot;</span>Terms'
+    + '<span class="dcx-sep" aria-hidden="true">&middot;</span>Privacy';
   const back = document.createElement('div');
   back.className = 'dcx-back';
   back.setAttribute('role', 'dialog');
@@ -868,47 +900,64 @@ function demoCheckout(plan) {
   back.setAttribute('aria-label', 'Demo checkout');
   back.innerHTML = `
     <div class="dcx">
+      <p class="dcx-strip"><b>Demo</b> — a preview of the checkout page your buyers land on. Nothing here is a
+        real payment: there is no field to type a card into, and no money moves.</p>
       <div class="dcx-side">
         <button class="dcx-x" type="button" aria-label="Close demo checkout">&times;</button>
-        <div class="dcx-brand" style="margin-left:38px"><img src="/favicon.png" alt=""/>${esc(state.brand ?? 'Dues Membership')}</div>
-        <div class="dcx-lead">${plan.interval ? 'Subscribe to' : 'Pay'} ${esc(plan.name)}</div>
-        <div class="dcx-amt">${price}${recurring}</div>
-        <div class="dcx-rule"></div>
-        <div class="dcx-line"><b>${esc(plan.name)}</b><span>${price}${recurring}</span></div>
-        <div class="dcx-note">${esc(plan.description ?? '')}</div>
-        <div class="dcx-rule"></div>
-        <div class="dcx-line sum"><span>Subtotal</span><span>${price}</span></div>
-        <div class="dcx-line sum"><span>Platform fee</span><span>$0.00</span></div>
-        <div class="dcx-line due"><span>Total due</span><span>${price}</span></div>
-        <div class="dcx-trust">
-          The seller keeps every cent — Dues takes no platform fee and never touches the money.
-          The role lands in Discord the moment the payment clears.
-        </div>
+        <div class="dcx-brand" style="margin-left:38px"><img src="/favicon.png" alt=""/>${esc(merchant)}</div>
+        <div class="dcx-lead">${sub ? `Subscribe to ${esc(plan.name)}` : `Pay ${esc(merchant)}`}</div>
+        <div class="dcx-amt">${price}${sub ? `<span class="dcx-per">per ${esc(plan.interval)}</span>` : ''}</div>
+        <details class="dcx-sum">
+          <summary class="dcx-sumbar"><span>Details</span><span class="dcx-sumamt">${price}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></summary>
+          <div class="dcx-rule"></div>
+          <div class="dcx-item">
+            ${thumb}
+            <span class="dcx-item-name"><b>${esc(plan.name)}</b>${plan.description ? `<small>${esc(plan.description)}</small>` : ''}</span>
+            <span class="dcx-item-amt">${price}${sub ? `<small>/ ${esc(plan.interval)}</small>` : ''}</span>
+          </div>
+          <div class="dcx-rule"></div>
+          <div class="dcx-line sum"><span>Subtotal</span><span>${price}</span></div>
+          <div class="dcx-line due"><span>Total due${sub ? ' today' : ''}</span><span>${price}</span></div>
+        </details>
+        <p class="dcx-legal wide">${legal}</p>
       </div>
       <div class="dcx-pay">
         <span class="dcx-badge">Demo</span>
         <div class="dcx-lab">Email</div>
         <div class="dcx-f" data-f="email"><span class="t"></span><span class="caret"></span></div>
         <div class="dcx-lab">Card information</div>
-        <div class="dcx-card">
+        <div class="dcx-group">
           <div class="dcx-f" data-f="card"><span class="t"></span><span class="caret"></span><span class="dcx-brandmark">VISA</span></div>
           <div class="pair">
             <div class="dcx-f" data-f="exp"><span class="t"></span><span class="caret"></span></div>
-            <div class="dcx-f" data-f="cvc"><span class="t"></span><span class="caret"></span></div>
+            <div class="dcx-f" data-f="cvc"><span class="t"></span><span class="caret"></span>
+              <svg class="dcx-cvc" width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="0.7" y="0.7" width="18.6" height="12.6" rx="2"/><path d="M0.7 4.3h18.6"/><path d="M13 9.4h4"/></svg>
+            </div>
           </div>
         </div>
         <div class="dcx-lab">Cardholder name</div>
         <div class="dcx-f" data-f="name"><span class="t"></span><span class="caret"></span></div>
-        <button class="dcx-btn" type="button" disabled>Pay ${price}</button>
-        <div class="dcx-foot">
-          <svg width="12" height="15" viewBox="0 0 12 15" fill="none" aria-hidden="true"><path d="M3 6V4a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.5"/><rect x="0.75" y="6" width="10.5" height="8" rx="2" fill="currentColor"/></svg>
-          Checkout secured by Dues
+        <div class="dcx-lab">Country or region</div>
+        <div class="dcx-group">
+          <div class="dcx-f" data-f="country"><span class="t"></span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="dcx-f" data-f="zip"><span class="t"></span><span class="caret"></span></div>
         </div>
-        <div class="dcx-grant"><span class="pill">${esc(role)}</span> granted in ${esc(state.brand ?? 'this server')}</div>
+        <button class="dcx-btn" type="button" disabled>${sub ? 'Subscribe' : 'Pay'}</button>
+        ${sub
+          ? `<p class="dcx-terms">By confirming your subscription, you allow ${esc(merchant)} to charge you for
+             future payments in accordance with their terms. You can always cancel your subscription.</p>`
+          : ''}
+        <div class="dcx-grant">
+          <p class="dcx-grant-top"><span class="pill">${esc(role)}</span> granted in ${esc(merchant)}</p>
+          <p class="dcx-grant-note">On a live store this is the moment Stripe sends the buyer back to your
+            receipt page, and Dues hands them the role in Discord.</p>
+        </div>
         <div class="dcx-out">
           <a class="primary" href="/api/invite">Open your own store</a>
+          <button type="button" data-again>Play again</button>
           <button type="button" data-close>Close</button>
         </div>
+        <p class="dcx-legal narrow">${legal}</p>
       </div>
     </div>`;
   document.body.append(back);
@@ -918,7 +967,14 @@ function demoCheckout(plan) {
   const at = (ms, fn) => timers.push(setTimeout(fn, ms));
   const f = (k) => back.querySelector(`[data-f="${k}"]`);
   const btn = back.querySelector('.dcx-btn');
+  const payCol = back.querySelector('.dcx-pay');
+  const narrow = window.matchMedia?.('(max-width: 760px)').matches;
   const prevFocus = document.activeElement;
+
+  // Stripe's own page keeps the summary open beside the form on a desktop and
+  // folds it into a one-line "Details" disclosure on a phone, so the card
+  // fields are the first thing under the amount. Same here.
+  back.querySelector('.dcx-sum').open = !narrow;
 
   const close = () => {
     timers.forEach(clearTimeout);
@@ -930,6 +986,11 @@ function demoCheckout(plan) {
   function onKey(e) { if (e.key === 'Escape') close(); }
   document.addEventListener('keydown', onKey);
   back.addEventListener('click', (e) => {
+    if (e.target.closest('[data-again]')) {
+      close();
+      setTimeout(() => demoCheckout(plan), 240);
+      return;
+    }
     if (e.target === back || e.target.closest('[data-close], .dcx-x')) close();
   });
   back.querySelector('.dcx-x').focus();
@@ -952,31 +1013,47 @@ function demoCheckout(plan) {
     f('exp').querySelector('.t').textContent = '04 / 29';
     f('cvc').querySelector('.t').textContent = '123';
     f('name').querySelector('.t').textContent = 'Nova Almeida';
+    f('country').querySelector('.t').textContent = 'United States';
+    f('zip').querySelector('.t').textContent = '94103';
     back.querySelector('.dcx-brandmark').classList.add('in');
   };
 
   const succeed = () => {
+    payCol.classList.remove('thinking');
     btn.classList.remove('press');
     btn.classList.add('done');
+    btn.removeAttribute('aria-label');
     btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Payment successful';
     at(320, () => back.querySelector('.dcx-grant').classList.add('in'));
-    at(700, () => back.querySelector('.dcx-out').classList.add('in'));
+    at(700, () => {
+      back.querySelector('.dcx-out').classList.add('in');
+      // On a phone the outcome sits below the fold the run finished on.
+      if (narrow) back.querySelector('.dcx-out').scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' });
+    });
   };
 
   if (still) { settle(); succeed(); return; }
 
-  type(f('email'), 'nova@example.com', 380, 34);
-  type(f('card'), '4242 4242 4242 4242', 1080, 32);
-  at(1080 + 8 * 32, () => back.querySelector('.dcx-brandmark').classList.add('in'));
-  type(f('exp'), '04 / 29', 1820, 46);
-  type(f('cvc'), '123', 2180, 52);
-  type(f('name'), 'Nova Almeida', 2440, 40);
-  at(3020, () => { btn.disabled = false; btn.classList.add('press'); });
-  at(3180, () => {
+  type(f('email'), 'nova@example.com', 340, 30);
+  type(f('card'), '4242 4242 4242 4242', 980, 28);
+  at(980 + 8 * 28, () => back.querySelector('.dcx-brandmark').classList.add('in'));
+  type(f('exp'), '04 / 29', 1620, 40);
+  type(f('cvc'), '123', 1980, 46);
+  type(f('name'), 'Nova Almeida', 2200, 34);
+  // A country is chosen, not typed: it lands in one go, the way a select does.
+  at(2720, () => { f('country').classList.add('on'); f('country').querySelector('.t').textContent = 'United States'; });
+  at(2860, () => f('country').classList.remove('on'));
+  type(f('zip'), '94103', 2900, 40);
+  at(3260, () => { btn.disabled = false; btn.classList.add('press'); });
+  at(3420, () => {
+    // Stripe greys the whole form while the charge is in flight and swaps the
+    // button's label for a spinner. Nothing here to grey out but the look.
     btn.classList.remove('press');
-    btn.innerHTML = '<span class="dcx-spin"></span>Processing…';
+    payCol.classList.add('thinking');
+    btn.setAttribute('aria-label', 'Processing');
+    btn.innerHTML = '<span class="dcx-spin"></span>';
   });
-  at(4200, succeed);
+  at(4400, succeed);
 }
 
 async function pay(btn, plan) {
