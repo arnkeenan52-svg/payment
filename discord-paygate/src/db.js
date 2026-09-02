@@ -721,12 +721,18 @@ export async function countStoreSubscriptions(storeId) {
 
 // Live holders of any of these plans in one store — what product-delete has
 // to ask before it removes a row the role map is built from.
-export async function countLiveSubscriptionsForPlans(storeId, planIds) {
+export async function countLiveSubscriptionsForPlans(storeId, planIds, at = now()) {
   if (!planIds.length) return 0;
   const marks = planIds.map(() => '?').join(', ');
+  // isEntitled() expressed in SQL, like countLiveMembers above: a row still
+  // 'active' past its period end, or 'past_due' past a dead grace window, is
+  // nobody holding anything and must not refuse the delete. And one buyer
+  // with two rows on the plan is one member, not two.
+  const live = "((status = 'active' AND (current_period_end IS NULL OR current_period_end > ?))"
+    + " OR (status = 'past_due' AND grace_until IS NOT NULL AND grace_until > ?))";
   const { rows } = await q(
-    `SELECT COUNT(*) AS n FROM subscriptions WHERE store_id = ? AND status IN ('active', 'past_due') AND plan_id IN (${marks})`,
-    [storeId, ...planIds],
+    `SELECT COUNT(DISTINCT discord_id) AS n FROM subscriptions WHERE store_id = ? AND ${live} AND plan_id IN (${marks})`,
+    [storeId, at, at, ...planIds],
   );
   return Number(rows[0]?.n ?? 0);
 }
