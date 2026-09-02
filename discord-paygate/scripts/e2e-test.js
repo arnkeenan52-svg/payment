@@ -1562,41 +1562,81 @@ test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black
   // fine, reading the wrong store's face is not.
   const headSrc = html.match(/<script>(try \{[^<]*dues-dash-face[^<]*)<\/script>/)?.[1];
   assert.ok(headSrc, 'dashboard.html still stamps the face before first paint');
-  const firstPaint = (saved, hash) => {
-    const root = { dataset: {} };
+  // THREE faces now, not two: the head script owns light as well, because the
+  // face is one setting and light is one of its values. It has to CLEAR as
+  // well as set — theme.js runs above it and stamps data-theme='light' from a
+  // session carried in off the marketing pages, and the store's own saved
+  // face must win over that or the picker says navy on a white screen.
+  const firstPaint = (saved, hash, sessionLight = false) => {
+    const root = { dataset: sessionLight ? { theme: 'light' } : {} };
     new Function('localStorage', 'location', 'document', headSrc)(
       { getItem: (k) => (k in saved ? saved[k] : null) },
       { hash },
       { documentElement: root },
     );
-    return root.dataset.dark ?? 'navy';
+    return root.dataset.theme === 'light' ? 'light' : (root.dataset.dark ?? 'navy');
   };
-  // Two stores, two faces, and the bare key left on whichever was opened last.
-  const twoStores = { [key]: 'black', [`${key}:ink`]: 'black', [`${key}:sky`]: 'navy' };
+  // Three stores, three faces, and the bare key left on whichever was opened last.
+  const twoStores = { [key]: 'black', [`${key}:ink`]: 'black', [`${key}:sky`]: 'navy', [`${key}:day`]: 'light' };
   assert.equal(firstPaint(twoStores, '#/store/sky'), 'navy', 'the navy store paints navy even when the black one was opened last');
   assert.equal(firstPaint(twoStores, '#/store/ink'), 'black', 'and the black store still paints black');
+  assert.equal(firstPaint(twoStores, '#/store/day'), 'light', 'and the light store paints light, before the API answers');
   // A store never opened here, and the store-less views, fall back to the
   // last saved face — the behaviour the single key always had.
   assert.equal(firstPaint(twoStores, '#/store/brand-new'), 'black', 'an unseen store falls back to the last saved face');
   assert.equal(firstPaint(twoStores, '#/'), 'black', 'so does the picker');
   assert.equal(firstPaint({ [`${key}:sky`]: 'navy' }, '#/'), 'navy', 'and nothing saved is navy, never a crash');
+  // The clearing half. Without it a light session from the marketing site
+  // leaves the dashboard white while its picker and its saved face say navy.
+  assert.equal(firstPaint(twoStores, '#/store/sky', true), 'navy', "a light session does not beat the store's saved navy");
+  assert.equal(firstPaint(twoStores, '#/store/ink', true), 'black', 'nor its saved black');
+  assert.equal(firstPaint({}, '#/store/sky', true), 'navy', 'and nothing saved means navy, the dashboard default');
+  assert.equal(firstPaint(twoStores, '#/store/day', true), 'light', 'a saved light face still paints light');
   // dashboard.js must WRITE the per-store key, or the head script reads a key
   // that is never set and the fallback quietly becomes the only path.
-  assert.match(dash, /rememberDarkFace\(darkFace, store\.slug\)/, 'viewStore remembers the face under the store it belongs to');
-  assert.match(dash, /localStorage\.setItem\(darkFaceKey\(slug\), face\)/, 'rememberDarkFace writes the per-store key');
+  assert.match(dash, /rememberFace\(face, store\.slug, prefsDarkHalf\(dashPrefs\)\)/, 'viewStore remembers the face under the store it belongs to');
+  assert.match(dash, /localStorage\.setItem\(darkFaceKey\(slug\), face\)/, 'rememberFace writes the per-store key');
   const routeSrc = dash.match(/async function route\(\) \{[\s\S]*?\n\}/)[0];
   const at = (needle) => { const i = routeSrc.indexOf(needle); assert.ok(i >= 0, `route() must contain ${needle}`); return i; };
-  assert.ok(at('applyDarkFace(savedDarkFace())') < at('viewSetup(') && at('applyDarkFace(savedDarkFace())') < at('viewAdmin()') && at('applyDarkFace(savedDarkFace())') < at('viewPicker()'),
+  assert.ok(at('applyFace(savedFace())') < at('viewSetup(') && at('applyFace(savedFace())') < at('viewAdmin()') && at('applyFace(savedFace())') < at('viewPicker()'),
     'the saved face is applied before every store-less view');
-  assert.ok(!/const pickedFace[\s\S]*?rememberDarkFace/.test(dash.match(/function wireCustomize[\s\S]*?\n\}/)?.[0] ?? ''),
+  assert.ok(!/const pickedFace[\s\S]*?rememberFace/.test(dash.match(/function wireCustomize[\s\S]*?\n\}/)?.[0] ?? ''),
     'a preview is never remembered as the saved face');
-  // And the night rules that the black face inherits name tokens, not navy:
-  // the revenue tooltip and the preview's browser bar were the four that did.
-  for (const sel of ['.chart-tip', '.th-frame-bar', '.th-frame-url']) {
+  // ONE setting, three values, one control. The picker offers all three faces
+  // — the old shape was a two-way "dark style" row that, on the light face,
+  // looked live and changed nothing anyone could see.
+  const dcRow = dash.match(/<div class="dc-row"><span class="dc-lab">Theme<\/span>[\s\S]*?<\/div>/)?.[0] ?? '';
+  for (const f of ['light', 'navy', 'black']) assert.ok(dcRow.includes(`'${f}'`), `the dashboard theme picker offers ${f}`);
+  assert.ok(!/dc-lab">Dark style/.test(dash), 'and there is no second, invisible "dark style" control left over');
+  // The header button belongs to the dashboard, not to theme.js. If both bind
+  // it, one click toggles data-theme twice and lands back where it started.
+  assert.ok(!/data-theme-toggle/.test(html), 'dashboard.html does not hand its button to theme.js');
+  assert.match(html, /<button class="theme-btn" data-face-toggle/, 'the dashboard owns the header face button');
+  assert.match(dash, /document\.querySelectorAll\('\[data-face-toggle\]'\)\.forEach/, 'dashboard.js binds it');
+  // …and it SAVES. A shortcut that forgets on reload is the original
+  // complaint in a different place.
+  const pickSrc = dash.match(/async function pickFace\(face\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.match(pickSrc, /rememberFace\(face, slug, half\)/, 'the header button mirrors the face for the next first paint');
+  assert.match(pickSrc, /api\('\/api\/admin\/store', \{ store: slug, dashboardPrefs: prefs \}\)/, 'and persists it on the store');
+  // And the night rule the black face inherits names tokens, not navy: the
+  // revenue tooltip was the one that did.
+  for (const sel of ['.chart-tip']) {
     const rule = html.match(new RegExp(`html:not\\(\\[data-theme='light'\\]\\) ${sel.replace('.', '\\.')} \\{([^}]*)\\}`))?.[1] ?? '';
     assert.ok(rule && !/#131b2d|#101827|19, 27, 45|16, 24, 39/.test(rule), `${sel} night rule must not hard-code navy: ${rule}`);
   }
-  assert.match(html, /html\[data-dark='black'\]:not\(\[data-theme='light'\]\) \.th-frame-dot/, 'the preview dots get a black-face value');
+  // The other direction, and the one that shipped: a rule written for the
+  // black product and inherited by the light face. The store-theme tiles'
+  // SELECTED ring was #fff — a white ring on a white card, so the light
+  // dashboard showed no selection at all — and the live preview's window mock
+  // was #0c0c0c, a black hole punched into a white panel. Both were only ever
+  // right because dashboard.html re-stated them for the night faces. No rule
+  // in either family may name a literal colour again.
+  const css = fs.readFileSync(new URL('../public/styles.css', import.meta.url), 'utf8');
+  const themeRules = [...css.matchAll(/(^|\})\s*(\.(?:th-tile|th-frame|th-viewport|th-preview)[^{}]*)\{([^}]*)\}/gm)];
+  assert.ok(themeRules.length >= 8, `expected the theme-picker rules to still be there, found ${themeRules.length}`);
+  for (const [, , sel, body] of themeRules) {
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(body), `a theme-picker rule must name tokens, not a literal face: ${sel.trim()} {${body}}`);
+  }
 
   // Saving the storefront or dashboard appearance re-renders to a screen that
   // looks exactly like the one before the click; each says it landed.
@@ -4822,6 +4862,22 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal(dp.accent, '#5865f2', 'accent saved lowercased');
   assert.equal(dp.cards.mrr, false, 'hidden stat cards persist');
   assert.equal(dp.defaultRange, '90', 'default period persists');
+  // The dashboard's face, as the two keys the picker writes: `light` for the
+  // white face, `darkStyle` for which dark the header button goes back to.
+  // Both have to survive the round trip or the seller's choice is a preview
+  // that dies on reload — and "light + black" has to be storable together,
+  // because that is a white dashboard whose moon returns to black.
+  assert.equal((await storeCall({ dashboardPrefs: { light: true, darkStyle: 'black' } })).status, 200);
+  const faceRead = async () => (await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals`, { headers: { cookie: u7Cookie } })).json())
+    .stores.find((s) => s.slug === 'vip-signals').dashboardPrefs;
+  assert.deepEqual(await faceRead(), { darkStyle: 'black', light: true }, 'the light face and its dark half both persist');
+  assert.equal((await storeCall({ dashboardPrefs: { darkStyle: 'black' } })).status, 200);
+  assert.deepEqual(await faceRead(), { darkStyle: 'black' }, 'going back to the dark face drops the light key');
+  // Only the non-default value of each is stored, and only the real boolean:
+  // a truthy string is not a face.
+  assert.equal((await storeCall({ dashboardPrefs: { light: 'yes', darkStyle: 'navy' } })).status, 200);
+  assert.equal(await faceRead(), null, 'navy and not-light are the defaults, so nothing is written at all');
+  assert.equal((await storeCall({ dashboardPrefs: { accent: '#5865F2', cards: { mrr: false }, defaultRange: '90' } })).status, 200);
   assert.equal((await storeCall({ dashboardPrefs: null })).status, 200, 'prefs reset clears the row');
   assert.equal((await storeCall({ showMembers: false })).status, 200);
   const pubOff = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();

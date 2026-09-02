@@ -89,17 +89,18 @@
     html:not([data-theme='light']) .btn-blurple:hover { background: #4752e8; }
     html:not([data-theme='light']) .dcx-btn.press { background: #4752e8; }
     html:not([data-theme='light']) .error-actions .dismiss:hover { background: var(--active-fill); }
-    /* Tokens, not literal navy: these four were the only night rules that
-       named #131b2d/#101827 directly, so on the black face the revenue tooltip
-       and the store preview's browser bar still painted navy on #0a0a0b. */
+    /* Tokens, not literal navy: these were the night rules that named
+       #131b2d/#101827 directly, so on the black face the revenue tooltip
+       still painted navy on #0a0a0b. */
     html:not([data-theme='light']) .chart-tip { background: color-mix(in srgb, var(--well) 92%, transparent); }
     html:not([data-theme='light']) .top-bar span { background: linear-gradient(90deg, rgba(61, 220, 132, 0.42), rgba(61, 220, 132, 0.82)); }
-    html:not([data-theme='light']) .th-tile:hover .th-tile-thumb { border-color: rgba(148, 163, 190, 0.4); }
-    html:not([data-theme='light']) .th-tile:focus-visible .th-tile-thumb { outline-color: #5865f2; }
-    html:not([data-theme='light']) .th-tile.active .th-tile-thumb { border-color: #5865f2; }
-    html:not([data-theme='light']) .th-frame-bar { background: var(--well); }
-    html:not([data-theme='light']) .th-frame-dot { background: rgba(148, 163, 190, 0.28); }
-    html:not([data-theme='light']) .th-frame-url { background: var(--bg); border-color: var(--hairline-2); }
+    /* Six overrides stood here: the store-theme tiles' rings and the preview's
+       window chrome, re-stated for the night faces because styles.css painted
+       them in literal monochrome — #fff rings, #0c0c0c windows — which only
+       ever suited a black product, and left the LIGHT face wearing a white
+       ring on a white card and a black hole where the preview goes. Those
+       rules name tokens now, so all three faces are right from one place and
+       the overrides said nothing. */
     /* focus rings: blurple (the blurple pay/primary buttons keep their legible pale ring) */
     html:not([data-theme='light']) .btn-fill:focus-visible,
     html:not([data-theme='light']) .btn-secondary:focus-visible,
@@ -243,9 +244,6 @@
       --el-3: 0 6px 16px rgba(0, 0, 0, 0.60);
       --el-4: 0 12px 32px rgba(0, 0, 0, 0.68);
     }
-    /* The preview's window dots have no navy token to inherit; the rule above
-       is a navy alpha, so it gets the black edge here. */
-    html[data-dark='black']:not([data-theme='light']) .th-frame-dot { background: var(--edge-hot); }
 
     /* ── day: the same roles, on the flat white face ──────────────────────
        Black alphas over white. Step 10 DARKENS on both faces, which is a
@@ -259,7 +257,12 @@
       --d-press:   rgba(16, 24, 39, 0.080);
       --d-stroke:  #e3e5ea;
       --d-stroke-strong: #cdd1d9;
-      --d-a9:  rgba(16, 24, 39, 0.52);
+      /* 0.62, not the 0.52 this started at. Step 9 is TEXT here — the
+         inactive tab in a segmented control and the flat delta chip — and at
+         0.52 it measured 3.55:1 on the #f7f7f7 track and 3.60:1 on white,
+         both under the 4.5:1 floor, while the night face's own step 9 clears
+         it on every dark ground. The light half was simply undercooked. */
+      --d-a9:  rgba(16, 24, 39, 0.62);
       --d-a11: rgba(16, 24, 39, 0.72);
       --d-a12: rgba(16, 24, 39, 0.94);
       --d-muted: #57606f;
@@ -288,15 +291,25 @@
        --accent/--ui-tint, so it cannot re-open the day-sky palette either. -->
   <link rel="stylesheet" href="/dash.css?v=200" />
   <script src="/theme.js?v=200"></script>
-  <!-- The black face, before first paint. dashboard.js re-derives it from the
-       store's saved preference once /api/admin/payments answers; without this
-       a seller who chose black watched navy become black on every load. The
-       face belongs to the STORE, so the route's slug picks the key: one
+  <!-- The face, before first paint. All THREE of them: light, navy and black
+       are one setting (dashboardPrefs — see the note above applyFace in
+       dashboard.js), and dashboard.js re-derives it from the store's saved
+       preference once /api/admin/payments answers. Without this line a seller
+       who chose black watched navy become black on every load, and a seller
+       who chose light watched the whole dashboard go from night to day.
+
+       The face belongs to the STORE, so the route's slug picks the key: one
        browser-wide key held whichever store was opened last and gave the
        seller's other store the wrong first paint on every cold load. The bare
        key stays the fallback — for a store never opened here, and for the
-       picker/setup/admin views, which have no store. -->
-  <script>try { var dfM = location.hash.match(/^#\/store\/([^/?]+)/); var dfF = (dfM && localStorage.getItem('dues-dash-face:' + dfM[1])) || localStorage.getItem('dues-dash-face'); if (dfF === 'black') document.documentElement.dataset.dark = 'black'; } catch (e) { /* private mode */ }</script>
+       picker/setup/admin views, which have no store.
+
+       It CLEARS as well as sets. theme.js runs above this line and stamps
+       data-theme='light' when the visit's session theme is light — carried in
+       from the marketing pages — and the dashboard's own saved face has to win
+       over that or the picker says navy while the screen is white. Nothing
+       saved means navy: the dashboard's default face, not the site's. -->
+  <script>try { var dfM = location.hash.match(/^#\/store\/([^/?]+)/); var dfF = (dfM && localStorage.getItem('dues-dash-face:' + dfM[1])) || localStorage.getItem('dues-dash-face'); var dfR = document.documentElement; if (dfF === 'light') dfR.dataset.theme = 'light'; else { delete dfR.dataset.theme; if (dfF === 'black') dfR.dataset.dark = 'black'; } } catch (e) { /* private mode */ }</script>
 </head>
 <body class="app">
 <i class="ui-tint" aria-hidden="true"></i>
@@ -306,7 +319,12 @@
     </div>
     <div class="top-right">
       <div id="account" class="account"></div>
-      <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+      <!-- data-face-toggle, and deliberately NOT the attribute theme.js binds:
+           on the dashboard this button is a shortcut for the saved FACE
+           (dashboard.js binds it and persists the choice), and letting theme.js
+           bind it as well would toggle the theme twice on one click — straight
+           back to where it started. -->
+      <button class="theme-btn" data-face-toggle aria-label="Switch to the light dashboard"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
     </div>
   </header>
 

@@ -145,8 +145,12 @@ body.app .field-help { font-size: var(--fs-1); line-height: var(--lh-1); color: 
 body.app .field-help.ok { color: var(--a-11, var(--accent)); }
 body.app .field-help.bad { color: var(--bad-11); }
 
-/* The dark-style picker: two ground swatches, the same shape as the accent
-   row above it. */
+/* The dashboard's own three faces: light, navy, black, as small ground
+   swatches in the same shape as the accent row above them. Deliberately NOT
+   the shape of the store-theme tiles a screen away — those are big pictures
+   of a checkout in a 3-up grid with names underneath, because they are the
+   buyer's theme and this is the seller's. Two controls that changed different
+   things used to look alike; now they do not. */
 body.app .dc-faces { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 body.app .dc-face {
   display: inline-flex; align-items: center; gap: var(--s-2);
@@ -166,6 +170,17 @@ body.app .dc-face-chip {
   padding-bottom: 3px; overflow: hidden;
 }
 body.app .dc-face-chip i { display: block; width: 16px; height: 8px; border-radius: 2px 2px 0 0; }
+
+/* The store theme's own line, under its label: the two pickers are named for
+   who sees them, and neither is left to be guessed from context. */
+body.app .th-block-help { margin: -2px 0 0; }
+
+/* Accent as TEXT. The note beside the billing interval toggle painted itself
+   var(--accent) — #5865f2 — which is a FILL colour: it measures 3.41:1 on the
+   navy panel it sits on, under the 4.5:1 floor, and the ramp already has an
+   accent text step that clears it on all three faces (7.35:1 navy, 6.31:1
+   white). Same reason the .field-help.ok rule two screens up uses --acc-11. */
+body.app .bt-free { color: var(--acc-11); }
 
 body.app .field input,
 body.app .field select,

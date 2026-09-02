@@ -344,10 +344,15 @@ export default guard(async function handler(req, res) {
       if (p?.defaultRange && ['today', '7', '30', '90', '12m', 'all'].includes(String(p.defaultRange))) {
         clean.defaultRange = String(p.defaultRange);
       }
-      // Which dark the dashboard uses. Only 'black' is stored — 'navy' is the
-      // default, and writing a key that means "the default" is how a prefs
-      // blob grows rows that say nothing.
+      // The dashboard's face, as two keys: `light` says whether the face is
+      // the light one, `darkStyle` says which dark it goes back to. Storing
+      // both is what makes "white dashboard whose moon returns to black" a
+      // state the seller can actually save. Only the non-default value of
+      // each is written — 'navy' and not-light are the defaults, and writing
+      // a key that means "the default" is how a prefs blob grows rows that
+      // say nothing.
       if (String(p?.darkStyle) === 'black') clean.darkStyle = 'black';
+      if (p?.light === true) clean.light = true;
       fields.dashboardPrefs = Object.keys(clean).length ? JSON.stringify(clean) : null;
     }
   }
