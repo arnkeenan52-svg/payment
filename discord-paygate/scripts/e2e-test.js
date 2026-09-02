@@ -3879,6 +3879,13 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   // The legal footnote ran ~185 characters a line on a desktop: capped like
   // every other body block.
   assert.match(rules('.footer-disclaimer')[0], /max-width: 78ch/, 'the footer disclaimer is capped to a readable measure');
+
+  // Store chrome over a wallpaper: header and footer wear the column's
+  // translucent ground and the ink, so their text no longer depends on the
+  // seller's photo.
+  assert.match(css, /body\.has-bg \.top, body\.has-bg > footer \{\n  background: color-mix\(in srgb, var\(--bg\) 46%, transparent\);/, 'header + footer get the column ground over a wallpaper');
+  assert.doesNotMatch(css, /body\.has-bg \.top \{ background: transparent/, 'the header must not be transparent over a wallpaper');
+  assert.match(css, /\nbody\.has-bg > footer, body\.has-bg \.powered-community,\nbody\.has-bg \.top \.nav-link, body\.has-bg \.top \.account, body\.has-bg \.top \.btn-ghost \{ color: var\(--ink\); \}/, 'chrome text over a wallpaper is the ink, not --dim');
 });
 
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {

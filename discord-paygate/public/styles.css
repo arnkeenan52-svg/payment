@@ -3850,7 +3850,23 @@ html[data-theme='light'] body.home .browser-frame .hero-video { background: #faf
 html[data-theme='light'] .store-bg::after { background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(16, 25, 45, 0.14)); }
 /* content stacks above the fixed ground */
 body.has-bg .top, body.has-bg .checkout, body.has-bg > footer { position: relative; z-index: 1; }
-body.has-bg .top { background: transparent; border-bottom-color: transparent; }
+/* The header and footer sit outside the column, straight on the wallpaper,
+   and their --dim text is mixed from the palette, not from the photograph:
+   on meadow the "powered by" line measured 1.2:1, on blossom 1.2:1, and the
+   signed-in nav link 2.2:1 on sky-day. Same translucent ground the column
+   already wears, so their contrast stops depending on the seller's photo. */
+body.has-bg .top, body.has-bg > footer {
+  background: color-mix(in srgb, var(--bg) 46%, transparent);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+body.has-bg .top { border-bottom-color: transparent; }
+/* And their text is the ink, not --dim. --dim is mixed for the palette's own
+   opaque ground; on the 46% ground it still measured 3.1:1 on meadow and
+   3.3:1 for the signed-in nav link on sky-day (a denser ground alone never
+   got sky-day past 4.4). The ink measures 5.0:1 at its worst, on flow, and
+   7:1 or better on every other preset. */
+body.has-bg > footer, body.has-bg .powered-community,
+body.has-bg .top .nav-link, body.has-bg .top .account, body.has-bg .top .btn-ghost { color: var(--ink); }
 
 /* ── materials ─────────────────────────────────────────────────────────────
    glass (default with a background), liquid (heavier, specular), solid. */
