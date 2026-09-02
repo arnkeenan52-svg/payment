@@ -176,7 +176,7 @@
       <p class="label" id="options-label">Your order</p>
       <div id="options"></div>
 
-      <p class="label">Payment method</p>
+      <p class="label" id="methods-label">Payment method</p>
       <div class="methods" id="methods"></div>
 
       <section class="pay-panel" id="pay-panel">
@@ -240,6 +240,11 @@
             <span id="cryptopay-status-text" role="status">Waiting for your payment&#8230;</span>
             <b class="cpay-clock" id="cryptopay-clock" hidden></b>
           </div>
+          <!-- The exit. This screen has no pay button by design and the method
+               tiles are hidden while an order is open, so it is the only
+               control on it that goes anywhere. -->
+          <button type="button" class="cpay-cancel" id="cryptopay-cancel">Cancel and pay another way</button>
+          <p class="cpay-cancel-note">A payment you have already sent still counts &#8212; it is credited when the network confirms it.</p>
         </div>
         <p class="redirect-note" id="redirect-note"></p>
         <div class="trust-row" id="trust-row"></div>

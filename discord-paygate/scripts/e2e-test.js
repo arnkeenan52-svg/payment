@@ -4738,8 +4738,17 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   });
   assert.equal(opRes.status, 200, 'platform owner bypass on onboard steps');
   // Sellers get the dashboard nav link; buyers do not.
-  assert.equal((await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u7Cookie } })).json()).seller, true, 'store owner is flagged seller');
-  assert.equal((await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u9Cookie } })).json()).seller, false, 'buyer is not');
+  const meSeller = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u7Cookie } })).json();
+  const meBuyer = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u9Cookie } })).json();
+  assert.equal(meSeller.seller, true, 'store owner is flagged seller');
+  assert.equal(meBuyer.seller, false, 'buyer is not');
+  // And WHICH stores they run, so a storefront can point its owner back at the
+  // dashboard for the store they are standing in. A seller reaches their own
+  // shop from that dashboard — usually in a fresh tab, where the browser's
+  // back button is dead — and a generic "/dashboard" link put them back at the
+  // server picker instead of where they came from.
+  assert.ok(meSeller.owns.includes('vip-signals'), 'a seller is told which stores are theirs');
+  assert.deepEqual(meBuyer.owns, [], 'a buyer is told about no store, not even one they bought from');
 
   // Second product, monthly — created in the site, extras applied, role picked.
   const made = await onboard({ step: 'product', storeId, name: 'Signals Monthly', description: 'Every signal, monthly.', priceUsd: 15, lifetime: false, durationDays: 31 });
@@ -5870,12 +5879,37 @@ test('storefront client: the failure states the suite cannot drive in a browser 
   // one-product store whose product has price options must not grow a button
   // leading to a one-card shop it was designed never to show.
   assert.match(app, /const multi = state\.plans\.filter\(\(p\) => !p\.variantOf\)\.length > 1;/, 'the back-to-shop button counts products, not price options');
+  // ...but it is never the reason the slot is EMPTY. A one-product store is
+  // routed straight into its order card, so with no link up to the store page
+  // that card is the whole storefront and a fresh tab (the dashboard's "View
+  // store", a QR code, a link posted in Discord) has nothing on it that goes
+  // anywhere. scripts/verify-store-escape.mjs drives this in a browser; the
+  // line is held here so `npm test` alone still catches its removal.
+  assert.match(app, /back\.hidden = !\(STORE_SLUG && state\.view === 'checkout'\);/, 'every store checkout offers the way up to its store page');
+  // The crypto pay screen has no pay button by design (a second invoice would
+  // split the payment across two addresses) and hides the method tiles, so its
+  // cancel control is the only thing on it that goes anywhere.
+  assert.match(app, /if \(state\.cryptoOrder\) \{\s*\n\s*box\.hidden = true;/, 'the method tiles stand down while a crypto order is open');
+  assert.match(app, /const cancel = \$\('#cryptopay-cancel'\);/, 'the crypto pay screen wires its own exit');
+  const dash = read('dashboard.js');
+  // The Appearance preview is a live storefront in an iframe with no address
+  // bar and no back button. Clicking through it walked the frame into the
+  // checkout and then out to Stripe, and its header offered "Sign out" —
+  // which signed the owner out of the dashboard around it.
+  assert.match(dash, /f\.contentDocument\?\.addEventListener\(\s*\n?\s*'click',/, 'the store preview swallows clicks instead of navigating the frame');
   // "Lifetime (lifetime)": the parent option's synthesised label is its cadence.
   assert.match(app, /sameWord \? '' : `<small>\$\{cadence\}<\/small>`/, 'the cadence suffix is dropped when the label already is the cadence');
   // A Discord CDN miss falls back to the letter placeholder instead of a hole,
   // and a url that already failed is not re-shown by the next render.
   assert.match(app, /icon\.dataset\.failed !== state\.server\.iconUrl/, 'the shop avatar remembers a failed url');
   assert.match(app, /logo\.dataset\.failed !== state\.server\.iconUrl/, 'the checkout server icon remembers a failed url');
+  // Every page a buyer can be standing on mid-purchase wears the same header
+  // mark, and on every one of them it is a LINK. The receipt's was a bare
+  // <img>: the one page reached straight from Stripe, where a dead logo is the
+  // difference between "click the thing that always goes home" and nothing.
+  for (const f of ['store.html', 'receipt.html', 'account.html', 'dashboard.html']) {
+    assert.match(read(f), /<a href="\/"><img class="platform-mark"/, `${f}'s header mark must link home`);
+  }
   const store = read('store.html');
   const img = (marker) => store.match(new RegExp(`<img[^>]*${marker}[^>]*>`))?.[0] ?? '';
   assert.match(img('id="shop-icon"'), /onerror="[^"]*shop-icon-ph[^"]*"/, '#shop-icon swaps to the placeholder on error');

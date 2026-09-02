@@ -17,6 +17,7 @@
     "test:post": "node scripts/post-test.js",
     "og": "node scripts/build-og-card.mjs",
     "test:dash": "node scripts/verify-dash.mjs --check",
+    "test:escape": "node scripts/verify-store-escape.mjs",
     "test:footer": "node scripts/verify-phone-footer.mjs",
     "baseline:dash": "node scripts/verify-dash.mjs"
   },
