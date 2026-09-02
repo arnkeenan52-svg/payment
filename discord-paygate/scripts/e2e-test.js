@@ -4893,6 +4893,19 @@ test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch,
   // A reply from someone who does not own the store is a 403.
   assert.equal((await post(u8Cookie, { store: 'vip-signals', action: 'reply', id: 1, body: 'nope' })).status, 403);
 
+  // Public text is text. String() published "[object Object]" under the
+  // store's name behind a 200, and an absent body published "undefined"
+  // over whatever the seller had written.
+  const replyId = (await list(u7Cookie)).reviews[0].id;
+  for (const value of [{ a: 1 }, true, [1, 2], 7]) {
+    assert.equal((await post(u7Cookie, { store: 'vip-signals', action: 'reply', id: replyId, body: value })).status, 400, `reply body ${JSON.stringify(value)}`);
+    assert.equal((await post(u8Cookie, { store: 'vip-signals', rating: 4, body: value })).status, 400, `review body ${JSON.stringify(value)}`);
+  }
+  assert.equal((await post(u7Cookie, { store: 'vip-signals', action: 'reply', id: replyId })).status, 400, 'an absent reply body is not a clear');
+  assert.match((await list(null)).reviews[0].reply.body, /two channels/, 'none of those touched the reply');
+  assert.equal((await post(u7Cookie, { store: 'vip-signals', action: 'reply', id: replyId, body: '' })).status, 200, "'' is still the way to take a reply down");
+  assert.equal((await list(null)).reviews[0].reply, null);
+
   // The AUTHOR may withdraw their own words — the one delete that exists.
   assert.equal((await post(u8Cookie, { store: 'vip-signals', action: 'withdraw' })).status, 200);
   assert.equal(await rowCount(), 0);
@@ -5731,7 +5744,15 @@ test('the input boundary: bad cookies, null bodies, NUL bytes, wrong types and o
     assert.equal((await post('/api/admin/store', { description: value })).status, 400, `store description ${JSON.stringify(value)}`);
     assert.equal((await post('/api/onboard', { step: 'product', storeId, name: value, priceUsd: 10, lifetime: true })).status, 400, `product name ${JSON.stringify(value)}`);
     assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, name: value })).status, 400, `product rename ${JSON.stringify(value)}`);
+    // The option label is the third product-writing step, and the one that
+    // turns its input into a plan key no later edit can change: String()
+    // made the permanent key "vip-object-object" behind a 200.
+    assert.equal((await post('/api/onboard', { step: 'variant', storeId, planKey: plan.id, label: value, priceUsd: 12, lifetime: true })).status, 400, `option label ${JSON.stringify(value)}`);
   }
+  assert.ok(
+    !(await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.some((p) => /object-object|^true$|1,2|^7$/.test(p.planKey)),
+    'none of those minted an option',
+  );
   assert.equal((await storeRow()).name, 'Evil', 'none of those wrote anything');
   assert.equal((await post('/api/admin/store', { name: 'VIP Signals' })).status, 200);
 

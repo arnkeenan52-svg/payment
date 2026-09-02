@@ -84,6 +84,7 @@ export default guard(async function handler(req, res) {
     case 'store': {
       const guildId = String(body.guildId ?? '');
       const stripeKey = String(body.stripeKey ?? '').trim();
+      if (!isText(body.name)) return sendJson(res, 400, { error: 'The store name must be text.' });
       const name = String(body.name ?? '').trim().slice(0, 60);
       if (!/^\d{17,20}$/.test(guildId)) return sendJson(res, 400, { error: 'Pick a server first.' });
       if (!name) return sendJson(res, 400, { error: 'Give your store a name.' });
@@ -274,6 +275,10 @@ export default guard(async function handler(req, res) {
           error: `Price must be between ${formatAmount(minCharge(currency), currency)} and ${formatAmount(maxCharge(currency), currency)}.`,
         });
       }
+      // The option's label becomes its plan key, which no later edit can
+      // change: String() on an object made the permanent key
+      // "vip-object-object" behind a 200.
+      if (!isText(body.label)) return sendJson(res, 400, { error: 'The option label must be text.' });
       const label = String(body.label ?? '').trim().slice(0, 40) || (lifetime ? 'Lifetime' : 'Monthly');
       let planKey = `${parentKey}-${slugify(label)}`.slice(0, 60);
       {
