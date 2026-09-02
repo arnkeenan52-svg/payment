@@ -61,7 +61,7 @@
   --solid: #5865f2;
   --solid-ink: #ffffff;
   --blurple: #5865f2;
-  --blurple-text: #4753c9;
+  --blurple-text: #424cbd;
   --good: #15803d;
   --bad: #c43c3c;
   --money: #15803d;
@@ -133,9 +133,16 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 /* footnotes need real muted ink, not a transparent mix */
 .calc-note, .footer-disclaimer { color: #66748f; }
 .calc-bar-sub { color: rgba(15,22,38,.55); }
-/* links read blurple everywhere */
-.guide-body a { color: #5865f2; }
-.alt-card .seo-card-cta a { color: #5865f2; }
+/* links read blurple everywhere — the TEXT blurple, never the button one.
+   These pages are hand-written, so the generator's sweep never reached them:
+   #5865f2 is 4.3:1 on the paper, and /terms' "account page" and
+   "contact@dues.gg" links were still painting it through .legal a's
+   var(--accent). --blurple-text is the darkest shade that still reads as
+   blurple, 6.6:1 on the paper. */
+.guide-body a { color: var(--blurple-text); }
+.alt-card .seo-card-cta a { color: var(--blurple-text); }
+.seo-card-cta, .cmp-table th:nth-child(2), .calc-label output { color: var(--blurple-text); }
+.legal a, .faq-item a, .seo-ticks a, .seo-step-num { color: var(--blurple-text); }
 /* "our product" chip on the alternatives lists */
 .alt-ours { background: #5865f2; color: #ffffff; }
 /* search box as glass (discover) */

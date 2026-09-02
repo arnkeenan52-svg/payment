@@ -1805,8 +1805,12 @@ function previewThemeCss(t) {
     `.checkout .panel, .checkout .order-product, .checkout .order-roles, .checkout .pay-panel, .checkout .order-extra { border-radius: ${t.radius}px; }`,
     `.checkout .pay-btn, .checkout .apply-btn, .checkout .method, .checkout input, .checkout .op-thumb { border-radius: ${small}px; }`,
     font ? `body, .checkout button, .checkout input, .order-title, .op-price, .pay-panel h2 { font-family: ${font}; }` : '',
-    // mirrors themeCss: the white wordmark inverts on a light ground with no layer
-    t.bg && !t.bgPreset && !t.bgUrl && inkFor(t.bg) === '#0a0a0a' ? '.platform-mark, .powered-mark { filter: invert(1); }' : '',
+    // mirrors themeCss: the white wordmark follows --bg, because the header and
+    // footer it sits in wear --bg even over a wallpaper. A preview that got
+    // this wrong would be selling the seller a look the store does not ship.
+    t.bg && (t.bgPreset || t.bgUrl)
+      ? `body.has-bg .platform-mark, body.has-bg .powered-mark { filter: ${inkFor(t.bg) === '#0a0a0a' ? 'invert(1)' : 'none'}; }`
+      : (t.bg && inkFor(t.bg) === '#0a0a0a' ? '.platform-mark, .powered-mark { filter: invert(1); }' : ''),
   ].join('\n');
 }
 
