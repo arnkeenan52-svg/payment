@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 import * as db from '../db.js';
-import { effectiveRolePlan, effectiveManagedRoleIds } from './plan-config.js';
+import { effectiveRolePlan, effectiveManagedRoleIds, guildRolesCached, resolveAgainstGuild } from './plan-config.js';
 import { defaultStore, storeById, plansOf, planOf } from './stores.js';
 import { getGuildMember, addRole, removeRole, joinGuildWithRoles, dmUser } from '../lib/discord.js';
 
