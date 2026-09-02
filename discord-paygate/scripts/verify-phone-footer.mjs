@@ -394,7 +394,17 @@ for (const theme of ['night', 'day']) {
       await page.waitForTimeout(350);
       const bottom = await readState(page);
       await page.evaluate(() => scrollTo(0, 0));
-      await page.waitForTimeout(400);
+      // The header fades back in on a CSS transition, so a fixed wait samples
+      // whatever the machine happened to have painted by then — under load it
+      // caught 0.93 and 0.98 mid-fade and called a working header broken. Wait
+      // for the state the assertion below wants, and let the assertion do the
+      // failing when it never arrives. (Waiting for the value to merely STOP
+      // CHANGING is wrong: before the transition starts it has not changed
+      // either, so that passes instantly on a header still at zero.)
+      await page.waitForFunction(() => {
+        const el = document.querySelector('.nav');
+        return !el || Number(getComputedStyle(el).opacity) >= 0.99;
+      }, { timeout: 4000 }).catch(() => {});
       const top = await readState(page);
       if (!bottom.revealed) fail(`${name} ${theme}: data-footer-revealed never set at the bottom of the page`);
       if (top.navOpacity < 0.99) fail(`${name} ${theme}: the header did not come back on scroll-up (opacity ${top.navOpacity})`);

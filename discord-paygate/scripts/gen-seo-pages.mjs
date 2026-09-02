@@ -19,7 +19,7 @@ import { config } from '../src/config.js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public');
 const BASE = 'https://dues.gg';
-const V = '198'; // keep in step with the ?v= asset version on index.html
+const V = '199'; // keep in step with the ?v= asset version on index.html
 // Describes the shared link-preview card (public/og-card.jpg), which is a
 // render of the homepage hero — see scripts/build-og-card.mjs.
 const OG_ALT =
@@ -387,7 +387,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 const nav = `
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=198" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=199" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/discover">Discover</a>
@@ -410,7 +410,7 @@ const nav = `
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=198" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=199" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>
@@ -507,7 +507,7 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <link rel="stylesheet" href="/styles.css?v=${V}" />
   <style>${DAY_CSS}</style>
   ${ld}
-  <script src="/theme.js?v=198"></script>
+  <script src="/theme.js?v=199"></script>
 </head>
 <body class="home seo-page">
 <i class="ui-tint" aria-hidden="true"></i>
