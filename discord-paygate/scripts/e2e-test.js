@@ -196,6 +196,12 @@ async function discordHandler(req, res) {
       json(res, 429, { message: 'You are being rate limited.', retry_after: 0.05, global: false });
       return;
     }
+    if (discord.failRoleAddsWith && req.method === 'PUT') {
+      // A role the bot cannot grant: dragged above it (403 Missing Permissions).
+      discord.roleCalls.push({ method: req.method, uid, roleId, failed: discord.failRoleAddsWith });
+      json(res, discord.failRoleAddsWith, { message: 'Missing Permissions', code: 50013 });
+      return;
+    }
     if (discord.failRoleRemovalsWith && req.method === 'DELETE') {
       // A lost removal: Discord down, or the paid role dragged above the bot.
       discord.roleCalls.push({ method: req.method, uid, roleId, failed: discord.failRoleRemovalsWith });
@@ -4613,6 +4619,106 @@ test('a revoke whose Discord call fails is retried by the sweep and by the butto
   assert.ok(!memberRoles(UID).has(R2_VIP), 'a retry of the button reconciles');
   // A member who never had a row here is still a 404.
   assert.equal((await call({ action: 'revoke', discordId: '518800000000000018' })).status, 404);
+});
+
+test('gifts are one row and zero revenue; a use counts only when a grant lands; a refused role does not 500 a paid sale', async () => {
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const post = (path, body) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: u7Cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const plans = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans;
+  const plan = plans.find((p) => !p.variantOf && !p.requiredRoleName);
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const uses = async () => (await (await post('/api/admin/discounts', { action: 'list' })).json()).discounts.find((d) => d.code === 'LAUNCH20').uses;
+  const signed = (evt) => deliverStripe(evt, { path: `/webhooks/stripe/${storeId}`, header: signStripe(JSON.stringify(evt), nowSec(), AUTO_ENDPOINT_SECRET) });
+  const completed = (id, uid, planId, extra = {}) => ({
+    id: `evt_${id}`, type: 'checkout.session.completed',
+    data: { object: { id: `cs_${id}`, mode: 'payment', amount_total: 1000, client_reference_id: uid, customer_details: { email: `${id}@e2e.test` }, metadata: { plan_id: planId, discord_id: uid, store_id: String(storeId), ...extra } } },
+  });
+
+  // 1. A double-clicked manual grant is ONE membership, priced at nothing —
+  //    on the seller's dashboard and on the platform page alike.
+  const GIFT = '519900000000000019';
+  discord.members.set(GIFT, new Set());
+  const u1Cookie = await loginAs('code_u1');
+  const platform = async () => (await (await fetch(`${appUrl}/api/admin/platform`, { headers: { cookie: u1Cookie } })).json());
+  const platBefore = await platform();
+  const twice = await Promise.all([0, 1].map(() => post('/api/admin/member', { action: 'grant', discordId: GIFT, planId: plan.id })));
+  assert.deepEqual(twice.map((r) => r.status), [200, 200]);
+  const rows = (await (await fetch(`${appUrl}/api/admin/payments?store=vip-signals`, { headers: { cookie: u7Cookie } })).json()).payments.filter((p) => p.discordId === GIFT);
+  assert.equal(rows.length, 1, 'a double click is one membership');
+  assert.equal(rows[0].amountUsd, 0, 'a gift is not revenue');
+  const platAfter = await platform();
+  const storeRev = (d) => d.stores.find((s) => s.slug === 'vip-signals').revenueUsd;
+  assert.equal(storeRev(platAfter), storeRev(platBefore), 'the platform page prices a gift at nothing too');
+  assert.equal(platAfter.totals.allTimeUsd, platBefore.totals.allTimeUsd, 'and its all-time volume does not move');
+
+  // 2. A discounted sale of a product the store no longer has grants nothing
+  //    and burns no use.
+  const before = await uses();
+  const GHOST = '520000000000000020';
+  discord.members.set(GHOST, new Set());
+  assert.equal((await signed(completed('ghost_1', GHOST, 'ghost-product', { discount_code: 'LAUNCH20' }))).status, 200);
+  assert.equal(await uses(), before, 'no grant, no use burned');
+
+  // 3. A role Discord refuses (dragged above the bot: 403) must not turn a
+  //    PAID sale into a 500 loop that withholds the receipt, the sale ping
+  //    and the use count for as long as Stripe retries. The row lands, the
+  //    buyer is told, and the next sweep delivers the role.
+  const STUCK = '521100000000000021';
+  discord.members.set(STUCK, new Set());
+  const emailsBefore = resend.emails.length;
+  const pingsBefore = discord.channelPosts.length;
+  discord.failRoleAddsWith = 403;
+  let stuck;
+  try {
+    stuck = await signed(completed('stuck_1', STUCK, plan.id, { discount_code: 'LAUNCH20' }));
+  } finally {
+    discord.failRoleAddsWith = null;
+  }
+  assert.equal(stuck.status, 200, stuck.body);
+  assert.ok(!memberRoles(STUCK).has(R2_VIP), 'the role could not be delivered yet');
+  assert.ok(resend.emails.length > emailsBefore, 'the receipt still goes out');
+  assert.ok(discord.channelPosts.length > pingsBefore, 'the sale ping still goes out');
+  assert.equal(await uses(), before + 1, 'the use is counted once the grant landed');
+  assert.equal((await hitCron()).status, 200);
+  assert.ok(memberRoles(STUCK).has(R2_VIP), 'the next sweep delivers the role once Discord allows it');
+});
+
+test('whole numbers bound for bigint columns are safe integers, and an oversized store id on the public webhook route is a 404', async () => {
+  // On Postgres 1e21 and twenty digits are not "a big number", they are a
+  // 500: pg serialises them past bigint's range. The suite runs on SQLite,
+  // which accepts anything, so these pin the VALIDATION, not the engine.
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const post = (path, body) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: u7Cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf);
+  for (const bad of [1e21, '1e21', '99999999999999999999']) {
+    assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, purchaseLimit: bad })).status, 400, `purchase limit ${bad}`);
+    assert.equal((await post('/api/admin/discounts', { action: 'create', code: 'HUGE', kind: 'percent', amount: 10, maxUses: bad })).status, 400, `max uses ${bad}`);
+  }
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, purchaseLimit: 5 })).status, 200);
+  assert.equal((await post('/api/onboard', { step: 'product', storeId, name: 'Bad term', priceUsd: 10, lifetime: false, durationDays: 'abc' })).status, 400, 'a term that is not a number is refused, never stored as NaN');
+  for (const bad of ['99999999999999999999', '9223372036854775808', '1000000000000000000000000']) {
+    const r = await deliverStripe({ id: 'evt_bigid', type: 'ping', data: { object: {} } }, { path: `/webhooks/stripe/${bad}` });
+    assert.equal(r.status, 404, `store ${bad} on the public route`);
+  }
 });
 
 test('crypto: waiting and partially_paid show progress and grant nothing', async () => {

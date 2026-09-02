@@ -67,7 +67,9 @@ export default guard(async function handler(req, res) {
         planKey = plan.id;
       }
       const maxUses = body.maxUses === null || body.maxUses === undefined || body.maxUses === '' ? null : Math.round(Number(body.maxUses));
-      if (maxUses !== null && (!Number.isFinite(maxUses) || maxUses < 1)) {
+      // isSafeInteger, not isFinite: 1e21 passes the number input and
+      // overflows the bigint column on Postgres.
+      if (maxUses !== null && (!Number.isSafeInteger(maxUses) || maxUses < 1)) {
         sendJson(res, 400, { error: 'Usage limit must be a whole number of at least 1.' });
         return;
       }

@@ -26,7 +26,10 @@ export default guard(async function handler(req, res) {
   const storeParam = url.searchParams.get('store');
   let routeStore = null;
   if (storeParam !== null && storeParam !== '') {
-    routeStore = /^\d+$/.test(storeParam) ? await storeById(Number(storeParam)) : null;
+    // Digits are not enough: twenty of them pass the regex, overflow a bigint
+    // on Postgres, and 500 an UNAUTHENTICATED endpoint. Fifteen digits stay
+    // under 2^53 and no store id is anywhere near that.
+    routeStore = /^\d{1,15}$/.test(storeParam) ? await storeById(Number(storeParam)) : null;
     if (!routeStore || routeStore.isDefault) {
       sendText(res, 404, 'unknown store endpoint');
       return;

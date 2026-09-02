@@ -172,7 +172,8 @@ export default guard(async function handler(req, res) {
       const currency = normalizeCurrency(row.currency);
       const priceUsd = roundAmount(Number(body.priceUsd), currency);
       const lifetime = body.lifetime !== false;
-      const durationDays = lifetime ? null : Math.max(1, Math.min(366, Math.round(Number(body.durationDays ?? 31))));
+      const durationDays = lifetime ? null : termDays(body.durationDays);
+      if (!lifetime && durationDays === null) return sendJson(res, 400, { error: 'Term length must be a whole number of days.' });
       if (!name) return sendJson(res, 400, { error: 'Name your product.' });
       if (!validateAmount(priceUsd, currency).ok) {
         return sendJson(res, 400, {
@@ -258,7 +259,8 @@ export default guard(async function handler(req, res) {
         return sendJson(res, 400, { error: 'A product can carry at most 6 pricing options.' });
       }
       const lifetime = body.lifetime !== false;
-      const durationDays = lifetime ? null : Math.max(1, Math.min(366, Math.round(Number(body.durationDays ?? 31))));
+      const durationDays = lifetime ? null : termDays(body.durationDays);
+      if (!lifetime && durationDays === null) return sendJson(res, 400, { error: 'Term length must be a whole number of days.' });
       const currency = normalizeCurrency(row.currency);
       const priceUsd = roundAmount(Number(body.priceUsd), currency);
       if (!validateAmount(priceUsd, currency).ok) {
@@ -461,7 +463,9 @@ export default guard(async function handler(req, res) {
       }
       if (body.purchaseLimit !== undefined) {
         const n = body.purchaseLimit === null || body.purchaseLimit === '' ? null : Math.round(Number(body.purchaseLimit));
-        if (n !== null && (!Number.isFinite(n) || n < 1)) return sendJson(res, 400, { error: 'Purchase limit must be a whole number of at least 1.' });
+        // isSafeInteger, not isFinite: 1e21 is finite, passes a type=number
+        // input, and Postgres refuses it for a bigint column with a 500.
+        if (n !== null && (!Number.isSafeInteger(n) || n < 1)) return sendJson(res, 400, { error: 'Purchase limit must be a whole number of at least 1.' });
         fields.purchaseLimit = n;
       }
       if (body.active !== undefined) fields.active = Boolean(body.active);
@@ -540,7 +544,8 @@ export default guard(async function handler(req, res) {
         const lifetime = Boolean(body.lifetime);
         if (lifetime !== existing.lifetime) {
           fields.lifetime = lifetime ? 1 : 0;
-          fields.durationDays = lifetime ? null : Math.max(1, Math.min(366, Math.round(Number(body.durationDays ?? 31))));
+          fields.durationDays = lifetime ? null : termDays(body.durationDays);
+          if (!lifetime && fields.durationDays === null) return sendJson(res, 400, { error: 'Term length must be a whole number of days.' });
           fields.stripePriceId = null;
         }
       }
@@ -594,3 +599,12 @@ export default guard(async function handler(req, res) {
       return sendJson(res, 400, { error: 'unknown step' });
   }
 });
+
+// Term length in days for a non-lifetime product: whole, 1..366. Null when
+// the value is not a number at all — Math.max/Math.min pass NaN straight
+// through, and Postgres refuses NaN for a bigint column with a 500.
+function termDays(v) {
+  if (v === undefined || v === null || v === '') return 31;
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.max(1, Math.min(366, n)) : null;
+}

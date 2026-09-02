@@ -231,7 +231,18 @@ export async function grant({ discordId, planId, provider, providerRef, periodEn
     // be right and its label wrong, which is the worst of the two.
     currency: currency ?? plan.currency ?? target?.currency ?? 'usd',
   });
-  await reconcile(discordId, target);
+  try {
+    await reconcile(discordId, target);
+  } catch (err) {
+    // The row has landed and the money is taken. A role Discord will not
+    // deliver right now — a 5xx, a role dragged above the bot, a deleted
+    // role — must not turn the webhook into a 500 loop that also withholds
+    // the receipt, the sale ping and the discount count for as long as
+    // Stripe keeps retrying. Every sweep reconciles live rows, so delivery
+    // is retried within the hour until the cause is fixed; the dashboard
+    // checklist names the cause.
+    console.error(`[entitlements] grant ${planId} for ${discordId} (store ${target?.slug ?? 'default'}) landed but role delivery failed — the sweep retries: ${err.message}`);
+  }
   return sub;
 }
 

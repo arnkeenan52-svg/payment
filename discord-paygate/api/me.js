@@ -50,6 +50,7 @@ export default guard(async function handler(req, res) {
         s.current_period_end !== undefined,
       // What Stripe actually charged (discounts applied); null on old rows.
       paidUsd: s.paid_usd === null || s.paid_usd === undefined ? null : Number(s.paid_usd),
+      currency: s.currency ?? null,
       createdAt: Number(s.created_at),
     });
   }

@@ -49,7 +49,11 @@ export default guard(async function handler(req, res) {
     const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
     const store = storeOf(sid);
     const catalog = store ? await plansFor(sid === null && def ? def : store) : [];
-    const amount = catalog.find((p) => p.id === s.plan_id)?.priceUsd ?? 0;
+    // What was CHARGED when the row knows it; the list price only for rows
+    // that predate paid_usd; and a manual grant is a gift — 0 revenue here,
+    // exactly as the seller's own dashboard prices it.
+    const paid = s.paid_usd === null || s.paid_usd === undefined ? null : Number(s.paid_usd);
+    const amount = s.provider === 'manual' ? 0 : Number.isFinite(paid) ? paid : (catalog.find((p) => p.id === s.plan_id)?.priceUsd ?? 0);
     gmv += amount;
     const skey = store ? store.id ?? 'default' : 'orphan';
     const st = perStore.get(skey) ?? { revenue: 0, buyers: new Set(), live: new Set() };

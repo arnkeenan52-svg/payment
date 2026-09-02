@@ -62,9 +62,17 @@ async function main() {
     if (back) back.href = `/${encodeURIComponent(STORE_SLUG)}`;
   }
   const [plansRes, meRes] = await Promise.all([fetch(`/api/plans${storeQS}`), fetch('/api/me')]);
-  const { plans, server } = await plansRes.json();
   let me = await meRes.json();
   renderAccount(me);
+  if (!plansRes.ok) return; // an unknown store: nothing to name and nothing to poll for
+  const plansBody = await plansRes.json();
+  const plans = plansBody.plans ?? [];
+  const server = plansBody.server ?? {};
+  // Plan ids are unique only WITHIN a store ("vip" exists in many), so every
+  // look at the buyer's own rows is scoped to this store — never another
+  // seller's product, price or role on this seller's receipt.
+  const STORE = String(plansBody.store?.slug ?? STORE_SLUG);
+  const mine = (s) => s.storeSlug === STORE;
 
   const requested = new URLSearchParams(window.location.search).get('plan');
   // No `?? plans[0]`. That named the store's FIRST product, at its price, on
@@ -73,9 +81,11 @@ async function main() {
   // A product since taken off sale is absent from /api/plans, but the buyer's
   // own subscription row still names it — and the confirmed screen reads its
   // roleNames, which the bare placeholder never carried (it threw instead).
-  const owned = (me.subscriptions ?? []).find((s) => s.planId === requested);
+  const owned = (me.subscriptions ?? []).find((s) => mine(s) && s.planId === requested);
+  // The currency comes from the buyer's own row first: with every product
+  // taken off sale there is no catalogue left to borrow a symbol from.
   const plan = plans.find((p) => p.id === requested)
-    ?? (requested ? { id: requested, name: owned?.planName ?? 'Your purchase', roleNames: owned?.roleNames ?? [], lifetime: owned?.lifetime ?? false, interval: '', priceUsd: null, currency: plans[0]?.currency } : null);
+    ?? (requested ? { id: requested, name: owned?.planName ?? 'Your purchase', roleNames: owned?.roleNames ?? [], lifetime: owned?.lifetime ?? false, interval: '', priceUsd: null, currency: owned?.currency ?? plans[0]?.currency } : null);
   if (!plan) return;
 
   $('#r-server').textContent = server.name || '—';
@@ -83,7 +93,7 @@ async function main() {
   $('#r-option').textContent = plan.lifetime ? 'One-time — lifetime access' : plan.interval ? `Recurring — per ${plan.interval}` : '';
   // The charged amount (discounts applied) beats the list price the moment
   // the buyer's subscription row lands; until then the list price stands in.
-  const paidFor = (m) => (m.subscriptions ?? []).find((s) => s.planId === plan.id && s.paidUsd !== null && s.paidUsd !== undefined);
+  const paidFor = (m) => (m.subscriptions ?? []).find((s) => mine(s) && s.planId === plan.id && s.paidUsd !== null && s.paidUsd !== undefined);
   PAGE_CURRENCY = String(plan.currency ?? PAGE_CURRENCY).toLowerCase();
   const renderTotal = (m) => {
     const v = paidFor(m)?.paidUsd ?? plan.priceUsd;
@@ -93,7 +103,7 @@ async function main() {
   $('#open-discord-label').textContent = server.name ? `Open ${server.name} on Discord` : 'Open Discord';
   if (server.guildId) $('#open-discord').href = `https://discord.com/channels/${server.guildId}`;
 
-  const entitled = () => (me.subscriptions ?? []).some((s) => s.planId === plan.id && s.entitled);
+  const entitled = () => (me.subscriptions ?? []).some((s) => mine(s) && s.planId === plan.id && s.entitled);
   const started = Date.now();
   while (!entitled() && Date.now() - started < GIVE_UP_MS) {
     if (!me.loggedIn) break; // can't observe the grant without a session — stay in pending copy

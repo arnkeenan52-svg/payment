@@ -115,7 +115,7 @@ export async function processStripeEvent(event, routeStore = null) {
         // Fetch the subscription for its real period end; Stripe moved
         // current_period_end onto items, subscriptionPeriodEnd handles both.
         const sub = await getSubscription(obj.subscription, store?.stripeKey ?? config.stripe.secretKey);
-        await grant({
+        const landed = await grant({
           discordId,
           planId,
           provider: 'stripe',
@@ -125,13 +125,15 @@ export async function processStripeEvent(event, routeStore = null) {
           paidUsd,
           currency: paidCurrency,
         });
-        await countDiscount();
+        // grant() answers null, without throwing, for a plan the store no
+        // longer has — a use burned on a sale that granted nothing.
+        if (landed) await countDiscount();
         await emailReceipt();
         await notifySale();
       } else {
         // One-time payment (lifetime plans; grant() maps lifetime → NULL
         // expiry, and falls back to plan duration for any one-off term plan).
-        await grant({
+        const landed = await grant({
           discordId,
           planId,
           provider: 'stripe',
@@ -141,7 +143,7 @@ export async function processStripeEvent(event, routeStore = null) {
           paidUsd,
           currency: paidCurrency,
         });
-        await countDiscount();
+        if (landed) await countDiscount();
         await emailReceipt();
         await notifySale();
       }
