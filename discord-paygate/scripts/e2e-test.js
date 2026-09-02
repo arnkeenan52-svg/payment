@@ -1115,10 +1115,14 @@ test('every page on the site is named in the footer — checked against the file
   // The app screens are not marketing pages and are linked from the product,
   // not the directory: a signed-out visitor has no use for /receipt.
   const APP = new Set(['/', '/dashboard', '/account', '/receipt', '/store']);
+  // An index file is its directory's bare URL — vs/index.html is /vs, which
+  // is what the canonical, the sitemap and vercel.json's rewrite all say.
+  // This map used to produce /vs/, and that is what held the homepage to the
+  // slash form while every other reference used the bare one.
   const pages = walk(PUBLIC)
     .map((f) => {
       const rel = `/${relative(PUBLIC, f)}`;
-      return rel.endsWith('/index.html') ? rel.slice(0, -'index.html'.length) : rel.slice(0, -'.html'.length);
+      return rel.endsWith('/index.html') ? rel.slice(0, -'/index.html'.length) || '/' : rel.slice(0, -'.html'.length);
     })
     .filter((p) => !APP.has(p));
 
