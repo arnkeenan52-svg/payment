@@ -89,6 +89,9 @@ const stripe = {
   failSubFetchOnce: new Set(),  // subscription ids whose next GET answers 500
   subFetches: {},               // subscription id -> fetch count
   failCheckoutSessionsWith: null, // when set, POST /v1/checkout/sessions answers 400 with this message
+  delayCheckoutSessionsMs: 0,   // how long POST /v1/checkout/sessions takes to answer — the window a
+                                // checkout's reservation has to survive, and what makes the two-buyers
+                                // -at-once scenario a real race rather than a coincidence
   charges: {},                  // charge id -> { payment_intent, invoice } for refund/dispute lookups
   invoices: {},                 // invoice id -> { subscription }
   subDeletes: [],               // DELETE /v1/subscriptions/:id calls (platform-plan switches/cancels)
@@ -107,7 +110,7 @@ const AUTO_ENDPOINT_SECRET = 'whsec_auto_e2e_secret_1';
 const coinbase = { charges: [] };
 // NOWPayments: the crypto rail. `payments` is mutable so a test can advance a
 // payment through its statuses the way the real provider would.
-const nowpayments = { created: [], payments: new Map(), n: 0, minAmount: [] };
+const nowpayments = { created: [], payments: new Map(), n: 0, minAmount: [], delayCreateMs: 0 };
 const NOW_KEY = 'np_key_e2e';
 const NOW_IPN_SECRET = 'np_ipn_secret_e2e';
 const resend = { emails: [] };
@@ -539,6 +542,7 @@ async function stripeHandler(req, res) {
       return;
     }
     const form = Object.fromEntries(new URLSearchParams(await readBody(req)));
+    if (stripe.delayCheckoutSessionsMs) await sleep(stripe.delayCheckoutSessionsMs);
     stripe.checkoutSessions.push(form);
     json(res, 200, { id: `cs_${stripe.checkoutSessions.length}`, url: `https://stripe.mock/pay/cs_${stripe.checkoutSessions.length}` });
     return;
@@ -642,6 +646,7 @@ async function nowpaymentsHandler(req, res) {
       json(res, 400, { message: 'Amount is too small: minimal amount is 1' });
       return;
     }
+    if (nowpayments.delayCreateMs) await sleep(nowpayments.delayCreateMs);
     nowpayments.created.push(body);
     const id = `npid_${++nowpayments.n}`;
     const payment = {
@@ -6355,9 +6360,16 @@ test("crypto: an open invoice holds its seat and its discount use for the invoic
   discord.members.set(D, new Set());
   const dCookie = await signInAs('code_np_d', D, 'np_d');
   const burstFrom = nowpayments.created.length;
-  const burst = await Promise.all([...Array(6)].map(() => start(dCookie, { planId: loop.planKey })));
-  assert.deepEqual(burst.map((r) => r.status).sort(), [200, 200, 200, 429, 429, 429], 'three invoices and three refusals, not six invoices');
-  assert.equal(nowpayments.created.length, burstFrom + 3, 'the provider was asked exactly three times');
+  // The provider takes its time, which is what made the old check-then-create
+  // window wide enough to drive a lorry through.
+  nowpayments.delayCreateMs = 150;
+  try {
+    const burst = await Promise.all([...Array(6)].map(() => start(dCookie, { planId: loop.planKey })));
+    assert.deepEqual(burst.map((r) => r.status).sort(), [200, 200, 200, 429, 429, 429], 'three invoices and three refusals, not six invoices');
+    assert.equal(nowpayments.created.length, burstFrom + 3, 'the provider was asked exactly three times');
+  } finally {
+    nowpayments.delayCreateMs = 0;
+  }
   // Cleanup: park the products.
   for (const key of [seat.planKey, tiny.planKey, loop.planKey]) {
     assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: key, active: false })).status, 200);
@@ -6385,18 +6397,27 @@ test('a one-seat product is sold once when two buyers click Pay in the same inst
   const crypto_ = (cookie) => post('/api/checkout/crypto', { planId: seat.planKey, payCurrency: 'sol' }, cookie);
   const started = async () => (await tq("SELECT discord_id FROM checkout_attempts WHERE plan_id = ? AND status = 'started'", [seat.planKey])).rows;
 
-  const mixed = await Promise.all([card(w), crypto_(x)]);
-  assert.deepEqual(mixed.map((r) => r.status).sort(), [200, 409], 'one card and one crypto checkout for one seat: exactly one of them');
-  assert.equal((await started()).length, 1, 'and exactly one buyer is holding it');
-  await tq("DELETE FROM checkout_attempts WHERE plan_id = ?", [seat.planKey]);
+  // The window is the provider's answer, so the mocks take their time here:
+  // without it the two requests do not really overlap and the scenario proves
+  // nothing about the ordering it exists to pin.
+  stripe.delayCheckoutSessionsMs = 200;
+  nowpayments.delayCreateMs = 200;
+  try {
+    const mixed = await Promise.all([card(w), crypto_(x)]);
+    assert.deepEqual(mixed.map((r) => r.status).sort(), [200, 409], 'one card and one crypto checkout for one seat: exactly one of them');
+    assert.equal((await started()).length, 1, 'and exactly one buyer is holding it');
+    await tq('DELETE FROM checkout_attempts WHERE plan_id = ?', [seat.planKey]);
 
-  const twoCards = await Promise.all([card(y), card(z)]);
-  assert.deepEqual(twoCards.map((r) => r.status).sort(), [200, 409], 'two card buyers in the same instant: exactly one of them');
-  const rows = await started();
-  assert.equal(rows.length, 1, 'one seat, one reservation');
-  // The reservation is a real attempt row under Stripe's own session id, not
-  // a placeholder left behind: the completion webhook matches on that id.
-  assert.match((await tq('SELECT session_id FROM checkout_attempts WHERE plan_id = ? ORDER BY id DESC', [seat.planKey])).rows[0].session_id, /^cs_/);
+    const twoCards = await Promise.all([card(y), card(z)]);
+    assert.deepEqual(twoCards.map((r) => r.status).sort(), [200, 409], 'two card buyers in the same instant: exactly one of them');
+    assert.equal((await started()).length, 1, 'one seat, one reservation');
+    // The reservation is a real attempt row under Stripe's own session id, not
+    // a placeholder left behind: the completion webhook matches on that id.
+    assert.match((await tq('SELECT session_id FROM checkout_attempts WHERE plan_id = ? ORDER BY id DESC', [seat.planKey])).rows[0].session_id, /^cs_/);
+  } finally {
+    stripe.delayCheckoutSessionsMs = 0;
+    nowpayments.delayCreateMs = 0;
+  }
   assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, active: false })).status, 200);
 });
 
