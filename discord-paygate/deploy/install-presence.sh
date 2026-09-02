@@ -10,6 +10,12 @@
 # shell history, a file you might commit, or a chat log. It ends up only in
 # /etc/ripley/presence.env, root-owned, mode 600.
 #
+# PRESENCE ONLY. This installs one file and no dependencies, which is the whole
+# point of the VM route — but welcome cards need the card renderer (sharp, the
+# brand fonts and assets/), so they cannot run from here. A server that should
+# post join cards wants Dockerfile.presence on Railway or Fly instead. The
+# script says so if it finds WELCOME_CHANNEL_ID in the env file.
+#
 # Safe to re-run: it updates presence.js and restarts the service.
 set -euo pipefail
 
@@ -78,11 +84,23 @@ else
     *) die "that does not look like a bot token (expected three dot-separated parts)" ;;
   esac
   umask 077
-  printf 'DISCORD_BOT_TOKEN=%s\nPRESENCE_TEXT=ripleybot.com\nPRESENCE_TYPE=3\nPRESENCE_STATUS=online\n' "$TOKEN" > "$ENV_DIR/presence.env"
+  printf 'DISCORD_BOT_TOKEN=%s\nPRESENCE_TEXT=dues.gg\nPRESENCE_TYPE=3\nPRESENCE_STATUS=online\n' "$TOKEN" > "$ENV_DIR/presence.env"
   unset TOKEN
   chown root:root "$ENV_DIR/presence.env"
   chmod 600 "$ENV_DIR/presence.env"
   echo "==> wrote $ENV_DIR/presence.env (root only)"
+fi
+
+# This install has no node_modules and no assets/, so presence.js cannot render
+# a card here. Left unsaid it looks like a bug in the bot rather than the wrong
+# deployment for the job.
+if grep -q '^WELCOME_CHANNEL_ID=.\+' "$ENV_DIR/presence.env" 2>/dev/null; then
+  echo
+  echo "warning: WELCOME_CHANNEL_ID is set in $ENV_DIR/presence.env, but this VM install"
+  echo "         is presence-only — it ships presence.js alone, with no card renderer."
+  echo "         Every join will log 'welcome card failed'. Deploy Dockerfile.presence"
+  echo "         (Railway/Fly) for welcome cards, or remove the WELCOME_* lines here."
+  echo
 fi
 
 # ── unit ─────────────────────────────────────────────────────────────────────

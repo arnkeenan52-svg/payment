@@ -174,6 +174,43 @@ role delivery and receipts keep working, the bot just greys out.
 identifies with the presence payload, heartbeats, resumes the same session
 after the gateway drops it, and exits non-zero on a 4004 auth failure.
 
+### Welcome cards, and why they stop
+
+The same worker posts a branded join card in the Dues community server when
+`WELCOME_CHANNEL_ID` and `WELCOME_GUILD_ID` are set (one server only — a join
+in a seller's server never triggers a Dues card). **Three things have to be
+true at once**, and if any one of them is false the cards go quiet with no
+error anywhere a person would look:
+
+1. **The worker is running somewhere that holds a socket.** Vercel cannot —
+   a serverless function has no long-lived connection, so nothing on the web
+   deployment can ever post a card. It has to be the Railway/Fly/VPS worker,
+   and it has to be up.
+2. **The Server Members intent is on.** Developer Portal → your app → Bot →
+   Privileged Gateway Intents → **Server Members Intent** → Save. Without it
+   Discord refuses the worker's connection with close code 4014 the moment
+   cards are enabled — the bot does not even go Online, let alone see a join.
+3. **Both ids are set on the worker**, `WELCOME_GUILD_ID` and
+   `WELCOME_CHANNEL_ID`, and the bot can post in that channel: View Channel,
+   Send Messages, **Attach Files** and Embed Links. The card is an upload, so
+   without Attach Files Discord refuses the whole message.
+
+Rather than guess which one it is:
+
+```bash
+DISCORD_BOT_TOKEN=... WELCOME_GUILD_ID=... WELCOME_CHANNEL_ID=... npm run doctor:welcome
+```
+
+It checks all of them over plain REST — no gateway, no deploy, nothing
+changed — and prints a numbered verdict with the exact fix for whatever is
+wrong, exiting non-zero if anything is. Add `--post` and it sends one real
+test card to that channel, so you can see the thing itself land. It never
+prints the token, and takes it the same way `setup-community.mjs` does
+(`DISCORD_BOT_TOKEN`, `/etc/ripley/presence.env`, or a hidden prompt).
+
+If every check passes and cards still do not appear, it is number 1: the
+worker is not running. Look for `online as <bot>` in its log.
+
 ### Running it free, on a VM that stays up
 
 Measured footprint: ~60 MB RSS, ~195 KB/day of traffic, effectively no CPU.
@@ -213,7 +250,10 @@ it with `systemctl status ripley-presence` and
 
 The VM needs no inbound firewall rule — the gateway connection is outbound
 only, and nothing else from this repo has to run there. `presence.js` has no
-dependencies, so those two files are the entire payload.
+dependencies, so those two files are the entire payload — which also means
+this route cannot post welcome cards: the renderer needs `sharp`, the brand
+fonts and `assets/`. Use `Dockerfile.presence` (Railway, Fly) for a worker
+that does both.
 
 ## Buyer self-service
 

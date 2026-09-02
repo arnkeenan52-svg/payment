@@ -7,9 +7,10 @@
 // nothing but keep that socket alive so the bot reads Online in every server.
 //
 // It handles no events and needs no privileged intents (identify sends
-// intents: 0). Run it anywhere that stays up: Railway, Fly.io, Render
-// background worker, a VPS, a Raspberry Pi. One instance only — a second
-// instance on the same token fights the first for the session.
+// intents: 0) unless welcome cards are switched on — see below. Run it
+// anywhere that stays up: Railway, Fly.io, Render background worker, a VPS, a
+// Raspberry Pi. One instance only — a second instance on the same token
+// fights the first for the session.
 //
 //   DISCORD_BOT_TOKEN=...  node scripts/presence.js
 //
@@ -42,7 +43,13 @@ const WELCOME_GUILD_ID = process.env.WELCOME_GUILD_ID ?? '';
 const WELCOME_THEME = process.env.WELCOME_THEME === 'light' ? 'light' : 'dark';
 const WELCOME_TEXT = process.env.WELCOME_TEXT ?? 'Hey {mention}, welcome to {server}!';
 const WELCOME = Boolean(WELCOME_CHANNEL_ID);
+// GUILD_MEMBER_ADD rides the privileged GUILD_MEMBERS intent — that is the one
+// the portal toggle controls. GUILD_CREATE rides GUILDS, and that is where the
+// server's name and member_count come from, so asking for members alone leaves
+// the card saying "welcome to the server" with no "Member #N" under it.
+const INTENT_GUILDS = 1 << 0;
 const INTENT_GUILD_MEMBERS = 1 << 1;
+const WELCOME_INTENTS = INTENT_GUILDS | INTENT_GUILD_MEMBERS;
 
 if (!TOKEN) {
   console.error('[presence] DISCORD_BOT_TOKEN is required');
@@ -110,8 +117,82 @@ async function gatewayUrl() {
 
 // Full jitter backoff, capped — a long outage must not turn into a hot loop.
 const backoffMs = (attempt) => Math.round(Math.random() * Math.min(30_000, 1000 * 2 ** Math.min(attempt, 5)));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── welcome cards ─────────────────────────────────────────────────────────────
+
+// The guild's name and member count normally arrive in GUILD_CREATE during the
+// handshake. A join that lands before that dispatch — or on a connection where
+// the GUILDS intent was refused — would otherwise post a card that says "the
+// server" with no number. One REST call covers that, and only on that path.
+async function guildInfo(id) {
+  const known = state.guilds.get(id);
+  if (known) return known;
+  try {
+    const res = await fetch(`${API}/guilds/${id}?with_counts=true`, {
+      headers: { authorization: `Bot ${TOKEN}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const g = await res.json();
+      const entry = { name: g.name, count: Number(g.approximate_member_count ?? 0) };
+      state.guilds.set(id, entry);
+      return entry;
+    }
+    log(`guild lookup failed (${res.status}) — posting the card without the server name`);
+  } catch (err) {
+    log('guild lookup threw:', err.message);
+  }
+  return null;
+}
+
+// Uploading the card is the step with the most ways to fail, and every one of
+// them used to read as the same one-line "welcome card failed". A 429 or a bad
+// minute at Discord is worth retrying; a permission or channel problem is not,
+// and says which it is so the log names the fix instead of the symptom.
+async function uploadCard(form) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${API}/channels/${WELCOME_CHANNEL_ID}/messages`, {
+      method: 'POST',
+      headers: { authorization: `Bot ${TOKEN}` },
+      body: form,
+      signal: AbortSignal.timeout(15000),
+    });
+    if (res.ok) return;
+    const detail = await res.text().catch(() => '');
+    if (res.status === 429 || res.status >= 500) {
+      if (attempt >= 3) throw new Error(`POST message ${res.status} after 4 attempts ${detail.slice(0, 200)}`);
+      let wait = 500 * 2 ** attempt;
+      if (res.status === 429) {
+        let body = {};
+        try {
+          body = JSON.parse(detail);
+        } catch {
+          /* Cloudflare's 429 is HTML, not JSON */
+        }
+        wait = Number(body.retry_after ?? res.headers.get('retry-after') ?? 1) * 1000;
+      }
+      wait = Math.min(Math.max(wait, 100), 30_000);
+      log(`POST message ${res.status} — retrying in ${Math.round(wait)}ms`);
+      await sleep(wait);
+      continue;
+    }
+    if (res.status === 403) {
+      throw new Error(
+        `POST message 403 — the bot is in the server but cannot post in channel ${WELCOME_CHANNEL_ID}. ` +
+          'It needs View Channel + Send Messages + Attach Files + Embed Links there. Run: npm run doctor:welcome',
+      );
+    }
+    if (res.status === 404) {
+      throw new Error(
+        `POST message 404 — channel ${WELCOME_CHANNEL_ID} does not exist (deleted, or WELCOME_CHANNEL_ID is a ` +
+          'category/voice id, or it belongs to another server). Run: npm run doctor:welcome',
+      );
+    }
+    throw new Error(`POST message ${res.status} ${detail.slice(0, 200)}`);
+  }
+}
+
 // Renders the join card and posts it as a real attachment. Imported lazily so
 // the presence-only path keeps its zero-dependency promise: a deployment that
 // never sets WELCOME_CHANNEL_ID never loads sharp.
@@ -160,16 +241,7 @@ async function postWelcome(member, guild) {
   );
   form.append('files[0]', new Blob([png], { type: 'image/png' }), 'welcome.png');
 
-  const res = await fetch(`${API}/channels/${WELCOME_CHANNEL_ID}/messages`, {
-    method: 'POST',
-    headers: { authorization: `Bot ${TOKEN}` },
-    body: form,
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    throw new Error(`POST message ${res.status} ${detail.slice(0, 200)}`);
-  }
+  await uploadCard(form);
   state.cardsPosted += 1;
   log(`welcome card posted for ${user.username}${guild?.count ? ` (#${guild.count})` : ''}`);
 }
@@ -264,7 +336,7 @@ function connect() {
           } else {
             send(OP.IDENTIFY, {
               token: TOKEN,
-              intents: WELCOME ? INTENT_GUILD_MEMBERS : 0,
+              intents: WELCOME ? WELCOME_INTENTS : 0,
               properties: { os: process.platform, browser: 'ripley-presence', device: 'ripley-presence' },
               presence: presencePayload(),
             });
@@ -302,11 +374,16 @@ function connect() {
           } else if (msg.t === 'GUILD_MEMBER_ADD' && WELCOME) {
             const g = msg.d?.guild_id;
             if (g === WELCOME_GUILD_ID) {
-              const entry = state.guilds.get(g);
-              if (entry) entry.count += 1;
               // Never await inside the socket handler: a slow render or a
               // rate-limited POST must not stall heartbeats.
-              postWelcome(msg.d, entry).catch((err) => log('welcome card failed:', err.message));
+              guildInfo(g)
+                .then((entry) => {
+                  if (entry) entry.count += 1;
+                  return postWelcome(msg.d, entry);
+                })
+                .catch((err) =>
+                  log('welcome card failed:', err.message, '— `npm run doctor:welcome` checks every precondition'),
+                );
             }
           }
           return;

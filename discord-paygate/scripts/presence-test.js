@@ -245,7 +245,10 @@ await check('posts a welcome card on join, and only then asks for the members in
   });
   try {
     await waitFor(() => seen.identify, 'IDENTIFY');
-    assert.equal(seen.identify.intents, 2, 'welcome mode must request the GUILD_MEMBERS privileged intent');
+    // 1 GUILDS | 2 GUILD_MEMBERS. Members alone delivers the join but not
+    // GUILD_CREATE, and GUILD_CREATE is where the server name and member
+    // count come from — asking for it too is what puts them on the card.
+    assert.equal(seen.identify.intents, 3, 'welcome mode must request GUILDS + the GUILD_MEMBERS privileged intent');
 
     // The guild first (that is where the member count comes from), then a join.
     live.send(OP.DISPATCH, { id: '4242', name: 'Dues HQ', member_count: 180 }, { s: 2, t: 'GUILD_CREATE' });
@@ -267,6 +270,159 @@ await check('posts a welcome card on join, and only then asks for the members in
   } finally {
     child.kill('SIGKILL');
     server.close();
+    rest.close();
+  }
+});
+
+// 4: a join that lands before GUILD_CREATE — a reconnect mid-join, or a
+// connection where GUILDS was refused. The card must still name the server and
+// carry a number, which means one REST lookup on that path.
+await check('a join that beats GUILD_CREATE still names the server', async () => {
+  const posted = [];
+  let guildLookups = 0;
+  const rest = http.createServer((req, res) => {
+    if (req.method === 'GET' && req.url.startsWith('/guilds/4242')) {
+      guildLookups += 1;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify({ id: '4242', name: 'Dues HQ', approximate_member_count: 77 }));
+    }
+    if (req.method === 'POST' && /\/channels\/9001\/messages$/.test(req.url)) {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        posted.push(Buffer.concat(chunks));
+        res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ id: '1' }));
+      });
+      return;
+    }
+    res.writeHead(404).end('{}');
+  });
+  await new Promise((r) => rest.listen(0, '127.0.0.1', r));
+  const restPort = rest.address().port;
+
+  let live = null;
+  let ready = false;
+  const { server, port } = await mockGateway((conn) => {
+    live = conn;
+    conn.onMessage = (msg) => {
+      if (msg.op === OP.IDENTIFY) {
+        conn.send(OP.DISPATCH, { user: { username: 'dues' }, session_id: 's', resume_gateway_url: `ws://127.0.0.1:${port}` }, { s: 1, t: 'READY' });
+        ready = true;
+      } else if (msg.op === OP.HEARTBEAT) conn.send(OP.ACK, null);
+    };
+    conn.send(OP.HELLO, { heartbeat_interval: 45000 });
+  });
+  const child = startClient(port, { WELCOME_CHANNEL_ID: '9001', WELCOME_GUILD_ID: '4242', DISCORD_API_BASE: `http://127.0.0.1:${restPort}` });
+  try {
+    await waitFor(() => ready, 'READY');
+    // No GUILD_CREATE at all — straight to the join.
+    live.send(OP.DISPATCH, { guild_id: '4242', user: { id: '515500000000000016', username: 'early', avatar: null } }, { s: 2, t: 'GUILD_MEMBER_ADD' });
+    await waitFor(() => posted.length, 'the welcome card POST', 30000);
+    const text = posted[0].toString('latin1');
+    assert.equal(guildLookups, 1, 'the missing guild is fetched over REST, once');
+    assert.ok(text.includes('Dues HQ'), 'the card names the server instead of falling back to "the server"');
+  } finally {
+    child.kill('SIGKILL');
+    server.close();
+    rest.close();
+  }
+});
+
+// 5: Discord answers a burst of joins with 429s. A card is worth retrying —
+// dropping it means a member who silently never got welcomed.
+await check('retries a rate-limited card POST instead of dropping the join', async () => {
+  let attempts = 0;
+  let ok = false;
+  const rest = http.createServer((req, res) => {
+    if (req.method === 'POST' && /\/channels\/9001\/messages$/.test(req.url)) {
+      req.resume();
+      req.on('end', () => {
+        attempts += 1;
+        if (attempts === 1) {
+          res.writeHead(429, { 'content-type': 'application/json' });
+          return res.end(JSON.stringify({ retry_after: 0.05, global: false }));
+        }
+        if (attempts === 2) {
+          res.writeHead(500, { 'content-type': 'application/json' });
+          return res.end('{}');
+        }
+        ok = true;
+        res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ id: '1' }));
+      });
+      return;
+    }
+    res.writeHead(404).end('{}');
+  });
+  await new Promise((r) => rest.listen(0, '127.0.0.1', r));
+  const restPort = rest.address().port;
+
+  let live = null;
+  let ready = false;
+  const { server, port } = await mockGateway((conn) => {
+    live = conn;
+    conn.onMessage = (msg) => {
+      if (msg.op === OP.IDENTIFY) {
+        conn.send(OP.DISPATCH, { user: { username: 'dues' }, session_id: 's', resume_gateway_url: `ws://127.0.0.1:${port}` }, { s: 1, t: 'READY' });
+        ready = true;
+      } else if (msg.op === OP.HEARTBEAT) conn.send(OP.ACK, null);
+    };
+    conn.send(OP.HELLO, { heartbeat_interval: 45000 });
+  });
+  const child = startClient(port, { WELCOME_CHANNEL_ID: '9001', WELCOME_GUILD_ID: '4242', DISCORD_API_BASE: `http://127.0.0.1:${restPort}` });
+  try {
+    await waitFor(() => ready, 'READY');
+    live.send(OP.DISPATCH, { id: '4242', name: 'Dues HQ', member_count: 9 }, { s: 2, t: 'GUILD_CREATE' });
+    live.send(OP.DISPATCH, { guild_id: '4242', user: { id: '515500000000000017', username: 'burst', avatar: null } }, { s: 3, t: 'GUILD_MEMBER_ADD' });
+    await waitFor(() => ok, 'the card to land after a 429 and a 500', 30000);
+    assert.equal(attempts, 3, 'retried the 429 and the 500, then succeeded');
+  } finally {
+    child.kill('SIGKILL');
+    server.close();
+    rest.close();
+  }
+});
+
+// 6: the doctor is the thing an owner runs when cards go quiet, so it has to
+// name the failing precondition and exit non-zero. Driven against a mock API:
+// the intent bit is the one failure that cannot be seen from a log line.
+await check('doctor:welcome names the missing Server Members intent and exits 1', async () => {
+  const rest = http.createServer((req, res) => {
+    const url = req.url.split('?')[0];
+    const send = (code, body) => res.writeHead(code, { 'content-type': 'application/json' }).end(JSON.stringify(body));
+    if (url === '/users/@me') return send(200, { id: '5001', username: 'Dues' });
+    if (url === '/applications/@me') return send(200, { id: '5001', name: 'Dues', flags: 0 }); // intent OFF
+    if (url === '/guilds/400000000000000001') return send(200, { id: '400000000000000001', name: 'Dues HQ', owner_id: '1', approximate_member_count: 12 });
+    if (url === '/channels/400000000000000002')
+      return send(200, { id: '400000000000000002', name: 'welcome', type: 0, guild_id: '400000000000000001', permission_overwrites: [] });
+    if (url === '/guilds/400000000000000001/roles')
+      return send(200, [{ id: '400000000000000001', name: '@everyone', permissions: String((1n << 10n) | (1n << 11n) | (1n << 14n) | (1n << 15n)) }]);
+    if (url === '/guilds/400000000000000001/members/5001') return send(200, { roles: [] });
+    return send(404, {});
+  });
+  await new Promise((r) => rest.listen(0, '127.0.0.1', r));
+  const restPort = rest.address().port;
+  try {
+    const child = spawn(process.execPath, ['scripts/welcome-doctor.mjs'], {
+      env: {
+        ...process.env,
+        DISCORD_API_BASE: `http://127.0.0.1:${restPort}`,
+        DISCORD_BOT_TOKEN: 'aaa.bbb.ccc',
+        WELCOME_GUILD_ID: '400000000000000001',
+        WELCOME_CHANNEL_ID: '400000000000000002',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let out = '';
+    child.stdout.on('data', (d) => (out += d));
+    child.stderr.on('data', (d) => (out += d));
+    const code = await new Promise((r) => child.on('exit', r));
+    assert.equal(code, 1, 'a failing precondition must exit non-zero');
+    assert.match(out, /FAIL {2}Server Members intent is enabled/, 'the failing check is named');
+    assert.match(out, /SERVER MEMBERS INTENT/, 'and carries the exact portal toggle to flip');
+    assert.match(out, /4014/, 'and says what the worker does without it');
+    assert.match(out, /ok {4}The card renders here/, 'the local render is checked even when Discord is misconfigured');
+    assert.doesNotMatch(out, /aaa\.bbb\.ccc/, 'the doctor must never print the token');
+  } finally {
     rest.close();
   }
 });
