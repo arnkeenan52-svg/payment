@@ -102,6 +102,9 @@ export async function backfillMissedSales({ now = Math.floor(Date.now() / 1000) 
 // Bounded twice — a batch per run and a wall-clock budget — because this
 // runs inside the cron's own time limit after everything else in it, and a
 // provider that answers slowly must not turn an hourly job into a timeout.
+// The batch is the least recently asked about, never simply the oldest: an
+// order the provider parks and never advances would otherwise sit at the head
+// of the queue for the whole window and starve every order created after it.
 const CRYPTO_BATCH = 20;
 const CRYPTO_BUDGET_MS = 15_000;
 
@@ -112,11 +115,20 @@ export async function backfillMissedCryptoSales({ now = Math.floor(Date.now() / 
   let recovered = 0;
   let closed = 0;
   const failures = [];
-  for (const attempt of await db.openCryptoAttempts({ since: now - WINDOW, until: now - HOUR, limit: CRYPTO_BATCH })) {
+  const open = await db.openCryptoAttempts({ since: now - WINDOW, until: now - HOUR, limit: CRYPTO_BATCH });
+  for (const attempt of open) {
     if (Date.now() - started > budgetMs) break;
     checked += 1;
     try {
       const payment = await getPayment(attempt.provider_ref);
+      // Asked, whatever the answer was. Orders the next run's batch, so a row
+      // the provider never advances — an underpayment sits at
+      // `partially_paid` until the window drops it — takes its turn at the
+      // back instead of filling the batch ahead of every newer order for a
+      // week. Without this a steady trickle of underpayments (common
+      // on-chain) silently starves the lost-sale backstop this whole function
+      // exists to be.
+      await db.markCryptoAttemptChecked(attempt.session_id, now).catch(() => {});
       const status = String(payment?.payment_status ?? '').toLowerCase();
       if (GRANTS_ACCESS.has(status)) {
         if ((await processNowPayment(payment)) === 'granted') {
@@ -131,6 +143,12 @@ export async function backfillMissedCryptoSales({ now = Math.floor(Date.now() / 
       failures.push(`${attempt.session_id}: ${err.message}`);
       console.error(`[backfill] crypto ${attempt.session_id}: ${err.message}`);
     }
+  }
+  // A full batch means open orders this run never reached. They are first in
+  // line next run, but a cap hit hour after hour is a backlog nobody would
+  // otherwise see — the run reports ok either way.
+  if (open.length >= CRYPTO_BATCH) {
+    console.warn(`[backfill] crypto: the batch of ${CRYPTO_BATCH} was full — open orders are waiting for the next run`);
   }
   return { checked, recovered, closed, ...(failures.length ? { failures } : {}) };
 }

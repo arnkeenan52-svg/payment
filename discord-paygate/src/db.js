@@ -383,6 +383,11 @@ function db() {
       // age out on created_at; a crypto invoice stays payable for as long as
       // the provider says, which can be hours, so the row carries that date.
       await driver.exec(`ALTER TABLE checkout_attempts ADD COLUMN expires_at ${intType}`).catch(onlyDuplicateColumn);
+      // When the crypto cron last asked the provider about an open order. It
+      // orders the batch, so an order the provider never advances (an
+      // underpayment sits at `partially_paid` for the whole seven-day window)
+      // takes its turn instead of holding the head of the queue for ever.
+      await driver.exec(`ALTER TABLE checkout_attempts ADD COLUMN provider_checked_at ${intType}`).catch(onlyDuplicateColumn);
       // Session revocation: the cookie carries the generation it was issued
       // under and is refused once the row has moved past it (src/lib/session.js).
       await driver.exec(`ALTER TABLE users ADD COLUMN session_gen ${intType} NOT NULL DEFAULT 0`).catch(onlyDuplicateColumn);
@@ -731,15 +736,22 @@ export async function markCheckoutUndelivered(sessionId) {
 }
 
 // Crypto orders a payment was created for that nobody ever closed: what the
-// cron asks the provider about. Oldest first, bounded, so a run that cannot
-// get through them all still makes progress on the ones that have waited
-// longest.
+// cron asks the provider about. Least recently asked about first, bounded, so
+// a run that cannot get through them all still makes progress — and an order
+// the provider never advances (an underpayment stays `partially_paid` for the
+// whole window) cannot hold the head of the queue and starve every order
+// created after it.
 export async function openCryptoAttempts({ since, until, limit = 20 }) {
   const { rows } = await q(
-    "SELECT * FROM checkout_attempts WHERE provider_ref IS NOT NULL AND status = 'started' AND created_at >= ? AND created_at <= ? ORDER BY created_at ASC LIMIT ?",
+    "SELECT * FROM checkout_attempts WHERE provider_ref IS NOT NULL AND status = 'started' AND created_at >= ? AND created_at <= ? ORDER BY COALESCE(provider_checked_at, 0) ASC, created_at ASC LIMIT ?",
     [since, until, limit],
   );
   return rows;
+}
+
+// Stamped once the provider has answered about an order, whatever it said.
+export async function markCryptoAttemptChecked(sessionId, at = now()) {
+  await q('UPDATE checkout_attempts SET provider_checked_at = ? WHERE session_id = ?', [at, sessionId]);
 }
 
 export async function checkoutAttempts(storeIds = null, { limit = 300 } = {}) {

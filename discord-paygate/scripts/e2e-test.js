@@ -6679,6 +6679,39 @@ test('crypto: Discord failing to answer at settlement is a retry, never "they le
   assert.match(discord.channelPosts.at(-1).body.embeds[0].title, /New Subscriber/);
 });
 
+test('crypto backfill: orders the provider never advances take their turn instead of holding the queue', async () => {
+  // The batch is capped at 20 and used to be the OLDEST open orders, every
+  // run. An underpayment stays `partially_paid` until it ages out, so twenty
+  // of them — common on-chain — pinned the batch for a week and the lost
+  // sale this backstop exists for was never looked at. Least-recently-asked
+  // ordering is what keeps the queue moving.
+  const storeId = await npStoreId();
+  const made = JSON.parse(await (await fetch(`${appUrl}/api/onboard`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: npCookie },
+    body: JSON.stringify({ store: 'vip-signals', step: 'product', storeId, name: 'Queue Order', priceUsd: 30, lifetime: true }),
+  })).text()).plan;
+  const plan = { id: made.planKey, priceUsd: 30 };
+  const SHORTY = '535500000000000036';
+  const LOST2 = '535500000000000037';
+  for (let i = 0; i < 20; i += 1) {
+    await npOpenOrder({ storeId, plan, uid: SHORTY, orderId: `np_${'e'.repeat(30)}${String(i).padStart(2, '0')}`, ref: `npid_short_${i}`, status: 'partially_paid', age: 10800 + i });
+  }
+  const O_LOST2 = `np_${'f'.repeat(32)}`;
+  await npOpenOrder({ storeId, plan, uid: LOST2, orderId: O_LOST2, ref: 'npid_lost2', status: 'finished', age: 7200 });
+  // Two runs: the first clears the twenty older short rows, the second must
+  // reach the newer finished one. Before, every run re-asked the same twenty.
+  let recovered = 0;
+  for (const _ of [1, 2]) recovered += JSON.parse((await hitCron()).body).cryptoBackfill?.recovered ?? 0;
+  assert.equal(recovered, 1, 'the lost sale is recovered within a run or two, not after the shorts age out');
+  assert.equal(await attemptStatus(O_LOST2), 'completed');
+  assert.ok((await subRow('nowpayments', 'npid_lost2')) !== null, 'the sale that was starved is delivered');
+  // The short rows are left open on purpose — the buyer can still top them
+  // up — but they no longer come first for ever.
+  assert.equal(await attemptStatus(`np_${'e'.repeat(30)}00`), 'started');
+  for (let i = 0; i < 20; i += 1) await tq("UPDATE checkout_attempts SET status = 'expired' WHERE session_id = ?", [`np_${'e'.repeat(30)}${String(i).padStart(2, '0')}`]);
+});
+
 // ═══ runner ═══════════════════════════════════════════════════════════════════
 
 // ── session revocation ────────────────────────────────────────────────────────
