@@ -1170,10 +1170,30 @@ test('OAuth login requests guilds.join, stores the token, and carries the plan b
   assert.equal(cb.headers.get('location'), '/dashboard?plan=insider', 'a store-less sign-in lands on the dashboard, never on any store');
   u1Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
 
-  assert.equal((await userRow(U1)).access_token, 'tok_code_u1');
+  // The OAuth token is sealed at rest like the Stripe keys (same secretbox):
+  // a database-only leak must not yield a guilds.join-scoped token. The
+  // guilds.join PUT further down proves it opens back to `tok_code_u1`.
+  const stored = await userRow(U1);
+  assert.match(stored.access_token, /^v1\./, 'access_token must be sealed at rest');
+  assert.match(stored.refresh_token, /^v1\./, 'refresh_token must be sealed at rest');
+  assert.ok(!stored.access_token.includes('tok_code_u1') && !stored.refresh_token.includes('ref_code_u1'), 'no cleartext token in the row');
 
   const me = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u1Cookie } })).json();
   assert.deepEqual({ loggedIn: me.loggedIn, username: me.username }, { loggedIn: true, username: 'trader_one' });
+
+  // Lazy migration: a row written before sealing holds cleartext and must
+  // keep working (the mock only honours `Bearer tok_<code>`, so a 200 here
+  // means the raw value reached Discord unchanged) until the next sign-in
+  // rewrites it sealed.
+  await tq('UPDATE users SET access_token = ? WHERE discord_id = ?', ['tok_code_u1', U1]);
+  assert.equal((await fetch(`${appUrl}/api/my/guilds`, { headers: { cookie: u1Cookie } })).status, 200, 'a legacy cleartext token still reads');
+  const again = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const againState = new URL(again.headers.get('location')).searchParams.get('state');
+  await fetch(`${appUrl}/auth/callback?code=code_u1&state=${againState}`, {
+    redirect: 'manual',
+    headers: { cookie: again.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ') },
+  });
+  assert.match((await userRow(U1)).access_token, /^v1\./, 'the next sign-in re-seals the row');
 });
 
 test('OAuth state mismatch auto-heals once, then reports plainly (no loop)', async () => {
@@ -1191,6 +1211,68 @@ test('OAuth state mismatch auto-heals once, then reports plainly (no loop)', asy
   const second = await fetch(`${appUrl}/auth/callback?code=x&state=${retryState}`, { redirect: 'manual' });
   assert.equal(second.status, 400);
   assert.match(await second.text(), /did not keep the login cookie/i);
+});
+
+test('a failed Discord token exchange explains itself and spends the state cookie (no 500 loop)', async () => {
+  // A reused or expired code: Discord answers 400 invalid_grant, which the
+  // mock does for any code it has never issued. The buyer came from a plan.
+  const login = await fetch(`${appUrl}/auth/login?plan=insider`, { redirect: 'manual' });
+  const state = new URL(login.headers.get('location')).searchParams.get('state');
+  const cookies = login.headers.getSetCookie().map((c) => c.split(';')[0]);
+  const failed = await fetch(`${appUrl}/auth/callback?code=code_never_issued&state=${state}`, {
+    redirect: 'manual',
+    headers: { cookie: cookies.join('; ') },
+  });
+  assert.equal(failed.status, 502, 'an upstream sign-in failure is not an opaque 500');
+  assert.match(await failed.text(), /Discord did not complete the sign-in/i);
+  const set = failed.headers.getSetCookie();
+  assert.ok(set.some((c) => /^tl_oauth_state=;.*Max-Age=0/.test(c)), 'the spent state cookie must be cleared');
+  assert.ok(!set.some((c) => c.startsWith('tl_checkout_plan=')), 'the plan cookie stays so the retry lands on the plan');
+  assert.ok(!set.some((c) => c.startsWith('tl_session=')), 'no session is minted for a failed exchange');
+
+  // A refresh of the same URL — the browser now has no state cookie — takes
+  // the existing recovery branch and mints a fresh login instead of failing
+  // the same way again.
+  const refresh = await fetch(`${appUrl}/auth/callback?code=code_never_issued&state=${state}`, {
+    redirect: 'manual',
+    headers: { cookie: cookies.filter((c) => !c.startsWith('tl_oauth_state=')).join('; ') },
+  });
+  assert.equal(refresh.status, 302);
+  assert.equal(refresh.headers.get('location'), '/auth/login?retry=1');
+});
+
+test('sign-out is a POST; a GET confirms instead of clearing the session', async () => {
+  // SameSite=Lax rides on cross-site top-level GETs, so a GET that cleared
+  // the cookie would let any third-party link sign a seller out mid-task.
+  const get = await fetch(`${appUrl}/auth/logout`, { redirect: 'manual', headers: { cookie: u1Cookie } });
+  assert.equal(get.status, 200);
+  assert.match(get.headers.get('content-type'), /text\/html/);
+  assert.deepEqual(get.headers.getSetCookie(), [], 'a GET must not touch the session');
+  assert.match(await get.text(), /<form method="post" action="\/auth\/logout"/, 'the confirm page posts the real sign-out');
+
+  // A cross-site POST cannot carry the Lax cookie: nothing to clear, nothing cleared.
+  const foreign = await fetch(`${appUrl}/auth/logout`, { method: 'POST', redirect: 'manual' });
+  assert.equal(foreign.status, 302);
+  assert.deepEqual(foreign.headers.getSetCookie(), [], 'no session cookie, no clears');
+
+  // The page's own button: a same-site POST carrying the session clears both
+  // the domain-scoped cookie and any older host-only one.
+  const post = await fetch(`${appUrl}/auth/logout`, { method: 'POST', redirect: 'manual', headers: { cookie: u1Cookie } });
+  assert.equal(post.status, 302);
+  assert.equal(post.headers.get('location'), '/');
+  const clears = post.headers.getSetCookie().filter((c) => /^tl_session=;.*Max-Age=0/.test(c));
+  assert.equal(clears.length, 2, 'domain-scoped and host-only clears');
+  assert.ok(clears.some((c) => /Domain=tradeleaks\.e2e/.test(c)) && clears.some((c) => !/Domain=/.test(c)));
+
+  assert.equal((await fetch(`${appUrl}/auth/logout`, { method: 'PUT', redirect: 'manual' })).status, 405);
+
+  // And every Sign out button in the product submits that POST — none of
+  // them navigates to the GET.
+  for (const f of ['app.js', 'account.js', 'dashboard.js', 'home.js']) {
+    const src = fs.readFileSync(path.join(ROOT, 'public', f), 'utf8');
+    assert.ok(!src.includes("location.href = '/auth/logout'"), `${f} must not sign out via GET`);
+    assert.match(src, /f\.method = 'post';\s*f\.action = '\/auth\/logout';/, `${f} must sign out via a POST form`);
+  }
 });
 
 test('checkout endpoint creates a Stripe session with the buyer wired in', async () => {

@@ -4,6 +4,15 @@
 // hash-routed (#/ picker, #/setup/<guildId> wizard, #/store/<slug>/<section>).
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Sign out is a POST: the session cookie rides on cross-site GETs, so a
+// GET link could be fired by any third-party page (see api/auth/logout.js).
+const signOut = () => {
+  const f = document.createElement('form');
+  f.method = 'post';
+  f.action = '/auth/logout';
+  document.body.appendChild(f);
+  f.submit();
+};
 // Discord roles display as @Name exactly once — a role literally named
 // "@PREMIUM" must not render as "@@PREMIUM". Stored names stay verbatim.
 const roleLabel = (r) => `@${String(r ?? '').replace(/^@+/, '')}`;
@@ -165,7 +174,7 @@ function renderNav() {
   el.innerHTML = `<a class="nav-link" href="/account">Account</a>`
     + (handle ? `<span class="nav-user">@${esc(handle)}</span>` : '')
     + `<button class="btn-ghost" id="logout">Sign out</button>`;
-  $('#logout').onclick = () => (window.location.href = '/auth/logout');
+  $('#logout').onclick = signOut;
 }
 
 // "59.99" and "59,99" both parse. Number inputs on comma-decimal phones
@@ -388,7 +397,7 @@ async function viewPicker() {
       <p class="picker-label">Your Servers</p>
       <div class="g-list" id="g-list"><div class="sk-row panel" aria-hidden="true"></div><div class="sk-row panel" aria-hidden="true"></div></div>
     </section></div>`;
-  $('#logout2').onclick = () => (window.location.href = '/auth/logout');
+  $('#logout2').onclick = signOut;
   const status = await loadGuilds();
   const list = $('#g-list');
   if (!list) return;
