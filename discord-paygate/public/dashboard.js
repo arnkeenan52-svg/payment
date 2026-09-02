@@ -1215,43 +1215,146 @@ const SECTIONS = [
   ['settings', 'Settings', 'gear'],
 ];
 
-// Sets the dark ground, and keeps the browser-chrome colour with it. Chrome
-// on Android paints its bar from <meta name="theme-color">, which is a static
-// navy in the markup — theme.js only re-syncs it from the BODY background, and
-// on this page the body is transparent, so its sync silently no-ops here.
-// The last SAVED face also lives in localStorage, under the key the inline
-// script in dashboard.html's head reads, so a seller who chose black gets a
-// black first paint instead of a navy flash while /api/admin/payments loads.
-// Only viewStore writes it, from the stored preference — a Customize preview
-// never lands here, so an abandoned preview cannot outlive the page.
-// One key per store beside it. The face is a per-STORE preference, so a
-// single browser-wide key held whichever store was opened last: a seller
-// running one black and one navy store got the wrong first paint on every
-// cold load of the other one, in alternation — the flash this key exists to
-// stop, moved rather than removed. The head script reads the per-store key
-// for #/store/<slug> and falls back to the bare key for the store-less views
-// (picker, setup, admin), which have no face of their own.
+// ── the dashboard's face ──────────────────────────────────────────────────────
+// THREE faces — light, navy and black — and ONE setting. They are peers: the
+// seller picks one in Dashboard -> Appearance, and the sun/moon button in the
+// header is a shortcut for the same setting that flips between light and
+// whichever dark they chose.
+//
+// It used to be two controls for three faces: a header toggle that owned
+// light-vs-dark, and a separate "dark style" picker that owned navy-vs-black.
+// On the light face that picker sat there looking active and changed nothing
+// you could see, which is exactly the report — "when I have white theme the
+// black and navy in settings doesn't work". Nothing was broken; the control
+// was describing a face you were not looking at. One control for one setting
+// is the fix, and the header button is the shortcut, not a second opinion.
+//
+// WHERE IT LIVES. On the store, in dashboardPrefs, so a seller who set black
+// on their phone opens black on a laptop and each of their stores keeps its
+// own face. Two keys rather than one, because the header button has to know
+// which dark to go back to while you are sitting in the light face:
+//   light:     true when the face is the light one
+//   darkStyle: 'black' when the dark half is black (absent means navy)
+// So "light + black" is a real, stored state: a white dashboard whose moon
+// returns to black. The old shape stays readable — prefs written before the
+// picker became three-way carry darkStyle and no light, and still mean what
+// they meant.
+//
+// And it is mirrored into localStorage, under the key the inline script in
+// dashboard.html's head reads, so the face is painted BEFORE first paint
+// instead of after /api/admin/payments answers. One key per store: a single
+// browser-wide key held whichever store was opened last, so a seller running
+// one black and one navy store got the wrong first paint on every cold load
+// of the other, in alternation — the flash the key exists to stop, moved
+// rather than removed. The bare key stays the fallback for a store never
+// opened here and for the store-less views (picker, setup, admin).
+//
+// Only viewStore and the header button write the mirror, both from a face
+// that is actually saved — a Customize preview never lands there, so an
+// abandoned preview cannot outlive the page.
+const DASH_FACES = ['light', 'navy', 'black'];
 const DARK_FACE_KEY = 'dues-dash-face';
 const darkFaceKey = (slug) => `${DARK_FACE_KEY}:${slug}`;
-function savedDarkFace() {
-  try { return localStorage.getItem(DARK_FACE_KEY) === 'black' ? 'black' : 'navy'; } catch { return 'navy'; }
+// The dark half, remembered beside the face so the header button knows where
+// the moon goes before /api/admin/payments has answered.
+const darkHalfKey = (slug) => (slug ? `dues-dash-dark:${slug}` : 'dues-dash-dark');
+const asFace = (v) => (DASH_FACES.includes(String(v)) ? String(v) : null);
+const prefsDarkHalf = (prefs) => (prefs?.darkStyle === 'black' ? 'black' : 'navy');
+const prefsFace = (prefs) => (prefs?.light === true ? 'light' : prefsDarkHalf(prefs));
+function savedFace(slug = null) {
+  try {
+    return (slug ? asFace(localStorage.getItem(darkFaceKey(slug))) : null)
+      ?? asFace(localStorage.getItem(DARK_FACE_KEY)) ?? 'navy';
+  } catch { return 'navy'; }
 }
-function rememberDarkFace(face, slug = null) {
+function savedDarkHalf(slug = null) {
+  try {
+    const v = localStorage.getItem(darkHalfKey(slug)) ?? localStorage.getItem(darkHalfKey(null));
+    return v === 'black' ? 'black' : 'navy';
+  } catch { return 'navy'; }
+}
+function rememberFace(face, slug = null, dark = null) {
+  const half = dark ?? (face === 'light' ? null : face);
   try {
     localStorage.setItem(DARK_FACE_KEY, face);
     if (slug) localStorage.setItem(darkFaceKey(slug), face);
+    // A store sitting on the light face still has a dark half, and the header
+    // button needs it before /api/admin/payments has answered.
+    if (half) {
+      localStorage.setItem(darkHalfKey(null), half);
+      if (slug) localStorage.setItem(darkHalfKey(slug), half);
+    }
   } catch { /* private mode: the flash returns, nothing else */ }
 }
-function applyDarkFace(face) {
+// Paints a face, and keeps the browser-chrome colour with it. Chrome on
+// Android paints its bar from <meta name="theme-color">, which is a static
+// navy in the markup — theme.js only re-syncs it from the BODY background, and
+// on this page the body is transparent, so its sync silently no-ops here.
+function applyFace(face) {
   const root = document.documentElement;
+  // BOTH attributes, every time. Setting only the one that changed is how a
+  // seller ends up wearing data-theme='light' carried in from the marketing
+  // site with data-dark='black' still on from the store they opened before.
+  if (face === 'light') root.dataset.theme = 'light';
+  else delete root.dataset.theme;
   if (face === 'black') root.dataset.dark = 'black';
   else delete root.dataset.dark;
+  const btn = document.querySelector('[data-face-toggle]');
+  if (btn) {
+    const label = face === 'light' ? 'Switch to the dark dashboard' : 'Switch to the light dashboard';
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+  }
   try {
     const tint = getComputedStyle(root).getPropertyValue('--ui-tint').trim();
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta && tint) meta.setAttribute('content', tint);
   } catch { /* nothing here is worth breaking a render over */ }
 }
+
+// The header button. It is the SAME setting reached faster, so it saves: a
+// shortcut that quietly forgot what you did the moment you reloaded would be
+// the original complaint again, in a different place. Applied and mirrored
+// first, then posted — the screen must not wait on a round trip to change
+// colour, and a dropped request costs this device nothing.
+const storeFromState = (slug) =>
+  (slug && state.dataSlug === slug ? (state.data?.stores ?? []).find((s) => s.slug === slug) : null) ?? null;
+function slugInHash() {
+  const m = (location.hash || '').match(/^#\/store\/([^/?]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+async function pickFace(face) {
+  const slug = slugInHash();
+  const store = storeFromState(slug);
+  const half = store ? prefsDarkHalf(store.dashboardPrefs) : savedDarkHalf(slug);
+  applyFace(face);
+  rememberFace(face, slug, half);
+  // The picker, setup and admin views have no store to save a face on, and
+  // the built-in store wears the platform look — both keep the device mirror
+  // and stop there.
+  if (!store || store.isDefault) return;
+  const prefs = { ...(store.dashboardPrefs ?? {}) };
+  if (face === 'light') prefs.light = true;
+  else { delete prefs.light; prefs.darkStyle = face; }
+  // The cached payload is what every render re-derives the face from, so
+  // leaving it stale would snap the dashboard back on the next navigation.
+  store.dashboardPrefs = prefs;
+  // One setting, two ways in: if the seller is looking at the picker while
+  // they hit the header button, the picker has to move with it. Otherwise the
+  // row would sit there claiming Light on a black screen — the confusion this
+  // whole change exists to remove, reintroduced from the other end.
+  if ((location.hash.split('/')[3] ?? 'overview') === 'customize') await viewStore(slug);
+  await api('/api/admin/store', { store: slug, dashboardPrefs: prefs }).catch(() => {});
+}
+document.querySelectorAll('[data-face-toggle]').forEach((btn) => {
+  btn.onclick = () => {
+    const slug = slugInHash();
+    const store = storeFromState(slug);
+    const dark = store ? prefsDarkHalf(store.dashboardPrefs) : savedDarkHalf(slug);
+    const now = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+    pickFace(now === 'light' ? dark : 'light');
+  };
+});
 
 function sectionOverview(data, store, slug) {
   const win = rangeWindows(state.range, data.payments);
@@ -1855,9 +1958,17 @@ function appearanceBody(store, paid) {
   return `
   <div class="th-layout">
     <div class="th-controls">
+      ${/* "Store theme", not "Theme". These tiles and the dashboard's own
+            three faces sat one screen apart wearing the same word, and the
+            owner read them as one broken control. They are not the same
+            thing and they no longer say the same thing: these are pictures
+            of a CHECKOUT, they are named for the buyer, and the dashboard's
+            faces are a row of small ground chips under "Theme" in Dashboard
+            -> Appearance. */ ''}
       <div class="th-block">
-        <span class="th-block-lab">Theme</span>
-        <div class="th-tiles" role="group" aria-label="Theme presets">${THEME_PRESETS.map(tile).join('')}</div>
+        <span class="th-block-lab">Store theme</span>
+        <p class="field-help th-block-help">What buyers see on your store page. Your own dashboard's light/dark is a separate setting, in Dashboard &rarr; Appearance.</p>
+        <div class="th-tiles" role="group" aria-label="Store theme presets">${THEME_PRESETS.map(tile).join('')}</div>
       </div>
       <div class="th-block">
         <span class="th-block-lab">Background</span>
@@ -2099,6 +2210,7 @@ function sectionCustomize(store) {
     ['#ef4444', 'Red'], ['#ec4899', 'Pink'], ['#06b6d4', 'Cyan'],
   ];
   const curAccent = /^#[0-9a-f]{6}$/i.test(String(prefs.accent ?? '')) ? prefs.accent : '';
+  const curFace = prefsFace(prefs);
   return `
     <h2 class="sec-title">Dashboard</h2>
     <div class="settings-stack">
@@ -2113,13 +2225,17 @@ function sectionCustomize(store) {
             <label class="dc-custom" title="Custom color"><input type="color" id="dc-color" value="${curAccent || '#ededed'}" aria-label="Custom accent color" /></label>
           </div>
           <p class="field-help dc-help">Paints every chart, sparkline and highlight in the dashboard.</p></div>
-        <div class="dc-row"><span class="dc-lab">Dark style</span>
-          <div class="dc-faces" role="group" aria-label="Dark dashboard style">
-            ${[['navy', 'Navy', '#101827', '#182338'], ['black', 'Black', '#0a0a0b', '#141416']]
-              .map(([k, lbl, bg, panel]) => `<button type="button" class="dc-face${(prefs.darkStyle ?? 'navy') === k ? ' active' : ''}" data-face="${k}" aria-pressed="${(prefs.darkStyle ?? 'navy') === k}">
+        ${/* One control, three faces. See the note above applyFace: the old
+              split — a header toggle for light-vs-dark and a "dark style"
+              picker for navy-vs-black — meant that on the light face this
+              row looked live and did nothing you could see. */ ''}
+        <div class="dc-row"><span class="dc-lab">Theme</span>
+          <div class="dc-faces" role="group" aria-label="Dashboard theme">
+            ${[['light', 'Light', '#f1f2f5', '#ffffff'], ['navy', 'Navy', '#101827', '#182338'], ['black', 'Black', '#0a0a0b', '#141416']]
+              .map(([k, lbl, bg, panel]) => `<button type="button" class="dc-face${curFace === k ? ' active' : ''}" data-face="${k}" aria-pressed="${curFace === k}">
                 <span class="dc-face-chip" style="background:${bg}"><i style="background:${panel}"></i></span>${lbl}</button>`).join('')}
           </div>
-          <p class="field-help dc-help">Which dark the dashboard uses. The sun switches to the light theme either way.</p></div>
+          <p class="field-help dc-help">Only you see this — it is the dashboard, not your store. The button up in the header flips between Light and whichever dark you pick here.</p></div>
         <div class="dc-row"><span class="dc-lab">Stat cards</span>
           <div class="dc-checks">
             ${[['revenue', 'Revenue'], ['sales', 'Sales'], ['members', 'New members'], ['mrr', 'MRR']]
@@ -2147,7 +2263,7 @@ function sectionCustomize(store) {
       <span class="jumprow-ic" aria-hidden="true">${I.shop}</span>
       <span class="jumprow-txt">
         <b>Store appearance</b>
-        <small>Colors, corners and type</small>
+        <small>What buyers see — colors, corners and type</small>
       </span>
       <span class="jumprow-go" aria-hidden="true">${I.arrow}</span>
     </a>
@@ -2167,16 +2283,21 @@ function wireCustomize(store, slug) {
   // and a picker that only takes effect after a round trip makes the seller
   // save to find out. Reverted on navigation if they never save, because the
   // attribute is re-derived from the stored prefs on every render.
-  let pickedFace = prefs.darkStyle === 'black' ? 'black' : 'navy';
+  let pickedFace = prefsFace(prefs);
+  // The dark half is remembered separately from the face, so choosing Light
+  // and saving does not quietly forget that this seller's dark is black: the
+  // header button still has somewhere to go back to.
+  let pickedDark = prefsDarkHalf(prefs);
   document.querySelectorAll('.dc-face').forEach((btn) => {
     btn.onclick = () => {
       pickedFace = btn.dataset.face;
+      if (pickedFace !== 'light') pickedDark = pickedFace;
       document.querySelectorAll('.dc-face').forEach((b) => {
         const on = b.dataset.face === pickedFace;
         b.classList.toggle('active', on);
         b.setAttribute('aria-pressed', String(on));
       });
-      applyDarkFace(pickedFace);
+      applyFace(pickedFace);
     };
   });
   const saveDc = async (prefsBody) => {
@@ -2202,10 +2323,11 @@ function wireCustomize(store, slug) {
       accent: pickedAccent || null,
       cards: cardPicks,
       defaultRange: $('#dc-range').value,
-      darkStyle: pickedFace,
+      light: pickedFace === 'light',
+      darkStyle: pickedDark,
     });
   };
-  $('#dc-reset').onclick = () => { applyDarkFace('navy'); saveDc(null); };
+  $('#dc-reset').onclick = () => { applyFace('navy'); saveDc(null); };
 }
 
 // Billing gets its own top-level section so upgrading a plan is one click from
@@ -2346,9 +2468,9 @@ async function viewStore(slug) {
   const dashAccent = /^#[0-9a-f]{6}$/i.test(String(dashPrefs.accent ?? '')) ? dashPrefs.accent : null;
   // The ground, re-derived from the stored preference on every render — which
   // is also what discards an unsaved preview the moment you navigate.
-  const darkFace = dashPrefs.darkStyle === 'black' ? 'black' : 'navy';
-  applyDarkFace(darkFace);
-  rememberDarkFace(darkFace, store.slug);
+  const face = prefsFace(dashPrefs);
+  applyFace(face);
+  rememberFace(face, store.slug, prefsDarkHalf(dashPrefs));
   if (dashPrefs.defaultRange && state.rangePicked !== store.slug && RANGES.some(([k]) => k === dashPrefs.defaultRange)) {
     state.range = dashPrefs.defaultRange;
   }
@@ -4039,7 +4161,7 @@ async function route() {
   // the last saved face. Re-applied on every navigation, so an unsaved black
   // preview from Customize does not follow the seller out to "All servers" —
   // viewStore drops it for its own sections; nothing did for these.
-  applyDarkFace(savedDarkFace());
+  applyFace(savedFace());
   if (parts[0] === 'setup' && parts[1]) return viewSetup(parts[1]);
   if (parts[0] === 'admin') return viewAdmin();
   return viewPicker();

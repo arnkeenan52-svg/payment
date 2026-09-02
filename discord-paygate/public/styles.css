@@ -2858,10 +2858,16 @@ html.menu-open, html.menu-open body { overflow: hidden; }
   display: flex; align-items: center; justify-content: center;
   transition: border-color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
 }
-.th-tile:hover .th-tile-thumb { border-color: #454545; transform: translateY(-1px); }
+/* Tokens, not the old monochrome literals. #fff was the SELECTED ring: on the
+   dashboard's light face that is a white ring on a white card, so the seller
+   could not see which store theme was chosen — the only thing left saying so
+   was the tick beside the name. The night faces were fine because
+   dashboard.html re-stated all three in navy; the light face inherited a rule
+   written for a black product and nobody looked. */
+.th-tile:hover .th-tile-thumb { border-color: var(--edge-hot); transform: translateY(-1px); }
 .th-tile:focus-visible { outline: none; }
-.th-tile:focus-visible .th-tile-thumb { outline: 2px solid #fff; outline-offset: 2px; }
-.th-tile.active .th-tile-thumb { border-color: #fff; }
+.th-tile:focus-visible .th-tile-thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+.th-tile.active .th-tile-thumb { border-color: var(--edge-selected); }
 .th-tile-card { width: 74%; padding: 7px 8px; display: flex; flex-direction: column; gap: 4px; }
 .th-tile-line { height: 3px; border-radius: 2px; width: 78%; }
 .th-tile-line2 { width: 48%; opacity: 0.45; }
@@ -2917,18 +2923,24 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 /* the tap-to-load stand-in for the preview frame on a narrow screen */
 .th-preview-open { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: auto; min-height: 44px; white-space: nowrap; }
 .th-stage-empty { border: 1px dashed var(--edge); border-radius: 12px; padding: 40px 20px; text-align: center; }
-.th-frame { border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; background: #0c0c0c; display: flex; flex-direction: column; }
-.th-frame-bar { display: flex; align-items: center; gap: 6px; padding: 9px 12px; background: #141414; border-bottom: 1px solid var(--edge); }
-.th-frame-dot { width: 9px; height: 9px; border-radius: 50%; background: #2e2e2e; }
+/* The browser-window mock around the live preview. Every surface here was a
+   literal near-black — #0c0c0c, #141414, #2e2e2e, #0d0d0d — from the days the
+   product had exactly one face, and on the light dashboard it was a black hole
+   punched into a white card with a dark-on-black "Load live preview" button
+   sitting in the middle of it. It is dashboard chrome, so it wears the
+   dashboard's face: window ground below the bar, a lifted bar above it. */
+.th-frame { border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; background: var(--well); display: flex; flex-direction: column; }
+.th-frame-bar { display: flex; align-items: center; gap: 6px; padding: 9px 12px; background: var(--raised); border-bottom: 1px solid var(--edge); }
+.th-frame-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--edge-hot); }
 .th-frame-url {
   margin-left: 10px; flex: 1; text-align: center; font-size: 11.5px; color: var(--dim);
-  background: #0d0d0d; border: 1px solid #1f1f1f; border-radius: 6px; padding: 4px 12px;
+  background: var(--well); border: 1px solid var(--hairline-2); border-radius: 6px; padding: 4px 12px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 /* the page renders at a real device viewport and is scaled to fit the frame */
-.th-viewport { position: relative; overflow: hidden; height: 560px; background: #0c0c0c; }
-.th-preview { position: absolute; top: 0; left: 0; border: 0; background: #0c0c0c; transform-origin: 0 0; }
-.th-viewport.phone .th-preview { border-left: 1px solid #1c1c1c; border-right: 1px solid #1c1c1c; }
+.th-viewport { position: relative; overflow: hidden; height: 560px; background: var(--well); }
+.th-preview { position: absolute; top: 0; left: 0; border: 0; background: var(--well); transform-origin: 0 0; }
+.th-viewport.phone .th-preview { border-left: 1px solid var(--hairline-2); border-right: 1px solid var(--hairline-2); }
 .th-device { display: flex; gap: 2px; margin-left: 8px; border: 1px solid var(--hairline-2); border-radius: 6px; background: var(--well); padding: 2px; }
 .th-dev-btn {
   display: grid; place-items: center; width: 27px; height: 22px; border: 0; border-radius: 4px;
