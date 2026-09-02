@@ -2628,6 +2628,7 @@ async function viewStore(slug) {
           </label>
           <label class="field"><span class="field-label">Product</span><select id="am-plan"><option value="">Loading…</option></select></label>
           <div class="wiz-actions"><button class="btn-pill" type="submit">Grant access</button></div>
+          <p class="card-sub">This is how you gift access. It costs nothing, you can revoke it here, and it counts towards your plan. Adding the paid role by hand in Discord instead does not give them a membership — Dues takes that role back and tells you here.</p>
           <p class="field-err" id="err-am" role="alert"></p>
         </form>
         ${
