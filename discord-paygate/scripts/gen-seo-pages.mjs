@@ -1387,15 +1387,16 @@ function cryptoPage() {
           <div class="panel seo-card crypto-tier">
             <strong>${esc(TIER_NOTE[i][0])}</strong>
             <p>${esc(TIER_NOTE[i][1])}</p>
-            <p class="crypto-chains">${names.map(esc).join(' · ')}</p>
+            <ul class="crypto-chains">${tier.map((t, j) =>
+              `<li><b>${esc(t.toUpperCase())}</b> ${esc(names[j])}</li>`).join('')}</ul>
           </div>`;
   }).join('');
   const ranked = CHAIN_RANK.reduce((n, t) => n + t.length, 0);
 
   const faq = [
     [
-      'How many cryptocurrencies can I accept?',
-      'There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved.',
+      'Which cryptocurrencies can I accept?',
+      `The ${ranked} assets listed on this page are the ones Dues ranks and orders for settlement, cheapest chain first. What a buyer is actually offered is read from the crypto rail live at checkout — anything it offers beyond this table is still offered, sorted after it, and anything it has switched off does not appear. That is why no page here prints a fixed number.`,
     ],
     [
       'Which chain should I take payouts on?',
@@ -1414,24 +1415,21 @@ function cryptoPage() {
   const body = `
     <section class="xhero seo-hero">
       <div class="hero-inner">
-        <h1>Crypto payments on Dues</h1>
-        <p class="hero-sub">Which coins a buyer can pay in, which chains we rank first for settlement, and why this page does not print a number.</p>
+        <h1>Coins a Dues store can take</h1>
+        <p class="hero-sub">The ${ranked} assets Dues ranks for settlement, in the order your buyer meets them &mdash; and why the cheap chains come first.</p>
       </div>
     </section>
     <section class="xsection">
-      <div class="wrap narrow guide-body">
-        <h2>There is no coin list on this page, and that is deliberate</h2>
-        <p>Plenty of checkout pages advertise a big round number of supported cryptocurrencies. Dues cannot source one, so Dues does not print one &mdash; not on the homepage, and not here.</p>
-        <p>What Dues can tell you is where the list comes from. When a buyer opens a crypto checkout, Dues asks the crypto rail which coins its merchant account currently has switched on, and builds the picker out of the answer. The list is never written down in this site&rsquo;s code. Turn a coin off on the rail and it disappears from the picker within minutes, with nothing to deploy; a coin that is not enabled is refused before a payment is ever created, so a buyer cannot be sent to an address for something that would bounce.</p>
-        <p>If the rail cannot be reached at all, the checkout says so rather than showing an empty picker or a coin it cannot honour. A store with no payout wallet saved does not offer the option in the first place.</p>
-
-        <h2>The chains Dues ranks first, and why</h2>
-        <p>The coins come from the rail. The <em>order</em> they are offered in is ours, and it is not cosmetic.</p>
-        <p><strong>A payout is an on-chain transfer, and its fee is flat.</strong> It does not scale down for a small sale. On an expensive chain, moving $10 can cost a meaningful slice of the $10 — so the cheap chains are ranked first, and that is what keeps a small membership from losing money to its own settlement. ${ranked} assets are ranked in three tiers; anything the rail offers that is not in the table sorts after them, rather than being hidden.</p>
-      </div>
       <div class="wrap">
         <div class="seo-grid crypto-tiers">${tiers}
         </div>
+      </div>
+      <div class="wrap narrow guide-body">
+        <p class="crypto-note"><strong>Your buyer&rsquo;s picker is built live.</strong> These ${ranked} are the assets Dues ranks and orders. The coins actually offered at a checkout are read from the crypto rail at that moment, so a coin the rail has switched off does not appear and cannot be paid to &mdash; and anything the rail offers beyond this table is still offered, sorted after it rather than hidden. That is why no page here prints a round number of &ldquo;supported currencies&rdquo;: the true answer is whatever the rail says when your buyer arrives.</p>
+
+        <h2>Why the order is what it is</h2>
+        <p><strong>A payout is an on-chain transfer, and its fee is flat.</strong> It does not scale down for a small sale. On an expensive chain, moving $10 can cost a meaningful slice of the $10 &mdash; so the cheap chains are ranked first, and that is what keeps a small membership from losing money to its own settlement.</p>
+        <p>A coin that is not enabled on the rail is refused before a payment is ever created, so a buyer cannot be sent to an address for something that would bounce. If the rail cannot be reached at all, the checkout says so rather than showing an empty picker. A store with no payout wallet saved does not offer the option in the first place.</p>
       </div>
     </section>
     <section class="xsection">
@@ -1458,8 +1456,8 @@ ${cta('Start selling — cards today, coins when you want them')}`;
 
   return page({
     urlPath: '/crypto',
-    title: 'Crypto payments on Dues — coins, chains, payouts',
-    desc: 'Which coins a Dues store can take is read live from the crypto rail at checkout, never a hardcoded list. The chains Dues ranks first for settlement, why cheap gas comes first, and where the payout lands.',
+    title: 'Coins a Dues store can take — the full list, and the order',
+    desc: 'The assets a Dues store can settle in, listed and ranked cheapest-chain-first, plus how the buyer\u2019s picker is built live at checkout and where the payout lands.',
     body,
     jsonld: [faqJsonld(faq)],
     crumbs: [['Crypto payments', '/crypto']],

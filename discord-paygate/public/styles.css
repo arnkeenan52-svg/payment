@@ -2064,7 +2064,13 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 /* /crypto: the assets in each settlement tier, one line per card. Heavier and
    inkier than the .seo-card paragraph above it because it is a list of names
    being scanned, not a sentence being read. */
-.crypto-chains { margin: 0; padding-top: 2px; color: color-mix(in srgb, var(--ink) 86%, transparent); font-size: 13px; line-height: 1.7; font-weight: 600; letter-spacing: 0.01em; }
+/* The list IS the page, so each asset gets its own line with its ticker: a
+   middot-joined run of 10 names reads as prose and cannot be scanned for the
+   one coin a seller came to check. */
+.crypto-chains { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.crypto-chains li { display: flex; align-items: baseline; gap: 8px; font-size: 13.5px; line-height: 1.45; color: color-mix(in srgb, var(--ink) 86%, transparent); }
+.crypto-chains b { flex: none; min-width: 70px; font-weight: 700; font-size: 12px; letter-spacing: .04em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.crypto-note { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; margin-top: 26px; }
 .cmp-card { padding: 20px; }
 .cmp-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
 .cmp-table th { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--edge); font-size: 13px; }

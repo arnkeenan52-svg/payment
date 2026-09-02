@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#70a3e6" />
-  <title>Crypto payments on Dues — coins, chains, payouts</title>
-  <meta name="description" content="Which coins a Dues store can take is read live from the crypto rail at checkout, never a hardcoded list. The chains Dues ranks first for settlement, why cheap gas comes first, and where the payout lands." />
+  <title>Coins a Dues store can take — the full list, and the order</title>
+  <meta name="description" content="The assets a Dues store can settle in, listed and ranked cheapest-chain-first, plus how the buyer’s picker is built live at checkout and where the payout lands." />
   <link rel="canonical" href="https://dues.gg/crypto" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Crypto payments on Dues — coins, chains, payouts" />
-  <meta property="og:description" content="Which coins a Dues store can take is read live from the crypto rail at checkout, never a hardcoded list. The chains Dues ranks first for settlement, why cheap gas comes first, and where the payout lands." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=204" />
+  <meta property="og:title" content="Coins a Dues store can take — the full list, and the order" />
+  <meta property="og:description" content="The assets a Dues store can settle in, listed and ranked cheapest-chain-first, plus how the buyer’s picker is built live at checkout and where the payout lands." />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=206" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -24,7 +24,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=204" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=206" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline 'Monetize your community.' and a field for claiming a store link" />
   <!-- Icons, all four at STABLE urls with no ?v= on them: Google caches the
        search-result favicon by URL and re-crawls it rarely, so a version query
@@ -38,7 +38,7 @@
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=204" />
+  <link rel="stylesheet" href="/styles.css?v=206" />
   <style>
 /* day-sky theme — overrides the monochrome tokens in styles.css (all states) */
 :root, :root[data-theme='light'], :root[data-theme='dark'] {
@@ -168,8 +168,8 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 .search-box { background: rgba(255,255,255,.62); border-color: rgba(255,255,255,.75); }
 </style>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://dues.gg/"},{"@type":"ListItem","position":2,"name":"Crypto payments","item":"https://dues.gg/crypto"}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many cryptocurrencies can I accept?","acceptedAnswer":{"@type":"Answer","text":"There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved."}},{"@type":"Question","name":"Which chain should I take payouts on?","acceptedAnswer":{"@type":"Answer","text":"Dues ranks 23 assets for settlement, cheapest first, and builds the coin picker in that order. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — which is why Solana, Tron, Polygon and Base are ranked ahead of Bitcoin and Ethereum. The current cost of a transfer on any of them is the chain's business, not ours to quote."}},{"@type":"Question","name":"Where does the crypto go?","acceptedAnswer":{"@type":"Answer","text":"To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold."}},{"@type":"Question","name":"Do I have to take crypto?","acceptedAnswer":{"@type":"Answer","text":"No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain."}}]}</script>
-  <script src="/theme.js?v=204"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Which cryptocurrencies can I accept?","acceptedAnswer":{"@type":"Answer","text":"The 23 assets listed on this page are the ones Dues ranks and orders for settlement, cheapest chain first. What a buyer is actually offered is read from the crypto rail live at checkout — anything it offers beyond this table is still offered, sorted after it, and anything it has switched off does not appear. That is why no page here prints a fixed number."}},{"@type":"Question","name":"Which chain should I take payouts on?","acceptedAnswer":{"@type":"Answer","text":"Dues ranks 23 assets for settlement, cheapest first, and builds the coin picker in that order. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — which is why Solana, Tron, Polygon and Base are ranked ahead of Bitcoin and Ethereum. The current cost of a transfer on any of them is the chain's business, not ours to quote."}},{"@type":"Question","name":"Where does the crypto go?","acceptedAnswer":{"@type":"Answer","text":"To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold."}},{"@type":"Question","name":"Do I have to take crypto?","acceptedAnswer":{"@type":"Answer","text":"No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain."}}]}</script>
+  <script src="/theme.js?v=206"></script>
 </head>
 <body class="home seo-page">
 <i class="ui-tint" aria-hidden="true"></i>
@@ -177,7 +177,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 
   <header class="top xoe-nav">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=204" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=206" alt="Dues" height="20" /></a>
     </div>
     <nav class="top-center" aria-label="Main">
       <a class="nav-link" href="/discover">Discover</a>
@@ -194,39 +194,36 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 
     <section class="xhero seo-hero">
       <div class="hero-inner">
-        <h1>Crypto payments on Dues</h1>
-        <p class="hero-sub">Which coins a buyer can pay in, which chains we rank first for settlement, and why this page does not print a number.</p>
+        <h1>Coins a Dues store can take</h1>
+        <p class="hero-sub">The 23 assets Dues ranks for settlement, in the order your buyer meets them &mdash; and why the cheap chains come first.</p>
       </div>
     </section>
     <section class="xsection">
-      <div class="wrap narrow guide-body">
-        <h2>There is no coin list on this page, and that is deliberate</h2>
-        <p>Plenty of checkout pages advertise a big round number of supported cryptocurrencies. Dues cannot source one, so Dues does not print one &mdash; not on the homepage, and not here.</p>
-        <p>What Dues can tell you is where the list comes from. When a buyer opens a crypto checkout, Dues asks the crypto rail which coins its merchant account currently has switched on, and builds the picker out of the answer. The list is never written down in this site&rsquo;s code. Turn a coin off on the rail and it disappears from the picker within minutes, with nothing to deploy; a coin that is not enabled is refused before a payment is ever created, so a buyer cannot be sent to an address for something that would bounce.</p>
-        <p>If the rail cannot be reached at all, the checkout says so rather than showing an empty picker or a coin it cannot honour. A store with no payout wallet saved does not offer the option in the first place.</p>
-
-        <h2>The chains Dues ranks first, and why</h2>
-        <p>The coins come from the rail. The <em>order</em> they are offered in is ours, and it is not cosmetic.</p>
-        <p><strong>A payout is an on-chain transfer, and its fee is flat.</strong> It does not scale down for a small sale. On an expensive chain, moving $10 can cost a meaningful slice of the $10 — so the cheap chains are ranked first, and that is what keeps a small membership from losing money to its own settlement. 23 assets are ranked in three tiers; anything the rail offers that is not in the table sorts after them, rather than being hidden.</p>
-      </div>
       <div class="wrap">
         <div class="seo-grid crypto-tiers">
           <div class="panel seo-card crypto-tier">
             <strong>Ranked first</strong>
             <p>The cheapest chains to settle on. The coin picker is built in this order, so a buyer meets these first.</p>
-            <p class="crypto-chains">Solana · Tron · USDT on Solana · USDC on Solana · USDT on Tron · USDC on Polygon · Polygon · USDT on Polygon · Base · USDC on Base</p>
+            <ul class="crypto-chains"><li><b>SOL</b> Solana</li><li><b>TRX</b> Tron</li><li><b>USDTSOL</b> USDT on Solana</li><li><b>USDCSOL</b> USDC on Solana</li><li><b>USDTTRC20</b> USDT on Tron</li><li><b>USDCMATIC</b> USDC on Polygon</li><li><b>MATIC</b> Polygon</li><li><b>USDTMATIC</b> USDT on Polygon</li><li><b>BASE</b> Base</li><li><b>USDCBASE</b> USDC on Base</li></ul>
           </div>
           <div class="panel seo-card crypto-tier">
             <strong>Ranked next</strong>
             <p>Offered above the expensive chains and below the cheap ones.</p>
-            <p class="crypto-chains">BNB Chain · USDT on BNB Chain · USDC on BNB Chain · Litecoin · Dogecoin · XRP · Cardano · Algorand</p>
+            <ul class="crypto-chains"><li><b>BNB</b> BNB Chain</li><li><b>USDTBSC</b> USDT on BNB Chain</li><li><b>USDCBSC</b> USDC on BNB Chain</li><li><b>LTC</b> Litecoin</li><li><b>DOGE</b> Dogecoin</li><li><b>XRP</b> XRP</li><li><b>ADA</b> Cardano</li><li><b>ALGO</b> Algorand</li></ul>
           </div>
           <div class="panel seo-card crypto-tier">
             <strong>Ranked last</strong>
             <p>The chains everyone knows, and the ones whose flat transfer fee can rival a small membership. Still offered — just never what the picker opens on.</p>
-            <p class="crypto-chains">Bitcoin · Ethereum · USDT on Ethereum · USDC on Ethereum · DAI</p>
+            <ul class="crypto-chains"><li><b>BTC</b> Bitcoin</li><li><b>ETH</b> Ethereum</li><li><b>USDTERC20</b> USDT on Ethereum</li><li><b>USDCERC20</b> USDC on Ethereum</li><li><b>DAI</b> DAI</li></ul>
           </div>
         </div>
+      </div>
+      <div class="wrap narrow guide-body">
+        <p class="crypto-note"><strong>Your buyer&rsquo;s picker is built live.</strong> These 23 are the assets Dues ranks and orders. The coins actually offered at a checkout are read from the crypto rail at that moment, so a coin the rail has switched off does not appear and cannot be paid to &mdash; and anything the rail offers beyond this table is still offered, sorted after it rather than hidden. That is why no page here prints a round number of &ldquo;supported currencies&rdquo;: the true answer is whatever the rail says when your buyer arrives.</p>
+
+        <h2>Why the order is what it is</h2>
+        <p><strong>A payout is an on-chain transfer, and its fee is flat.</strong> It does not scale down for a small sale. On an expensive chain, moving $10 can cost a meaningful slice of the $10 &mdash; so the cheap chains are ranked first, and that is what keeps a small membership from losing money to its own settlement.</p>
+        <p>A coin that is not enabled on the rail is refused before a payment is ever created, so a buyer cannot be sent to an address for something that would bounce. If the rail cannot be reached at all, the checkout says so rather than showing an empty picker. A store with no payout wallet saved does not offer the option in the first place.</p>
       </div>
     </section>
     <section class="xsection">
@@ -252,7 +249,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
       <div class="wrap narrow">
         <h2 class="section-title center">Frequently asked</h2>
         <div class="faq">
-          <details class="panel faq-item"><summary>How many cryptocurrencies can I accept?</summary><p>There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved.</p></details>
+          <details class="panel faq-item"><summary>Which cryptocurrencies can I accept?</summary><p>The 23 assets listed on this page are the ones Dues ranks and orders for settlement, cheapest chain first. What a buyer is actually offered is read from the crypto rail live at checkout — anything it offers beyond this table is still offered, sorted after it, and anything it has switched off does not appear. That is why no page here prints a fixed number.</p></details>
           <details class="panel faq-item"><summary>Which chain should I take payouts on?</summary><p>Dues ranks 23 assets for settlement, cheapest first, and builds the coin picker in that order. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — which is why Solana, Tron, Polygon and Base are ranked ahead of Bitcoin and Ethereum. The current cost of a transfer on any of them is the chain's business, not ours to quote.</p></details>
           <details class="panel faq-item"><summary>Where does the crypto go?</summary><p>To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold.</p></details>
           <details class="panel faq-item"><summary>Do I have to take crypto?</summary><p>No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain.</p></details>
@@ -270,7 +267,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
-      <img class="powered-mark" src="/dues.png?v=204" alt="Dues" height="16" />
+      <img class="powered-mark" src="/dues.png?v=206" alt="Dues" height="16" />
       <span class="footer-copy">© Dues</span>
     </div>
     <nav class="footer-col"><span class="footer-head">Product</span>

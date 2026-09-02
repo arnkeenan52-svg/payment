@@ -1991,7 +1991,23 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
    reads on one of those can vanish on the other, so nothing here is left to
    the eye — the ratios are in the commit message, and the markup comment says
    which of the three treatments each mark takes. */
-.pay{padding-block:8px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
+/* ONE box, not a strip. The two rails, their marks, the note and the Stripe
+   line are one argument — "however they want to pay" — and an argument that
+   runs edge to edge on the page reads as four unrelated rows. On the glass the
+   whole thing is a single object with a boundary, which is also what makes the
+   hairline between cards and coins legible as a division INSIDE something
+   rather than another band across the page. */
+.pay{
+  width:min(100%,720px);margin-inline:auto;
+  padding:clamp(26px,4vw,40px) clamp(18px,3.4vw,34px);
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  background:var(--glass);border:1px solid var(--glass-brd);border-radius:22px;
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+}
+@supports ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))){
+  .pay{backdrop-filter:blur(16px) saturate(1.25);-webkit-backdrop-filter:blur(16px) saturate(1.25)}
+}
+@media (max-width:600px){.pay{width:calc(100% - 24px);border-radius:18px}}
 /* --pay-edge: a hairline that keeps a mark's OWN ground legible where its fill
    lands close to the face behind it — Klarna's pink block by day (1.2:1
    against the glass), Visa's navy one by night (1.2:1 against the panel). It
@@ -2500,7 +2516,7 @@ html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;pa
 /* ── the vertical rhythm ── */
 .save{padding-block:var(--sec-y) var(--sec-y-tight)}
 .why{padding-block:var(--sec-y-tight)}
-.pay{padding-block:var(--sec-y-tight) var(--sec-y)}
+.pay{margin-block:var(--sec-y-tight) var(--sec-y)}
 .how,.voices,.comm{padding-block:var(--sec-y)}
 .faq{padding-block:var(--sec-y) calc(var(--sec-y) * 1.5)}
 .save-head,.mid-head,.faq-head{margin-bottom:var(--sec-head-gap)}
