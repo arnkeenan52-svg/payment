@@ -3,7 +3,7 @@ import { capabilities } from '../../src/config.js';
 import { storeBySlug, planOf } from '../../src/services/stores.js';
 import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
-import { purchaseBlocked, resolveDiscount } from '../../src/services/purchase-guard.js';
+import { purchaseBlocked, resolveDiscount, discountMissesIn, recordDiscountMiss, MAX_MISSES_PER_ASKER, TOO_MANY_CODE_ATTEMPTS } from '../../src/services/purchase-guard.js';
 import { publicPaymentView } from '../../src/services/nowpayments-events.js';
 import { createPayment, getPayment, merchantCoins, minimumFor } from '../../src/lib/nowpayments.js';
 import { normalize as normalizeCurrency, formatAmount, minCharge } from '../../src/lib/currency.js';
@@ -179,8 +179,17 @@ export default guard(async function handler(req, res) {
   let amount = plan.priceUsd;
   let discountCode = null;
   if (typeof body?.discountCode === 'string' && body.discountCode.trim()) {
+    // Same guessing budget as the preview and the card rail: this rail
+    // answers the same hit/miss question, so it must not be the way around
+    // the count. Per-asker only — see api/checkout/stripe.js.
+    const guessKeys = [`u:${uid}`, `s:${store.slug}`];
+    if (discountMissesIn(guessKeys[0]) >= MAX_MISSES_PER_ASKER) {
+      sendJson(res, 429, { error: TOO_MANY_CODE_ATTEMPTS });
+      return;
+    }
     const applied = await resolveDiscount({ store, plan, code: body.discountCode, uid });
     if (applied.error) {
+      recordDiscountMiss(guessKeys);
       sendJson(res, 400, { error: applied.error });
       return;
     }

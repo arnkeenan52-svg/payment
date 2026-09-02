@@ -8,6 +8,7 @@ import { storeBySlug, planOf } from '../src/services/stores.js';
 import { DEMO_SLUG, DEMO_DISCOUNT, demoPlans } from '../src/services/demo-store.js';
 import { getDiscount } from '../src/db.js';
 import { roundAmount, minCharge, formatAmount, normalize as normalizeCurrency } from '../src/lib/currency.js';
+import { discountMissesIn, recordDiscountMiss, MAX_MISSES_PER_ASKER, MAX_MISSES_PER_STORE, TOO_MANY_CODE_ATTEMPTS } from '../src/services/purchase-guard.js';
 
 // A 200-or-404 answer with no login and no limit is an oracle: walk a
 // wordlist against any store and every private code it ever made falls out,
@@ -16,22 +17,9 @@ import { roundAmount, minCharge, formatAmount, normalize as normalizeCurrency } 
 // addresses buys nothing either. A valid code costs nothing against the
 // budget: only guessing does. Once over it, everything is refused alike,
 // so the throttle itself does not leak.
-const WINDOW_SECONDS = 10 * 60;
-const MAX_MISSES_PER_ASKER = 8;
-const MAX_MISSES_PER_STORE = 300;
-const misses = new Map(); // key → [unix seconds of each miss in the window]
-
-function missesBy(key, now) {
-  const list = (misses.get(key) ?? []).filter((t) => t > now - WINDOW_SECONDS);
-  if (list.length) misses.set(key, list); else misses.delete(key);
-  return list;
-}
-
-function recordMiss(keys, now) {
-  // Kept small: entries older than the window are dropped on every write.
-  if (misses.size > 5000) for (const k of misses.keys()) missesBy(k, now);
-  for (const key of keys) misses.set(key, [...missesBy(key, now), now]);
-}
+//
+// The count lives beside resolveDiscount and is shared with checkout, which
+// answers the same question to anyone with a Discord login.
 
 async function askerKey(req) {
   const uid = await sessionUserId(req);
@@ -50,12 +38,21 @@ export default guard(async (req, res) => {
   }
   const now = Math.floor(Date.now() / 1000);
   const keys = [await askerKey(req), `s:${slug}`];
-  if (missesBy(keys[0], now).length >= MAX_MISSES_PER_ASKER || missesBy(keys[1], now).length >= MAX_MISSES_PER_STORE) {
-    return sendJson(res, 429, { error: 'Too many code attempts — try again in a few minutes.' });
+  // Past their own budget an asker is refused whatever they type, so the
+  // throttle cannot answer the question the budget is there to protect.
+  if (discountMissesIn(keys[0], now) >= MAX_MISSES_PER_ASKER) {
+    return sendJson(res, 429, { error: TOO_MANY_CODE_ATTEMPTS });
   }
+  // The store-wide cap is shared by every visitor, so refusing on it turned
+  // ~38 guessers into a store-wide outage: real buyers typing a real code
+  // were told "too many attempts" for ten minutes, renewably. It bounds
+  // guessing, not buying — a miss is refused, a valid code still answers.
+  const storeOverrun = discountMissesIn(keys[1], now) >= MAX_MISSES_PER_STORE;
   const miss = () => {
-    recordMiss(keys, now);
-    return sendJson(res, 404, { error: 'That discount code is not valid for this product.' });
+    recordDiscountMiss(keys, now);
+    return storeOverrun
+      ? sendJson(res, 429, { error: TOO_MANY_CODE_ATTEMPTS })
+      : sendJson(res, 404, { error: 'That discount code is not valid for this product.' });
   };
   if (slug === DEMO_SLUG) {
     const plan = demoPlans().find((p) => p.id === planId);

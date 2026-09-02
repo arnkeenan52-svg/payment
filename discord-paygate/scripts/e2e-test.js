@@ -1694,6 +1694,60 @@ test('a failed Discord token exchange explains itself and spends the state cooki
   });
   assert.equal(refresh.status, 302);
   assert.equal(refresh.headers.get('location'), '/auth/login?retry=1');
+
+  // Two failures in a row: the retry leg's state ends in `.r`, so a refresh
+  // of ITS failure page reaches the terminal branch. That branch used to
+  // tell a buyer their browser had dropped the login cookie — but the
+  // browser kept every cookie it was given; the server spent the state
+  // itself when Discord failed. A short-lived marker says which happened.
+  const retry = await fetch(`${appUrl}/auth/login?retry=1&plan=insider`, { redirect: 'manual' });
+  const retryState = new URL(retry.headers.get('location')).searchParams.get('state');
+  const retryCookies = retry.headers.getSetCookie().map((c) => c.split(';')[0]);
+  const failedTwice = await fetch(`${appUrl}/auth/callback?code=code_never_issued&state=${retryState}`, {
+    redirect: 'manual',
+    headers: { cookie: retryCookies.join('; ') },
+  });
+  assert.equal(failedTwice.status, 502);
+  const marker = failedTwice.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_fail='));
+  assert.ok(marker && !/Max-Age=0/.test(marker), 'a Discord failure leaves a short-lived marker behind');
+  const keptJar = retryCookies.filter((c) => !c.startsWith('tl_oauth_state=')).concat(marker.split(';')[0]);
+  const secondRefresh = await fetch(`${appUrl}/auth/callback?code=code_never_issued&state=${retryState}`, {
+    redirect: 'manual',
+    headers: { cookie: keptJar.join('; ') },
+  });
+  const secondText = await secondRefresh.text();
+  assert.equal(secondRefresh.status, 502, 'an upstream failure is still an upstream failure on the retry leg');
+  assert.match(secondText, /Discord did not complete the sign-in/i);
+  assert.doesNotMatch(secondText, /did not keep the login cookie/i, 'the browser kept every cookie — do not send this buyer browser-hunting');
+  assert.ok(
+    secondRefresh.headers.getSetCookie().some((c) => /^tl_oauth_fail=;.*Max-Age=0/.test(c)),
+    'the marker is spent once it has been read',
+  );
+});
+
+test('the Discord token exchange is bounded, like every other Discord call', async () => {
+  // The catch above only fires on a rejection. A token endpoint that accepts
+  // the connection and never answers does not reject: the callback would sit
+  // until the platform killed the function, and that gateway timeout carries
+  // no Set-Cookie — so the state cookie survived and every refresh hung the
+  // same way. The bound is what turns a hang into the 502 pinned above.
+  // (Asserted at the call, not by waiting the ten seconds out.)
+  const { exchangeOAuthCode } = await import('../src/lib/discord.js');
+  const realFetch = globalThis.fetch;
+  let init = null;
+  globalThis.fetch = async (url, options) => {
+    init = options;
+    return new Response(JSON.stringify({ access_token: 'tok', refresh_token: 'ref' }), {
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+  try {
+    await exchangeOAuthCode('code_u1');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  assert.ok(init?.signal instanceof AbortSignal, 'the OAuth token exchange must carry a timeout signal');
+  assert.equal(init.signal.aborted, false, 'and it must still be live when the request goes out');
 });
 
 test('sign-out is a POST; a GET confirms instead of clearing the session', async () => {
@@ -4839,6 +4893,19 @@ test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch,
   // A reply from someone who does not own the store is a 403.
   assert.equal((await post(u8Cookie, { store: 'vip-signals', action: 'reply', id: 1, body: 'nope' })).status, 403);
 
+  // Public text is text. String() published "[object Object]" under the
+  // store's name behind a 200, and an absent body published "undefined"
+  // over whatever the seller had written.
+  const replyId = (await list(u7Cookie)).reviews[0].id;
+  for (const value of [{ a: 1 }, true, [1, 2], 7]) {
+    assert.equal((await post(u7Cookie, { store: 'vip-signals', action: 'reply', id: replyId, body: value })).status, 400, `reply body ${JSON.stringify(value)}`);
+    assert.equal((await post(u8Cookie, { store: 'vip-signals', rating: 4, body: value })).status, 400, `review body ${JSON.stringify(value)}`);
+  }
+  assert.equal((await post(u7Cookie, { store: 'vip-signals', action: 'reply', id: replyId })).status, 400, 'an absent reply body is not a clear');
+  assert.match((await list(null)).reviews[0].reply.body, /two channels/, 'none of those touched the reply');
+  assert.equal((await post(u7Cookie, { store: 'vip-signals', action: 'reply', id: replyId, body: '' })).status, 200, "'' is still the way to take a reply down");
+  assert.equal((await list(null)).reviews[0].reply, null);
+
   // The AUTHOR may withdraw their own words — the one delete that exists.
   assert.equal((await post(u8Cookie, { store: 'vip-signals', action: 'withdraw' })).status, 200);
   assert.equal(await rowCount(), 0);
@@ -5683,18 +5750,31 @@ test('the input boundary: bad cookies, null bodies, NUL bytes, wrong types and o
     assert.equal((await post('/api/admin/store', { description: value })).status, 400, `store description ${JSON.stringify(value)}`);
     assert.equal((await post('/api/onboard', { step: 'product', storeId, name: value, priceUsd: 10, lifetime: true })).status, 400, `product name ${JSON.stringify(value)}`);
     assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.id, name: value })).status, 400, `product rename ${JSON.stringify(value)}`);
+    // The option label is the third product-writing step, and the one that
+    // turns its input into a plan key no later edit can change: String()
+    // made the permanent key "vip-object-object" behind a 200.
+    assert.equal((await post('/api/onboard', { step: 'variant', storeId, planKey: plan.id, label: value, priceUsd: 12, lifetime: true })).status, 400, `option label ${JSON.stringify(value)}`);
   }
+  assert.ok(
+    !(await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.some((p) => /object-object|^true$|1,2|^7$/.test(p.planKey)),
+    'none of those minted an option',
+  );
   assert.equal((await storeRow()).name, 'Evil', 'none of those wrote anything');
   assert.equal((await post('/api/admin/store', { name: 'VIP Signals' })).status, 200);
 
   // The receipt sender is the From header of every receipt: an address, or a
   // name in front of one. Resend rejects anything else and the only symptom
   // used to be receipts quietly stopping.
-  for (const from of ['not an email at all', '<script>alert(1)</script>', 'Dues <a@b>', 'Dues <a@b.c', 'x\r\nbcc: y@z.io']) {
+  // The specials belong in quotes: `Dues, Inc <a@b.co>` is not a mailbox at
+  // all (the comma ends the address) and Resend rejects it — receipts then
+  // stop with no symptom. The check used to admit exactly those and refuse
+  // the quoted spelling that works.
+  for (const from of ['not an email at all', '<script>alert(1)</script>', 'Dues <a@b>', 'Dues <a@b.c', 'x\r\nbcc: y@z.io', 'Dues, Inc <a@b.co>', 'a:b;c <a@b.co>', 'x@y.z <a@b.co>']) {
     assert.equal((await post('/api/admin/settings', { receiptFrom: from }, u1Cookie)).status, 400, `receiptFrom ${JSON.stringify(from)}`);
   }
+  assert.equal((await post('/api/admin/settings', { receiptFrom: '"Dues, Inc" <receipts@tradeleaks.e2e>' }, u1Cookie)).status, 200, 'a quoted display name is the RFC spelling, not a refusal');
   const settings = await (await fetch(`${appUrl}/api/admin/settings`, { headers: { cookie: u1Cookie } })).json();
-  assert.equal(settings.receiptFrom, 'Dues <receipts@tradeleaks.e2e>', 'the refused senders changed nothing');
+  assert.equal(settings.receiptFrom, '"Dues, Inc" <receipts@tradeleaks.e2e>', 'the refused senders changed nothing');
   assert.equal((await post('/api/admin/settings', { receiptFrom: 'Dues <receipts@tradeleaks.e2e>' }, u1Cookie)).status, 200, 'a real Name <address> sender is accepted');
 });
 
@@ -6374,6 +6454,31 @@ test('the discount preview budgets misses, so it cannot be walked as an oracle',
   assert.equal((await ask('GUESS9', { cookie })).status, 429, 'the ninth miss in the window is refused');
   assert.equal((await ask('LAUNCH20', { cookie })).status, 429, 'and so is a hit — the throttle must not be the oracle');
   assert.equal((await ask('LAUNCH20')).status, 200, "another asker's budget is their own");
+
+  // Checkout answers the same question — hit or miss, synchronously, to any
+  // Discord login — so budgeting only the preview moved the oracle one
+  // endpoint over instead of closing it. One budget, shared.
+  const guesser = await signInAs('code_np_guess2', '529900000000000030', 'np_guess2');
+  discord.members.set('529900000000000030', new Set());
+  const buy = (discountCode) => fetch(`${appUrl}/api/checkout/stripe`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: guesser },
+    body: JSON.stringify({ store: 'vip-signals', planId: plan.id, discountCode }),
+  });
+  for (let i = 0; i < 8; i += 1) {
+    assert.equal((await buy(`CGUESS${i}`)).status, 400, `checkout miss ${i}`);
+  }
+  assert.equal((await buy('LAUNCH20')).status, 429, 'past the budget checkout refuses alike — a hit must not be the tell');
+  assert.equal((await ask('LAUNCH20', { cookie: guesser })).status, 429, 'one budget for both endpoints, not one each');
+
+  // The store-wide cap is shared by every visitor of that store, so refusing
+  // on it let ~38 guessers switch the Apply button off for a store's real
+  // buyers, renewably. It may refuse guessing; it may not refuse a real code.
+  for (let i = 0; i < 300; i += 1) {
+    await ask(`FLOOD${i}`, { 'x-forwarded-for': `10.${Math.floor(i / 250)}.${i % 250}.7` });
+  }
+  assert.equal((await ask('LAUNCH20', { 'x-forwarded-for': '10.9.9.9' })).status, 200, 'a real code still previews once a store is over its cap');
+  assert.equal((await ask('NOPE', { 'x-forwarded-for': '10.9.9.9' })).status, 429, 'guessing past the store cap is refused');
 });
 
 

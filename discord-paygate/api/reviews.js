@@ -27,6 +27,9 @@ const WINDOW_SECONDS = 60;
 const MAX_WRITES_PER_WINDOW = 10;
 
 const nowSec = () => Math.floor(Date.now() / 1000);
+// Text or nothing. String() on an object published "[object Object]" as a
+// seller's public reply — and String(undefined) published "undefined".
+const isText = (v) => v === undefined || v === null || typeof v === 'string';
 
 // What a review looks like to ANY client. Note what is absent: the author's
 // Discord snowflake. The storefront gets a display name and nothing that
@@ -138,7 +141,11 @@ export default guard(async function handler(req, res) {
     if (!Number.isSafeInteger(id) || id <= 0) return sendJson(res, 400, { error: 'which review?' });
     const target = await db.getReviewById(id);
     if (!target || target.storeId !== store.id) return sendJson(res, 404, { error: 'unknown review' });
-    const text = body.body === null || body.body === '' ? null : String(body.body).trim().slice(0, MAX_BODY);
+    // null or '' clears the reply; anything else must be the text of one.
+    // An absent field is not "clear it": a malformed call must not silently
+    // delete what the seller wrote (String(undefined) published "undefined").
+    if (body.body === undefined || !isText(body.body)) return sendJson(res, 400, { error: 'The reply must be text.' });
+    const text = body.body === null || body.body === '' ? null : body.body.trim().slice(0, MAX_BODY);
     await db.setReviewReply(id, store.id, text || null);
     return sendJson(res, 200, { ok: true, id, reply: text || null });
   }
@@ -172,7 +179,8 @@ export default guard(async function handler(req, res) {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return sendJson(res, 400, { error: 'Pick a rating from 1 to 5 stars.' });
   }
-  const text = body.body === null || body.body === undefined ? '' : String(body.body).trim();
+  if (!isText(body.body)) return sendJson(res, 400, { error: 'Your review must be text.' });
+  const text = body.body === null || body.body === undefined ? '' : body.body.trim();
   if (text.length > MAX_BODY) {
     return sendJson(res, 400, { error: `Keep it under ${MAX_BODY} characters.` });
   }
