@@ -1024,6 +1024,11 @@ test('the favicon is square, big enough for search surfaces, and at a url that d
       [],
       `${path} must not put a version query on an icon url`,
     );
+    // The superseded "multiple of 48" rule was corrected in the generator's
+    // favicon script and here, but the head comment the SEO generator stamps
+    // into 45 public pages kept quoting it as what Google requires. A
+    // policy claim the repo knows is false must not ship in served HTML.
+    assert.doesNotMatch(html, /multiples? of 48|what Google requires/, `${path} must not quote the superseded favicon rule`);
   }
 });
 
