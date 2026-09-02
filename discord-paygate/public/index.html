@@ -1778,7 +1778,9 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 }
 
 /* ── the savings box: Subscord's calculator, on our glass ── */
-.save{padding:72px 24px 88px}
+/* padding-block only: the desktop gutter is .wrap's 48px, shared with the nav
+   and the FAQ — a padding shorthand here silently reset it to something else */
+.save{padding-block:72px 88px}
 .save-card{
   width:min(640px,100%);margin:0 auto;padding:34px clamp(20px,4vw,40px) 28px;border-radius:26px;
   background:var(--glass);border:1px solid var(--glass-brd);
@@ -1951,7 +1953,9 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 .pm-klarnachip b{color:#0A0B09;font-size:13.5px;letter-spacing:0}
 .pm-cashchip{background:#00D632;border-color:#00D632}
 .pm-cashchip svg{height:14px}
-.pm-cash-ink{color:#fff;font-size:12.5px;letter-spacing:.01em}
+/* .pm-cashchip b, not a bare class: .pay-chip b outranks a lone class and was
+   quietly winning, leaving this white-on-green logotype the smallest chip */
+.pm-cashchip b{color:#fff;font-size:14px;letter-spacing:.01em;white-space:nowrap}
 .pm-paypalchip b{font-style:italic;letter-spacing:.01em;font-size:13.5px}
 .pm-paypalchip i{font-style:italic}
 .pm-paypalchip .pp1{color:#003087}
@@ -1974,7 +1978,13 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   .pm-klarnachip b{font-size:12px}
   .pay-chip svg{height:13px}
   .pm-cashchip svg{height:12px}
-  .pm-cash-ink{font-size:11px}
+  .pm-cashchip b{font-size:12.5px}
+}
+/* below 400px a 4-up chip is ~60-75px wide: glyph + wordmark no longer fit on
+   one line, and the old rendering quietly broke "Cash App" over two. The
+   wordmark alone still reads as the brand; the glyph does not */
+@media (max-width:400px){
+  .pm-cashchip svg{display:none}
 }
 @media (max-width:600px){
   .sky-grain{display:none}
@@ -1991,7 +2001,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 
 /* ── mid-page editorial heads: eyebrow + display left, supporting note right ── */
 .mid-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:34px}
-.mid-note{flex:none;max-width:30ch;margin:0 0 8px;font-size:14.5px;line-height:22px;color:var(--sec);text-align:right}
+.mid-note{flex:none;max-width:30ch;margin:0 0 8px;font-size:14.5px;line-height:22px;color:var(--sec);text-align:right;text-wrap:balance}
 /* Text that lands directly on the day sky, with no panel under it. These
    colours were picked against --paper (#f4f7fd) and are fine there, but the
    sections carrying them have no background, so they resolve against
@@ -2017,7 +2027,7 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
    were answering a different one at four times the height, so the reader had
    to work past a fake settings panel to find "connect Stripe". A centred
    heading and three columns say it outright. */
-.how{padding:64px 24px 30px}
+.how{padding-block:64px 30px}
 .how-title{
   font-family:var(--jakarta);font-weight:600;text-align:center;
   font-size:clamp(30px,4vw,44px);line-height:1.1;letter-spacing:-.02em;color:var(--ink);
@@ -2060,7 +2070,7 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
 }
 
 /* ── what platform fees cost ── */
-.why{padding:8px 24px 40px;text-align:center}
+.why{padding-block:8px 40px;text-align:center}
 .why-title{
   font-family:var(--jakarta);font-weight:600;text-align:center;
   font-size:clamp(26px,3.4vw,38px);line-height:1.12;letter-spacing:-.02em;color:var(--ink);
@@ -2071,7 +2081,7 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
 }
 
 /* ── what sellers say: featured editorial card + stacked rail ── */
-.voices{padding:34px 24px 26px}
+.voices{padding-block:34px 26px}
 .voices-stage{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px;align-items:stretch}
 .voices-side{display:grid;grid-template-rows:1fr 1fr;gap:16px;min-width:0}
 .voice-card{
@@ -2135,7 +2145,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 }
 
 /* ── community card: split CTA with a live-presence channel mock ── */
-.comm{padding:26px 24px 56px}
+.comm{padding-block:26px 56px}
 .comm-card{
   position:relative;overflow:hidden;
   display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;gap:clamp(28px,4vw,52px);
@@ -2158,7 +2168,7 @@ html:not([data-theme="light"]) .voice-quote{color:rgba(142,154,255,.14)}
 .comm-checks li{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--ink)}
 .comm-checks svg{width:18px;height:18px;color:#1f9d5b;flex:none}
 html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
-.comm-cta-row{margin-top:24px;display:flex;align-items:center;gap:16px}
+.comm-cta-row{margin-top:24px;display:flex;align-items:center;justify-content:center;gap:16px}
 .comm-btn{flex:none;min-height:48px;padding:13px 26px;font-size:15.5px}
 @media (max-width:900px){
   .comm-card{gap:26px}
@@ -2461,7 +2471,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
     <span class="pay-chip" aria-label="Google Pay"><svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg><b class="pm-ink">Pay</b></span>
     <span class="pay-chip pm-linkchip" aria-label="Link"><b>link</b></span>
     <span class="pay-chip pm-klarnachip" aria-label="Klarna"><b>Klarna.</b></span>
-    <span class="pay-chip pm-cashchip" aria-label="Cash App Pay"><svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff"><path d="M16.19 7.06c.67.46 1.28 1 1.83 1.6a.66.66 0 0 0 .95.03l1.26-1.26a.68.68 0 0 0 0-.97 11.6 11.6 0 0 0-2.32-1.94l.5-2.01a.67.67 0 0 0-.65-.83h-2.44a.67.67 0 0 0-.65.51l-.33 1.32c-2.98-.6-6.09.35-6.7 3.42-.5 2.5 1.26 3.77 3.32 4.52 1.9.71 3.36 1.13 3.13 2.32-.2 1.03-1.44 1.55-3.16 1.28a7.3 7.3 0 0 1-2.98-1.36.67.67 0 0 0-.9.06l-1.32 1.35a.68.68 0 0 0 .03.98 9.6 9.6 0 0 0 2.66 1.68l-.5 2.05a.67.67 0 0 0 .66.82l2.45-.02c.31 0 .58-.21.65-.51l.33-1.33c3.58.62 6.43-.68 6.98-3.55.46-2.44-1.2-3.7-3.5-4.51-1.62-.6-2.99-1.03-2.79-2.16.2-1.12 1.77-1.36 3.49-.99z"/></svg><b class="pm-cash-ink">Cash&#8202;App</b></span>
+    <span class="pay-chip pm-cashchip" aria-label="Cash App Pay"><svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff"><path d="M16.19 7.06c.67.46 1.28 1 1.83 1.6a.66.66 0 0 0 .95.03l1.26-1.26a.68.68 0 0 0 0-.97 11.6 11.6 0 0 0-2.32-1.94l.5-2.01a.67.67 0 0 0-.65-.83h-2.44a.67.67 0 0 0-.65.51l-.33 1.32c-2.98-.6-6.09.35-6.7 3.42-.5 2.5 1.26 3.77 3.32 4.52 1.9.71 3.36 1.13 3.13 2.32-.2 1.03-1.44 1.55-3.16 1.28a7.3 7.3 0 0 1-2.98-1.36.67.67 0 0 0-.9.06l-1.32 1.35a.68.68 0 0 0 .03.98 9.6 9.6 0 0 0 2.66 1.68l-.5 2.05a.67.67 0 0 0 .66.82l2.45-.02c.31 0 .58-.21.65-.51l.33-1.33c3.58.62 6.43-.68 6.98-3.55.46-2.44-1.2-3.7-3.5-4.51-1.62-.6-2.99-1.03-2.79-2.16.2-1.12 1.77-1.36 3.49-.99z"/></svg><b>Cash&#8202;App</b></span>
     <span class="pay-chip pay-xtra pm-paypalchip" aria-label="PayPal"><b><i class="pp1">Pay</i><i class="pp2">Pal</i></b></span>
     <span class="pay-chip pay-xtra pm-idealchip" aria-label="iDEAL"><b>iDEAL</b></span>
     <span class="pay-chip pay-xtra pm-mobilepaychip" aria-label="MobilePay"><b>MobilePay</b></span>
@@ -2717,11 +2727,13 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   var tintFrame = 0;
   // Read from the stylesheet's own tokens rather than repeating their values
   // here, so the tag a browser reads and the colour the page paints cannot
-  // drift apart. --ui-tint is the sky; --foot-end is the colour the footer
-  // gradient finishes on, and it is what the bottom of the screen must report
-  // once the footer owns it. iOS uses ONE theme-color for the strips at both
-  // ends of the window, and by the time the footer is on screen it is the only
-  // thing on screen, so following it is right at both ends.
+  // drift apart. --ui-tint is the sky; --foot-edge is the colour the footer is
+  // SEEN to finish on — its last gradient stop composited with the .footer::after
+  // shade, not the nominal stop --foot-end, which is what leaves a seam — and it
+  // is what the bottom of the screen must report once the footer owns it. iOS
+  // uses ONE theme-color for the strips at both ends of the window, and by the
+  // time the footer is on screen it is the only thing on screen, so following
+  // it is right at both ends.
   var tintWant = function(){
     var d = document.documentElement;
     var css = getComputedStyle(d);
@@ -3078,15 +3090,6 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   // to the viewport that the old innerHeight-based check could flip mid-
   // gesture and reflow the footer under the visitor's thumb. Falls back to
   // innerHeight where lvh is unsupported (the probe measures 0).
-  // svh, NOT lvh. This is the whole bug in one unit. 100lvh is the viewport
-  // with iOS Safari's toolbars COLLAPSED — the most generous number the device
-  // will ever report. The reveal, though, happens while someone is scrolling,
-  // which is exactly when the toolbars are SHOWING and the usable height is
-  // ~90px smaller. Measuring the fit against lvh armed the blind for a footer
-  // that then could not fit on screen: it pinned, and its top sat above the
-  // visible area, so the reveal never completed. It worked in every desktop
-  // emulator, where lvh and svh are the same number, and only ever failed on a
-  // real phone.
   // ONE probe, read in two units, because the fit needs both and they are the
   // same number in every desktop engine — which is exactly why this kept
   // passing a check and failing a phone. 100lvh is the viewport with iOS

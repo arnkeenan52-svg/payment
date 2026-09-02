@@ -2142,11 +2142,13 @@ html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
   var tintFrame = 0;
   // Read from the stylesheet's own tokens rather than repeating their values
   // here, so the tag a browser reads and the colour the page paints cannot
-  // drift apart. --ui-tint is the sky; --foot-end is the colour the footer
-  // gradient finishes on, and it is what the bottom of the screen must report
-  // once the footer owns it. iOS uses ONE theme-color for the strips at both
-  // ends of the window, and by the time the footer is on screen it is the only
-  // thing on screen, so following it is right at both ends.
+  // drift apart. --ui-tint is the sky; --foot-edge is the colour the footer is
+  // SEEN to finish on — its last gradient stop composited with the .footer::after
+  // shade, not the nominal stop --foot-end, which is what leaves a seam — and it
+  // is what the bottom of the screen must report once the footer owns it. iOS
+  // uses ONE theme-color for the strips at both ends of the window, and by the
+  // time the footer is on screen it is the only thing on screen, so following
+  // it is right at both ends.
   var tintWant = function(){
     var d = document.documentElement;
     var css = getComputedStyle(d);
