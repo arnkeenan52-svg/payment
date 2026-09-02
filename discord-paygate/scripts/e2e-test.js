@@ -1575,9 +1575,17 @@ test('the landing runs on one type scale, one vertical rhythm and one grid', () 
   assert.equal(last('.hero h1', 'font-size'), 'var(--t-display)', 'the hero takes the display step');
   // and the closer is no larger than the hero it answers
   assert.match(last('.footer-title', 'font-size') || '', /74px\)$/, 'the closer tops out at the display step');
-  for (const s of ['.save-card h2', '.comm-txt h2']) {
+  for (const s of ['.comm-txt h2']) {
     assert.equal(last(s, 'font-size'), 'var(--t-sub)', `${s} takes the in-card heading step`);
   }
+  // The fee section's heading moved INSIDE the glass card. It is still the
+  // SECTION's heading, so it keeps the section step — .save-card h2 used to
+  // pull anything in that card down to the in-card step, which would have
+  // shrunk it on the way in, and that selector is gone.
+  assert.equal(last('h2.sec-display', 'font-size'), 'var(--t-title)',
+    'the claim inside the fee card is still a section heading');
+  assert.doesNotMatch(css, /\.save-card h2\b/,
+    'nothing pulls the fee card\'s heading down to the in-card step');
 
   // ONE uppercase label: one size, one weight, one tracking. (.pay-cap went
   // with the payment strip's two captions — a heading and one sentence say
@@ -1610,6 +1618,14 @@ test('the landing runs on one type scale, one vertical rhythm and one grid', () 
     assert.doesNotMatch(rhythm, /\d+px/, `${s} spends the rhythm tokens, not a hand-picked px value (${rhythm})`);
     assert.match(rhythm, /var\(--sec-y(-tight)?\)/, `${s} spends the rhythm tokens`);
   }
+
+  // The phone's fold clearance. The hero is 100lvh and iOS moves the viewport
+  // under it, so the first section below starts a band lower than the desktop
+  // rhythm alone would put it — otherwise a toolbar collapse exposes the top
+  // of it. Written against the rhythm token, so it tracks the rhythm rather
+  // than replacing it with a number.
+  assert.match(css, /\.save\{padding-top:calc\(var\(--sec-y\) \+ \d+px\)\}/,
+    'the phone keeps a clearance of sky under the fold');
 
   // ONE reading column, ONE multi-column measure — four widths became two
   for (const s of ['.acc', '.faq-card']) {

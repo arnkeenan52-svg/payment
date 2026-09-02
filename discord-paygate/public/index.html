@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Dues — Sell Discord access" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=207" />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=208" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -40,7 +40,7 @@
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=207" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=208" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline &#39;Monetize your community.&#39; and a field for claiming a store link" />
   <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -68,7 +68,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=207') format('woff2');
+  src:url('/jakarta-latin.woff2?v=208') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -486,7 +486,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#ffffff}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=207') center/cover;
+  background:url('/hero-poster.webp?v=208') center/cover;
 }
 .sky-card{
   position:absolute;z-index:3;display:flex;align-items:center;gap:10px;
@@ -1817,10 +1817,16 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
    and the FAQ — a padding shorthand here silently reset it to something else */
 .save{padding-block:72px 88px}
 .save-card{
-  width:min(640px,100%);margin:clamp(26px,3.4vw,38px) auto 0;padding:30px clamp(20px,4vw,40px) 28px;border-radius:26px;
+  width:min(640px,100%);margin:0 auto;padding:clamp(26px,4.2vw,36px) clamp(20px,4vw,40px) 28px;border-radius:26px;
   background:var(--glass);border:1px solid var(--glass-brd);
   box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
 }
+/* The section head lives INSIDE the glass now, so it takes the card's own
+   content width rather than the loose 720px column it had on the page, and it
+   is separated from the calculator by a hairline — one object with a claim at
+   the top and the arithmetic under it, not two stacked things. */
+.save-head-in{max-width:none;margin-inline:0;padding-bottom:clamp(20px,3vw,28px);
+  border-bottom:1px solid var(--glass-brd);margin-bottom:clamp(18px,2.6vw,26px)}
 /* Phone keeps the single column it always had: inputs, then the savings
    figure, then the comparison. The two-column split is a desktop affordance
    and nothing below opts into it. */
@@ -2516,9 +2522,28 @@ html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;pa
 /* ── the vertical rhythm ── */
 .save{padding-block:var(--sec-y) var(--sec-y-tight)}
 .why{padding-block:var(--sec-y-tight)}
-.pay{margin-block:var(--sec-y-tight) var(--sec-y)}
+/* The payment card closes the How-it-works section, so its top margin is a
+   SECTION gap, not the tight one. At --sec-y-tight the glass panel sat
+   almost against the last setup step and read as a fourth step. */
+.pay{margin-block:var(--sec-y) var(--sec-y)}
 .how,.voices,.comm{padding-block:var(--sec-y)}
 .faq{padding-block:var(--sec-y) calc(var(--sec-y) * 1.5)}
+/* CLEARANCE UNDER THE FOLD, and it is sky on purpose. Sits AFTER the rhythm
+   block because .save's padding-block above would otherwise overwrite it.
+   The hero is 100lvh — the tallest the viewport gets, toolbars collapsed — so
+   on a phone sitting still there is nothing below it to see. A phone does not
+   sit still: iOS resizes the viewport as the toolbars collapse and expand, its
+   floating bottom bar overlays the page, and the tab overview renders the card
+   taller again. At 36px of section padding the next thing was near enough to
+   the fold to show through any of those, and what showed was the eyebrow of
+   the section below.
+   Two answers, both applied. The eyebrow and the claim moved INSIDE the glass
+   card (.save-head-in), so there is no loose text there to leak. And this: the
+   card's top edge starts a clear band below the fold, so the only thing a
+   stale viewport can expose is the sky the hero already ends on. Written
+   against the rhythm token — that gap plus a named clearance, not a
+   hand-picked number standing in for one. */
+@media (max-width:639px){.save{padding-top:calc(var(--sec-y) + 64px)}}
 .save-head,.mid-head,.faq-head{margin-bottom:var(--sec-head-gap)}
 /* 660px broke "Every platform takes a cut. Dues takes none." mid-sentence, so
    line two opened on "cut." — 760 lets it break where the full stop is. */
@@ -2543,7 +2568,7 @@ html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;pa
 /* a heading INSIDE a card is the next step down, and it gets a leading of its
    own: .save-card h2 was inheriting the body's 24px line box under 27px type,
    so a two-line wrap would have collided with itself. */
-.save-card h2,.comm-txt h2{font-size:var(--t-sub);line-height:1.22;letter-spacing:-.02em}
+.comm-txt h2{font-size:var(--t-sub);line-height:1.22;letter-spacing:-.02em}
 .trio-item h3{margin-top:16px;font-size:18px;line-height:1.35}
 .acc-q{font-size:17px}
 .voice-lead blockquote{font-size:var(--t-lead)}
@@ -2675,12 +2700,16 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
 
 <!-- 5 · how it works — the mechanism, before any arithmetic -->
 <section class="save wrap" id="save">
-  <div class="band-head">
-    <p class="sec-eyebrow">WHAT IT COSTS</p>
-    <h2 class="sec-display">Every platform takes a cut. Dues takes none.</h2>
-    <p>Most Discord monetization tools bill a percentage of every sale, so the bigger you get the more you hand over. Dues charges a flat plan and 0% on sales &#8212; cards settle in your own Stripe, crypto forwards to your own wallet.</p>
-  </div>
+  <!-- The heading is INSIDE the card. The claim and the arithmetic that backs
+       it are one argument; leaving the claim loose on the page above the glass
+       made the card look like an unrelated widget that happened to follow it,
+       and on a phone the eyebrow was the first thing to peek under the hero. -->
   <div class="save-card reveal">
+    <div class="band-head save-head-in">
+      <p class="sec-eyebrow">WHAT IT COSTS</p>
+      <h2 class="sec-display">Every platform takes a cut. Dues takes none.</h2>
+      <p>Most Discord monetization tools bill a percentage of every sale, so the bigger you get the more you hand over. Dues charges a flat plan and 0% on sales &#8212; cards settle in your own Stripe, crypto forwards to your own wallet.</p>
+    </div>
     <div class="save-grid">
      <div class="save-left">
       <p class="save-rows-cap">Calculate your savings</p>
@@ -3048,7 +3077,7 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
   </div>
 </footer>
 
-<script src="/sky.js?v=207" defer></script>
+<script src="/sky.js?v=208" defer></script>
 <script>
 (function(){
   'use strict';

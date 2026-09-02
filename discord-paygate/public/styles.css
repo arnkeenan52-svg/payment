@@ -2091,7 +2091,12 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
   .cx-coin { gap: 10px; padding: 9px 12px; min-height: 50px; }
   .cx-mark { width: 26px; height: 26px; }
 }
-.crypto-note { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; margin-top: 26px; }
+/* The note sits UNDER the grid, not in it. At 26px the rule and its bold
+   opening read as one more row of the list rather than a remark about it,
+   especially when the last grid row is short and the note starts under the
+   gap. It gets a section's worth of air instead. */
+.crypto-note { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px;
+  margin-top: clamp(38px, 6vw, 64px); }
 .cmp-card { padding: 20px; }
 .cmp-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
 .cmp-table th { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--edge); font-size: 13px; }
