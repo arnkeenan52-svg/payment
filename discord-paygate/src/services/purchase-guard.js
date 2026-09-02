@@ -1,6 +1,7 @@
 import * as db from '../db.js';
 import { getGuildMember } from '../lib/discord.js';
 import { memberLimitBlocks } from './billing.js';
+import { planOf } from './stores.js';
 import { roundAmount, normalize as normalizeCurrency } from '../lib/currency.js';
 import { CHECKOUT_TTL_SECONDS } from '../lib/stripe.js';
 
@@ -18,6 +19,16 @@ import { CHECKOUT_TTL_SECONDS } from '../lib/stripe.js';
 export async function purchaseBlocked({ store, plan, uid }) {
   if (plan.active === false) {
     return { status: 409, error: 'This product is not for sale right now.' };
+  }
+  // A price option is its product at another cadence, so it is off sale
+  // whenever the product is. The storefront already hides it (sellablePlansOf)
+  // — this is for the option's own planId arriving straight at the API from
+  // a cached link, which is exactly the case the storefront cannot cover.
+  if (plan.variantOf) {
+    const parent = await planOf(store, plan.variantOf);
+    if (!parent || parent.active === false) {
+      return { status: 409, error: 'This product is not for sale right now.' };
+    }
   }
   // Limited-time products refuse new purchases past their end date — the
   // storefront hides them, but the link may be cached or shared.
@@ -72,7 +83,8 @@ export async function resolveDiscount({ store, plan, code, uid = null }) {
   const d = store.id !== null && store.id !== undefined ? await db.getDiscount(store.id, codeRaw) : null;
   // A use is counted when the grant lands, so between "code applied" and
   // "paid" the counter has not moved: other buyers with this code on an open
-  // checkout hold a use for the life of their session, like a seat.
+  // checkout hold a use for the life of their session, like a seat. (A crypto
+  // invoice holds it until the provider's own expiry — see db.OPEN_ATTEMPT.)
   const reserved = d && d.maxUses !== null && uid
     ? await db.countReservedDiscountUses(store.id, codeRaw, now - CHECKOUT_TTL_SECONDS, uid)
     : 0;

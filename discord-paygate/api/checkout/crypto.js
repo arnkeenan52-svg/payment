@@ -8,6 +8,7 @@ import { publicPaymentView } from '../../src/services/nowpayments-events.js';
 import { createPayment, getPayment, merchantCoins, minimumFor } from '../../src/lib/nowpayments.js';
 import { normalize as normalizeCurrency, formatAmount, minCharge } from '../../src/lib/currency.js';
 import { qrForPayment } from '../../src/lib/qr.js';
+import { CHECKOUT_TTL_SECONDS } from '../../src/lib/stripe.js';
 import * as db from '../../src/db.js';
 
 // The crypto rail (NOWPayments).
@@ -22,6 +23,21 @@ import * as db from '../../src/db.js';
 // (src/lib/nowpayments.js explains why that is a precondition, not a setting).
 
 const ORDER_RE = /^np_[0-9a-f]{32}$/;
+
+// Live invoices one buyer may hold in one store. One is all a purchase
+// needs; a couple more cover a changed mind about the coin. Past that it is
+// a loop, and every invoice it mints holds a seat and a discount use until
+// the provider gives up on it.
+const MAX_OPEN_INVOICES = 3;
+
+// When the provider stops taking money for a payment, in unix seconds. The
+// row holds its seat and its discount use until then, so a missing or
+// unreadable date falls back to the card-form TTL rather than to forever.
+function invoiceExpiry(payment) {
+  const at = Math.floor(Date.parse(payment?.expiration_estimate_date ?? '') / 1000);
+  const now = Math.floor(Date.now() / 1000);
+  return Number.isFinite(at) && at > now ? at : now + CHECKOUT_TTL_SECONDS;
+}
 
 async function loadStore(slug) {
   const store = await storeBySlug(typeof slug === 'string' ? slug : '');
@@ -55,6 +71,14 @@ export default guard(async function handler(req, res) {
       // guessable enough to be worth refusing on identity, not on existence.
       if (!attempt || !uid || attempt.discord_id !== uid) {
         sendJson(res, 404, { error: 'unknown order' });
+        return;
+      }
+      // The row is flipped to completed by the webhook, after the grant. It
+      // is the stronger source: a poll must never keep saying "waiting" for
+      // a sale that has already landed — not when the payment id never got
+      // attached below, and not when the provider is unreachable right now.
+      if (attempt.status === 'completed') {
+        sendJson(res, 200, publicPaymentView({ payment_status: 'finished' }, { currency: attempt.currency }));
         return;
       }
       if (!attempt.provider_ref) {
@@ -152,7 +176,7 @@ export default guard(async function handler(req, res) {
   let amount = plan.priceUsd;
   let discountCode = null;
   if (typeof body?.discountCode === 'string' && body.discountCode.trim()) {
-    const applied = await resolveDiscount({ store, plan, code: body.discountCode });
+    const applied = await resolveDiscount({ store, plan, code: body.discountCode, uid });
     if (applied.error) {
       sendJson(res, 400, { error: applied.error });
       return;
@@ -170,6 +194,15 @@ export default guard(async function handler(req, res) {
     sendJson(res, 409, {
       error: `That total is under the ${currency.toUpperCase()} minimum of ${formatAmount(minCharge(currency), currency)}.`,
     });
+    return;
+  }
+
+  // A buyer with addresses already waiting on them does not need another.
+  // Checked here, after everything that can refuse for a better reason, and
+  // before the provider is asked for anything.
+  const open = await db.countOpenCryptoAttemptsBy(store.id ?? null, uid, Math.floor(Date.now() / 1000) - CHECKOUT_TTL_SECONDS);
+  if (open >= MAX_OPEN_INVOICES) {
+    sendJson(res, 429, { error: 'You already have crypto payments waiting — pay one of those, or let them expire before starting another.' });
     return;
   }
 
@@ -200,11 +233,16 @@ export default guard(async function handler(req, res) {
     payment = await createPayment({ plan, store, amount, payCurrency, orderId });
   } catch (err) {
     console.error(`[checkout] nowpayments payment for ${uid}/${plan.id} (store ${store.slug}) failed: ${err.message}`);
+    // No payment, nothing to pay: the row must not hold a seat or a discount
+    // use for a purchase that cannot happen.
+    await db.releaseCheckoutAttempt(orderId).catch(() => {});
     // The one provider error worth translating: the order is below what that
     // coin's network can economically settle. Everything else is a setup
     // problem the buyer can do nothing about.
     if (/minim|too small/i.test(err.message)) {
-      const min = await minimumFor(payCurrency, payCurrency).catch(() => null);
+      // The minimum is per pair, and the pair is the buyer's coin into the
+      // SELLER's payout coin — the same one createPayment just asked for.
+      const min = await minimumFor(payCurrency, String(store.cryptoChain || payCurrency).toLowerCase()).catch(() => null);
       const amt = min?.min_amount ?? min?.fiat_equivalent ?? null;
       sendJson(res, 409, {
         error: amt
@@ -217,9 +255,10 @@ export default guard(async function handler(req, res) {
     return;
   }
 
-  await db.setCheckoutAttemptRef(orderId, String(payment.payment_id)).catch((err) => {
+  await db.setCheckoutAttemptRef(orderId, String(payment.payment_id), invoiceExpiry(payment)).catch((err) => {
     // Not fatal: the IPN still resolves the order by order_id. Only the
-    // buyer's live status poll degrades, and it degrades to "waiting".
+    // buyer's live status poll degrades, and it degrades to "waiting" until
+    // the webhook marks the row completed (the poll reads that first).
     console.error(`[checkout] could not attach payment id to ${orderId}: ${err.message}`);
   });
 
