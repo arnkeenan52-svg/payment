@@ -3326,7 +3326,27 @@ function wireAppearance(store, slug) {
     f.id = 'th-preview';
     f.className = 'th-preview';
     f.title = 'Store preview';
-    f.addEventListener('load', paint);
+    f.addEventListener('load', () => {
+      paint();
+      // A preview is for looking at. Clicks inside it used to navigate the
+      // FRAME: the product opened the checkout, the pay button sent the
+      // owner's own dashboard panel off to Stripe, and the storefront's
+      // header offered "Sign out" — which signed them out of the dashboard
+      // behind it. None of those had a way back, because the frame has no
+      // address bar and no back button. Same-origin, so one capture-phase
+      // listener stops the lot while scrolling still works. Use the link
+      // above the frame to open the real storefront.
+      try {
+        f.contentDocument?.addEventListener(
+          'click',
+          (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          },
+          true,
+        );
+      } catch { /* nothing reachable to guard */ }
+    });
     f.src = `/${vp.dataset.slug ?? ''}`;
     vp.appendChild(f);
     const b = $('#th-preview-open');
