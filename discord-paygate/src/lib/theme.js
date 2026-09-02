@@ -30,32 +30,31 @@ export const THEME_KEYS = ['bg', 'panel', 'text', 'accent', 'pay', 'radius', 'fo
 // with no animation and no photograph behind them, which is the cheap half of
 // the catalogue in every sense.
 //
-// The WALLPAPERS are paid: the sixteen photographs, the eighteen animated
-// grounds, and any URL a seller imports. Those are the ones that make a store
-// look like it cost something, and they are what a plan buys.
+// EVERY preset in the catalogue below is free, on every plan — the sixteen
+// photographs and the eighteen animated grounds included. They are served
+// from this origin and cost the platform nothing per store, and a storefront
+// that looks like it cost something is the thing that sells the seller's
+// roles; charging for the wallpaper was taxing our own shop window.
 //
-// public/dashboard.js carries the same ten on its BG_CATALOG entries as
-// `free: true`. The two lists must agree; a scenario in the suite asserts it,
-// because a picker that offers what the server strips is worse than either.
-export const FREE_BG_PRESETS = Object.freeze([
-  'denim', 'ember', 'emerald', 'gold', 'lavender', 'midnight', 'mint', 'rose', 'royal', 'slate',
-]);
-const FREE_BG = new Set(FREE_BG_PRESETS);
+// The one part of a look a plan still buys is an IMPORTED URL: a seller's own
+// image, fetched from wherever they host it. That one is not ours to serve,
+// so it stays with the plan.
+//
+// FREE_BG_PRESETS is derived from BG_PRESETS below rather than listed by
+// hand, so a preset added to the catalogue is free the moment it exists and
+// the two can never drift. public/dashboard.js mirrors the catalogue for its
+// picker; a scenario in the suite holds the two lists together.
 
 // Does this theme reach past what a free store may show?
 export function usesPaidLook(theme) {
-  if (!theme) return false;
-  if (theme.bgUrl) return true;
-  return Boolean(theme.bgPreset && !FREE_BG.has(theme.bgPreset));
+  return Boolean(theme?.bgUrl);
 }
 
-// The same theme with the paid parts taken out — colours intact.
+// The same theme with the paid parts taken out — colours and preset intact.
 export function freeLook(theme) {
-  if (!theme) return theme;
-  if (!usesPaidLook(theme)) return theme;
+  if (!theme?.bgUrl) return theme;
   const out = { ...theme };
   delete out.bgUrl;
-  if (out.bgPreset && !FREE_BG.has(out.bgPreset)) delete out.bgPreset;
   return out;
 }
 
@@ -116,6 +115,10 @@ export const BG_PRESETS = {
   mint: { tone: 'light', label: 'Mint' },
   ember: { tone: 'dark', label: 'Ember' },
 };
+
+// Every preset, by id — the whole catalogue is free (see usesPaidLook above).
+export const FREE_BG_PRESETS = Object.freeze(Object.keys(BG_PRESETS));
+
 
 export const THEME_MATERIALS = ['glass', 'liquid', 'solid'];
 

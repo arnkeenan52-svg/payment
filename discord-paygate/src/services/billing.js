@@ -67,9 +67,10 @@ export async function themeIfPaid(store) {
   const { tier, exempt } = await billingFor(store.ownerDiscordId);
   if (exempt || (tier && tier.id !== 'free')) return store.theme;
   // A free store used to be sent back the signature black wholesale, which
-  // threw away colours the seller had chosen and could keep. It keeps the
-  // whole colour way now — presets, custom colours, corners, type, material —
-  // and loses only the wallpapers, which is what the plan is actually for.
+  // threw away colours the seller had chosen and could keep. It keeps its
+  // whole look now — every colour, corner, type, material and every
+  // background in the catalogue — and loses only an imported URL, the one
+  // part of a look this platform does not serve itself.
   return freeLook(store.theme);
 }
 

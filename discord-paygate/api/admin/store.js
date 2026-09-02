@@ -366,15 +366,17 @@ export default guard(async function handler(req, res) {
     // undo something, and a free owner whose plan lapsed must still be able
     // to tidy up. The rendering gate in billing.js is what actually decides
     // what a visitor sees; this only stops a free owner filling the field.
-    // Colours are free — every preset, every custom colour, corners, type,
-    // material, and the ten plain gradient grounds. Only the wallpapers (the
-    // photographs, the animated grounds, an imported URL) need a plan, so only
-    // a theme that reaches for one is refused. Clearing back to the platform's
-    // black stays open to everyone: nobody should need a subscription to undo
-    // something, and an owner whose plan lapsed must still be able to tidy up.
+    // The whole look is free — every colour, corner, type and material, and
+    // every background in the catalogue, photographs and animated grounds
+    // included. They are served from this origin and cost nothing per store,
+    // and a storefront that looks like it cost something is what sells the
+    // seller's roles. The one part still on a plan is an IMPORTED URL: an
+    // image from the seller's own host, which is not ours to serve. Clearing
+    // back to the platform's black stays open to everyone: nobody should need
+    // a subscription to undo something.
     if (clean && usesPaidLook(clean) && !(await canCustomise(store.ownerDiscordId))) {
       return sendJson(res, 402, {
-        error: 'Photo and animated backgrounds are on the Pro plan and up. Colours, corners and type are yours on every plan, including the plain gradient grounds.',
+        error: 'Importing your own background image is on the Pro plan and up. Every background in the picker, and every colour, corner and type setting, is yours on every plan.',
         upgrade: true,
       });
     }

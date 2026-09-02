@@ -1149,56 +1149,46 @@ test('the favicon is square, big enough for search surfaces, and at a url that d
   }
 });
 
-test('the free look: colours on every plan, wallpapers on a paid one', async () => {
+test('the free look: every background on every plan, an imported URL on a paid one', async () => {
   const theme = await import('../src/lib/theme.js');
-  // The split has to mean the same thing in three places or it is not a split:
-  // the server that strips a look, the picker that offers one, and the page
-  // that sells the difference.
-  assert.equal(theme.FREE_BG_PRESETS.length, 10, 'ten plain gradient grounds are free');
-  for (const id of theme.FREE_BG_PRESETS) {
-    assert.equal(theme.usesPaidLook({ bgPreset: id }), false, `${id} must be free`);
+  // The line has to fall in the same place in three places or it is not a
+  // line: the server that strips a look, the picker that offers one, and the
+  // page that sells the difference.
+  const total = Object.keys(theme.BG_PRESETS).length;
+  assert.equal(theme.FREE_BG_PRESETS.length, total, 'every preset in the catalogue is free');
+  for (const id of Object.keys(theme.BG_PRESETS)) {
+    assert.equal(theme.usesPaidLook({ bgPreset: id }), false, `${id} must be free — the catalogue is served from this origin`);
   }
-  for (const id of ['starfield', 'aurora', 'clouds-day', 'mountains', 'rain']) {
-    assert.equal(theme.usesPaidLook({ bgPreset: id }), true, `${id} is a wallpaper and must need a plan`);
-  }
-  assert.equal(theme.usesPaidLook({ bgUrl: 'https://example.com/a.gif' }), true, 'an import is a wallpaper');
+  assert.equal(theme.usesPaidLook({ bgUrl: 'https://example.com/a.gif' }), true, "an image from the seller's own host is the paid part");
   assert.equal(theme.usesPaidLook({ bg: '#0a0a0a', accent: '#ededed', radius: 4 }), false, 'colours alone are free');
 
   // Stripping keeps everything a free store is entitled to and nothing more.
   const stripped = theme.freeLook({ bg: '#123456', panel: '#222222', text: '#ffffff', accent: '#ff0000',
     pay: '#5865f2', radius: 8, font: 'serif', material: 'liquid', bgPreset: 'starfield', bgUrl: 'https://e.com/x.mp4' });
   assert.deepEqual(stripped, { bg: '#123456', panel: '#222222', text: '#ffffff', accent: '#ff0000',
-    pay: '#5865f2', radius: 8, font: 'serif', material: 'liquid' }, 'colours survive, wallpapers do not');
-  assert.deepEqual(theme.freeLook({ bg: '#000000', bgPreset: 'denim' }), { bg: '#000000', bgPreset: 'denim' },
-    'a free gradient ground is left alone');
+    pay: '#5865f2', radius: 8, font: 'serif', material: 'liquid', bgPreset: 'starfield' },
+    'the whole look survives a lapsed plan; only the import does not');
+  assert.deepEqual(theme.freeLook({ bg: '#000000', bgPreset: 'clouds-day' }), { bg: '#000000', bgPreset: 'clouds-day' },
+    'a photographic ground is left alone');
 
-  // The picker's copy of the list must not drift from the server's.
+  // The picker must not lock what the server serves to everyone.
   const dash = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
   const catalogue = dash.match(/const BG_CATALOG = \[[\s\S]*?\n\];/)[0];
-  const flagged = [...catalogue.matchAll(/\{ id: '([a-z0-9-]+)'[^}]*free: true/g)].map((m) => m[1]).sort();
-  assert.deepEqual(flagged, [...theme.FREE_BG_PRESETS].sort(),
-    'dashboard BG_CATALOG free flags must match FREE_BG_PRESETS');
+  const ids = [...catalogue.matchAll(/\{ id: '([a-z0-9-]+)'/g)].map((m) => m[1]).sort();
+  assert.deepEqual(ids, [...theme.FREE_BG_PRESETS].sort(), 'the picker and the server must offer the same catalogue');
+  assert.doesNotMatch(catalogue, /free:\s*true/, 'no entry needs a free flag any more — they all are');
+  assert.doesNotMatch(dash, /bgp-lock">Pro/, 'no wallpaper tile may wear a Pro lock');
 
-  // And the price page must advertise the deal Free actually gets. Pinned to
-  // the NUMBERS rather than a sentence: the old assertion matched one exact
-  // marketing string, so it failed on a copy edit that changed nothing about
-  // what a seller receives, while it would have sat green through the free
-  // preset list doubling. What must not drift is the count.
+  // And the price page must advertise the deal Free actually gets.
   const pricing = fs.readFileSync(new URL('../public/pricing.html', import.meta.url), 'utf8');
-  const total = Object.keys(theme.BG_PRESETS).length;
-  const freeCount = theme.FREE_BG_PRESETS.length;
-  // Split on the card openings rather than trying to match balanced divs — a
-  // non-greedy </div></div> stops at the first NESTED pair, which silently
-  // truncated every card before its .plan-look line.
   const cards = pricing.split(/<div class="plan(?: plan-pop)?">/).slice(1);
   const freeCard = cards.find((c) => /<b>Free<\/b>/.test(c));
   assert.ok(freeCard, 'the pricing page must still have a Free card');
   const freeLook = freeCard.match(/class="plan-look">([^<]*)</)?.[1] ?? '';
-  assert.match(freeLook, new RegExp(`\\b${freeCount}\\b`), `Free must advertise its ${freeCount} backgrounds, not a different number`);
-  assert.doesNotMatch(freeLook, new RegExp(`\\b${total}\\b`), 'Free must not be promised the full catalogue');
+  assert.match(freeLook, new RegExp(`\\b${total}\\b`), `Free gets all ${total} backgrounds and the page must say so`);
   const paid = cards.filter((c) => !/<b>Free<\/b>/.test(c)).map((c) => c.match(/class="plan-look">([^<]*)</)?.[1] ?? '');
-  assert.ok(paid.length >= 2 && paid.every((t) => new RegExp(`\\b${total}\\b`).test(t)),
-    `every paid plan must advertise all ${total} backgrounds`);
+  assert.ok(paid.length >= 2 && paid.every((t) => new RegExp(`\\b${total}\\b`).test(t) && /URL/i.test(t)),
+    `every paid plan advertises all ${total} backgrounds plus the import`);
 });
 
 test('landing polish holds: one gutter, centred community CTA, Cash App logotype, comments that match the code', () => {
@@ -3971,26 +3961,29 @@ test('store themes: validated tokens in, server-rendered CSS out', async () => {
       body: JSON.stringify({ store: 'vip-signals', theme }),
     });
 
-  // THE COLOUR WAY IS FREE, THE WALLPAPER IS NOT. A free store may save every
-  // colour, corner, typeface and material, and the ten plain gradient grounds;
-  // it may not save a photograph, an animated ground, or an imported URL.
+  // THE WHOLE CATALOGUE IS FREE; AN IMPORTED URL IS NOT. A free store may save
+  // every colour, corner, typeface and material, and every background in the
+  // picker — the photographs and the animated grounds included. The one thing
+  // it may not do is point the look at an image on its own host.
   const U7ID = '507700000000000007';
   await tq('DELETE FROM platform_billing WHERE owner_discord_id = ?', [U7ID]);
   assert.equal((await setTheme({ bg: '#071209', accent: '#22c55e', radius: 20 })).status, 200,
     'a free store may set its own colours');
   assert.equal((await setTheme({ bg: '#071209', bgPreset: 'denim' })).status, 200,
     'a free store may use a plain gradient ground');
-  const freeTry = await setTheme({ bg: '#071209', bgPreset: 'starfield' });
-  assert.equal(freeTry.status, 402, 'a free store cannot save an animated wallpaper');
+  assert.equal((await setTheme({ bg: '#071209', bgPreset: 'starfield' })).status, 200,
+    'and an animated one');
+  assert.equal((await setTheme({ bg: '#071209', bgPreset: 'clouds-day' })).status, 200,
+    'and a photographic one — the catalogue is served from this origin, so it costs nothing per store');
+  const freeTry = await setTheme({ bgUrl: 'https://example.com/bg.gif' });
+  assert.equal(freeTry.status, 402, 'a free store cannot import an image from its own host');
   assert.equal((await freeTry.json()).upgrade, true, 'and the refusal points at the plan');
-  assert.equal((await setTheme({ bgUrl: 'https://example.com/bg.gif' })).status, 402,
-    'nor import one of its own');
-  // What a free store DID save must survive on the storefront — the gate takes
-  // the wallpaper off a look, it does not throw the whole look away.
-  assert.equal((await setTheme({ bg: '#071209', accent: '#22c55e' })).status, 200);
+  // What a free store saved must survive on the storefront — the gate takes the
+  // import off a look, it does not throw the whole look away.
+  assert.equal((await setTheme({ bg: '#071209', accent: '#22c55e', bgPreset: 'starfield' })).status, 200);
   const freePub = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
   assert.equal(freePub.store.theme?.bg, '#071209', 'a free store keeps the colours it chose');
-  assert.equal(freePub.store.theme?.bgPreset, undefined, 'and carries no wallpaper');
+  assert.equal(freePub.store.theme?.bgPreset, 'starfield', 'and the wallpaper it chose');
   // Clearing is NOT gated — undoing must never need a subscription.
   assert.equal((await setTheme(null)).status, 200, 'anyone may reset to the default look');
 
@@ -4027,26 +4020,30 @@ test('store themes: validated tokens in, server-rendered CSS out', async () => {
   assert.equal((await setTheme({ bgUrl: 'javascript:alert(1)' })).status, 400, 'non-https bgUrl refused');
   assert.equal((await setTheme({ bgUrl: 'https://cdn.example.com/loop' })).status, 400, 'extension-less bgUrl refused');
   assert.equal((await setTheme({ material: 'velvet' })).status, 400, 'unknown material refused');
-  assert.equal((await setTheme({ bgPreset: 'aurora', material: 'liquid' })).status, 200);
+  assert.equal((await setTheme({ bgPreset: 'aurora', material: 'liquid', bgUrl: 'https://cdn.example.com/loop.mp4' })).status, 200);
   const bgPage = await (await fetch(`${appUrl}/vip-signals`)).text();
-  assert.match(bgPage, /<div class="store-bg" data-bg="aurora"/, 'the background layer is rendered');
-  assert.match(bgPage, /<body class="has-bg" data-bg="aurora" data-material="liquid">/, 'body carries bg + material');
+  // An import outranks a preset while it is allowed: bgLayer paints the url and
+  // labels the layer 'custom'. The preset underneath is what it falls back to.
+  assert.match(bgPage, /<div class="store-bg" data-bg="custom"/, 'the imported background is rendered');
+  assert.match(bgPage, /<body class="has-bg" data-bg="custom" data-material="liquid">/, 'body carries bg + material');
 
-  // THE PLAN LAPSES. The tokens stay on the row — a cancelled plan parks a
-  // store's look, it never deletes it — but the storefront goes back to the
-  // platform's own black on BOTH render paths. A write-time gate alone would
-  // let an owner theme a store, cancel, and keep the look for nothing.
+  // THE PLAN LAPSES. The tokens stay on the row — a cancelled plan parks the
+  // one rented part of a look, it never deletes it — and everything the
+  // platform serves itself stays exactly where it was. Only the imported URL
+  // goes, on BOTH render paths: a write-time gate alone would let an owner
+  // point a store at their own host, cancel, and keep it for nothing.
   await tq('DELETE FROM platform_billing WHERE owner_discord_id = ?', [U7ID]);
   const lapsedTheme = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).store.theme;
-  assert.equal(lapsedTheme.bgPreset, undefined, 'a lapsed store loses the wallpaper it was renting');
-  assert.equal(lapsedTheme.bgUrl, undefined, 'and any import with it');
-  assert.equal(lapsedTheme.material, 'liquid', 'but keeps the look it set, which was never rented');
+  assert.equal(lapsedTheme.bgUrl, undefined, 'a lapsed store loses the image it was importing');
+  assert.equal(lapsedTheme.bgPreset, 'aurora', 'but keeps the background it picked — the catalogue is free');
+  assert.equal(lapsedTheme.material, 'liquid', 'and the rest of the look it set');
   const lapsed = await (await fetch(`${appUrl}/vip-signals`)).text();
   assert.match(lapsed, /id="store-theme"/, 'the colour way is still server-rendered');
-  assert.ok(!/class="store-bg"/.test(lapsed), 'the wallpaper layer is not');
-  // The row still holds them, so re-subscribing restores the exact look.
+  assert.match(lapsed, /<div class="store-bg" data-bg="aurora"/,
+    'and the picked background takes over from the import that was parked');
+  // The row still holds the import, so re-subscribing restores the exact look.
   const stillStored = (await tq("SELECT theme FROM stores WHERE slug = 'vip-signals'")).rows[0].theme;
-  assert.match(String(stillStored), /aurora/, 'the tokens are parked, not deleted');
+  assert.match(String(stillStored), /loop\.mp4/, 'the imported url is parked, not deleted');
   // Re-subscribe: the exact same look is back, with nothing re-entered.
   await tq(
     'INSERT INTO platform_billing (owner_discord_id, tier, provider_ref, status, current_period_end, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
