@@ -1367,10 +1367,13 @@ const CHAIN_LABEL = {
   usdcbase: 'USDC on Base', usdtbsc: 'USDT on BNB Chain', usdcbsc: 'USDC on BNB Chain',
   usdterc20: 'USDT on Ethereum', usdcerc20: 'USDC on Ethereum',
 };
+// Deliberately about the ORDER and not about absolute fees: what this
+// repository can source is which tier a chain is in and why the tiers are
+// ordered that way, not what a transfer costs on any of them this morning.
 const TIER_NOTE = [
-  ['Ranked first', 'Flat fees measured in cents. A $10 membership settles here without the transfer eating the sale.'],
-  ['Ranked next', 'More than the first tier and far less than the third — fine for a membership priced in tens of dollars.'],
-  ['Ranked last', 'The chains everyone knows, and the ones whose transfer fee can rival a small membership. Still offered; just never the default the picker opens on.'],
+  ['Ranked first', 'The cheapest chains to settle on. The coin picker is built in this order, so a buyer meets these first.'],
+  ['Ranked next', 'Offered above the expensive chains and below the cheap ones.'],
+  ['Ranked last', 'The chains everyone knows, and the ones whose flat transfer fee can rival a small membership. Still offered — just never what the picker opens on.'],
 ];
 
 function cryptoPage() {
@@ -1396,7 +1399,7 @@ function cryptoPage() {
     ],
     [
       'Which chain should I take payouts on?',
-      `Dues ranks ${ranked} assets for settlement, cheapest first, and the picker opens on the cheap end. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — Solana, Tron, Polygon and Base settle for cents, Bitcoin and Ethereum do not.`,
+      `Dues ranks ${ranked} assets for settlement, cheapest first, and builds the coin picker in that order. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — which is why Solana, Tron, Polygon and Base are ranked ahead of Bitcoin and Ethereum. The current cost of a transfer on any of them is the chain's business, not ours to quote.`,
     ],
     [
       'Where does the crypto go?',

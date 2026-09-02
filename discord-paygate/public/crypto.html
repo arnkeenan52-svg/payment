@@ -168,7 +168,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 .search-box { background: rgba(255,255,255,.62); border-color: rgba(255,255,255,.75); }
 </style>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://dues.gg/"},{"@type":"ListItem","position":2,"name":"Crypto payments","item":"https://dues.gg/crypto"}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many cryptocurrencies can I accept?","acceptedAnswer":{"@type":"Answer","text":"There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved."}},{"@type":"Question","name":"Which chain should I take payouts on?","acceptedAnswer":{"@type":"Answer","text":"Dues ranks 23 assets for settlement, cheapest first, and the picker opens on the cheap end. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — Solana, Tron, Polygon and Base settle for cents, Bitcoin and Ethereum do not."}},{"@type":"Question","name":"Where does the crypto go?","acceptedAnswer":{"@type":"Answer","text":"To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold."}},{"@type":"Question","name":"Do I have to take crypto?","acceptedAnswer":{"@type":"Answer","text":"No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain."}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many cryptocurrencies can I accept?","acceptedAnswer":{"@type":"Answer","text":"There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved."}},{"@type":"Question","name":"Which chain should I take payouts on?","acceptedAnswer":{"@type":"Answer","text":"Dues ranks 23 assets for settlement, cheapest first, and builds the coin picker in that order. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — which is why Solana, Tron, Polygon and Base are ranked ahead of Bitcoin and Ethereum. The current cost of a transfer on any of them is the chain's business, not ours to quote."}},{"@type":"Question","name":"Where does the crypto go?","acceptedAnswer":{"@type":"Answer","text":"To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold."}},{"@type":"Question","name":"Do I have to take crypto?","acceptedAnswer":{"@type":"Answer","text":"No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain."}}]}</script>
   <script src="/theme.js?v=204"></script>
 </head>
 <body class="home seo-page">
@@ -213,17 +213,17 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
         <div class="seo-grid crypto-tiers">
           <div class="panel seo-card crypto-tier">
             <strong>Ranked first</strong>
-            <p>Flat fees measured in cents. A $10 membership settles here without the transfer eating the sale.</p>
+            <p>The cheapest chains to settle on. The coin picker is built in this order, so a buyer meets these first.</p>
             <p class="crypto-chains">Solana · Tron · USDT on Solana · USDC on Solana · USDT on Tron · USDC on Polygon · Polygon · USDT on Polygon · Base · USDC on Base</p>
           </div>
           <div class="panel seo-card crypto-tier">
             <strong>Ranked next</strong>
-            <p>More than the first tier and far less than the third — fine for a membership priced in tens of dollars.</p>
+            <p>Offered above the expensive chains and below the cheap ones.</p>
             <p class="crypto-chains">BNB Chain · USDT on BNB Chain · USDC on BNB Chain · Litecoin · Dogecoin · XRP · Cardano · Algorand</p>
           </div>
           <div class="panel seo-card crypto-tier">
             <strong>Ranked last</strong>
-            <p>The chains everyone knows, and the ones whose transfer fee can rival a small membership. Still offered; just never the default the picker opens on.</p>
+            <p>The chains everyone knows, and the ones whose flat transfer fee can rival a small membership. Still offered — just never what the picker opens on.</p>
             <p class="crypto-chains">Bitcoin · Ethereum · USDT on Ethereum · USDC on Ethereum · DAI</p>
           </div>
         </div>
@@ -253,7 +253,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
         <h2 class="section-title center">Frequently asked</h2>
         <div class="faq">
           <details class="panel faq-item"><summary>How many cryptocurrencies can I accept?</summary><p>There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved.</p></details>
-          <details class="panel faq-item"><summary>Which chain should I take payouts on?</summary><p>Dues ranks 23 assets for settlement, cheapest first, and the picker opens on the cheap end. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — Solana, Tron, Polygon and Base settle for cents, Bitcoin and Ethereum do not.</p></details>
+          <details class="panel faq-item"><summary>Which chain should I take payouts on?</summary><p>Dues ranks 23 assets for settlement, cheapest first, and builds the coin picker in that order. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — which is why Solana, Tron, Polygon and Base are ranked ahead of Bitcoin and Ethereum. The current cost of a transfer on any of them is the chain's business, not ours to quote.</p></details>
           <details class="panel faq-item"><summary>Where does the crypto go?</summary><p>To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold.</p></details>
           <details class="panel faq-item"><summary>Do I have to take crypto?</summary><p>No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain.</p></details>
         </div>
