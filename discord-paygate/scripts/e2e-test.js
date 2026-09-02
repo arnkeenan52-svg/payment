@@ -3824,6 +3824,11 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   // The plans payload is fixed, flagged, and never touches the database.
   const plans = await (await fetch(`${appUrl}/api/plans?store=demo`)).json();
   assert.equal(plans.brand, 'Dues Membership');
+  // The avatar box is 96 CSS px on the one page sellers judge their own store
+  // by; the 48px favicon painted there was a 2x upscale (4x on retina).
+  assert.equal(plans.server.iconUrl, '/favicon-96x96.png', 'the demo avatar is the asset that fits its box');
+  const avatar = await fs.promises.readFile(new URL('../public/favicon-96x96.png', import.meta.url));
+  assert.deepEqual([avatar.readUInt32BE(16), avatar.readUInt32BE(20)], [96, 96], 'and that asset really is 96x96');
   assert.equal(plans.capabilities.demo, true, 'the client needs the demo flag to disarm pay');
   assert.equal(plans.capabilities.stripe, true, 'the checkout still renders fully');
   assert.deepEqual(plans.plans.map((p) => p.priceUsd), [49.99, 14.99, 79.99]);
