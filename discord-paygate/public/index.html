@@ -2333,6 +2333,146 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   .voice-card,.pay-chip{transition:none}
   .voice-card:hover,.pay-chip:hover{transform:none}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v199 · CRAFT PASS — one type scale, one vertical rhythm, one grid.
+   ---------------------------------------------------------------------------
+   Nothing here is a new idea. It is the page it already was, measured and then
+   snapped to a system, because the numbers had drifted section by section:
+
+     eight section-heading sizes  84 / 52 / 52 / 44 / 42 / 38 / 34 / 27
+     seven small-copy sizes       15.5 / 14.5 / 14 / 13.5 / 12.5 / 12 / 11.5
+     four eyebrow trackings       .14em / .1em / .08em / none
+     seven section boundaries     52 / 64 / 66 / 84 / 96 / 98 / 104
+     four centred column widths   1344 / 940 / 900 / 820
+
+   Read top to bottom the page looked like guesswork, because it was: every
+   section was tuned on its own and none against the others. The
+   headline "What sellers say." was even set in a DIFFERENT TYPEFACE from the
+   other three — .sec-display fell through to the generic h1,h2,h3 rule
+   (Space Grotesk 700) in .mid-head, while .faq-head h2 was named in the
+   Jakarta list, so one class rendered two ways on one page.
+
+   The values below replace all of that with: four display steps, three text
+   steps, one micro-label, two section boundaries, two centred measures.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root{
+  /* TYPE. Four display steps and three text steps, each ~1.35x apart, each
+     clamped on the same 390→1440 span so the ladder holds at every width
+     instead of every section choosing its own vw factor. */
+  --t-display:clamp(44px,5.2vw,74px);   /* the hero, and the closer */
+  --t-title:clamp(28px,3.2vw,44px);     /* EVERY section heading */
+  --t-sub:clamp(21px,1.9vw,26px);       /* a heading inside a card */
+  --t-lead:clamp(18px,1.5vw,21px);      /* the featured pull-quote */
+  --t-body:15px;                        /* every paragraph */
+  --t-note:13px;                        /* every footnote and caption */
+  --t-micro:11.5px;                     /* every uppercase label */
+  /* RHYTHM. Two numbers. A boundary between movements is 2x --sec-y; a
+     boundary inside one is 2x --sec-y-tight. save → why → pay is a single
+     argument in three parts, so it is the only place the tight step is used. */
+  --sec-y:clamp(36px,3.6vw,52px);
+  --sec-y-tight:clamp(18px,1.8vw,26px);
+  --sec-head-gap:clamp(28px,3vw,44px);  /* a section head to its content */
+  /* GRID. Two centred measures, plus the hero's full bleed. --measure is the
+     reading column: the calculator, the payment grid, the FAQ and the
+     community card now share one left edge down the whole page. --measure-wide
+     is the multi-column one. */
+  --measure:900px;
+  --measure-wide:1100px;
+}
+
+/* ── the vertical rhythm ── */
+.rolemarq{padding-block:var(--sec-y)}
+.save{padding-block:var(--sec-y) var(--sec-y-tight)}
+.why{padding-block:var(--sec-y-tight)}
+.pay{padding-block:var(--sec-y-tight) var(--sec-y)}
+.how,.voices,.comm{padding-block:var(--sec-y)}
+.faq{padding-block:var(--sec-y) calc(var(--sec-y) * 1.5)}
+.save-head,.mid-head,.faq-head{margin-bottom:var(--sec-head-gap)}
+/* 660px broke "Every platform takes a cut. Dues takes none." mid-sentence, so
+   line two opened on "cut." — 760 lets it break where the full stop is. */
+.save-head{max-width:760px}
+.trio{margin-top:var(--sec-head-gap)}
+
+/* ── the display ladder ── */
+.hero h1{font-size:var(--t-display)}
+/* The closer used to be the biggest type on the page at 84px — larger than the
+   hero it is answering. Same step as the hero now; the vh guard stays, because
+   a short wide window has a whole footer to fit under it. */
+@media (hover:hover) and (pointer:fine) and (min-width:640px){
+  .footer-title{font-size:clamp(36px,min(5.2vw,8.4vh),74px)}
+}
+/* ONE section heading. One size, one face, one weight, one leading — whether
+   the section is the fee argument, the how-to, the quotes or the FAQ. */
+.save-head h2,.why-title,.how-title,h2.sec-display{
+  font-family:var(--jakarta);font-weight:600;font-size:var(--t-title);
+  line-height:1.1;letter-spacing:-.02em;color:var(--ink);
+  margin-inline:auto;text-wrap:balance;
+}
+/* a heading INSIDE a card is the next step down, and it gets a leading of its
+   own: .save-card h2 was inheriting the body's 24px line box under 27px type,
+   so a two-line wrap would have collided with itself. */
+.save-card h2,.comm-txt h2{font-size:var(--t-sub);line-height:1.22;letter-spacing:-.02em}
+.trio-item h3{margin-top:16px;font-size:18px;line-height:1.35}
+.acc-q{font-size:17px}
+.voice-lead blockquote{font-size:var(--t-lead)}
+
+/* ── the text ladder ── */
+.save-head p,.save-sub,.trio-item p,.comm-txt>p,.mid-note,
+.acc-a p,.faq-card p,.voices-side .voice-card blockquote{
+  font-size:var(--t-body);line-height:24px;
+}
+.acc-a p{max-width:66ch}
+.hero .microcopy,.fee-note,.pay-note,.save-hero small,.voice-meta small{
+  font-size:var(--t-note);line-height:20px;
+}
+/* ONE uppercase label. Four trackings and three weights became one of each, so
+   "WHAT COMMUNITIES SELL WITH DUES", "PAYMENTS RUN ON STRIPE", "COMMUNITIES",
+   "FAQ", "MONTHLY PLATFORM COST" and "ESTIMATED ANNUAL SAVINGS" finally read as
+   the same kind of thing. Colour is left alone — every one of these was tuned
+   against the sky for contrast, and none of them changes size class. */
+.marq-cap,.pay-cap,.sec-eyebrow,.save-rows-cap,.save-cap{
+  font:600 var(--t-micro)/1.45 var(--sans);letter-spacing:.1em;text-transform:uppercase;
+}
+.sec-eyebrow{margin-bottom:10px}
+
+/* ── the grid: two centred measures ── */
+.acc,.faq-card{max-width:var(--measure)}
+.acc{gap:16px}
+@media (min-width:900px){ .save-card{width:min(var(--measure),100%)} }
+/* The community card ran the full 1344 with a 62ch column of copy centred in
+   it, which left ~370px of empty glass on each side — the widest box on the
+   page holding the least. It joins the reading column. */
+.comm-card{width:min(var(--measure),100%);margin-inline:auto;border-radius:22px}
+.save-card{border-radius:22px}
+.save-hero{border-radius:14px}
+/* The two three-column rows were the full 1344 while the card above them was
+   940, so the eye had to travel 200px further out and back for each one. */
+.trio{max-width:var(--measure-wide);margin-inline:auto;gap:clamp(28px,3.4vw,48px)}
+.voices-stage{max-width:var(--measure-wide);margin-inline:auto}
+
+/* ── one section-head grammar ──
+   Every other head on this page is centred: eyebrow, title, supporting line.
+   "What sellers say." was the one exception — title hard left, note hard right
+   and baseline-aligned to nothing — so it read as a different page. */
+.mid-head{flex-direction:column;align-items:center;text-align:center;gap:0}
+.mid-note{max-width:52ch;margin:10px auto 0;text-align:center}
+/* the night face gives this note a navy plate for contrast over the clouds;
+   centred, a full-width plate reads as a banner, so it hugs its text the way
+   .save-demo already does. */
+html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,100%);margin-inline:auto}
+@media (max-width:800px){
+  .mid-head{align-items:center;text-align:center;gap:0}
+  .mid-note{text-align:center;max-width:44ch;margin:10px auto 0}
+}
+/* and the featured quote sits centred in its own card rather than 20px above
+   centre, which is what padding-block:20px 6px under margin-block:auto did. */
+.voice-lead blockquote{padding-block:24px;max-width:32ch}
+
+/* ── the hero's own rhythm: 16 / 32 / 16, not 18 / 30 / 16 ── */
+.hero-sub{margin-top:16px}
+.capture{margin-top:32px}
+.hero .microcopy{margin-top:16px}
 </style>
 </head>
 <body>
