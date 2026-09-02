@@ -4289,6 +4289,26 @@ test('crypto address validation refuses a plausible address on the wrong chain',
   assert.equal(validateAddress('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 'btc').ok, true);
   assert.equal(validateAddress('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 'ltc').ok, false);
   assert.equal(validateAddress('bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4', 'btc').ok, true);
+  // A Bitcoin P2SH address ("3…") shares its version byte with Litecoin's
+  // retired P2SH prefix, so it decodes cleanly on both chains. Both live in
+  // the same wallet app and both start with 3 — it must NOT pass as LTC, and
+  // it must never be reported as checksum-verified for LTC.
+  assert.equal(validateAddress('3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy', 'btc').ok, true);
+  assert.deepEqual(
+    (({ ok, verified }) => ({ ok, verified }))(validateAddress('3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy', 'ltc')),
+    { ok: false, verified: false },
+    'a BTC P2SH address is not a Litecoin payout wallet',
+  );
+  assert.equal(validateAddress('MJRSgZ3UUFcTBTBAaN38XAXvZLwRe8WVw7', 'ltc').ok, true, 'the current LTC P2SH prefix (M…) still works');
+  assert.equal(validateAddress('LM2WMpR1Rp6j3Sa59cMXMs1SPzj9eXpGc1', 'ltc').ok, true);
+  // Cardano: the bech32 checksum alone would pass a six-character string.
+  // A real Shelley address has a header byte and 28-byte hashes behind it.
+  assert.equal(validateAddress('addr1mykd6t', 'ada').ok, false, 'a valid checksum over no payload is not an address');
+  assert.equal(validateAddress('addr1pzrux20ll', 'ada').ok, false);
+  assert.equal(validateAddress('addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x', 'ada').ok, true, 'CIP-19 base address');
+  assert.equal(validateAddress('addr1vx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzers66hrl8', 'ada').ok, true, 'CIP-19 enterprise address');
+  assert.equal(validateAddress('addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgs68faae', 'ada').ok, false, 'testnet is not somewhere a payout can go');
+  assert.equal(validateAddress('stake1uyehkck0lajq8gr28t9uxnuvgcqrc6070x3k9r8048z8y5gh6ffgw', 'ada').ok, false, 'a stake address cannot receive a payment');
   assert.equal(validateAddress('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE', 'usdttrc20').ok, true);
   assert.equal(validateAddress('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSF', 'usdttrc20').ok, false);
   // A chain nobody here can check is stored, but never CLAIMED as checked —
