@@ -162,8 +162,24 @@ export async function validatePayoutAddress({ address, currency, extraId = null 
   throw new Error(`nowpayments: POST /payout/validate-address failed with ${res.status}: ${detail.slice(0, 300)}`);
 }
 
-export const minimumFor = (from, to) =>
-  npFetch(`/min-amount?currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`);
+// The minimum for a PAIR — currency_from is what the buyer sends, currency_to
+// is what the seller is paid in, which is the pair createPayment asks for.
+//
+// The flow flags are not decoration. NOWPayments documents them on this
+// endpoint as "allows you to see current minimum amounts for corresponsing
+// flows (it may differ from the standard flow!)", and every payment this file
+// creates is a fixed-rate, fee-paid-by-user one. Asking without them quotes
+// the buyer a floor for a flow they are not on.
+//
+// fiat_equivalent is a REQUEST parameter, not something the answer volunteers:
+// the response carries the field only when the fiat ticker was asked for, so
+// the caller's fallback to it is dead without this.
+export const minimumFor = (from, to, { fiatEquivalent = null } = {}) =>
+  npFetch(
+    `/min-amount?currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`
+      + '&is_fixed_rate=true&is_fee_paid_by_user=true'
+      + (fiatEquivalent ? `&fiat_equivalent=${encodeURIComponent(fiatEquivalent)}` : ''),
+  );
 
 export const estimate = (amount, from, to) =>
   npFetch(`/estimate?amount=${amount}&currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`);
@@ -297,6 +313,28 @@ export function paidInRequestedCoin(p) {
   return Math.abs(impliedFiat - atFiat) <= Math.max(0.01, impliedFiat * 0.05);
 }
 
+// What to tell a buyer who is short.
+//
+// This used to read "Send the difference to the same address to complete it",
+// which is not what NOWPayments does. A second transfer to a used deposit
+// address is a REPEATED DEPOSIT, and the provider's own help centre is flat
+// about the outcome: "Repeated deposits to the same addresses will
+// automatically create a new payment with another id". The original payment —
+// the one this order holds the id of, the one the pay screen polls, the one
+// the cron asks about — stays `partially_paid` for good. The API docs go
+// further and say not to deliver on a repeated deposit at all: "We do not
+// recommend configuring your system to automatically provide services or ship
+// goods based on any repeated-deposit status."
+//
+// So the old sentence promised a buyer that money they sent would visibly
+// finish the order in front of them, and it would not have. Whether a top-up
+// can be made to count is a seller decision (the dashboard has a button to
+// finish a partially-paid payment by hand) — which is exactly who this now
+// sends them to. No support address is invented here; the seller is the party
+// the buyer already has a relationship with.
+const TOP_UP =
+  'Sending more to the same address starts a separate payment rather than finishing this one, so contact the seller to sort it out.';
+
 export function describeStatus(p, { currency } = {}) {
   const s = String(p?.payment_status ?? '').toLowerCase();
   if (GRANTS_ACCESS.has(s)) return { state: 'paid', message: 'Payment confirmed.' };
@@ -318,10 +356,10 @@ export function describeStatus(p, { currency } = {}) {
         : '';
       return {
         state: 'short',
-        message: `Underpaid — ${formatAmount(owedFiat, cur)} of this order is still outstanding${inCoin}. Send the difference to the same address to complete it.`,
+        message: `Underpaid — ${formatAmount(owedFiat, cur)} of this order is still outstanding${inCoin}. ${TOP_UP}`,
       };
     }
-    return { state: 'short', message: 'Underpaid — the amount received was below the order total. Send the difference to the same address to complete it.' };
+    return { state: 'short', message: `Underpaid — the amount received was below the order total. ${TOP_UP}` };
   }
   if (IN_FLIGHT.has(s)) return { state: 'pending', message: 'Confirming on-chain…' };
   if (DEAD.has(s)) return { state: 'dead', message: 'This payment did not complete.' };
