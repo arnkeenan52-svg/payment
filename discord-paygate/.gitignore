@@ -24,6 +24,11 @@ tmp-film-frames*/
 # which is deliberately not scoped to a directory.
 scripts/_*
 probe*.mjs
+# scripts/verify-dash.mjs --check compares against this. It is a pixel
+# measurement out of this machine's Chromium and fonts, comparable only to a
+# run on the same box, so it is recorded before a change and checked after —
+# never committed (see the harness header).
+scripts/verify-dash.baseline.json
 **/probe*.mjs
 
 # The same files, under the other name they get written with. A Playwright
