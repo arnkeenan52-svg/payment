@@ -1237,7 +1237,8 @@ function sectionOverview(data, store, slug) {
   const newMembersPrev = prevRange ? newIn(win.prev) : 0;
 
 
-  const mrrRows = data.payments.filter((p) => p.entitled && !p.lifetime);
+  // Each row at its MONTHLY rate, not its period price: see monthlyRate().
+  const mrrRows = data.payments.filter((p) => p.entitled && !p.lifetime).map((p) => ({ ...p, amountUsd: monthlyRate(p) }));
   const mrrNewRows = mrrRows.filter((p) => inWin(p, win.cur));
   const mrrNew = sum(mrrNewRows);
 
@@ -1253,7 +1254,7 @@ function sectionOverview(data, store, slug) {
     rev: sparkSvg(series.curVals),
     sales: sparkSvg(bucketSeries(data.payments, win, () => 1).curVals),
     members: sparkSvg(bucketSeries(firstBuys, win, () => 1).curVals),
-    mrr: sparkSvg(bucketSeries(data.payments.filter((p) => !p.lifetime), win).curVals),
+    mrr: sparkSvg(bucketSeries(data.payments.filter((p) => !p.lifetime), win, monthlyRate).curVals),
   };
 
   // Top products with per-product change vs the previous window.
@@ -1417,6 +1418,20 @@ function billingLabel(p) {
   const d = p.durationDays;
   if (!d || d === 31) return 'Monthly';
   return TERM_WORDS[d] ?? `Every ${d} days`;
+}
+
+// A recurring row's MONTHLY rate. MRR summed each row's whole period price,
+// so a $600 yearly plan counted as $600 of monthly recurring revenue — twelve
+// times the truth — and a weekly plan at under a quarter of it. The named
+// terms above divide by their whole number of months, so the figure a seller
+// checks by hand comes out exact (yearly is /12, quarterly /3); any other term
+// scales by days. No term, or a monthly one, is the price as it stands.
+const TERM_MONTHS = { 30: 1, 31: 1, 90: 3, 180: 6, 365: 12, 366: 12 };
+const DAYS_PER_MONTH = 365 / 12;
+function monthlyRate(p) {
+  const d = Number(p.durationDays);
+  if (!(d > 0)) return p.amountUsd;
+  return p.amountUsd / (TERM_MONTHS[d] ?? d / DAYS_PER_MONTH);
 }
 
 function sectionProductsDefault(data) {

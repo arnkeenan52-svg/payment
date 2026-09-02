@@ -82,6 +82,9 @@ export default guard(async function handler(req, res) {
       status: s.status,
       entitled: isEntitled(s),
       lifetime: s.status === 'active' && s.current_period_end === null,
+      // The term the row renews on, so the dashboard can state a yearly or
+      // weekly plan's MONTHLY rate instead of counting its period price as MRR.
+      durationDays: plan?.durationDays ?? null,
     });
   }
 
