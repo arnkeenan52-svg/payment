@@ -5,6 +5,11 @@ import { upsertUser, sessionGeneration } from '../../src/db.js';
 import { reconcileEverywhere } from '../../src/services/entitlements.js';
 import { STATE_COOKIE, PLAN_COOKIE, STORE_COOKIE } from './login.js';
 
+// Set for a few minutes when Discord itself failed the exchange, so the
+// refresh that lands on the mismatch branch below can tell "we spent your
+// state cookie" apart from "your browser never kept it".
+const FAIL_COOKIE = 'tl_oauth_fail';
+
 // OAuth callback: state check → code exchange → identify → store the access
 // token (we need it later for guilds.join) → reconcile so an already-paid
 // buyer gets pulled into the guild with their role the moment they log in.
@@ -20,6 +25,20 @@ export default guard(async function handler(req, res) {
     // fresh state; the ".r" marker in the returned state stops a loop.
     if (state && !state.endsWith('.r')) {
       redirect(res, '/auth/login?retry=1');
+      return;
+    }
+    // The cookie can also be missing because WE spent it: the failure branch
+    // below clears it on every Discord failure, so a refresh of that page
+    // arrives here having kept every cookie it was given. Diagnosing a
+    // cookie-refusing browser there sends a buyer who is mid-purchase to fix
+    // a problem they do not have — name the outage that actually happened.
+    if (cookies[FAIL_COOKIE]) {
+      sendText(
+        res,
+        502,
+        'Discord did not complete the sign-in. Go back to the store page and try again in a minute.',
+        { 'set-cookie': cookieHeader(FAIL_COOKIE, '', { maxAge: 0, ...cookieAttrs() }) },
+      );
       return;
     }
     sendText(
@@ -48,7 +67,12 @@ export default guard(async function handler(req, res) {
       res,
       502,
       'Discord did not complete the sign-in. Go back to the store page and try again.',
-      { 'set-cookie': cookieHeader(STATE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }) },
+      {
+        'set-cookie': [
+          cookieHeader(STATE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
+          cookieHeader(FAIL_COOKIE, '1', { maxAge: 300, ...cookieAttrs() }),
+        ],
+      },
     );
     return;
   }
@@ -75,6 +99,7 @@ export default guard(async function handler(req, res) {
     'set-cookie': [
       createSessionCookie(me.id, await sessionGeneration(me.id)),
       cookieHeader(STATE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
+      cookieHeader(FAIL_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
       cookieHeader(PLAN_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
       cookieHeader(STORE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
     ],

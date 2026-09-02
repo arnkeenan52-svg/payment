@@ -1694,6 +1694,60 @@ test('a failed Discord token exchange explains itself and spends the state cooki
   });
   assert.equal(refresh.status, 302);
   assert.equal(refresh.headers.get('location'), '/auth/login?retry=1');
+
+  // Two failures in a row: the retry leg's state ends in `.r`, so a refresh
+  // of ITS failure page reaches the terminal branch. That branch used to
+  // tell a buyer their browser had dropped the login cookie — but the
+  // browser kept every cookie it was given; the server spent the state
+  // itself when Discord failed. A short-lived marker says which happened.
+  const retry = await fetch(`${appUrl}/auth/login?retry=1&plan=insider`, { redirect: 'manual' });
+  const retryState = new URL(retry.headers.get('location')).searchParams.get('state');
+  const retryCookies = retry.headers.getSetCookie().map((c) => c.split(';')[0]);
+  const failedTwice = await fetch(`${appUrl}/auth/callback?code=code_never_issued&state=${retryState}`, {
+    redirect: 'manual',
+    headers: { cookie: retryCookies.join('; ') },
+  });
+  assert.equal(failedTwice.status, 502);
+  const marker = failedTwice.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_fail='));
+  assert.ok(marker && !/Max-Age=0/.test(marker), 'a Discord failure leaves a short-lived marker behind');
+  const keptJar = retryCookies.filter((c) => !c.startsWith('tl_oauth_state=')).concat(marker.split(';')[0]);
+  const secondRefresh = await fetch(`${appUrl}/auth/callback?code=code_never_issued&state=${retryState}`, {
+    redirect: 'manual',
+    headers: { cookie: keptJar.join('; ') },
+  });
+  const secondText = await secondRefresh.text();
+  assert.equal(secondRefresh.status, 502, 'an upstream failure is still an upstream failure on the retry leg');
+  assert.match(secondText, /Discord did not complete the sign-in/i);
+  assert.doesNotMatch(secondText, /did not keep the login cookie/i, 'the browser kept every cookie — do not send this buyer browser-hunting');
+  assert.ok(
+    secondRefresh.headers.getSetCookie().some((c) => /^tl_oauth_fail=;.*Max-Age=0/.test(c)),
+    'the marker is spent once it has been read',
+  );
+});
+
+test('the Discord token exchange is bounded, like every other Discord call', async () => {
+  // The catch above only fires on a rejection. A token endpoint that accepts
+  // the connection and never answers does not reject: the callback would sit
+  // until the platform killed the function, and that gateway timeout carries
+  // no Set-Cookie — so the state cookie survived and every refresh hung the
+  // same way. The bound is what turns a hang into the 502 pinned above.
+  // (Asserted at the call, not by waiting the ten seconds out.)
+  const { exchangeOAuthCode } = await import('../src/lib/discord.js');
+  const realFetch = globalThis.fetch;
+  let init = null;
+  globalThis.fetch = async (url, options) => {
+    init = options;
+    return new Response(JSON.stringify({ access_token: 'tok', refresh_token: 'ref' }), {
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+  try {
+    await exchangeOAuthCode('code_u1');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  assert.ok(init?.signal instanceof AbortSignal, 'the OAuth token exchange must carry a timeout signal');
+  assert.equal(init.signal.aborted, false, 'and it must still be live when the request goes out');
 });
 
 test('sign-out is a POST; a GET confirms instead of clearing the session', async () => {

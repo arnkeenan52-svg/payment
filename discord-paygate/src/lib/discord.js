@@ -228,6 +228,13 @@ export async function exchangeOAuthCode(code) {
       code,
       redirect_uri: `${config.publicBaseUrl}/auth/callback`,
     }).toString(),
+    // Bounded like every other Discord call. A token endpoint that accepts
+    // the connection and never answers is the outage mode a rejection-only
+    // catch cannot see: the callback would hang until the platform killed
+    // the function, and that gateway timeout carries no Set-Cookie, so the
+    // state cookie survives and every refresh hangs again. With the bound,
+    // the callback's catch turns a hang into the 502 that spends the cookie.
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`discord: oauth token exchange failed with ${res.status}`);
   return res.json();
