@@ -1282,6 +1282,101 @@ test('landing polish holds: one gutter, centred community CTA, Cash App logotype
   assert.equal(probe(index), probe(pricing), 'index and pricing share one viewport-probe block, comments included');
 });
 
+test('the landing runs on one type scale, one vertical rhythm and one grid', () => {
+  // The page had been tuned section by section and never against itself: eight
+  // section-heading sizes (84/52/52/44/42/38/34/27), seven small-copy sizes,
+  // four eyebrow trackings, seven different section boundaries between 52 and
+  // 104px, and four centred column widths (1344/940/900/820). One class even
+  // rendered in two typefaces — .sec-display fell through to the generic
+  // h1,h2,h3 rule inside .mid-head (Space Grotesk 700) while .faq-head h2 was
+  // named in the Jakarta list, so "What sellers say." and "Questions,
+  // answered." were set differently on the same page.
+  //
+  // This reads the sheet the way the cascade does — last declaration wins —
+  // and holds every one of those to a token, so the next tweak to one section
+  // cannot quietly desynchronise it from the other seven.
+  const index = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  const css = index.slice(index.indexOf('<style>'), index.indexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // flatten the sheet to (selector, body) pairs; at-rule preludes are stepped
+  // over, so a rule inside a media query counts exactly where it is written.
+  const rules = [];
+  for (let i = 0; i < css.length;) {
+    const open = css.indexOf('{', i);
+    if (open < 0) break;
+    // a stray '}' can lead the slice when the previous rule was nested (an
+    // at-rule body), so it is trimmed off along with the whitespace.
+    const sel = css.slice(i, open).replace(/^[\s}]+/, '').trim();
+    if (/^@(media|supports|keyframes)/.test(sel)) { i = open + 1; continue; }
+    const close = css.indexOf('}', open);
+    if (close < 0) break;
+    rules.push({ sel, body: css.slice(open + 1, close) });
+    i = close + 1;
+  }
+  const last = (selector, prop) => {
+    let value = null;
+    for (const r of rules) {
+      if (!r.sel.split(',').some((s) => s.trim() === selector)) continue;
+      const hits = [...r.body.matchAll(new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*([^;]+)`, 'g'))];
+      if (hits.length) value = hits[hits.length - 1][1].trim();
+    }
+    return value;
+  };
+
+  // every token is declared once, in one place
+  for (const t of ['--t-display', '--t-title', '--t-sub', '--t-lead', '--t-body', '--t-note', '--t-micro',
+    '--sec-y', '--sec-y-tight', '--sec-head-gap', '--measure', '--measure-wide']) {
+    const declared = [...css.matchAll(new RegExp(`(?:^|[;{\\s])${t}\\s*:`, 'g'))].length;
+    assert.equal(declared, 1, `${t} is declared exactly once`);
+  }
+
+  // ONE section heading, whatever the section is called
+  for (const h of ['.save-head h2', '.why-title', '.how-title', 'h2.sec-display']) {
+    assert.equal(last(h, 'font-size'), 'var(--t-title)', `${h} takes the one section-heading step`);
+  }
+  assert.equal(last('.hero h1', 'font-size'), 'var(--t-display)', 'the hero takes the display step');
+  // and the closer is no larger than the hero it answers
+  assert.match(last('.footer-title', 'font-size') || '', /74px\)$/, 'the closer tops out at the display step');
+  for (const s of ['.save-card h2', '.comm-txt h2']) {
+    assert.equal(last(s, 'font-size'), 'var(--t-sub)', `${s} takes the in-card heading step`);
+  }
+
+  // ONE uppercase label: one size, one weight, one tracking
+  for (const s of ['.marq-cap', '.pay-cap', '.sec-eyebrow', '.save-rows-cap', '.save-cap']) {
+    assert.match(last(s, 'font') || '', /600 var\(--t-micro\)/, `${s} takes the one micro-label step`);
+    assert.equal(last(s, 'letter-spacing'), '.1em', `${s} takes the one micro-label tracking`);
+  }
+
+  // ONE body step and ONE note step
+  for (const s of ['.save-head p', '.save-sub', '.trio-item p', '.comm-txt>p', '.mid-note', '.acc-a p', '.faq-card p']) {
+    assert.equal(last(s, 'font-size'), 'var(--t-body)', `${s} takes the one body step`);
+  }
+  for (const s of ['.hero .microcopy', '.fee-note', '.pay-note', '.save-hero small']) {
+    assert.equal(last(s, 'font-size'), 'var(--t-note)', `${s} takes the one note step`);
+  }
+
+  // TWO section boundaries, and no third. Every section's block padding is
+  // written in the rhythm tokens, so the gap between any two of them is either
+  // 2x--sec-y (a new movement) or 2x--sec-y-tight (inside the fee argument).
+  for (const s of ['.rolemarq', '.save', '.why', '.pay', '.how', '.voices', '.comm', '.faq']) {
+    const pad = last(s, 'padding-block');
+    assert.ok(pad, `${s} sets its own block rhythm`);
+    assert.doesNotMatch(pad, /\d+px/, `${s} spends the rhythm tokens, not a hand-picked px value (${pad})`);
+    assert.match(pad, /var\(--sec-y(-tight)?\)/, `${s} spends the rhythm tokens`);
+  }
+
+  // ONE reading column, ONE multi-column measure — four widths became two
+  for (const s of ['.acc', '.faq-card']) {
+    assert.equal(last(s, 'max-width'), 'var(--measure)', `${s} sits in the reading column`);
+  }
+  for (const s of ['.save-card', '.comm-card']) {
+    assert.match(last(s, 'width') || '', /min\(var\(--measure\),100%\)/, `${s} sits in the reading column`);
+  }
+  for (const s of ['.trio', '.voices-stage']) {
+    assert.equal(last(s, 'max-width'), 'var(--measure-wide)', `${s} sits in the multi-column measure`);
+  }
+});
+
 test('one nav: every page in the site shows the same header links, in the same order', () => {
   // The site grew three different desktop navs. The landing and /pricing had
   // Pricing / Discover / Invite Dues; the SEO and legal pages had
