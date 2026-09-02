@@ -4924,11 +4924,15 @@ test('a sale whose webhook never arrived is recovered by the cron, and a late de
   const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
   const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf && !p.requiredRoleName);
   const LOST = '531100000000000031';
-  discord.oauthUsers.code_lost = { id: LOST, username: 'lost_buyer' };
   discord.members.set(LOST, new Set());
-  const lostCookie = await loginAs('code_lost');
-  assert.equal((await post('/api/checkout/stripe', { planId: plan.id }, lostCookie)).status, 200);
-  const sessionId = `cs_${stripe.checkoutSessions.length}`;
+  // The attempt row Dues writes when it opens a checkout — two hours old,
+  // never completed. (Written directly: this store is past its owner's free
+  // member cap by now, so a fresh checkout would be refused for that reason.)
+  const sessionId = 'cs_lost_1';
+  await tq(
+    "INSERT INTO checkout_attempts (store_id, plan_id, discord_id, session_id, amount_usd, currency, discount_code, status, created_at) VALUES (?, ?, ?, ?, ?, 'usd', NULL, 'started', ?)",
+    [storeId, plan.id, LOST, sessionId, 25, nowSec() - 7200],
+  );
   // Stripe holds the session complete and paid two hours ago; Dues never heard.
   stripe.completedSessions = [{
     id: sessionId, object: 'checkout.session', status: 'complete', payment_status: 'paid', mode: 'payment', payment_intent: 'pi_lost_1',
