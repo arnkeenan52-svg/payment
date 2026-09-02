@@ -3799,6 +3799,36 @@ test('gated + limited-time products: only role holders buy, expiry ends the sale
   assert.equal((await onboard({ step: 'product-delete', storeId, planKey: plan.planKey })).status, 200);
 });
 
+test('storefront chrome: hidden wins, touch targets reach 44, phone text floors at 12px', async () => {
+  // A stylesheet is behaviour too. Each of these pinned a buyer-visible bug
+  // that a desktop skim signed off on, and the suite cannot run a browser —
+  // so it holds the RULES that fixed them, from the served stylesheet, with
+  // the same selectors the pages use.
+  const css = await (await fetch(`${appUrl}/styles.css`)).text();
+  const plain = css.replace(/\/\*[\s\S]*?\*\//g, ''); // comments talk about selectors too
+  const rules = (sel) => {
+    // every declaration block whose selector list carries `sel` verbatim
+    const out = [];
+    const re = /([^{}]+)\{([^{}]*)\}/g;
+    let m;
+    while ((m = re.exec(plain))) if (m[1].split(',').map((s) => s.trim()).includes(sel)) out.push(m[2]);
+    return out;
+  };
+  const page = (file) => fs.readFileSync(path.join(ROOT, 'public', file), 'utf8');
+
+  // [hidden] is a UA rule with no specificity; .shop-btn's display:inline-flex
+  // beat it and /demo shipped an inert Follow button with .hidden === true.
+  // One !important rule, and nothing in the sheet may push back against it.
+  assert.match(css, /\n\[hidden\] \{ display: none !important; \}/, 'the generic [hidden] rule must be in the served stylesheet');
+  for (const [, sel, body] of plain.matchAll(/([^{}]*\[hidden\][^{}]*)\{([^{}]*)\}/g)) {
+    if (/:not\([^)]*\[hidden\]/.test(sel)) continue; // `.x:not([hidden])` is the attribute doing its job
+    const d = body.match(/display:\s*([^;!]+)/);
+    if (d) assert.equal(d[1].trim(), 'none', `${sel.trim()} must not re-show a hidden element`);
+  }
+  const demo = await (await fetch(`${appUrl}/api/plans?store=demo`)).json();
+  assert.equal(demo.store.followable, false, 'the demo store is not followable, so its Follow button is hidden — and must actually vanish');
+});
+
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {
   // The page serves with its own head and the Emerald theme server-rendered.
   const page = await (await fetch(`${appUrl}/demo`)).text();

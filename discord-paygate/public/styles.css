@@ -131,6 +131,17 @@ html[data-theme='light'] body { background: var(--bg); color: var(--ink); }
 
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+/* The hidden attribute wins everywhere. [hidden] is a UA rule with NO
+   specificity, so any `display:` on a class beat it — and this file kept
+   rediscovering that one block at a time (.coinpick, .field, the button
+   family, .shop-tabs …) while .shop-btn, .shop-icon-btn, .order-roles,
+   .pay-panel and .totals were still missed: the hosted demo store shipped an
+   inert "Follow" button with .hidden === true, and a checkout that hid its
+   totals kept drawing them. One rule with !important closes the whole class
+   of bug; the per-block rules below stay as the record of where it bit.
+   Anything that must show while carrying the attribute has to say so with
+   its own !important — nothing in this stylesheet does. */
+[hidden] { display: none !important; }
 
 body {
   background: var(--bg);
