@@ -48,7 +48,7 @@ const R2_VIP = '2200000000000000101';      // grantable role in G2
 const R2_BOT = '2200000000000000999';      // the bot's role in G2
 const OWNER2_KEY = 'rk_test_owner2';       // second owner's own Stripe key — restricted, the kind Stripe recommends
 const RESEND_KEY = 're_e2e_1234567890';
-const COMMUNITY_INVITE = 'https://discord.gg/e2e-community'; // one setting, two surfaces (site hop + receipt footer)
+const COMMUNITY_INVITE = 'https://discord.gg/e2e-community'; // one setting; these are its request-time readers (site hop + receipt footer)
 const R_BOT = '1200000000000000999';
 const R_ADMIN = '1200000000000000555';   // above the bot — must be flagged unusable
 const R_NEW = '1200000000000000200';     // below the bot — pickable
@@ -1725,6 +1725,168 @@ test('the community invite is one setting: the site hop and the receipt read the
   }).stdout.trim();
   assert.equal(probe({ DISCORD_COMMUNITY_INVITE: 'https://discord.gg/old-name' }), 'https://discord.gg/old-name');
   assert.equal(probe({ COMMUNITY_INVITE: 'https://discord.gg/new-name', DISCORD_COMMUNITY_INVITE: 'https://discord.gg/old-name' }), 'https://discord.gg/new-name', 'the documented name wins when both are set');
+});
+
+// Walks public/ once, for the three checks below that ask questions of the
+// shipped site rather than of a running handler.
+function publicFiles(filter = () => true) {
+  const PUBLIC = path.join(ROOT, 'public');
+  const walk = (dir, out = []) => {
+    for (const name of fs.readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (fs.statSync(full).isDirectory()) walk(full, out);
+      else if (filter(full)) out.push(full);
+    }
+    return out;
+  };
+  return walk(PUBLIC).map((f) => path.relative(PUBLIC, f)).sort();
+}
+
+// config.communityInvite with no .env and no override — the value the
+// committed pages must have been generated from.
+function defaultCommunityInvite() {
+  return spawnSync(process.execPath, ['-e', "import('./src/config.js').then((m) => console.log(m.config.communityInvite))"], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    env: { ...process.env, ENV_PATH: '/nonexistent/.env', PLANS_PATH, COMMUNITY_INVITE: '', DISCORD_COMMUNITY_INVITE: '' },
+  }).stdout.trim();
+}
+
+test('public/ is the marketing site, not a tool shed: no operator scripts are served from it', async () => {
+  // public/setup-community.mjs was a byte copy of scripts/setup-community.mjs,
+  // put there so an operator could `curl -O https://dues.gg/setup-community.mjs`
+  // (commit 72d9fd0, "one-line download"). It is not a credential, but it is an
+  // operator tool — it documents where the bot token is looked up and how the
+  // community server is laid out — and it had already drifted a commit behind
+  // the real one, so the published copy built a slightly different server.
+  // public/ is served verbatim by Vercel: only browser assets belong in it.
+  const BROWSER_ASSET = /\.(html|js|css|json|txt|xml|webmanifest|svg|png|jpe?g|gif|webp|avif|ico|mp4|webm|woff2?)$/i;
+  const strays = publicFiles().filter((rel) => !BROWSER_ASSET.test(rel));
+  assert.deepEqual(strays, [], `served at dues.gg/… and not a browser asset: ${strays.join(', ')}`);
+  // Extension-blind backstop: an executable script announces itself with a
+  // shebang, and no browser asset ever starts with one.
+  const shebanged = publicFiles().filter((rel) => fs.readFileSync(path.join(ROOT, 'public', rel)).subarray(0, 2).toString() === '#!');
+  assert.deepEqual(shebanged, [], `executable scripts under public/: ${shebanged.join(', ')}`);
+  // The URL itself is gone, and nothing on the site links it back into being.
+  assert.equal((await fetch(`${appUrl}/setup-community.mjs`)).status, 404, '/setup-community.mjs must not be served');
+  const linking = publicFiles((f) => f.endsWith('.html')).filter((rel) => fs.readFileSync(path.join(ROOT, 'public', rel), 'utf8').includes('setup-community'));
+  assert.deepEqual(linking, [], `pages still pointing at the withdrawn operator script: ${linking.join(', ')}`);
+  // It still ships where it is actually run from — a clone, not the website.
+  assert.ok(fs.existsSync(path.join(ROOT, 'scripts', 'setup-community.mjs')), 'the operator script itself must stay in scripts/');
+});
+
+test('the generated pages take the community invite from config, so one regenerate moves every one of them', async () => {
+  // The invite used to be a literal in the generator's footer template, which
+  // meant COMMUNITY_INVITE moved exactly two surfaces (the hop and the receipt
+  // email) while 45 shipped pages kept linking whatever was last pasted in —
+  // and config.js's own comment claimed otherwise. The generator now reads
+  // config.communityInvite, so the fix is: set the value, regenerate, commit.
+  const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-seo-pages.mjs'), 'utf8');
+  assert.ok(gen.includes('config.communityInvite'), 'the generator must take the invite from config');
+  assert.deepEqual(gen.match(/discord\.gg\/[^"'`\s)]+/g), null, 'the generator must not carry a literal invite of its own');
+
+  const invite = defaultCommunityInvite();
+  assert.match(invite, /^https:\/\/discord\.gg\/[A-Za-z0-9-]+$/, `config.communityInvite should be a discord invite, got ${invite}`);
+  const generated = publicFiles((f) => f.endsWith('.html')).filter((rel) =>
+    rel === 'help.html' || /^(vs|tools|use-cases|guides|alternatives)\//.test(rel));
+  assert.ok(generated.length >= 40, `expected the generated page network, found ${generated.length}`);
+  const stale = generated.filter((rel) => !fs.readFileSync(path.join(ROOT, 'public', rel), 'utf8').includes(`href="${invite}"`));
+  assert.deepEqual(stale, [], `these shipped pages were generated from a different invite than config's — rerun \`node scripts/gen-seo-pages.mjs\` with the value you deploy and commit the result: ${stale.join(', ')}`);
+
+  // The hand-written pages do not print the invite at all: they link the hop,
+  // which reads config per request, so re-issuing moves them with no deploy.
+  for (const rel of ['receipt.html', 'store.html']) {
+    const html = fs.readFileSync(path.join(ROOT, 'public', rel), 'utf8');
+    assert.ok(!/discord\.gg\//.test(html), `${rel} must link the /api/community hop, not a pasted invite`);
+    assert.ok(html.includes('href="/api/community"'), `${rel} must link the /api/community hop`);
+  }
+});
+
+test('the fee calculators compute real figures from the ids the served markup actually carries', async () => {
+  // The rebrand left the calculators' element ids on the old name (t-ripley,
+  // t-row-ripley, t-bar-ripley) under a row labelled Dues; renaming them was
+  // shipped with no test at all. Half a rename — markup moved, script not, or
+  // the reverse — is silent in the generator and silent in the browser except
+  // that every bar reads $0. So: fetch the page, build a DOM containing ONLY
+  // the ids the markup declares, run the page's own inline script against it,
+  // and check the arithmetic. A missing id is a TypeError, not a quiet zero.
+  const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
+  const planCost = (m) => (m <= 10 ? 0 : m <= 50 ? 14.99 : m <= 500 ? 44.99 : 134.99);
+  // The publicly-listed competitor pricing each page states in its own copy.
+  const CALCULATORS = {
+    'whop-fee-calculator': { whop: (rev) => rev * 0.03 },
+    'launchpass-fee-calculator': { launchpass: (rev) => 29 + rev * 0.035 },
+    'patreon-fee-calculator': { patreon: (rev) => rev * 0.08 },
+    'doorfee-fee-calculator': { doorfee: (rev) => rev * 0.1 },
+    'discord-fee-calculator': {
+      whop: (rev) => rev * 0.03,
+      launchpass: (rev) => 29 + rev * 0.035,
+      patreon: (rev) => rev * 0.08,
+      'upgrade-chat': () => 49,
+    },
+  };
+
+  for (const [slug, competitors] of Object.entries(CALCULATORS)) {
+    const res = await fetch(`${appUrl}/tools/${slug}`);
+    assert.equal(res.status, 200, `/tools/${slug} must be served`);
+    const html = await res.text();
+    assert.ok(!/ripley/i.test(html), `/tools/${slug} still ships the old brand in its markup`);
+
+    // The Dues bar must be the one wearing the dues ids — the exact thing the
+    // rename fixed, and the thing a future rename could split apart again.
+    const row = html.slice(html.indexOf('id="t-row-dues"'), html.indexOf('</div>', html.indexOf('id="t-bar-dues"')));
+    assert.ok(row.includes('>Dues<') && row.includes('id="t-dues"'), `/tools/${slug}: the Dues row does not carry the Dues ids`);
+
+    const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+    const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+    assert.ok(script && script.includes('getElementById'), `/tools/${slug} has no inline calculator script`);
+
+    // A DOM that knows only what the page declares. getElementById on anything
+    // else returns null, exactly as a browser would, and the script throws.
+    const nodes = new Map();
+    let onInput = null;
+    const value = { 't-subs': '100', 't-price': '50' };
+    const document = {
+      getElementById(id) {
+        if (!ids.has(id)) return null;
+        if (!nodes.has(id)) {
+          nodes.set(id, {
+            get value() { return value[id]; },
+            textContent: '',
+            style: {},
+            addEventListener: (_type, fn) => { onInput = fn; },
+          });
+        }
+        return nodes.get(id);
+      },
+    };
+    new Function('document', script)(document); // runs, and calls upd() itself
+    assert.ok(onInput, `/tools/${slug}: the calculator never wired up its sliders`);
+
+    const read = (id) => String(nodes.get(id).textContent);
+    for (const [members, price] of [[5, 5], [100, 50], [1000, 200]]) {
+      value['t-subs'] = String(members);
+      value['t-price'] = String(price);
+      onInput();
+      const rev = members * price;
+      const dues = planCost(members);
+      const costs = Object.entries(competitors).map(([id, f]) => [id, f(rev)]);
+      const worst = Math.max(...costs.map(([, c]) => c));
+      const where = `/tools/${slug} at ${members} members × $${price}`;
+      assert.equal(read('t-subs-out'), String(members), `${where}: member readout`);
+      assert.equal(read('t-price-out'), `$${price}`, `${where}: price readout`);
+      assert.equal(read('t-rev'), `${money(rev)}/mo`, `${where}: sales volume`);
+      assert.equal(read('t-dues'), `${money(dues)}/mo`, `${where}: the Dues plan cost`);
+      for (const [id, cost] of costs) assert.equal(read(`t-${id}`), `${money(cost)}/mo`, `${where}: ${id} cost`);
+      assert.equal(read('t-save'), `${money(Math.max(worst - dues, 0) * 12)}/yr`, `${where}: annual saving`);
+      // Every bar is drawn, which means every bar id resolved to an element.
+      for (const id of ['dues', ...costs.map(([k]) => k)]) {
+        const width = nodes.get(`t-bar-${id}`).style.width;
+        assert.match(String(width), /^\d+(\.\d+)?%$/, `${where}: the ${id} bar was never sized`);
+        assert.ok(parseFloat(width) >= 2, `${where}: the ${id} bar collapsed to nothing`);
+      }
+    }
+  }
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {

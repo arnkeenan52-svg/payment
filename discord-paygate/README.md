@@ -102,6 +102,18 @@ id, and the Discord role ids each plan grants. The live catalog is a single
 
    and fix anything it flags (see below).
 
+## Marketing pages are generated, not hand-written
+
+`/vs/*`, `/tools/*`, `/use-cases/*`, `/guides/*`, `/alternatives/*`, `/help`,
+`llms.txt`, `sitemap.xml` and `robots.txt` are emitted by
+`node scripts/gen-seo-pages.mjs` into `public/` and **committed** — Vercel
+serves `public/` as-is, so the run has to happen before the commit, not at
+deploy time. The generator reads `config.communityInvite`, so re-issuing the
+community invite is: set `COMMUNITY_INVITE`, which immediately moves the
+`/api/community` hop and the receipt email, then regenerate and commit to move
+the footer link on the 45 generated pages. `npm test` fails if the shipped
+pages and the config value disagree.
+
 ## Setup doctor
 
 A wrong value here fails silently at the worst possible moment — a buyer

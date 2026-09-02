@@ -78,10 +78,17 @@ export const config = {
   // .env.example rather than derived from PLATFORM_NAME.
   brand: env('BRAND') || 'Tradeleaks',
   // The Dues community server. Permanent invite, no expiry, no use cap.
-  // Env-overridable so a re-issued invite is a dashboard change, not a deploy.
-  // One setting, read here and nowhere else: the site's "Join our Discord"
-  // hop (api/community.js) and the receipt email both take it from this
-  // field, so a re-issued invite cannot update one surface and not the other.
+  // One setting, but its readers pick it up at two different moments, and the
+  // comment that used to sit here claimed only the first half.
+  //   • Per request: the site's "Join our Discord" hop (api/community.js) —
+  //     which every hand-written page's community link points at — and the
+  //     receipt email. Setting COMMUNITY_INVITE re-points those with no deploy.
+  //   • At generate time: the 45 generated marketing pages link the invite
+  //     directly in their footer and take it from this field when
+  //     scripts/gen-seo-pages.mjs runs. They are committed build artifacts, so
+  //     moving them is a regenerate + commit — not an env change. The e2e
+  //     suite pins that the shipped pages carry this value, so the generator
+  //     and the config cannot drift apart unnoticed.
   // DISCORD_COMMUNITY_INVITE is the older spelling the hop used to read on its
   // own; honoured so a deployment that set it keeps its invite.
   communityInvite: env('COMMUNITY_INVITE') || env('DISCORD_COMMUNITY_INVITE') || 'https://discord.gg/G6yjsX5qbB',
