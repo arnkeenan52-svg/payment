@@ -656,6 +656,12 @@ async function nowpaymentsHandler(req, res) {
     if (nowpayments.delayCreateMs) await sleep(nowpayments.delayCreateMs);
     nowpayments.created.push(body);
     const id = `npid_${++nowpayments.n}`;
+    // Shaped like the provider's own payment object, not like the subset this
+    // app happens to read. Two of these fields are the reason the IPN
+    // signature has to re-serialise recursively: `fee` is a NESTED object
+    // whose keys do not arrive sorted, and `payment_extra_ids` is an ARRAY of
+    // child deposits. A mock that only ever produced flat scalars let a
+    // top-level-only sort pass every scenario.
     const payment = {
       payment_id: id,
       payment_status: 'waiting',
@@ -665,8 +671,20 @@ async function nowpaymentsHandler(req, res) {
       price_amount: body.price_amount,
       price_currency: body.price_currency,
       order_id: body.order_id,
+      order_description: body.order_description,
       actually_paid: 0,
+      // Present and zero on a payment the provider's own example shows as
+      // paid in full: the field says nothing until a deposit has been valued
+      // in fiat, which is exactly how settledFiat reads it.
+      actually_paid_at_fiat: 0,
       payin_extra_id: null,
+      purchase_id: `${5300000000 + nowpayments.n}`,
+      parent_payment_id: null,
+      invoice_id: null,
+      outcome_amount: 0.4985,
+      outcome_currency: body.payout_currency,
+      payment_extra_ids: null,
+      fee: { currency: body.pay_currency, depositFee: 0.09853637216235617, withdrawalFee: 0, serviceFee: 0 },
       expiration_estimate_date: new Date(Date.now() + 20 * 60_000).toISOString(),
     };
     nowpayments.payments.set(id, payment);
@@ -7398,6 +7416,81 @@ test('crypto: no coin figure without evidence, and a status nobody knows is "che
   const view = await npView(order.orderId);
   assert.equal(view.state, 'pending');
   assert.match(view.message, /Checking on this payment/);
+});
+
+test('crypto: a provider-shaped IPN — nested fee object, array of child ids, non-ASCII description — verifies', async () => {
+  // Checked against the IPN body in NOWPayments' own API documentation
+  // (documenter.getpostman.com/view/7907941/2s93JusNJt, "Webhooks Examples")
+  // and against their Node SDK's sortObjectDeep. A real delivery is NOT flat:
+  //
+  //   • `fee` is a nested object, and its keys do not arrive sorted —
+  //     depositFee, withdrawalFee, serviceFee is the documented order, so a
+  //     sort that only touches the top level signs a different string;
+  //   • `payment_extra_ids` is an array of child deposits — an implementation
+  //     that rebuilt it as an object would render {"0":…};
+  //   • `order_description` is ours, em dash and all — escaping it as \u2014
+  //     is a fourth way to diverge.
+  //
+  // Every other crypto scenario delivers a flat ASCII body, which all three
+  // bugs survive. The order is deliberately not one of ours: this pins the
+  // signature, and nothing else.
+  nowpayments.payments.set('npid_shaped', {
+    payment_id: 'npid_shaped',
+    payment_status: 'finished',
+    order_id: 'np_00000000000000000000000000000001',
+    price_amount: 49.99,
+    price_currency: 'usd',
+    pay_currency: 'sol',
+  });
+  const ipn = {
+    payment_id: 'npid_shaped',
+    parent_payment_id: null,
+    invoice_id: null,
+    payment_status: 'finished',
+    pay_address: 'ADDR_npid_shaped',
+    payin_extra_id: null,
+    price_amount: 49.99,
+    price_currency: 'usd',
+    pay_amount: 0.5,
+    actually_paid: 0.5,
+    actually_paid_at_fiat: 0,
+    pay_currency: 'sol',
+    order_id: 'np_00000000000000000000000000000001',
+    order_description: 'VIP Signals — Dues',
+    purchase_id: '5312822613',
+    outcome_amount: 0.4985,
+    outcome_currency: 'sol',
+    payment_extra_ids: [5513339153],
+    fee: { currency: 'sol', depositFee: 0.09853637216235617, withdrawalFee: 0, serviceFee: 0 },
+  };
+  assert.equal((await deliverNow(ipn)).status, 200, 'the shape the provider actually sends has to verify');
+  assert.equal((await deliverNow(ipn, { signature: signNow({ ...ipn, actually_paid: 0.6 }) })).status, 400, 'and a signature over anything else must not');
+});
+
+test('crypto: `cancelled` is a status the provider really sends, and it ends the payment', async () => {
+  // Not in the API reference's list of nine. The provider's status article
+  // has it — a merchant can mark a partially_paid payment cancelled so the
+  // buyer gets in touch — and their Node SDK maps both spellings. Treated as
+  // an unknown status it was the one dead payment whose screen kept saying
+  // "Checking on this payment…", and whose seat the backfill never released.
+  const { describeStatus, DEAD } = await import('../src/lib/nowpayments.js');
+  assert.equal(describeStatus({ payment_status: 'cancelled' }).state, 'dead');
+  assert.ok(DEAD.has('canceled'), 'the provider spells it both ways');
+
+  const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  const { order, payment } = await npCheckout(plans.plans[0].id);
+  payment.payment_status = 'cancelled';
+  assert.equal((await deliverNow({ payment_id: payment.payment_id, payment_status: 'cancelled', order_id: order.orderId })).status, 200);
+  await waitFor('the cancelled payment to be logged as ended', () =>
+    appLog.join('').includes(`nowpayments ${payment.payment_id} (order ${order.orderId}) ended as cancelled`));
+  assert.ok(
+    !appLog.join('').includes(`nowpayments ${payment.payment_id} (order ${order.orderId}) has unrecognised status`),
+    'a documented status is not an unknown one',
+  );
+  assert.equal(await subRow('nowpayments', payment.payment_id), null, 'a cancelled payment is not a sale');
+  const view = await npView(order.orderId);
+  assert.equal(view.state, 'dead');
+  assert.match(view.message, /did not complete/);
 });
 
 test('crypto: money that lands for a product that cannot be delivered is never a completed sale', async () => {
