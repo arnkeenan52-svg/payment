@@ -5774,6 +5774,41 @@ test('storefront client: the failure states the suite cannot drive in a browser 
   assert.match(receipt, /plansRes\.ok \? await plansRes\.json\(\)/, 'a failed catalogue degrades to empty so the buyer\'s own subscription row still names the order');
   assert.match(receipt, /if \(!plan\) return showNotFound\(\)/, 'a missing ?plan renders the not-found receipt');
   assert.match(read('receipt.html'), /<section class="panel" id="r-details">/, 'the details panel is addressable so the not-found state can hide its dashes');
+
+  // ── the demo checkout ─────────────────────────────────────────────────────
+  // /demo plays the page a buyer really lands on. Two things hold it in place
+  // and neither can be checked from the network: it must stay INCAPABLE of
+  // taking a card, and it must not pass itself off as Stripe's own page.
+  const demo = app.slice(app.indexOf('function demoCheckout(plan) {'), app.indexOf('async function pay(btn, plan)'));
+  assert.ok(demo.length > 2000, 'demoCheckout must still be there to check');
+  for (const banned of ['<form', '<input', '<textarea', '<select', 'contenteditable', 'fetch(']) {
+    assert.ok(!demo.includes(banned), `the demo checkout must contain no ${banned} — it cannot be able to take a card`);
+  }
+  // It says what it is ABOVE anything form-shaped, and keeps saying it.
+  assert.match(demo, /<p class="dcx-strip"><b>Demo<\/b>/, 'the demo strip spans the top of the panel');
+  assert.match(demo, /<span class="dcx-badge">Demo<\/span>/, 'and the badge is still on the pay column');
+  assert.match(app, /if \(state\.capabilities\.demo\) \{\n    const demoNote/, 'the demo store says nothing is for sale BEFORE the button is pressed, not only after');
+  // Mode decides the page the way the hosted one does: a recurring price is
+  // headed "Subscribe to <product>" and pays with Subscribe, a one-off is
+  // headed "Pay <merchant>" and pays with Pay.
+  assert.match(demo, /const sub = Boolean\(plan\.interval\);/, 'the demo splits on subscription vs one-off');
+  assert.match(demo, /sub \? `Subscribe to \$\{esc\(plan\.name\)\}` : `Pay \$\{esc\(merchant\)\}`/, 'the summary heading follows the mode');
+  assert.match(demo, /\$\{sub \? 'Subscribe' : 'Pay'\}<\/button>/, 'so does the button label');
+  assert.match(demo, /Total due\$\{sub \? ' today' : ''\}/, 'and the total line');
+  assert.match(demo, /By confirming your subscription/, 'a subscription carries the mandate sentence the buyer really agrees to');
+  // The fields a buyer meets, in the order they meet them — every one a div.
+  assert.deepEqual(
+    [...demo.matchAll(/data-f="([a-z]+)"/g)].map((m) => m[1]),
+    ['email', 'card', 'exp', 'cvc', 'name', 'country', 'zip'],
+    'email, card group, cardholder name, country + postal — the hosted page\'s own order',
+  );
+  // The trust mark that page really carries, as plain text in our own type…
+  assert.match(demo, /Powered by Stripe/, 'the factual trust mark stays');
+  // …and nothing that wears Stripe's identity instead of stating a fact.
+  assert.doesNotMatch(demo, /stripe\.com|stripe[-_.]?(logo|mark|wordmark|svg|png)/i, 'the demo must not reproduce Stripe\'s own mark');
+  const css = read('styles.css');
+  assert.match(css, /\.dcx-strip \{[^}]*position: sticky/, 'the demo strip stays put while the panel scrolls');
+  assert.match(css, /@media \(min-width: 761px\) \{ \.dcx-sumbar \{ display: none; \} \}/, 'the summary sits beside the form on a laptop and folds into a disclosure on a phone');
 });
 
 test('store creator and team: seller-authored, validated, and round-tripped to both payloads', async () => {
