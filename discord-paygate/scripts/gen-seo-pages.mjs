@@ -380,6 +380,12 @@ const nav = `
     </div>
   </header>`;
 
+// Index links are the bare form — /vs, never /vs/. The canonical, the sitemap,
+// every breadcrumb and every vercel.json rewrite all name the bare URL; a
+// trailing slash here linked a second URL for the same page from 46 pages,
+// held together only by rel=canonical (or a redirect hop, depending on the
+// host). And each column links its own index, so /guides and /use-cases are
+// reachable from somewhere other than the homepage.
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
@@ -397,25 +403,28 @@ export const footerHtml = `
       <a href="/vs/memberful">Dues vs Memberful</a><a href="/vs/gumroad">Dues vs Gumroad</a>
       <a href="/vs/ko-fi">Dues vs Ko-fi</a><a href="/vs/buymeacoffee">Dues vs Buy Me a Coffee</a>
       <a href="/vs/upgrade-chat">Dues vs Upgrade.Chat</a><a href="/vs/mighty-networks">Dues vs Mighty Networks</a>
-      <a href="/vs/">All comparisons</a>
+      <a href="/vs">All comparisons</a>
       <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
       <a href="/alternatives/whop-alternatives">Whop alternatives</a>
-      <a href="/alternatives/">All alternatives</a></nav>
+      <a href="/alternatives">All alternatives</a></nav>
     <nav class="footer-col"><span class="footer-head">Guides</span>
       <a href="/guides/best-discord-monetization-platform">Best platform to use</a>
       <a href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
       <a href="/guides/how-to-sell-discord-roles">Sell Discord roles</a>
       <a href="/guides/discord-paywall">Paywall a Discord</a>
-      <a href="/guides/discord-membership-bot">Discord membership bots</a></nav>
+      <a href="/guides/discord-membership-bot">Discord membership bots</a>
+      <a href="/guides">All guides</a></nav>
     <nav class="footer-col"><span class="footer-head">Tools</span>
       <a href="/tools/discord-fee-calculator">Discord fee calculator</a>
       <a href="/tools/whop-fee-calculator">Whop fee calculator</a>
       <a href="/tools/launchpass-fee-calculator">LaunchPass fee calculator</a>
-      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a></nav>
+      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a>
+      <a href="/tools">All calculators</a></nav>
     <nav class="footer-col"><span class="footer-head">Use cases</span>
       <a href="/use-cases/trading">Trading signals</a><a href="/use-cases/sports-betting">Sports picks</a>
       <a href="/use-cases/fitness">Fitness coaching</a><a href="/use-cases/reselling">Cook groups</a>
-      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a></nav>
+      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a>
+      <a href="/use-cases">All use cases</a></nav>
     <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
     <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
   </footer>`;
@@ -1459,13 +1468,15 @@ Competitor pricing referenced anywhere on this site is the publicly listed prici
 
 // sitemap + robots: the landing page plus every generated page. Store pages
 // are user content and terms/privacy/dashboard/account are noindex — none of
-// those belong in the sitemap.
+// those belong in the sitemap. /demo is the exception among store URLs: it is
+// the platform's own hosted demo (api/store-page.js, DEMO_SLUG) with a
+// hand-written head, indexable and linked from the homepage and /help.
 const urls = ['/', '/pricing', '/vs', ...Object.keys(COMPETITORS).map((s) => `/vs/${s}`), '/tools',
   '/tools/discord-fee-calculator', '/tools/whop-fee-calculator', '/tools/launchpass-fee-calculator', '/tools/patreon-fee-calculator', '/tools/doorfee-fee-calculator',
   '/use-cases', ...Object.keys(USE_CASES).map((s) => `/use-cases/${s}`),
   '/guides', ...Object.keys(GUIDES).map((s) => `/guides/${s}`),
   '/alternatives', ...Object.keys(ALTERNATIVES).map((s) => `/alternatives/${s}`),
-  '/discover', '/help'];
+  '/discover', '/help', '/demo'];
 const today = new Date().toISOString().slice(0, 10);
 emit(
   'sitemap.xml',

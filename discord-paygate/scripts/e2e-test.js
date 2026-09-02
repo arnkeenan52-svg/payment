@@ -2770,6 +2770,10 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.match(llms.body, /0% of sales/);
   assert.match(sm.body, /\/guides\/how-to-monetize-a-discord-server<\/loc>/);
   assert.match(sm.body, /\/alternatives\/subscord-alternatives<\/loc>/);
+  // The platform's own demo store is indexable, linked from the homepage and
+  // /help, and has a hand-written head — it is not tenant content, so it is
+  // the one store URL the sitemap lists.
+  assert.match(sm.body, /https:\/\/dues\.gg\/demo<\/loc>/, 'the hosted demo is in the sitemap');
   // Reach paths resolve to pages, never to a store.
   assert.equal((await fetch(`${appUrl}/api/plans?store=vs`)).status, 404);
   assert.equal((await fetch(`${appUrl}/api/plans?store=guides`)).status, 404);
@@ -2789,6 +2793,17 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
     assert.ok(home.body.includes(`href="${href}"`), `the homepage links ${href}`);
   }
   assert.match(home.body, /href="\/vs\/subscord"/, 'the homepage links the Subscord comparison');
+  // One URL per index page. The sitemap, the canonicals and the breadcrumbs
+  // all say /vs; the footer used to say /vs/ from 46 pages, so every index
+  // was linked under two URLs, and /use-cases under neither.
+  for (const [p, body] of [['/', home.body], ['/pricing', (await get('/pricing')).body], ['/vs/subscord', sub.body], ['/help', (await get('/help')).body]]) {
+    const slashed = [...body.matchAll(/href="(\/(?:vs|tools|guides|use-cases|alternatives)\/)"/g)].map((m) => m[1]);
+    assert.deepEqual(slashed, [], `${p} links an index page with a trailing slash`);
+  }
+  for (const idx of ['/vs', '/tools', '/guides', '/use-cases', '/alternatives']) {
+    assert.ok(sub.body.includes(`href="${idx}"`), `the generated footer links ${idx}`);
+    assert.ok(home.body.includes(`href="${idx}"`), `the homepage links ${idx}`);
+  }
 
 
   // The homepage's "Invite Dues" button: a stable hop to Discord's
