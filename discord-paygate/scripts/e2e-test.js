@@ -1479,6 +1479,17 @@ test('landing polish holds: one gutter, centred community CTA, Cash App logotype
     assert.doesNotMatch(r[1], /(^|;)\s*padding(-inline|-left|-right)\s*:/,
       '.pay takes one padding shorthand, not a separate horizontal gutter');
   }
+  // AND NOBODY ZEROES ITS RHYTHM. Both theme faces used to restyle .pay as a
+  // panel with `margin:0 auto 40px`. That shorthand sets margin-block too, and
+  // at specificity 0,2,1 it beat the margin-block written on the plain .pay
+  // rule — so the gap above the payment card read as applied and was not, on
+  // the live site, through two commits. Every .pay rule may centre itself; none
+  // may set a margin shorthand, because a shorthand carries the block axis with
+  // it. Matches `html[data-theme] .pay`, not just the bare selector.
+  for (const [, sel, body] of css.matchAll(/([^{}]*\.pay)\{([^}]*)\}/g)) {
+    assert.doesNotMatch(body, /(^|;)\s*margin\s*:/,
+      `${sel.trim()} must not set a margin shorthand — it would swallow the block rhythm`);
+  }
 
   // The community card centres everything; its one CTA is inside a flex row
   // with no justify-content, so it pinned to flex-start under centred copy.

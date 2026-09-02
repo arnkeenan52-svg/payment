@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Dues — Sell Discord access" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=208" />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=209" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -40,7 +40,7 @@
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=208" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=209" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline &#39;Monetize your community.&#39; and a field for claiming a store link" />
   <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -68,7 +68,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=208') format('woff2');
+  src:url('/jakarta-latin.woff2?v=209') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -486,7 +486,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#ffffff}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=208') center/cover;
+  background:url('/hero-poster.webp?v=209') center/cover;
 }
 .sky-card{
   position:absolute;z-index:3;display:flex;align-items:center;gap:10px;
@@ -523,7 +523,7 @@ html:not([data-theme="light"]) .microcopy,html:not([data-theme="light"]) .sec-ey
 html:not([data-theme="light"]) .sec-eyebrow{display:inline-block;padding:5px 12px;border-radius:10px;background:rgba(13,20,32,.74);border:1px solid rgba(255,255,255,.1)}
 html:not([data-theme="light"]) .mid-note,html:not([data-theme="light"]) .save-demo{padding:9px 14px;border-radius:12px;background:rgba(13,20,32,.62);border:1px solid rgba(255,255,255,.08)}
 html:not([data-theme="light"]) .save-demo{width:fit-content;max-width:100%;margin-inline:auto}
-html:not([data-theme="light"]) .pay{width:min(880px,100% - 32px);margin:0 auto 40px;padding:28px 20px 30px;border-radius:22px;background:rgba(13,20,32,.62);border:1px solid rgba(255,255,255,.08)}
+html:not([data-theme="light"]) .pay{width:min(880px,100% - 32px);margin-inline:auto;padding:28px 20px 30px;border-radius:22px;background:rgba(13,20,32,.62);border:1px solid rgba(255,255,255,.08)}
 @media (max-width:600px){html:not([data-theme="light"]) .pay{width:calc(100% - 24px);padding:24px 12px 26px}} /* the chip grid keeps the width it had, so Cash App stays on one line */
 /* the step cards ride the same navy glass for the same reason: --sec copy over
    a bright cloud measured well under 4.5:1 on open sky. */
@@ -2141,11 +2141,15 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
    is what step three looks like to a buyer, and as its own section it sat
    between two fee arguments answering a question nobody had asked yet. */
 .how{padding-block:72px 8px}
-/* the gap above the payment strip. It lives on the trio, not on .pay: the
-   night face restyles .pay as a panel with its own padding and margins and
-   would win any rule written there. One rhythm token, not a hand-picked clamp:
-   a whole section boundary of empty sky used to open between step three and
-   the strip that is step three's evidence. */
+/* The gap above the payment strip is now written on .pay itself, in the rhythm
+   block, and this is the trio's own closing margin — the two collapse and the
+   larger wins.
+   It used to live here BECAUSE it could not live there: both theme faces
+   restyled .pay as a panel with a `margin:0 auto 40px` shorthand, and that
+   shorthand (specificity 0,2,1) silently zeroed any margin-block written on
+   the plain .pay rule. A rule that looked applied and was not. Both faces now
+   set margin-inline only, so the block rhythm belongs to one place; there is a
+   pin below that fails if a margin shorthand comes back on .pay. */
 .how .trio{margin-bottom:var(--sec-y)}
 /* ── the three steps ──────────────────────────────────────────────────────
    Three centred paragraphs under three grey discs TOLD the mechanism and
@@ -2350,7 +2354,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
    page gutter, which is why it is theme-scoped — the same exemption the night
    panel takes, and it is written here rather than in the night block above so
    that block stays what it says it is. */
-html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;padding:28px 20px 30px;border-radius:22px;background:var(--glass);border:1px solid var(--glass-brd);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
+html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin-inline:auto;padding:28px 20px 30px;border-radius:22px;background:var(--glass);border:1px solid var(--glass-brd);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
 @media (max-width:600px){html[data-theme="light"] .pay{width:calc(100% - 24px);padding:24px 12px 26px}}
 
 /* ── phone footer blind: the desktop reveal, phantom-safe. JS turns on
@@ -2522,10 +2526,13 @@ html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;pa
 /* ── the vertical rhythm ── */
 .save{padding-block:var(--sec-y) var(--sec-y-tight)}
 .why{padding-block:var(--sec-y-tight)}
-/* The payment card closes the How-it-works section, so its top margin is a
-   SECTION gap, not the tight one. At --sec-y-tight the glass panel sat
-   almost against the last setup step and read as a fourth step. */
-.pay{margin-block:var(--sec-y) var(--sec-y)}
+/* The payment card closes the How-it-works section, and the gap above it is a
+   FULL movement boundary — 2x--sec-y, the same break this rhythm puts between
+   two movements. One --sec-y was still one step's worth of air, and the trio's
+   own bottom margin collapses into it, so the glass panel landed close enough
+   to "03 Get paid" to read as an 04. Nothing above it is a step; it answers a
+   different question. */
+.pay{margin-block:calc(var(--sec-y) * 2) var(--sec-y)}
 .how,.voices,.comm{padding-block:var(--sec-y)}
 .faq{padding-block:var(--sec-y) calc(var(--sec-y) * 1.5)}
 /* CLEARANCE UNDER THE FOLD, and it is sky on purpose. Sits AFTER the rhythm
@@ -3077,7 +3084,7 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
   </div>
 </footer>
 
-<script src="/sky.js?v=208" defer></script>
+<script src="/sky.js?v=209" defer></script>
 <script>
 (function(){
   'use strict';
