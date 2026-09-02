@@ -2717,11 +2717,13 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   var tintFrame = 0;
   // Read from the stylesheet's own tokens rather than repeating their values
   // here, so the tag a browser reads and the colour the page paints cannot
-  // drift apart. --ui-tint is the sky; --foot-end is the colour the footer
-  // gradient finishes on, and it is what the bottom of the screen must report
-  // once the footer owns it. iOS uses ONE theme-color for the strips at both
-  // ends of the window, and by the time the footer is on screen it is the only
-  // thing on screen, so following it is right at both ends.
+  // drift apart. --ui-tint is the sky; --foot-edge is the colour the footer is
+  // SEEN to finish on — its last gradient stop composited with the .footer::after
+  // shade, not the nominal stop --foot-end, which is what leaves a seam — and it
+  // is what the bottom of the screen must report once the footer owns it. iOS
+  // uses ONE theme-color for the strips at both ends of the window, and by the
+  // time the footer is on screen it is the only thing on screen, so following
+  // it is right at both ends.
   var tintWant = function(){
     var d = document.documentElement;
     var css = getComputedStyle(d);
@@ -3078,15 +3080,6 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   // to the viewport that the old innerHeight-based check could flip mid-
   // gesture and reflow the footer under the visitor's thumb. Falls back to
   // innerHeight where lvh is unsupported (the probe measures 0).
-  // svh, NOT lvh. This is the whole bug in one unit. 100lvh is the viewport
-  // with iOS Safari's toolbars COLLAPSED — the most generous number the device
-  // will ever report. The reveal, though, happens while someone is scrolling,
-  // which is exactly when the toolbars are SHOWING and the usable height is
-  // ~90px smaller. Measuring the fit against lvh armed the blind for a footer
-  // that then could not fit on screen: it pinned, and its top sat above the
-  // visible area, so the reveal never completed. It worked in every desktop
-  // emulator, where lvh and svh are the same number, and only ever failed on a
-  // real phone.
   // ONE probe, read in two units, because the fit needs both and they are the
   // same number in every desktop engine — which is exactly why this kept
   // passing a check and failing a phone. 100lvh is the viewport with iOS
