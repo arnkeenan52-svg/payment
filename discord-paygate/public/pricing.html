@@ -1779,6 +1779,26 @@ html:not([data-theme="light"]) .tog-save{color:#3ddc84}
    the sky copy outside the cards gets a soft shadow for the same reason. */
 html:not([data-theme="light"]) .plan{background:rgba(15,13,34,.62)}
 html:not([data-theme="light"]) .microcopy,html:not([data-theme="light"]) .sec-eyebrow,html:not([data-theme="light"]) .mid-note,html:not([data-theme="light"]) .pay-cap,html:not([data-theme="light"]) .pay-note,html:not([data-theme="light"]) .fees-note,html:not([data-theme="light"]) .plan-name i,html:not([data-theme="light"]) .plan-note,html:not([data-theme="light"]) .hero-sub,html:not([data-theme="light"]) .page-hero-sub{text-shadow:0 1px 2px rgba(6,10,24,.55)}
+/* Night, the rest of it: the shadow above buys about one stop, and the cloud
+   bodies the shader paints (luminance to ~0.17) still leave this copy under
+   4.5:1 whenever one drifts behind it — the 5th percentile measured 2.3–3.7
+   on the eyebrow and the hero sub. Dimming the whole sky enough to fix that
+   is ~55% black, which is no sky at all, and a filter on the canvas dims just
+   as much and adds a compositing pass per frame on phones. So the copy that
+   sits on the open sky rides the navy glass the plan cards already use:
+   the eyebrow as a pill, the notes as plates, the hero copy on a soft
+   vignette. .62 is the plan-card value (5.2:1 for --micro over the brightest
+   cloud); the eyebrow blue is darker than the greys and needs .74; the --sec
+   hero copy clears on .5. */
+html:not([data-theme="light"]) .sec-eyebrow{display:inline-block;padding:5px 12px;border-radius:10px;background:rgba(13,20,32,.74);border:1px solid rgba(255,255,255,.1)}
+html:not([data-theme="light"]) .fees-note,html:not([data-theme="light"]) .faq-cta .microcopy{padding:9px 14px;border-radius:12px;background:rgba(13,20,32,.62);border:1px solid rgba(255,255,255,.08)}
+html:not([data-theme="light"]) .faq-cta .microcopy{width:fit-content;max-width:100%;margin-inline:auto}
+html:not([data-theme="light"]) .page-hero{position:relative}
+html:not([data-theme="light"]) .page-hero::before{
+  content:"";position:absolute;top:calc(50% + 66px);left:50%;width:1440px;height:760px;transform:translate(-50%,-50%);
+  z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(13,20,32,.5) 0,rgba(13,20,32,.5) 55%,rgba(13,20,32,0) 100%);
+}
 .fee-chip{background:var(--glass);border:1px solid var(--glass-brd);color:var(--sec)}
 .plan{
   color:var(--ink);

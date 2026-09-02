@@ -957,6 +957,46 @@ test('the iOS status-bar strip is on every themed page, with both of its colours
   );
 });
 
+test('night: the small copy on the open sky rides navy glass on both marketing pages', async () => {
+  // The night face puts eyebrows, notes and the hero sub straight over the
+  // procedural cloud canvas. A text-shadow and lighter greys got the medians
+  // past 4.5:1, but a bright cloud body behind the copy still measured 3.0–4.0
+  // at the 5th percentile (worst: the payment note and the /pricing eyebrow),
+  // and the clouds drift, so any placement is only luck. Dimming the whole sky
+  // enough to fix it would need ~55% black. Instead the copy sits on the same
+  // navy glass the plan cards already use — eyebrow chips at .74 (the blue is
+  // darker than the greys), plates and the payment panel at .62, a .5 vignette
+  // behind the hero copy — every rule scoped to the night face, so the day
+  // face is untouched. Measured after: every element 6.9:1+ at the 5th
+  // percentile at 390 and 1440. This holds the rules in place.
+  const glass = /html:not\(\[data-theme="light"\]\) \.sec-eyebrow\{display:inline-block;[^}]*background:rgba\(13,20,32,\.74\)/;
+  const vignette = /radial-gradient\(ellipse 50% 50% at 50% 50%,rgba\(13,20,32,\.5\) 0,rgba\(13,20,32,\.5\) 55%,rgba\(13,20,32,0\) 100%\)/;
+  const home = await (await fetch(`${appUrl}/`)).text();
+  assert.match(home, glass, '/ eyebrows must sit on a night chip');
+  assert.match(home, /html:not\(\[data-theme="light"\]\) \.mid-note,html:not\(\[data-theme="light"\]\) \.save-demo\{[^}]*background:rgba\(13,20,32,\.62\)/, '/ notes must sit on a night plate');
+  assert.match(home, /html:not\(\[data-theme="light"\]\) \.pay\{[^}]*background:rgba\(13,20,32,\.62\)/, '/ payment band must be a night panel');
+  assert.match(home, /html:not\(\[data-theme="light"\]\) \.hero-core::before\{[^}]*\}/, '/ hero copy must have its night vignette');
+  assert.match(home, vignette, '/ vignette must keep its soft plateau');
+  const pricing = await (await fetch(`${appUrl}/pricing`)).text();
+  assert.match(pricing, glass, '/pricing eyebrow must sit on a night chip');
+  assert.match(pricing, /html:not\(\[data-theme="light"\]\) \.fees-note,html:not\(\[data-theme="light"\]\) \.faq-cta \.microcopy\{[^}]*background:rgba\(13,20,32,\.62\)/, '/pricing notes must sit on a night plate');
+  assert.match(pricing, /html:not\(\[data-theme="light"\]\) \.page-hero::before\{[^}]*\}/, '/pricing hero copy must have its night vignette');
+  assert.match(pricing, vignette, '/pricing vignette must keep its soft plateau');
+  // and none of it leaks into the day face: every selector the block adds is
+  // scoped to html:not([data-theme="light"]).
+  for (const [path, html] of [['/', home], ['/pricing', pricing]]) {
+    const start = html.indexOf('/* Night, the rest of it:');
+    const block = html.slice(start, html.indexOf(path === '/' ? '.sky-card b{' : '.fee-chip{', start));
+    assert.ok(block.length > 200 && block.length < 6000, `${path} night block must sit where it was written`);
+    for (const line of block.replace(/\/\*[\s\S]*?\*\//g, '').split('\n')) {
+      const t = line.trim();
+      if (!t || /^[a-z-]+:|^\}$/.test(t)) continue;
+      if (t.startsWith('@media')) assert.match(t, /^@media \([^)]*\)\{html:not\(\[data-theme="light"\]\)/, `${path}: ${t.slice(0, 60)} must be night-scoped`);
+      else assert.match(t, /^html:not\(\[data-theme="light"\]\)/, `${path}: ${t.slice(0, 60)} must be night-scoped`);
+    }
+  }
+});
+
 test('the favicon is square, big enough for search surfaces, and at a url that does not move', async () => {
   // Google Search fetches /favicon.ico by default. Its stated rules are that
   // the file be square and at least 8x8, with "we recommend using a favicon
