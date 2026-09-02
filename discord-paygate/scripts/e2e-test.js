@@ -6555,7 +6555,7 @@ test('an option of a switched-off product is not for sale on either rail', async
 test('the discount preview budgets misses, so it cannot be walked as an oracle', async () => {
   const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf);
   const cookie = await signInAs('code_np_guess', '529900000000000029', 'np_guess');
-  const ask = (code, headers = {}) => fetch(`${appUrl}/api/discount?store=vip-signals&code=${code}&plan=${plan.id}`, { headers });
+  const ask = (code, headers = {}, store = 'vip-signals') => fetch(`${appUrl}/api/discount?store=${store}&code=${code}&plan=${store === 'vip-signals' ? plan.id : 'vip-access'}`, { headers });
   assert.equal((await ask('LAUNCH20', { cookie })).status, 200, 'a real code previews');
   for (let i = 0; i < 8; i += 1) {
     assert.equal((await ask(`GUESS${i}`, { cookie })).status, 404);
@@ -6588,24 +6588,16 @@ test('the discount preview budgets misses, so it cannot be walked as an oracle',
   }
   assert.equal((await ask('LAUNCH20', { 'x-forwarded-for': '10.9.9.9' })).status, 200, 'a real code still previews once a store is over its cap');
   assert.equal((await ask('NOPE', { 'x-forwarded-for': '10.9.9.9' })).status, 429, 'guessing past the store cap is refused');
-});
 
   // The budget is in the database, not in the process. This ships as
   // serverless functions: a module-level Map is a fresh eight answers on
   // every instance and every cold start, which is no budget at all.
   assert.ok(Number((await tq('SELECT COUNT(*) AS n FROM discount_misses WHERE asker = ?', [`u:${'529900000000000029'}`])).rows[0].n) >= 8,
     "the asker's misses are counted in shared storage");
-  // And no store-wide budget: a stranger with a spread of addresses must not
-  // be able to switch a seller's advertised code off for every buyer. Every
-  // one of these askers stays inside their own eight, and none is refused.
-  for (let ip = 0; ip < 45; ip += 1) {
-    for (let i = 0; i < 8; i += 1) {
-      const r = await ask(`WALK${ip}X${i}`, { 'x-forwarded-for': `198.51.100.${ip}` });
-      assert.equal(r.status, 404, `a fresh asker is answered on their own budget (${ip}/${i})`);
-    }
-  }
-  assert.equal((await ask('LAUNCH20', { 'x-forwarded-for': '203.0.113.77' })).status, 200,
-    "360 misses across the store later, the seller's real code still previews for everybody else");
+  // A store that is not being walked serves everybody normally, cap or no cap:
+  // the count is per store, so one store's flood is not another's outage.
+  assert.equal((await ask('NOPE', { 'x-forwarded-for': '198.51.100.4' }, 'demo')).status, 404,
+    "a quiet store still answers a stranger's miss");
 });
 
 
