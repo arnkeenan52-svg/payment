@@ -578,7 +578,7 @@ async function nowpaymentsHandler(req, res) {
   if (url.pathname === '/merchant/coins' && req.method === 'GET') {
     // Deliberately UPPERCASE: tickers are compared lowercase everywhere, and
     // the provider is not consistent about which it sends.
-    json(res, 200, { selectedCurrencies: ['BTC', 'SOL', 'USDTSOL', 'ETH'] });
+    json(res, 200, { selectedCurrencies: nowpayments.noCoins ? [] : ['BTC', 'SOL', 'USDTSOL', 'ETH'] });
     return;
   }
   if (url.pathname === '/min-amount' && req.method === 'GET') {
@@ -4407,8 +4407,15 @@ test('crypto: checkout creates a payment carrying the payout address and its own
   const caps = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).capabilities;
   assert.equal(caps.nowpayments, true, 'a wallet plus credentials is what turns the rail on');
 
+  // Every coin toggled off in the dashboard (or a response of a shape the
+  // parser does not know) is "nothing to pay with", not a ready picker —
+  // and it must not be remembered: the very next request asks again.
+  nowpayments.noCoins = true;
+  const none = await (await fetch(`${appUrl}/api/checkout/crypto?coins=1&store=vip-signals`)).json();
+  assert.deepEqual(none, { ready: false, coins: [] }, 'an empty coin list is not a ready rail');
+  nowpayments.noCoins = false;
   const coins = await (await fetch(`${appUrl}/api/checkout/crypto?coins=1&store=vip-signals`)).json();
-  assert.equal(coins.ready, true);
+  assert.equal(coins.ready, true, 'the empty answer was not cached');
   assert.deepEqual(coins.coins, ['sol', 'usdtsol', 'btc', 'eth'], 'tickers arrive lowercased and cheapest chains first');
 
   const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();

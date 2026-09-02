@@ -84,7 +84,10 @@ export default guard(async function handler(req, res) {
         return;
       }
       try {
-        sendJson(res, 200, { ready: true, coins: await merchantCoins() });
+        // No coins is the same answer as no wallet: nothing here can be paid
+        // with, so say so instead of offering an empty picker.
+        const coins = await merchantCoins();
+        sendJson(res, 200, { ready: coins.length > 0, coins });
       } catch (err) {
         console.error(`[checkout] nowpayments coin list failed: ${err.message}`);
         sendJson(res, 502, { error: 'Could not load the coin list just now.' });

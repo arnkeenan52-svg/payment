@@ -125,7 +125,11 @@ export async function merchantCoins() {
       .map((c) => c.ticker);
   })();
   coinCache = { at, promise };
-  promise.catch(() => { coinCache = null; });
+  // An empty list is answered but never remembered. It is what a response
+  // of an unexpected shape decodes to, and what a dashboard with every coin
+  // toggled off returns — either way the next request should ask again
+  // rather than refuse every coin for five minutes.
+  promise.then((list) => { if (!list.length && coinCache?.promise === promise) coinCache = null; }, () => { coinCache = null; });
   return promise;
 }
 
