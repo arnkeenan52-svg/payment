@@ -280,8 +280,15 @@ export default guard(async function handler(req, res) {
     // problem the buyer can do nothing about.
     if (/minim|too small/i.test(err.message)) {
       // The minimum is per pair, and the pair is the buyer's coin into the
-      // SELLER's payout coin — the same one createPayment just asked for.
-      const min = await minimumFor(payCurrency, String(store.cryptoChain || payCurrency).toLowerCase()).catch(() => null);
+      // SELLER's payout coin — the same one createPayment just asked for, on
+      // the same fixed-rate fee-paid-by-user flow, which the provider warns
+      // has its own floor. The order's own currency is asked for too, so the
+      // fiat fallback below has something to fall back to.
+      const min = await minimumFor(
+        payCurrency,
+        String(store.cryptoChain || payCurrency).toLowerCase(),
+        { fiatEquivalent: currency },
+      ).catch(() => null);
       const amt = min?.min_amount ?? min?.fiat_equivalent ?? null;
       sendJson(res, 409, {
         error: amt

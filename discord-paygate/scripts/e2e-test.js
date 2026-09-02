@@ -614,11 +614,16 @@ async function nowpaymentsHandler(req, res) {
     return;
   }
   if (url.pathname === '/merchant/coins' && req.method === 'GET') {
+    // The key is `currencies`. That is the one NOWPayments documents for this
+    // endpoint and the only one in their sample response; `selectedCurrencies`
+    // appears nowhere in their material, so a mock that answers with it alone
+    // proves the rail against a shape the provider does not send.
+    //
     // Deliberately UPPERCASE: tickers are compared lowercase everywhere, and
     // the provider is not consistent about which it sends. XMR is enabled for
     // DEPOSITS only — see validate-address below — which is the case the
     // payout gate must not confuse with "available for payouts".
-    json(res, 200, { selectedCurrencies: nowpayments.noCoins ? [] : ['BTC', 'SOL', 'USDTSOL', 'ETH', 'XMR'] });
+    json(res, 200, { currencies: nowpayments.noCoins ? [] : ['BTC', 'SOL', 'USDTSOL', 'ETH', 'XMR'] });
     return;
   }
   if (url.pathname === '/payout/validate-address' && req.method === 'POST') {
@@ -646,13 +651,22 @@ async function nowpaymentsHandler(req, res) {
     nowpayments.minAmount.push({
       from: url.searchParams.get('currency_from'),
       to: url.searchParams.get('currency_to'),
-      // The floor is per FLOW as well as per pair — fixed-rate minimums run
-      // higher than standard-rate ones — so the create flags have to ride
-      // along or the quoted figure is one the payment would refuse.
+      // The flow the floor is asked about. NOWPayments: these "allow you to
+      // see current minimum amounts for corresponsing flows (it may differ
+      // from the standard flow!)" — so a quote taken without them is a
+      // different number from the one the payment we create is judged by.
       fixedRate: url.searchParams.get('is_fixed_rate'),
       feePaidByUser: url.searchParams.get('is_fee_paid_by_user'),
+      fiat: url.searchParams.get('fiat_equivalent'),
     });
-    json(res, 200, { min_amount: 0.004, currency_from: url.searchParams.get('currency_from') });
+    // fiat_equivalent is returned only when it was asked for — the provider
+    // documents it as "(Optional) Get the fiat equivalent", not as a field
+    // every answer carries.
+    json(res, 200, {
+      min_amount: 0.004,
+      currency_from: url.searchParams.get('currency_from'),
+      ...(url.searchParams.get('fiat_equivalent') ? { fiat_equivalent: 12.5 } : {}),
+    });
     return;
   }
   if (url.pathname === '/payment' && req.method === 'POST') {
@@ -5884,6 +5898,10 @@ test('crypto: checkout creates a payment carrying the payout address and its own
   nowpayments.noCoins = false;
   const coins = await (await fetch(`${appUrl}/api/checkout/crypto?coins=1&store=vip-signals`)).json();
   assert.equal(coins.ready, true, 'the empty answer was not cached');
+  // Read out of the key NOWPayments actually documents for /v1/merchant/coins
+  // — their sample answers `{"currencies": [...]}`, and `selectedCurrencies`
+  // appears nowhere in their docs. The parser tolerates both; this is the one
+  // that has to work.
   assert.deepEqual(coins.coins, ['sol', 'usdtsol', 'btc', 'eth', 'xmr'], 'tickers arrive lowercased and cheapest chains first');
 
   const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
@@ -5922,6 +5940,20 @@ test('crypto: checkout creates a payment carrying the payout address and its own
   assert.equal(sent.ipn_callback_url, 'https://tradeleaks.e2e/api/webhooks/nowpayments', 'there is no IPN field in the dashboard, so it rides on every create');
   assert.equal(sent.price_amount, plan.priceUsd);
   assert.equal(sent.order_id, order.orderId);
+  // The three fields NOWPayments marks required on POST /v1/payment, and the
+  // pair of flow flags every payment here rides on. `is_fee_paid_by_user`
+  // cannot stand alone — the provider forces fixed rate under it — so sending
+  // it without `is_fixed_rate` would leave the fixed-rate quote the pay screen
+  // counts down to as an accident rather than a request.
+  assert.deepEqual(
+    { p: typeof sent.price_amount, c: sent.price_currency, pc: sent.pay_currency, fr: sent.is_fixed_rate, fee: sent.is_fee_paid_by_user },
+    { p: 'number', c: 'usd', pc: 'sol', fr: true, fee: true },
+  );
+  // pay_amount is left out ON PURPOSE: it is optional, and omitting it is what
+  // makes the provider convert price_amount at ITS rate. Filling it in would
+  // quote the buyer a coin figure of our own that the invoice is then judged
+  // against.
+  assert.equal('pay_amount' in sent, false, 'the coin figure is the provider\'s to compute, not ours to assert');
 
   // The order row exists BEFORE any money can move — it is the only mapping
   // back from an IPN to which buyer bought what.
@@ -6625,6 +6657,13 @@ test('crypto: waiting and partially_paid show progress and grant nothing', async
   assert.equal(view.state, 'short');
   assert.match(view.message, /still outstanding/);
   assert.match(view.message, /SOL/, 'same-coin shortfalls can also be quoted in the coin');
+  // A top-up to a used deposit address is a REPEATED DEPOSIT: NOWPayments
+  // "will automatically create a new payment with another id", so the payment
+  // this screen polls stays partially_paid whatever the buyer sends next.
+  // Telling them to send the difference to finish it promises a completion
+  // this rail cannot show them.
+  assert.doesNotMatch(view.message, /same address to complete/i, 'the provider does not complete this payment from a second deposit');
+  assert.match(view.message, /separate payment/, 'say what a second deposit actually does');
 
   // Somebody else's order is not readable, however guessable the id is.
   const other = await fetch(`${appUrl}/api/checkout/crypto?store=vip-signals&order=${npOrder.orderId}`, {
@@ -6648,6 +6687,32 @@ test('crypto: a wrong-asset deposit is judged on fiat, never on the coin that wa
     'telling someone who paid in another coin to send more SOL is worse than saying nothing',
   );
   assert.equal(settledFiat(payment), payment.actually_paid_at_fiat);
+});
+
+test('crypto: a short payment the provider priced no fiat on quotes no figure at all', async () => {
+  // `actually_paid_at_fiat` is documented on the IPN body and on nothing else:
+  // NOWPayments' own sample response for GET /v1/payment/:id — the call the
+  // pay screen polls through — does not carry the field, and their IPN example
+  // ships it as 0. So the field being absent is the ORDINARY case on this
+  // path, not an edge one, and it is the only field that says what a deposit
+  // was worth independently of the coin the invoice asked for.
+  //
+  // Without it there is no shortfall anyone can name. The buyer gets the
+  // figureless wording; nothing derives a dollar amount from the coin ratio,
+  // because that ratio assumes the deposit was in pay_currency, which is the
+  // one thing an underpayment on a wrong-asset account may not have been.
+  const payment = nowpayments.payments.get('npid_1');
+  payment.payment_status = 'partially_paid';
+  payment.actually_paid = 0.35;
+  delete payment.actually_paid_at_fiat;
+
+  const view = await (await fetch(`${appUrl}/api/checkout/crypto?store=vip-signals&order=${npOrder.orderId}`, {
+    headers: { cookie: npBuyerCookie },
+  })).json();
+  assert.equal(view.state, 'short');
+  assert.doesNotMatch(view.message, /\d/, 'no fiat figure, no number quoted — an invented one reads as fact');
+  assert.doesNotMatch(view.message, /SOL/, 'and no coin figure either');
+  assert.match(view.message, /separate payment/, 'the honest instruction still stands');
 });
 
 test('crypto: finished grants a fixed term, and the same IPN twice grants once', async () => {
@@ -7001,10 +7066,14 @@ test("crypto: an open invoice holds its seat and its discount use for the invoic
   const under = await start(aCookie, { planId: tiny.planKey, payCurrency: 'btc' });
   assert.equal(under.status, 409);
   assert.match((await under.json()).error, /network minimum of about 0\.004 BTC/);
+  // Both halves of the pair AND the flow. Every payment this rail creates is
+  // fixed-rate with the fee paid by the user, and NOWPayments documents a
+  // different floor for that flow than for the standard one — a minimum
+  // fetched without the flags is a number from a flow the buyer is not on.
   assert.deepEqual(
     nowpayments.minAmount.at(-1),
-    { from: 'btc', to: 'sol', fixedRate: 'true', feePaidByUser: 'true' },
-    'the minimum quoted is the one that refused the order — same pair AND same flow the payment was created on',
+    { from: 'btc', to: 'sol', fixedRate: 'true', feePaidByUser: 'true', fiat: 'usd' },
+    'the minimum quoted is the one that refused the order, on the flow that refused it',
   );
   assert.deepEqual(
     nowpayments.created.at(-1) === undefined
