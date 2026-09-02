@@ -5627,6 +5627,101 @@ test('the discount preview budgets misses, so it cannot be walked as an oracle',
   assert.equal((await ask('LAUNCH20')).status, 200, "another asker's budget is their own");
 });
 
+
+test('crypto: buyer-facing copy never promises a renewal or a cancellation the rail cannot do', async () => {
+  // A crypto grant is a fixed term (periodEnd null → plan.durationDays) that
+  // no one can cancel (/api/subscription refuses non-stripe refs) and that
+  // never renews. The storefront and /account are plain browser scripts, so
+  // the two copy expressions are lifted out of the source and evaluated
+  // rather than matched as strings: a copy edit is fine, a promise is not.
+  const app = fs.readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  const assureExpr = app.match(/assure\.textContent = ([\s\S]*?);\n\s*area\.append\(assure\)/)?.[1];
+  assert.ok(assureExpr, 'the note under the pay button must still be a single expression');
+  const assure = new Function('plan', 'crypto', 'termDays', `return (${assureExpr});`);
+  const monthly = { lifetime: false, durationDays: 30 };
+  assert.match(assure(monthly, false, 30), /cancel anytime/i, 'a card membership really can be cancelled from /account');
+  const cryptoNote = assure(monthly, true, 30);
+  assert.doesNotMatch(cryptoNote, /cancel/i, 'nothing on a crypto term can be cancelled — do not say it');
+  assert.match(cryptoNote, /nothing renews|does not renew|no renewal/i, 'the crypto note must say the term does not renew');
+  assert.match(cryptoNote, /\b30 days\b/, 'the fixed term is the one fact the buyer needs');
+  assert.doesNotMatch(assure({ lifetime: true, durationDays: null }, true, NaN), /cancel|renews/i);
+
+  const account = fs.readFileSync(new URL('../public/account.js', import.meta.url), 'utf8');
+  const expiryExpr = account.match(/const expiry = ([\s\S]*?);\n\s*const roles/)?.[1];
+  assert.ok(expiryExpr, '/account must still describe the term in one expression');
+  const expiry = new Function('sub', 'fmtDate', `return (${expiryExpr});`);
+  const fmt = (t) => `<${t}>`;
+  const base = { lifetime: false, cancelsAt: null, entitled: true, currentPeriodEnd: 1_800_000_000, graceUntil: null };
+  assert.match(expiry({ ...base, provider: 'stripe' }, fmt), /^Renews <1800000000>/);
+  for (const provider of ['nowpayments', 'coinbase']) {
+    const text = expiry({ ...base, provider }, fmt);
+    assert.doesNotMatch(text, /renews <|will renew|auto-renew(?!s\b)/i, `${provider}: nothing will charge again, so it must not say Renews`);
+    assert.match(text, /ends <1800000000>/i, `${provider}: the buyer is told the date the role goes away`);
+  }
+});
+
+test('crypto: an IPN the runtime already parsed is still verified, not answered with a blanket 400', async () => {
+  // The NOWPayments signature is over a sorted re-serialisation of the JSON,
+  // not the wire bytes — so unlike Stripe's, a body the platform pre-parsed
+  // onto req.body is still verifiable. A runtime change that starts doing
+  // that must not turn into 400 on every delivery (and every sale lost).
+  const { Readable } = await import('node:stream');
+  const { config: appConfig } = await import('../src/config.js');
+  const { default: npWebhook } = await import('../api/webhooks/nowpayments.js');
+  const makeRes = () => {
+    const res = { statusCode: 0, body: '', headersSent: false };
+    res.writeHead = (code) => ((res.statusCode = code), (res.headersSent = true), res);
+    res.end = (chunk) => ((res.body += chunk ?? ''), res);
+    return res;
+  };
+  const makeReq = (sig) => {
+    const req = new Readable({ read() {} });
+    req.method = 'POST';
+    req.url = '/api/webhooks/nowpayments';
+    req.headers = { 'x-nowpayments-sig': sig };
+    return req;
+  };
+  // The handler runs in THIS process, whose config never saw the rail's
+  // credentials; lend it the suite's, then hand them back.
+  const saved = { apiKey: appConfig.nowpayments.apiKey, ipnSecret: appConfig.nowpayments.ipnSecret, released: process.env.NOWPAYMENTS_RELEASED };
+  appConfig.nowpayments.apiKey = NOW_KEY;
+  appConfig.nowpayments.ipnSecret = NOW_IPN_SECRET;
+  process.env.NOWPAYMENTS_RELEASED = '1';
+  try {
+    // No payment_id, so a delivery whose signature verifies stops at the
+    // payload check — which is only reachable if the pre-parsed object was
+    // the thing signed and verified.
+    const payload = { payment_status: 'finished', order_id: 'np_preparsed' };
+    const reqA = makeReq(signNow(payload));
+    Object.defineProperty(reqA, 'body', { value: payload, configurable: true });
+    const resA = makeRes();
+    await npWebhook(reqA, resA);
+    assert.deepEqual({ status: resA.statusCode, body: resA.body }, { status: 400, body: 'invalid payload' });
+
+    const reqB = makeReq(signNow(payload, 'the-wrong-secret'));
+    Object.defineProperty(reqB, 'body', { value: payload, configurable: true });
+    const resB = makeRes();
+    await npWebhook(reqB, resB);
+    assert.deepEqual({ status: resB.statusCode, body: resB.body }, { status: 400, body: 'invalid signature' }, 'a pre-parsed body is verified, never trusted');
+
+    // Vercel's LAZY getter: the stream is read and the getter never touched.
+    const reqC = makeReq(signNow(payload));
+    let getterTouched = false;
+    Object.defineProperty(reqC, 'body', { get() { getterTouched = true; return {}; }, configurable: true });
+    reqC.push(JSON.stringify(payload));
+    reqC.push(null);
+    const resC = makeRes();
+    await npWebhook(reqC, resC);
+    assert.deepEqual({ status: resC.statusCode, body: resC.body }, { status: 400, body: 'invalid payload' });
+    assert.equal(getterTouched, false, 'probing req.body would consume the stream');
+  } finally {
+    appConfig.nowpayments.apiKey = saved.apiKey;
+    appConfig.nowpayments.ipnSecret = saved.ipnSecret;
+    if (saved.released === undefined) delete process.env.NOWPAYMENTS_RELEASED;
+    else process.env.NOWPAYMENTS_RELEASED = saved.released;
+  }
+});
+
 // ═══ runner ═══════════════════════════════════════════════════════════════════
 
 async function main() {

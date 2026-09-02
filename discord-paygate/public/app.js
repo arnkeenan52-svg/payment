@@ -507,12 +507,18 @@ function renderCta() {
   btn.onclick = () => pay(btn, plan);
   area.append(btn);
   // One quiet, factual line under the buy action: renewing plans really can
-  // be cancelled from /account; lifetime plans really never bill again.
+  // be cancelled from /account; lifetime plans really never bill again. A
+  // crypto term is neither: there is no card to charge again, so the grant
+  // is a fixed term that simply ends — nothing renews and nothing is there
+  // to cancel. Promising "cancel anytime" on that rail would be a lie.
   const assure = document.createElement('p');
   assure.className = 'pay-assure';
+  const termDays = Number(plan.durationDays);
   assure.textContent = plan.lifetime
     ? 'One-time payment — no renewals, ever.'
-    : 'Cancel anytime from your account.';
+    : crypto
+      ? `One-time payment for ${termDays > 0 ? `${termDays} days` : 'a fixed term'} of access — nothing renews, nothing is charged again.`
+      : 'Cancel anytime from your account.';
   area.append(assure);
 }
 
