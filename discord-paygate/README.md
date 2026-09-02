@@ -330,8 +330,16 @@ Three provider behaviours the code is built around:
 
 The IPN carries no timestamp or nonce, so there is nothing to bound a replay
 against: the webhook re-reads the payment from the API and acts on its current
-state, and claims idempotency on `payment_id:payment_status` (keying on the id
-alone would let the first `waiting` delivery swallow the `finished` one).
+state. Idempotency is claimed on the **work**, not the delivery —
+`payment_id:finished`, taken once the re-read says finished and retakeable
+after five minutes if the order is still open (an invocation killed mid-grant)
+— so several deliveries that all re-read `finished` grant, count the discount
+and ping the seller exactly once. A delivery that says `finished` while the
+re-read has not caught up is answered 503 so the provider brings it back; a
+200 there would have consumed the only `finished` the payment ever sends. The
+hourly cron backstops lost IPNs: every open crypto order older than an hour is
+looked up at the provider, a finished one is processed through the same
+handler, an expired one is closed.
 Payout addresses are checksum-validated per chain — EIP-55, base58check with
 version bytes, bech32/bech32m — and typed twice before they will save.
 
