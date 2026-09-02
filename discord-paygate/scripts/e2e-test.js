@@ -1201,6 +1201,39 @@ test('the free look: colours on every plan, wallpapers on a paid one', async () 
     `every paid plan must advertise all ${total} backgrounds`);
 });
 
+test('the landing runs in the order a seller decides in: what it is, then how, then what it costs', () => {
+  // The page used to open on a fee calculator. The first thing a first-time
+  // visitor was asked to do was arithmetic about a product they had not been
+  // told the shape of yet, and the step-by-step that explains that shape sat
+  // two sections further down, behind two separate fee arguments. The order
+  // below is the order of the decision: what is this (hero, marquee) → can I
+  // do it (how it works, closed by what a buyer can pay with) → what does it
+  // cost me (the calculator) → does it work for people like me (voices,
+  // community) → what else do I need to know (FAQ).
+  const index = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  const seen = [...index.matchAll(/<(?:section|header|footer) [^>]*class="([a-z-]+)[ "]/g)].map((m) => m[1]);
+  assert.deepEqual(seen, ['hero', 'rolemarq', 'how', 'save', 'voices', 'comm', 'faq', 'footer'],
+    'the landing sections, in order');
+  assert.ok(index.indexOf('id="how"') < index.indexOf('id="save"'),
+    'the step-by-step is read before the calculator, not after it');
+
+  // ONE three-column icon row on the page. There were two, one section apart,
+  // built from the same .trio component and arguing the same thing: the fee
+  // trio said what a percentage costs, which is what the calculator already
+  // shows with the visitor's own numbers.
+  assert.equal([...index.matchAll(/<div class="trio">/g)].length, 1, 'one .trio band, not two');
+
+  // Both mid-page bands open the same way — eyebrow, display line — so the
+  // page reads in one voice instead of four private heading scales.
+  for (const sec of ['how', 'save']) {
+    const band = index.slice(index.indexOf(`class="${sec} wrap"`));
+    assert.match(band.slice(0, 400), /<div class="band-head">\s*<p class="sec-eyebrow">[A-Z ]+<\/p>\s*<h2 class="sec-display">/,
+      `the ${sec} band opens on the shared eyebrow + display head`);
+  }
+  // and the calculator card no longer repeats that head inside itself.
+  assert.doesNotMatch(index, /class="save-sub"/, 'the calculator card does not restate the head above it');
+});
+
 test('landing polish holds: one gutter, centred community CTA, Cash App logotype, comments that match the code', () => {
   // Each of these was a real regression on the landing page and every one is
   // invisible to the HTTP-level scenarios, so they are pinned at the source.
@@ -1240,9 +1273,21 @@ test('landing polish holds: one gutter, centred community CTA, Cash App logotype
     }
   }
   assert.equal(gutters.index, gutters.pricing, 'the landing and /pricing share one gutter at both widths');
-  // the payment strip sits between .why and .how; it is only in line with them
-  // because it is a .wrap too, not because it repeats the number.
-  assert.match(index, /<section class="pay wrap">/, 'the payment strip takes its gutter from .wrap');
+  // the payment strip is no longer a section of its own: it closes "How it
+  // works", so it inherits that section's .wrap gutter rather than declaring
+  // one. What has to hold is that it never grows its own horizontal padding.
+  assert.match(index, /<section class="how wrap" id="how">[\s\S]*?<div class="pay">[\s\S]*?<\/section>/,
+    'the payment strip lives inside How it works and takes that section\'s gutter');
+  assert.doesNotMatch(index, /<section class="pay/, 'the payment strip is not a section of its own');
+  // and it is off the walk above now, so its own rules are checked here — the
+  // night face's `html:not(...) .pay` panel is exempt for the same reason the
+  // walk exempts compounds: that one is a card treatment, not the page gutter.
+  const payRules = [...css.matchAll(/(?:^|[{,])\s*\.pay\{([^}]*)\}/gm)];
+  assert.ok(payRules.length, '.pay still has a rule');
+  for (const r of payRules) {
+    assert.doesNotMatch(r[1], /(^|;)\s*padding(-inline|-left|-right)?\s*:/,
+      '.pay must not grow a horizontal gutter of its own inside How it works');
+  }
 
   // The community card centres everything; its one CTA is inside a flex row
   // with no justify-content, so it pinned to flex-start under centred copy.
