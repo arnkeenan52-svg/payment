@@ -70,6 +70,7 @@ const discord = {
   botInG2: false,               // the invite step flips this
   userGuilds: {},               // uid -> guilds visible to /users/@me/guilds
   failRolesFetchOnce: false,    // next GET /guilds/:id/roles answers 500
+  failMemberGetsFor: new Set(), // uids whose GET member answers 500 — Discord down, not "they left"
   extraRoles: [],               // appended to the role list (e.g. a same-named decoy)
   kickedFrom: null,             // a guild id the bot was removed from: every guild route answers as Discord does then
   kickedMemberGets: 0,          // GET member calls that hit the kicked guild
@@ -273,6 +274,12 @@ async function discordHandler(req, res) {
   }
   if ((m = p.match(/^\/guilds\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'GET') {
     const [, , uid] = m;
+    // Discord failing to answer. Deliberately NOT a 404: the whole point is
+    // that "we could not ask" and "they are not a member" are different.
+    if (discord.failMemberGetsFor.has(uid)) {
+      json(res, 500, { message: 'mock: discord is having a moment' });
+      return;
+    }
     if (!discord.members.has(uid)) {
       json(res, 404, { message: 'Unknown Member', code: 10007 });
       return;
@@ -6627,6 +6634,49 @@ test('crypto: money that lands for a product that cannot be delivered is never a
   assert.equal(await npAttemptStatus(a.order.orderId), 'undelivered');
   assert.equal(discord.channelPosts.length, pings0);
   assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: dark.planKey, active: false })).status, 200);
+});
+
+test('crypto: Discord failing to answer at settlement is a retry, never "they left — refund them"', async () => {
+  // The one guard that asks Discord anything: a role-gated product. At
+  // checkout, folding an error into "not a member" is right — nothing has
+  // been paid. At settlement the coins are already in the seller's wallet,
+  // and the alert says the sale is not allowed and to refund it, word for
+  // word what a real departure produces. A seller cannot tell those apart,
+  // and acting on the wrong one costs them the refund AND the sale, because
+  // the next cron delivers the role anyway.
+  const post = (path, body, cookie = npCookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const storeId = await npStoreId();
+  const plan = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Gate Retry', priceUsd: 25, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: plan.planKey, roleId: R2_VIP })).status, 200);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: plan.planKey, requiredRoleId: R2_VIP })).status, 200);
+  const GB = '534400000000000035';
+  discord.members.set(GB, new Set());
+  // The gate role goes on AFTER the login: signing in reconciles, and a
+  // managed role nobody has bought yet is taken back off.
+  const gbCookie = await signInAs('code_gate_retry', GB, 'gate_retry');
+  discord.members.get(GB).add(R2_VIP);
+  const { order, payment } = await npCheckout(plan.planKey, gbCookie);
+  payment.payment_status = 'finished';
+  payment.actually_paid = payment.pay_amount;
+  payment.actually_paid_at_fiat = payment.price_amount;
+
+  const pings0 = discord.channelPosts.length;
+  discord.failMemberGetsFor.add(GB);
+  const down = await deliverNow({ payment_id: payment.payment_id, payment_status: 'finished', order_id: order.orderId });
+  assert.equal(down.status, 500, 'a delivery nothing could decide must come back, not be acknowledged');
+  assert.equal(discord.channelPosts.length, pings0, 'no alert: nobody knows yet whether this sale is allowed');
+  assert.equal(await npAttemptStatus(order.orderId), 'started', 'and the order stays open for the retry');
+  assert.deepEqual(await claimRows(`nowpayments:${payment.payment_id}:%`), [], 'the claim is released, so the retry is not answered "in progress"');
+
+  // Discord comes back; the provider's retry delivers the sale once.
+  discord.failMemberGetsFor.delete(GB);
+  const back = await deliverNow({ payment_id: payment.payment_id, payment_status: 'finished', order_id: order.orderId });
+  assert.deepEqual([back.status, back.body], [200, 'ok']);
+  assert.equal(await npAttemptStatus(order.orderId), 'completed');
+  assert.ok((await subRow('nowpayments', payment.payment_id)) !== null, 'the valid sale lands');
+  assert.equal(discord.channelPosts.length, pings0 + 1);
+  assert.match(discord.channelPosts.at(-1).body.embeds[0].title, /New Subscriber/);
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════
