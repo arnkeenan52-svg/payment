@@ -1742,6 +1742,16 @@ function publicFiles(filter = () => true) {
   return walk(PUBLIC).map((f) => path.relative(PUBLIC, f)).sort();
 }
 
+// config.communityInvite with no .env and no override — the value the
+// committed pages must have been generated from.
+function defaultCommunityInvite() {
+  return spawnSync(process.execPath, ['-e', "import('./src/config.js').then((m) => console.log(m.config.communityInvite))"], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    env: { ...process.env, ENV_PATH: '/nonexistent/.env', PLANS_PATH, COMMUNITY_INVITE: '', DISCORD_COMMUNITY_INVITE: '' },
+  }).stdout.trim();
+}
+
 test('public/ is the marketing site, not a tool shed: no operator scripts are served from it', async () => {
   // public/setup-community.mjs was a byte copy of scripts/setup-community.mjs,
   // put there so an operator could `curl -O https://dues.gg/setup-community.mjs`
@@ -1763,6 +1773,33 @@ test('public/ is the marketing site, not a tool shed: no operator scripts are se
   assert.deepEqual(linking, [], `pages still pointing at the withdrawn operator script: ${linking.join(', ')}`);
   // It still ships where it is actually run from — a clone, not the website.
   assert.ok(fs.existsSync(path.join(ROOT, 'scripts', 'setup-community.mjs')), 'the operator script itself must stay in scripts/');
+});
+
+test('the generated pages take the community invite from config, so one regenerate moves every one of them', async () => {
+  // The invite used to be a literal in the generator's footer template, which
+  // meant COMMUNITY_INVITE moved exactly two surfaces (the hop and the receipt
+  // email) while 45 shipped pages kept linking whatever was last pasted in —
+  // and config.js's own comment claimed otherwise. The generator now reads
+  // config.communityInvite, so the fix is: set the value, regenerate, commit.
+  const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-seo-pages.mjs'), 'utf8');
+  assert.ok(gen.includes('config.communityInvite'), 'the generator must take the invite from config');
+  assert.deepEqual(gen.match(/discord\.gg\/[^"'`\s)]+/g), null, 'the generator must not carry a literal invite of its own');
+
+  const invite = defaultCommunityInvite();
+  assert.match(invite, /^https:\/\/discord\.gg\/[A-Za-z0-9-]+$/, `config.communityInvite should be a discord invite, got ${invite}`);
+  const generated = publicFiles((f) => f.endsWith('.html')).filter((rel) =>
+    rel === 'help.html' || /^(vs|tools|use-cases|guides|alternatives)\//.test(rel));
+  assert.ok(generated.length >= 40, `expected the generated page network, found ${generated.length}`);
+  const stale = generated.filter((rel) => !fs.readFileSync(path.join(ROOT, 'public', rel), 'utf8').includes(`href="${invite}"`));
+  assert.deepEqual(stale, [], `these shipped pages were generated from a different invite than config's — rerun \`node scripts/gen-seo-pages.mjs\` with the value you deploy and commit the result: ${stale.join(', ')}`);
+
+  // The hand-written pages do not print the invite at all: they link the hop,
+  // which reads config per request, so re-issuing moves them with no deploy.
+  for (const rel of ['receipt.html', 'store.html']) {
+    const html = fs.readFileSync(path.join(ROOT, 'public', rel), 'utf8');
+    assert.ok(!/discord\.gg\//.test(html), `${rel} must link the /api/community hop, not a pasted invite`);
+    assert.ok(html.includes('href="/api/community"'), `${rel} must link the /api/community hop`);
+  }
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
