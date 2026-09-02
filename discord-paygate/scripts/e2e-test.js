@@ -1213,6 +1213,34 @@ test('OAuth state mismatch auto-heals once, then reports plainly (no loop)', asy
   assert.match(await second.text(), /did not keep the login cookie/i);
 });
 
+test('a failed Discord token exchange explains itself and spends the state cookie (no 500 loop)', async () => {
+  // A reused or expired code: Discord answers 400 invalid_grant, which the
+  // mock does for any code it has never issued. The buyer came from a plan.
+  const login = await fetch(`${appUrl}/auth/login?plan=insider`, { redirect: 'manual' });
+  const state = new URL(login.headers.get('location')).searchParams.get('state');
+  const cookies = login.headers.getSetCookie().map((c) => c.split(';')[0]);
+  const failed = await fetch(`${appUrl}/auth/callback?code=code_never_issued&state=${state}`, {
+    redirect: 'manual',
+    headers: { cookie: cookies.join('; ') },
+  });
+  assert.equal(failed.status, 502, 'an upstream sign-in failure is not an opaque 500');
+  assert.match(await failed.text(), /Discord did not complete the sign-in/i);
+  const set = failed.headers.getSetCookie();
+  assert.ok(set.some((c) => /^tl_oauth_state=;.*Max-Age=0/.test(c)), 'the spent state cookie must be cleared');
+  assert.ok(!set.some((c) => c.startsWith('tl_checkout_plan=')), 'the plan cookie stays so the retry lands on the plan');
+  assert.ok(!set.some((c) => c.startsWith('tl_session=')), 'no session is minted for a failed exchange');
+
+  // A refresh of the same URL — the browser now has no state cookie — takes
+  // the existing recovery branch and mints a fresh login instead of failing
+  // the same way again.
+  const refresh = await fetch(`${appUrl}/auth/callback?code=code_never_issued&state=${state}`, {
+    redirect: 'manual',
+    headers: { cookie: cookies.filter((c) => !c.startsWith('tl_oauth_state=')).join('; ') },
+  });
+  assert.equal(refresh.status, 302);
+  assert.equal(refresh.headers.get('location'), '/auth/login?retry=1');
+});
+
 test('checkout endpoint creates a Stripe session with the buyer wired in', async () => {
   const res = await fetch(`${appUrl}/api/checkout/stripe`, {
     method: 'POST',

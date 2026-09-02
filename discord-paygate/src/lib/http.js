@@ -72,8 +72,8 @@ export function sendJson(res, status, body) {
   res.end(payload);
 }
 
-export function sendText(res, status, text) {
-  res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8' });
+export function sendText(res, status, text, extraHeaders = {}) {
+  res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8', ...extraHeaders });
   res.end(text);
 }
 

@@ -31,8 +31,27 @@ export default guard(async function handler(req, res) {
     return;
   }
 
-  const token = await exchangeOAuthCode(code);
-  const me = await fetchOAuthUser(token.access_token);
+  let token;
+  let me;
+  try {
+    token = await exchangeOAuthCode(code);
+    me = await fetchOAuthUser(token.access_token);
+  } catch (err) {
+    // A code Discord refuses (reused, expired — `invalid_grant`) or Discord
+    // down for the exchange. The state cookie is spent either way: if it
+    // stayed, every refresh of this URL would match it and fail the same
+    // way forever, never reaching the recovery branch above. Clear it, so
+    // the next attempt mints a fresh login; the plan/store cookies stay so
+    // that attempt still lands on the plan the buyer was buying.
+    console.error(`[auth] discord sign-in for code ${code.slice(0, 8)}… failed: ${err.message}`);
+    sendText(
+      res,
+      502,
+      'Discord did not complete the sign-in. Go back to the store page and try again.',
+      { 'set-cookie': cookieHeader(STATE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }) },
+    );
+    return;
+  }
   await upsertUser({
     discordId: me.id,
     username: me.username,
