@@ -3886,6 +3886,21 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   assert.match(css, /body\.has-bg \.top, body\.has-bg > footer \{\n  background: color-mix\(in srgb, var\(--bg\) 46%, transparent\);/, 'header + footer get the column ground over a wallpaper');
   assert.doesNotMatch(css, /body\.has-bg \.top \{ background: transparent/, 'the header must not be transparent over a wallpaper');
   assert.match(css, /\nbody\.has-bg > footer, body\.has-bg \.powered-community,\nbody\.has-bg \.top \.nav-link, body\.has-bg \.top \.account, body\.has-bg \.top \.btn-ghost \{ color: var\(--ink\); \}/, 'chrome text over a wallpaper is the ink, not --dim');
+
+  // Day-sky SEO pages: blurple TEXT is the darker token. #5865f2 measured
+  // 4.3:1 on the paper and ~3.1:1 under the sky; #424cbd is 6.6:1 on the
+  // paper and 5.0:1 on the bluest band a prose link sits on. Pinned in the
+  // generator AND in the committed artifacts, so a regenerate that was never
+  // run cannot ship the old colour.
+  const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-seo-pages.mjs'), 'utf8');
+  const textLinks = ['--blurple-text: #424cbd;', '.guide-body a { color: var(--blurple-text); }', '.alt-card .seo-card-cta a { color: var(--blurple-text); }',
+    '.seo-card-cta, .cmp-table th:nth-child(2), .calc-label output { color: var(--blurple-text); }'];
+  for (const line of textLinks) assert.ok(gen.includes(line), `generator paints "${line}"`);
+  assert.doesNotMatch(gen, /\.guide-body a \{ color: #5865f2/, 'prose links never go back to the button blurple');
+  for (const seo of ['help.html', 'vs/whop.html', 'tools/whop-fee-calculator.html', 'alternatives/whop-alternatives.html', 'guides/discord-paywall.html']) {
+    const html = page(seo);
+    for (const line of textLinks) assert.ok(html.includes(line), `${seo} is regenerated with "${line}"`);
+  }
 });
 
 test('the hosted demo store: fixed storefront at /demo, discount preview works, nothing purchasable', async () => {
