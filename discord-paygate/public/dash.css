@@ -477,6 +477,11 @@ body.app .set-card > .share-row,
 body.app .set-card > .field-err,
 body.app .set-card > .key-scopes,
 body.app .set-card > #billing-body { margin-inline: var(--s-5); margin-top: var(--s-3); }
+/* Two 84px interval buttons plus the "2 months free" note need more than the
+   250px a 320px phone leaves inside the card, and .set-card hides overflow, so
+   the note was sliced at the card edge. Wrapping puts it on its own row there
+   and changes nothing where it fits. */
+body.app #billing-body .bill-toggle { flex-wrap: wrap; }
 body.app .set-foot { padding: var(--s-3) var(--s-5); border-top: 1px solid var(--d-stroke); background: var(--d-fill); }
 body.app .settings-stack { gap: var(--s-5); }
 body.app .chart-grid { gap: var(--s-5); }

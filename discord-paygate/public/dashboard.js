@@ -743,6 +743,17 @@ function deltaChip(delta) {
   return `<span class="delta ${delta > 0 ? 'up' : 'down'}"><span aria-hidden="true">${delta > 0 ? '▲' : '▼'}</span>${n}%</span>`;
 }
 
+// A save that ends in a full re-render lands on a screen identical to the one
+// before the click, so nothing said it worked. Settings' payment key says
+// "Updated ✓" for 1.6s; these sections say so through their status slot,
+// which is looked up AFTER the re-render because the old one is gone.
+function flashSaved(sel) {
+  const el = $(sel);
+  if (!el) return;
+  el.textContent = 'Saved ✓';
+  setTimeout(() => { if (el.isConnected) el.textContent = ''; }, 1600);
+}
+
 function statCard(label, value, icon, delta = null, sub = '', spark = '') {
   return `<div class="panel stat"><div class="stat-top"><span class="stat-label">${label}</span><span class="stat-ic">${icon}</span></div><span class="stat-value">${value}${deltaChip(delta)}</span>${spark}${sub ? `<span class="stat-sub">${sub}</span>` : ''}</div>`;
 }
@@ -1208,6 +1219,18 @@ const SECTIONS = [
 // on Android paints its bar from <meta name="theme-color">, which is a static
 // navy in the markup — theme.js only re-syncs it from the BODY background, and
 // on this page the body is transparent, so its sync silently no-ops here.
+// The last SAVED face also lives in localStorage, under the key the inline
+// script in dashboard.html's head reads, so a seller who chose black gets a
+// black first paint instead of a navy flash while /api/admin/payments loads.
+// Only viewStore writes it, from the stored preference — a Customize preview
+// never lands here, so an abandoned preview cannot outlive the page.
+const DARK_FACE_KEY = 'dues-dash-face';
+function savedDarkFace() {
+  try { return localStorage.getItem(DARK_FACE_KEY) === 'black' ? 'black' : 'navy'; } catch { return 'navy'; }
+}
+function rememberDarkFace(face) {
+  try { localStorage.setItem(DARK_FACE_KEY, face); } catch { /* private mode: the flash returns, nothing else */ }
+}
 function applyDarkFace(face) {
   const root = document.documentElement;
   if (face === 'black') root.dataset.dark = 'black';
@@ -1246,7 +1269,8 @@ function sectionOverview(data, store, slug) {
   const newMembersPrev = prevRange ? newIn(win.prev) : 0;
 
 
-  const mrrRows = data.payments.filter((p) => p.entitled && !p.lifetime);
+  // Each row at its MONTHLY rate, not its period price: see monthlyRate().
+  const mrrRows = data.payments.filter((p) => p.entitled && !p.lifetime).map((p) => ({ ...p, amountUsd: monthlyRate(p) }));
   const mrrNewRows = mrrRows.filter((p) => inWin(p, win.cur));
   const mrrNew = sum(mrrNewRows);
 
@@ -1262,7 +1286,7 @@ function sectionOverview(data, store, slug) {
     rev: sparkSvg(series.curVals),
     sales: sparkSvg(bucketSeries(data.payments, win, () => 1).curVals),
     members: sparkSvg(bucketSeries(firstBuys, win, () => 1).curVals),
-    mrr: sparkSvg(bucketSeries(data.payments.filter((p) => !p.lifetime), win).curVals),
+    mrr: sparkSvg(bucketSeries(data.payments.filter((p) => !p.lifetime), win, monthlyRate).curVals),
   };
 
   // Top products with per-product change vs the previous window.
@@ -1283,7 +1307,12 @@ function sectionOverview(data, store, slug) {
   const topDelta = (name, v) => {
     const prev = byPlanPrev.get(name) ?? 0;
     const d = pct(v, prev);
-    return d === null ? '' : `<span class="delta ${d >= 0 ? 'up' : 'down'}"><span aria-hidden="true">${d >= 0 ? '▲' : '▼'}</span>${Math.abs(d) >= 100 ? Math.round(Math.abs(d)) : Math.abs(d).toFixed(0)}%</span>`;
+    if (d === null) return '';
+    const n = Math.abs(d) >= 100 ? Math.round(Math.abs(d)) : Math.abs(d).toFixed(0);
+    // Same rule as deltaChip: a product whose revenue matched the previous
+    // window read a green ▲0% here while the Revenue card beside it said flat.
+    if (Number(n) === 0) return '<span class="delta flat">0%</span>';
+    return `<span class="delta ${d > 0 ? 'up' : 'down'}"><span aria-hidden="true">${d > 0 ? '▲' : '▼'}</span>${n}%</span>`;
   };
 
   const recent = data.payments.slice(0, 6);
@@ -1421,6 +1450,20 @@ function billingLabel(p) {
   const d = p.durationDays;
   if (!d || d === 31) return 'Monthly';
   return TERM_WORDS[d] ?? `Every ${d} days`;
+}
+
+// A recurring row's MONTHLY rate. MRR summed each row's whole period price,
+// so a $600 yearly plan counted as $600 of monthly recurring revenue — twelve
+// times the truth — and a weekly plan at under a quarter of it. The named
+// terms above divide by their whole number of months, so the figure a seller
+// checks by hand comes out exact (yearly is /12, quarterly /3); any other term
+// scales by days. No term, or a monthly one, is the price as it stands.
+const TERM_MONTHS = { 30: 1, 31: 1, 90: 3, 180: 6, 365: 12, 366: 12 };
+const DAYS_PER_MONTH = 365 / 12;
+function monthlyRate(p) {
+  const d = Number(p.durationDays);
+  if (!(d > 0)) return p.amountUsd;
+  return p.amountUsd / (TERM_MONTHS[d] ?? d / DAYS_PER_MONTH);
 }
 
 function sectionProductsDefault(data) {
@@ -2080,8 +2123,9 @@ function sectionCustomize(store) {
           <p class="field-help dc-help">The range your analytics open on.</p></div>
         <p class="field-err" id="dc-note" role="alert"></p>
       </div>`,
-      foot: `<button class="btn-pill" id="dc-save">Save</button>
-        <button class="btn-ghost" id="dc-reset">Reset to default</button>`,
+      foot: `<span class="appearance-foot"><button class="btn-pill" id="dc-save">Save</button>
+        <button class="btn-ghost" id="dc-reset">Reset to default</button>
+        <span class="note-help" id="dc-ok" role="status"></span></span>`,
     })}
     ${/* Not a card. This panel had a title, a sentence and one link, and spent
           169px of a phone screen saying where something else lives — 115px of
@@ -2133,7 +2177,8 @@ function wireCustomize(store, slug) {
     try {
       await api('/api/admin/store', { store: slug, dashboardPrefs: prefsBody });
       state.data = null;
-      viewStore(slug);
+      await viewStore(slug);
+      flashSaved('#dc-ok');
     } catch (err) {
       btn.disabled = false;
       btn.textContent = 'Save';
@@ -2285,7 +2330,9 @@ async function viewStore(slug) {
   const dashAccent = /^#[0-9a-f]{6}$/i.test(String(dashPrefs.accent ?? '')) ? dashPrefs.accent : null;
   // The ground, re-derived from the stored preference on every render — which
   // is also what discards an unsaved preview the moment you navigate.
-  applyDarkFace(dashPrefs.darkStyle === 'black' ? 'black' : 'navy');
+  const darkFace = dashPrefs.darkStyle === 'black' ? 'black' : 'navy';
+  applyDarkFace(darkFace);
+  rememberDarkFace(darkFace);
   if (dashPrefs.defaultRange && state.rangePicked !== store.slug && RANGES.some(([k]) => k === dashPrefs.defaultRange)) {
     state.range = dashPrefs.defaultRange;
   }
@@ -3311,7 +3358,8 @@ function wireAppearance(store, slug) {
     try {
       await api('/api/admin/store', { store: slug, theme: read() });
       state.data = null;
-      viewStore(slug);
+      await viewStore(slug);
+      flashSaved('#th-note');
     } catch (err) {
       btn.disabled = false;
       btn.textContent = 'Save appearance';
@@ -3946,8 +3994,13 @@ async function route() {
   clearInterval(wiz.poll);
   const hash = location.hash || '#/';
   const parts = hash.slice(2).split('/');
-  if (parts[0] === 'setup' && parts[1]) return viewSetup(parts[1]);
   if (parts[0] === 'store' && parts[1]) return viewStore(parts[1]);
+  // No store, no per-store preference: the picker, setup and admin views wear
+  // the last saved face. Re-applied on every navigation, so an unsaved black
+  // preview from Customize does not follow the seller out to "All servers" —
+  // viewStore drops it for its own sections; nothing did for these.
+  applyDarkFace(savedDarkFace());
+  if (parts[0] === 'setup' && parts[1]) return viewSetup(parts[1]);
   if (parts[0] === 'admin') return viewAdmin();
   return viewPicker();
 }
