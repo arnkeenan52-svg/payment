@@ -33,12 +33,22 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { PNG } from 'pngjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = path.join(ROOT, 'public');
 const BASELINE = path.join(ROOT, 'scripts', 'verify-dash.baseline.json');
 // scratch/ is gitignored, so screenshots land beside the other throwaways.
 const SHOT_DIR = process.env.DASH_SHOTS ?? path.join(ROOT, 'scratch', 'dash');
+// Which widths get a picture. A phone and a desktop by default; a review pass
+// that wants a different pair (390 + 1280, say) sets DASH_SHOT_WIDTHS rather
+// than editing the harness and forgetting to put it back.
+const SHOT_WIDTHS = new Set(String(process.env.DASH_SHOT_WIDTHS ?? '390,1440').split(',').map((n) => Number(n.trim())));
+
+// Painted-pixel contrast is measured at a phone and a laptop width only: it
+// screenshots every state it touches, and 243 of those is minutes of PNG for
+// a fact that does not change between 1024 and 1440.
+const PAINT_WIDTHS = new Set([390, 1280]);
 
 const CHECK = process.argv.includes('--check');
 const SHOTS = process.argv.includes('--shots');
@@ -53,6 +63,19 @@ const WIDTHS = [320, 360, 390, 430, 768, 861, 1024, 1280, 1440];
 // theme nobody measures is a theme whose overflow and clipping nobody knows
 // about. 243 states instead of 162.
 const FACES = ['light', 'dark', 'black'];
+// The face the fixture's store is currently saved with, in the shape
+// api/admin/store.js stores it. The harness used to stamp data-theme and
+// data-dark onto <html> itself, which measured the STYLESHEET and skipped the
+// mechanism entirely: it would have stayed green through a picker that saved
+// nothing. Now the face travels the way it travels in production — saved on
+// the store, mirrored per store into localStorage for the first paint, read
+// back by viewStore — and the harness only asserts the result.
+const FACE_PREFS = {
+  light: { light: true },
+  dark: {},
+  black: { darkStyle: 'black' },
+};
+let CURRENT_FACE = 'dark';
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 // Shapes copied from the real handlers. Enough rows that tables, the chart and
@@ -186,6 +209,11 @@ function startServer() {
         try { parsed = JSON.parse(body || '{}'); } catch { /* empty */ }
         const key = parsed.step ?? parsed.action;
         return send(200, POST_ROUTES[key] ?? { ok: true });
+      }
+      // The dashboard's face comes off the store, so this one payload is
+      // rebuilt per request with whichever face the run is measuring.
+      if (url.pathname === '/api/admin/payments') {
+        return send(200, { ...ROUTES[url.pathname], stores: [{ ...store, dashboardPrefs: FACE_PREFS[CURRENT_FACE] }] });
       }
       const hit = ROUTES[url.pathname];
       if (hit) return send(200, hit);
@@ -329,6 +357,148 @@ const probe = () => {
   };
 };
 
+// ── the painted-pixel probe ─────────────────────────────────────────────────
+// Contrast checked by EYE, or against the token a rule names, is contrast you
+// have not checked: the whole class of bug this hunts is a colour written for
+// one face and inherited by another, where the token says one thing and the
+// pixel says another. So this reads the pixels. Every element that holds its
+// own text reports its rect and its computed ink; the ground under it is the
+// modal colour of the pixels inside that rect in the real screenshot, which
+// is what a person actually sees regardless of how many transparent layers
+// produced it.
+//
+// Two thresholds, WCAG's: 3:1 for large text (>=24px, or >=18.66px and bold),
+// 4.5:1 for everything else.
+const inkCandidates = () => {
+  const parse = (c) => {
+    const m = String(c).match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    const n = m[1].split(/[,/]/).map((v) => parseFloat(v));
+    return { r: n[0], g: n[1], b: n[2], a: n.length > 3 ? n[3] : 1 };
+  };
+  const out = [];
+  for (const el of document.querySelectorAll('body.app *')) {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.5) continue;
+    // Only elements holding their OWN text: a wrapper reports its children's
+    // words and its own (empty) ground, which is a fiction.
+    let own = '';
+    for (const n of el.childNodes) if (n.nodeType === 3) own += n.nodeValue;
+    own = own.trim();
+    if (!own) continue;
+    // Swatches and thumbnails paint deliberate foreign colours — a store theme
+    // preview, a face chip, a wallpaper. They are pictures of other palettes,
+    // not this face's surfaces.
+    if (el.closest('.dc-face-chip, .th-tile-thumb, .bgp-thumb, .store-bg, .sk-row, .dc-swatch, .dc-custom')) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 10 || r.height < 8) continue;
+    if (r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) continue;
+    const ink = parse(cs.color);
+    if (!ink || ink.a < 0.1) continue;
+    const big = parseFloat(cs.fontSize) >= 24 || (parseFloat(cs.fontSize) >= 18.66 && Number(cs.fontWeight) >= 600);
+    out.push({
+      sel: el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).join('.') : ''),
+      text: own.replace(/\s+/g, ' ').slice(0, 32),
+      ink, big,
+      rect: {
+        x: Math.max(0, Math.round(r.left)), y: Math.max(0, Math.round(r.top)),
+        w: Math.round(Math.min(r.right, innerWidth) - Math.max(0, r.left)),
+        h: Math.round(Math.min(r.bottom, innerHeight) - Math.max(0, r.top)),
+      },
+    });
+  }
+  return out;
+};
+
+// ── stranded surfaces ───────────────────────────────────────────────────────
+// The other half of the theme bug, and the cheap half: a rule that names one
+// face's ground literally instead of a token, so the surface survives into a
+// face it was never drawn for — a navy panel left standing in the black face,
+// a white card in the dark one. Each face's grounds are a short, closed list
+// of literal hexes, so any element painted in ANOTHER face's ground is that
+// bug, exactly, with no judgement call. Alpha layers are not checked here:
+// they blend and the painted-pixel probe above is the honest test for those.
+const strandedSurfaces = (face) => {
+  // Declared inside: this function is serialized into the page, so anything it
+  // closes over here would be undefined there.
+  const FACE_GROUNDS = {
+    navy: ['#101827', '#182338', '#1e2b45', '#131b2d', '#1c2740', '#223050'],
+    black: ['#0a0a0b', '#141416', '#1b1b1e', '#0f0f11', '#18181b', '#202024'],
+    light: ['#ffffff', '#f6f7f9', '#f4f5f7', '#fafbfc'],
+  };
+  const mine = { light: 'light', dark: 'navy', black: 'black' }[face];
+  const foreign = new Map();
+  for (const [name, list] of Object.entries(FACE_GROUNDS)) {
+    if (name === mine) continue;
+    for (const hex of list) foreign.set(hex, name);
+  }
+  const hexOf = (c) => {
+    const m = String(c).match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
+    if (!m) return null;
+    if (m[4] !== undefined && parseFloat(m[4]) < 0.999) return null;
+    return '#' + [m[1], m[2], m[3]].map((v) => Number(v).toString(16).padStart(2, '0')).join('');
+  };
+  const out = [];
+  for (const el of document.querySelectorAll('body.app *, body.app')) {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    // Deliberate pictures of other palettes: the face chips, the store theme
+    // thumbnails, the wallpaper grid, the storefront preview frame.
+    if (el.closest?.('.dc-face-chip, .th-tile-thumb, .bgp-thumb, .store-bg, .dc-swatch, .dc-custom, .th-swatch')) continue;
+    const hex = hexOf(cs.backgroundColor);
+    if (!hex) continue;
+    const sel = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).join('.') : '');
+    if (foreign.has(hex)) { out.push({ sel, hex, from: foreign.get(hex) }); continue; }
+    // The other half, and the one that actually shipped: a NEUTRAL surface on
+    // the wrong side of the face. The theme picker's window mock was #0c0c0c
+    // in every face — a black hole punched into the light dashboard — and no
+    // list of the three faces' own grounds would ever have named it, because
+    // it belongs to the monochrome product this one grew out of. Greys only:
+    // an accent fill is coloured on purpose and is nobody's ground.
+    const rgb = [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+    if (Math.max(...rgb) - Math.min(...rgb) > 24) continue;
+    const f = (v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+    const L = 0.2126 * f(rgb[0]) + 0.7152 * f(rgb[1]) + 0.0722 * f(rgb[2]);
+    if (mine === 'light' && L < 0.35) out.push({ sel, hex, from: 'dark' });
+    else if (mine !== 'light' && L > 0.55) out.push({ sel, hex, from: 'light' });
+  }
+  return out;
+};
+
+const relLum = (r, g, b) => {
+  const f = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+};
+const ratio = (a, b) => {
+  const [x, y] = [relLum(...a), relLum(...b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+};
+
+// The modal colour of a rect in a decoded PNG. Text is a minority of the
+// pixels in any label — the antialiased edges spread across dozens of shades
+// while the ground is one exact value repeated — so the mode IS the ground.
+function groundOf(png, rect) {
+  const counts = new Map();
+  const x1 = Math.min(png.width, rect.x + rect.w);
+  const y1 = Math.min(png.height, rect.y + rect.h);
+  let n = 0;
+  for (let y = rect.y; y < y1; y += 1) {
+    for (let x = rect.x; x < x1; x += 1) {
+      const i = (png.width * y + x) << 2;
+      const key = (png.data[i] << 16) | (png.data[i + 1] << 8) | png.data[i + 2];
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+      n += 1;
+    }
+  }
+  if (!n) return null;
+  let best = null; let bestN = 0;
+  for (const [k, c] of counts) if (c > bestN) { bestN = c; best = k; }
+  // A rect with no repeated colour at all is a gradient or an image, not a
+  // surface with a defined ground; measuring it would report noise.
+  if (bestN / n < 0.2) return null;
+  return [(best >> 16) & 255, (best >> 8) & 255, best & 255];
+}
+
 const server = await startServer();
 const port = server.address().port;
 const base = `http://127.0.0.1:${port}`;
@@ -343,36 +513,63 @@ if (SHOTS) fs.mkdirSync(SHOT_DIR, { recursive: true });
 const out = {};
 // A harness that measures a page which threw is measuring a fiction.
 const pageErrs = [];
+// Painted-pixel contrast failures, collected across every state. Kept OUT of
+// `out` on purpose: these are pixel counts of antialiased text, so they would
+// make the diff baseline churn on a font-hinting change and say nothing.
+const inkFails = [];
+// Surfaces painted in another face's literal ground.
+const stranded = [];
+// A face that did not actually reach <html> makes every measurement under it
+// a measurement of some other face.
+const faceMisses = [];
 for (const face of FACES) {
+  CURRENT_FACE = face;
   for (const width of WIDTHS) {
     const page = await browser.newPage({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
     page.on('pageerror', (e) => pageErrs.push(`${face}|${width}: ${e.message}`));
-    // Set the face before the first paint so nothing is measured mid-transition.
+    // The per-store mirror the head of dashboard.html reads: this is the
+    // real pre-first-paint path, so the run measures the page a returning
+    // seller sees rather than one that flipped after the API answered.
     await page.addInitScript((f) => {
-      const theme = f === 'black' ? 'dark' : f;
-      try { localStorage.setItem('dues-theme', theme); } catch { /* private mode */ }
-      document.addEventListener('DOMContentLoaded', () => {
-        document.documentElement.dataset.theme = theme;
-        if (f === 'black') document.documentElement.dataset.dark = 'black';
-      });
+      try { localStorage.setItem('dues-dash-face:vip-signals', f === 'dark' ? 'navy' : f); } catch { /* private mode */ }
     }, face);
     for (const section of SECTIONS) {
       await page.goto(`${base}/dashboard.html#/store/vip-signals/${section}`, { waitUntil: 'networkidle' });
-      await page.evaluate((f) => {
-        document.documentElement.dataset.theme = f === 'black' ? 'dark' : f;
-        // Re-asserted after each navigation: the dashboard re-derives this
-        // attribute from the STORED preference on every render, so a fixture
-        // without darkStyle saved would wipe it between sections.
-        if (f === 'black') document.documentElement.dataset.dark = 'black';
-        else delete document.documentElement.dataset.dark;
-      }, face);
       // The dashboard renders sections asynchronously; wait for the nav to
       // exist and then let the section's own fetches settle.
       await page.waitForSelector('.side-item', { timeout: 10_000 }).catch(() => {});
       await page.waitForTimeout(450);
+      const landed = await page.evaluate(() => {
+        const d = document.documentElement.dataset;
+        return d.theme === 'light' ? 'light' : (d.dark === 'black' ? 'black' : 'dark');
+      });
+      if (landed !== face) faceMisses.push(`${face}|${width}|${section} -> ${landed}`);
       out[`${face}|${width}|${section}`] = await page.evaluate(probe);
-      if (SHOTS && (width === 390 || width === 1440)) {
+      if (SHOTS && SHOT_WIDTHS.has(width)) {
         await page.screenshot({ path: `${SHOT_DIR}/${face}-${width}-${section}.png`, fullPage: false });
+      }
+      for (const f of await page.evaluate(strandedSurfaces, face)) stranded.push({ state: `${face}|${width}|${section}`, ...f });
+      if (PAINT_WIDTHS.has(width)) {
+        const cands = await page.evaluate(inkCandidates);
+        const png = PNG.sync.read(await page.screenshot({ fullPage: false }));
+        for (const c of cands) {
+          const bg = groundOf(png, c.rect);
+          if (!bg) continue;
+          // Composite the ink over the ground it is painted on: half the
+          // dashboard's text is a white or black alpha, and judging rgba(255,
+          // 255, 255, 0.56) as if it were white is how a "passing" grey ships.
+          const a = c.ink.a;
+          const ink = [
+            Math.round(c.ink.r * a + bg[0] * (1 - a)),
+            Math.round(c.ink.g * a + bg[1] * (1 - a)),
+            Math.round(c.ink.b * a + bg[2] * (1 - a)),
+          ];
+          const cr = ratio(ink, bg);
+          const need = c.big ? 3 : 4.5;
+          if (cr + 0.005 < need) {
+            inkFails.push({ state: `${face}|${width}|${section}`, sel: c.sel, text: c.text, cr: +cr.toFixed(2), need, bg: `#${bg.map((v) => v.toString(16).padStart(2, '0')).join('')}` });
+          }
+        }
       }
     }
     await page.close();
@@ -416,6 +613,44 @@ if (clips.length) {
   console.log('clipped content: none');
 }
 console.log(`hidden-by-default leaks: ${badHidden.length === 0 ? 'none' : badHidden.map(([k]) => k).join(', ')}`);
+if (faceMisses.length) {
+  console.error(`FAIL: ${faceMisses.length} state(s) did not land on the face their store saved:\n  ${faceMisses.slice(0, 10).join('\n  ')}`);
+  process.exitCode = 1;
+} else {
+  console.log('saved face applied: all states');
+}
+if (stranded.length) {
+  const bySel = new Map();
+  for (const f of stranded) {
+    const k = `${f.sel} ${f.hex}`;
+    const e = bySel.get(k) ?? { n: 0, from: f.from, state: f.state };
+    e.n += 1;
+    bySel.set(k, e);
+  }
+  console.error(`STRANDED SURFACES: ${bySel.size} element(s) wearing another face's ground`);
+  for (const [k, e] of bySel) console.error(`  ${k}  (a ${e.from} ground) in ${e.n} state(s)  e.g. ${e.state}`);
+  process.exitCode = 1;
+} else {
+  console.log('stranded surfaces: none');
+}
+if (inkFails.length) {
+  // One rule breaks in dozens of states; print the rule, its worst reading and
+  // one state to reproduce it in.
+  const bySel = new Map();
+  for (const f of inkFails) {
+    const e = bySel.get(f.sel) ?? { n: 0, worst: 99, need: f.need, text: f.text, state: f.state, bg: f.bg };
+    e.n += 1;
+    if (f.cr < e.worst) { e.worst = f.cr; e.state = f.state; e.bg = f.bg; e.text = f.text; }
+    bySel.set(f.sel, e);
+  }
+  console.error(`UNREADABLE TEXT: ${bySel.size} selector(s) below their contrast floor, measured off the painted pixels`);
+  for (const [sel, e] of [...bySel].sort((a, b) => a[1].worst - b[1].worst)) {
+    console.error(`  ${sel}  ${e.worst}:1 (needs ${e.need}) on ${e.bg} in ${e.n} state(s)  "${e.text}"  e.g. ${e.state}`);
+  }
+  process.exitCode = 1;
+} else {
+  console.log('painted-pixel contrast: every text element clears its floor');
+}
 if (pageErrs.length) {
   console.error(`FAIL: ${pageErrs.length} page error(s):\n  ${[...new Set(pageErrs)].join('\n  ')}`);
   process.exitCode = 1;
