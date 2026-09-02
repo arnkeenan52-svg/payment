@@ -1194,17 +1194,41 @@ test('landing polish holds: one gutter, centred community CTA, Cash App logotype
   const pricing = fs.readFileSync(new URL('../public/pricing.html', import.meta.url), 'utf8');
   const css = index.slice(index.indexOf('<style>'), index.indexOf('</style>'));
 
-  // ONE desktop gutter. .wrap declares it; five sections used to override it
-  // with a padding SHORTHAND, which silently reset padding-inline, so their
-  // cards sat 24px further out than the sticky logo above and the FAQ below.
-  const wrapPad = css.match(/^\.wrap\{[^}]*padding-inline:(\d+px)/m)?.[1];
-  assert.ok(wrapPad, '.wrap must declare the page gutter as padding-inline');
-  for (const sec of ['save', 'how', 'why', 'voices', 'comm']) {
-    const rule = css.match(new RegExp(`^\\.${sec}\\{([^}]*)\\}`, 'm'));
-    assert.ok(rule, `.${sec} still has a top-level rule`);
-    assert.doesNotMatch(rule[1], /(^|;)\s*padding(-inline|-left|-right)?\s*:/,
-      `.${sec} must not reset .wrap's ${wrapPad} gutter — use padding-block`);
+  // ONE gutter, on BOTH pages, at EVERY width. .wrap declares it; the sections
+  // kept overriding it with a padding SHORTHAND, which silently resets
+  // padding-inline, so their cards sat outside the sticky logo above and the
+  // FAQ below. The first fix only cleaned the desktop rules on index, which
+  // left the same 4px step in the <=600px block, the payment strip 24px proud
+  // of everything on tablets, and /pricing untouched. So walk every .wrap
+  // section on both pages and every rule that targets one — media copies
+  // included — and let nothing name a horizontal padding.
+  const gutters = {};
+  for (const [name, html] of [['index', index], ['pricing', pricing]]) {
+    const sheet = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+    const desktop = sheet.match(/^\.wrap\{[^}]*padding-inline:(\d+px)/m)?.[1];
+    const phone = sheet.match(/@media \(max-width:600px\)\{[\s\S]*?\n\s*\.wrap\{padding-inline:(\d+px)\}/)?.[1];
+    assert.ok(desktop && phone, `${name}: .wrap declares the gutter as padding-inline at both widths`);
+    gutters[name] = `${desktop}/${phone}`;
+    // every section that opts into .wrap, read off the markup so a new one
+    // cannot be added without being covered here.
+    const secs = [...html.matchAll(/class="(?:([a-z-]+) wrap|wrap ([a-z-]+))"/g)].map((m) => m[1] || m[2]);
+    assert.ok(secs.length >= 4, `${name}: found the .wrap sections (${secs.length})`);
+    for (const sec of new Set(secs)) {
+      // rules whose selector IS the section — a compound like
+      // `html:not([data-theme="light"]) .pay` is a deliberate card treatment
+      // with its own geometry, not the page gutter, so it is left alone.
+      const rules = [...sheet.matchAll(new RegExp(`(?:^|[{,])\\s*\\.${sec}\\{([^}]*)\\}`, 'gm'))];
+      assert.ok(rules.length, `${name}: .${sec} still has a rule`);
+      for (const r of rules) {
+        assert.doesNotMatch(r[1], /(^|;)\s*padding(-inline|-left|-right)?\s*:/,
+          `${name}: .${sec} must not reset .wrap's ${gutters[name]} gutter — use padding-block`);
+      }
+    }
   }
+  assert.equal(gutters.index, gutters.pricing, 'the landing and /pricing share one gutter at both widths');
+  // the payment strip sits between .why and .how; it is only in line with them
+  // because it is a .wrap too, not because it repeats the number.
+  assert.match(index, /<section class="pay wrap">/, 'the payment strip takes its gutter from .wrap');
 
   // The community card centres everything; its one CTA is inside a flex row
   // with no justify-content, so it pinned to flex-start under centred copy.
@@ -1386,7 +1410,17 @@ test('the pricing FAQ is published as FAQPage structured data, word for word', a
   // The FAQ title shares one clamp with the fees title (.fees-title,.faq-title).
   // A leftover homepage `.faq h2` rule out-ranked it and made the two sibling
   // titles differ by 8-20px at every width; the page must not grow one back.
-  assert.doesNotMatch(pricing, /\.faq h2\{|\.faq\{padding-block/, 'no homepage .faq rules overriding .faq-title on the pricing page');
+  assert.doesNotMatch(pricing, /\.faq h2\{/, 'no homepage .faq h2 rule overriding .faq-title on the pricing page');
+  // The other half of that copy was a second `.faq` padding rule pasted in
+  // below the 860px one, which then out-ranked it. /pricing declares its FAQ
+  // padding exactly twice — the base rule and the narrow-width override, in
+  // that order — so this checks the count and the order rather than the
+  // property, which is padding-block on both since the gutter now comes from
+  // .wrap alone.
+  const faqPads = [...pricing.matchAll(/^\s*\.faq\{[^}]*padding[^}]*\}/gm)].map((m) => m.index);
+  assert.equal(faqPads.length, 2, '/pricing declares .faq padding twice: the base rule and the 860px one');
+  assert.ok(faqPads[1] > pricing.indexOf('@media (max-width:860px)'),
+    'the narrow-width .faq padding is the last one to win');
 });
 
 test('every page on the site is named in the footer — checked against the filesystem', async () => {
