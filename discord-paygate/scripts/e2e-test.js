@@ -4171,6 +4171,86 @@ test('store themes: validated tokens in, server-rendered CSS out', async () => {
   assert.ok(!plain.includes('store-bg'), 'no background layer once cleared');
 });
 
+// An imported background points at a host nobody at Dues has vetted. The
+// paid gate that used to stand in front of it was never a safety control —
+// it priced the feature, it did not check the URL — so removing it did not
+// widen what a hostile URL can do. What DOES bound it, and what this pins:
+//
+//   • the value only ever becomes a media element's src, escaped. It cannot
+//     run script and never reaches CSS url().
+//   • no referrer. Reproduced against a real browser: without the attribute
+//     the third-party host is told the visit came from the store's origin;
+//     with it, the host learns nothing but the IP it would learn anyway.
+//     Same rule for the two other seller-pasted URLs on the page — the shop
+//     banner and a product photo.
+//   • the extension check is a typo catcher, NOT a promise about the bytes:
+//     a host may answer .gif with a 302 to anything (reproduced). That is
+//     acceptable — an <img> renders pictures or nothing — so the remedy for
+//     a store that abuses it is operational, and it is pinned below.
+test('an imported background is a stranger’s host: no referrer, and an operator can pull it', async () => {
+  const ownerCookie = await signInOn(appUrl, 'code_u7');   // owns vip-signals
+  const setTheme = (theme) =>
+    fetch(`${appUrl}/api/admin/store`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ store: 'vip-signals', theme }),
+    });
+
+  assert.equal((await setTheme({ bg: '#071209', bgUrl: 'https://cdn.example.com/party.gif' })).status, 200);
+  const gif = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.match(gif, /<img src="https:\/\/cdn\.example\.com\/party\.gif"[^>]*referrerpolicy="no-referrer"/,
+    'an imported image must not report the visit to the host it came from');
+  // NOT crossorigin: that would make it a CORS request and a host without
+  // access-control-allow-origin would render nothing at all.
+  assert.doesNotMatch(gif.match(/<div class="store-bg"[\s\S]*?<\/div>/)?.[0] ?? '', /crossorigin/,
+    'no crossorigin — it would break honest imports and buys nothing');
+
+  assert.equal((await setTheme({ bg: '#071209', bgUrl: 'https://cdn.example.com/loop.mp4' })).status, 200);
+  assert.match(await (await fetch(`${appUrl}/vip-signals`)).text(),
+    /<video src="https:\/\/cdn\.example\.com\/loop\.mp4"[^>]*referrerpolicy="no-referrer"/,
+    'and neither must an imported video');
+
+  // The other two seller-pasted URLs that land on the same page.
+  const storeHtml = fs.readFileSync(path.join(ROOT, 'public', 'store.html'), 'utf8');
+  for (const id of ['shop-banner', 'shop-banner-video', 'product-shot']) {
+    assert.match(storeHtml.match(new RegExp(`<(?:img|video)[^>]*id="${id}"[^>]*>`))?.[0] ?? '',
+      /referrerpolicy="no-referrer"/, `#${id} carries a seller-pasted URL and must not leak the visit`);
+  }
+  const appJs = fs.readFileSync(path.join(ROOT, 'public', 'app.js'), 'utf8');
+  for (const m of appJs.match(/<(?:img|video) class="prod-shot[^>]*>/g) ?? []) {
+    assert.match(m, /referrerpolicy="no-referrer"/, `a product card's media must not leak the visit: ${m.slice(0, 60)}`);
+  }
+  // /discover puts dozens of seller-chosen hosts on one page — same rule.
+  const discJs = fs.readFileSync(path.join(ROOT, 'public', 'discover.js'), 'utf8');
+  const discTags = discJs.match(/<(?:img|video) class="disc-banner-media[^>]*>/g) ?? [];
+  assert.equal(discTags.length, 2, 'both directory banner tags are still built here');
+  for (const m of discTags) assert.match(m, /referrerpolicy="no-referrer"/, `a directory banner must not leak the visit: ${m.slice(0, 60)}`);
+
+  // THE REMEDY. A store that puts something ugly on a dues.gg URL is pulled
+  // down by the platform owner, not by asking its seller nicely: OWNER_
+  // DISCORD_ID may write any store's row. Without this, "take it down" means
+  // hand-editing the database.
+  const strangerCookie = await signInOn(appUrl, 'code_u3');
+  const asStranger = await fetch(`${appUrl}/api/admin/store`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: strangerCookie },
+    body: JSON.stringify({ store: 'vip-signals', theme: null }),
+  });
+  assert.equal(asStranger.status, 403, 'a signed-in stranger cannot touch a store that is not theirs');
+
+  const platformCookie = await signInOn(appUrl, 'code_u1'); // OWNER_DISCORD_ID
+  const pulled = await fetch(`${appUrl}/api/admin/store`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: platformCookie },
+    body: JSON.stringify({ store: 'vip-signals', theme: null, bannerUrl: '', discoverable: false }),
+  });
+  assert.equal(pulled.status, 200, 'the platform owner can pull a hostile import off a store they do not own');
+  const pulledPage = await (await fetch(`${appUrl}/vip-signals`)).text();
+  assert.ok(!pulledPage.includes('store-bg'), 'and the imported background is gone from the served page');
+  assert.equal((await (await fetch(`${appUrl}/api/discover?fresh=1`)).json()).stores.some((s) => s.slug === 'vip-signals'),
+    false, 'and the store is out of the public directory');
+});
+
 test('discover: opt-in directory of live stores, real numbers only', async () => {
   const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
   const st = new URL(login.headers.get('location')).searchParams.get('state');

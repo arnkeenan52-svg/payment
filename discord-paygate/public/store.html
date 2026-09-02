@@ -54,8 +54,10 @@
              slot left the avatar floating over the page. Square and flush to
              the rails on purpose. -->
         <div class="shop-hero no-banner" id="shop-hero">
-          <img class="shop-banner media-fade" id="shop-banner" alt="" hidden onerror="this.hidden = true" onload="this.classList.add('loaded')" />
-          <video class="shop-banner media-fade" id="shop-banner-video" hidden autoplay muted loop playsinline disablepictureinpicture aria-hidden="true" onerror="this.hidden = true" onloadeddata="this.classList.add('loaded')"></video>
+          <!-- referrerpolicy: a pasted banner points at a host of the SELLER's
+               choosing, and a buyer's visit is not ours to report to it. -->
+          <img class="shop-banner media-fade" id="shop-banner" alt="" hidden referrerpolicy="no-referrer" onerror="this.hidden = true" onload="this.classList.add('loaded')" />
+          <video class="shop-banner media-fade" id="shop-banner-video" hidden autoplay muted loop playsinline disablepictureinpicture referrerpolicy="no-referrer" aria-hidden="true" onerror="this.hidden = true" onloadeddata="this.classList.add('loaded')"></video>
           <!-- no src attribute: src="" resolves to the page URL, so the browser fetched
                the whole document again as an image on every load. app.js sets it. -->
           <!-- A CDN miss (blocked network, a hash the seller just replaced) must fall back to
@@ -153,7 +155,7 @@
 
       <div class="order-product">
         <div class="op-left">
-          <img class="op-thumb media-fade" id="product-shot" alt="" hidden onerror="this.hidden = true" onload="this.classList.add('loaded')" />
+          <img class="op-thumb media-fade" id="product-shot" alt="" hidden referrerpolicy="no-referrer" onerror="this.hidden = true" onload="this.classList.add('loaded')" />
           <span class="op-name" id="plan-name">&nbsp;</span>
         </div>
         <span class="op-price" id="price">&nbsp;</span>

@@ -189,6 +189,7 @@ function renderBrand() {
         vid.autoplay = true;
         vid.loop = true;
         vid.playsInline = true;
+        vid.referrerPolicy = 'no-referrer'; // a pasted product video is a third-party host
         vid.setAttribute('aria-hidden', 'true');
         vid.addEventListener('loadeddata', () => vid.classList.add('loaded'), { once: true });
         shot.after(vid);
@@ -1357,10 +1358,13 @@ function productCard(plan) {
     : roleCount ? `${SHOP_ICONS.people}${roleCount} role${roleCount > 1 ? 's' : ''}`
     : '';
   const ph = `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`;
+  // referrerpolicy: a product photo can be a link the seller pasted to a host
+  // we know nothing about. Same rule as the banner and the imported
+  // background — a buyer's visit is never reported to a third party.
   const media = plan.imageUrl
     ? (isVideoMedia(plan)
-        ? `<video class="prod-shot media-fade" src="${esc(plan.imageUrl)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true" onloadeddata="this.classList.add('loaded')"></video>`
-        : `<img class="prod-shot media-fade" src="${esc(plan.imageUrl)}" alt="" loading="lazy" onload="this.classList.add('loaded')" />`)
+        ? `<video class="prod-shot media-fade" src="${esc(plan.imageUrl)}" autoplay muted loop playsinline preload="metadata" referrerpolicy="no-referrer" aria-hidden="true" onloadeddata="this.classList.add('loaded')"></video>`
+        : `<img class="prod-shot media-fade" src="${esc(plan.imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add('loaded')" />`)
     : ph;
   card.innerHTML =
     `<span class="prod-media">${media}<span class="prod-name">${esc(plan.name)}</span></span>` +
