@@ -47,9 +47,12 @@ worker and never auto-stops it.
 DISCORD_BOT_TOKEN=... npm run presence
 ```
 
-Under systemd/pm2/Docker so it restarts on reboot. `Dockerfile.presence`
-builds a ~150MB Node-Alpine image with no install step (presence.js imports
-only node: builtins).
+Under systemd/pm2/Docker so it restarts on reboot. `Dockerfile.presence` is
+the image that can also post welcome cards: Debian slim, the brand fonts
+installed for fontconfig, and `npm install --omit=dev` for the card renderer.
+Bare `node scripts/presence.js` with nothing installed keeps the bot Online
+and nothing else — the card path needs `sharp`, so it must stay a production
+dependency or the image quietly loses it.
 
 ## Welcome cards (Dues community server only)
 
@@ -69,6 +72,13 @@ in every seller's server — so cards fire for exactly one guild:
 start if `WELCOME_CHANNEL_ID` is set without it, rather than defaulting to
 "every server". Sellers never get Dues-branded cards in their communities.
 
+Something not posting? `npm run doctor:welcome` answers it in one command —
+it checks the token, the privileged intent, the guild, the channel, the bot's
+computed permissions in it and a local render, over REST only, and prints the
+exact fix for whichever one is false. `npm run doctor:welcome -- --post` also
+sends one real test card, so the whole path is proven end to end without
+waiting for someone to join. Everything below is what it checks for you.
+
 Two requirements:
 
 1. **Privileged intent.** Discord Developer Portal → your app → Bot →
@@ -81,7 +91,13 @@ Two requirements:
    off-brand face (the renderer warns when the families are missing).
 
 Presence-only deployments never load sharp at all — the import is lazy, so
-leaving `WELCOME_CHANNEL_ID` unset keeps the zero-dependency path.
+leaving `WELCOME_CHANNEL_ID` unset keeps the zero-dependency path. When cards
+ARE on, sharp must be installed: it is a `dependencies` entry precisely
+because this image installs with `--omit=dev`.
+
+And the thing that is not a bug: the worker has to be running somewhere that
+holds a socket. Vercel cannot hold one, so no amount of configuration on the
+web deployment will ever post a card — cards live or die with this worker.
 
 ## Checking it
 

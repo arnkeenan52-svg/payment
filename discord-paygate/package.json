@@ -10,6 +10,7 @@
     "test:slug": "node scripts/test-store-slug-collision.mjs",
     "migrate": "node scripts/migrate.js",
     "doctor": "node scripts/doctor.js",
+    "doctor:welcome": "node scripts/welcome-doctor.mjs",
     "presence": "node scripts/presence.js",
     "test:presence": "node scripts/presence-test.js",
     "post": "node scripts/post-message.mjs",

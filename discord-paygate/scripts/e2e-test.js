@@ -7206,10 +7206,140 @@ test('crypto backfill: orders the provider never advances take their turn instea
   for (let i = 0; i < 20; i += 1) await tq("UPDATE checkout_attempts SET status = 'expired' WHERE session_id = ?", [`np_${'e'.repeat(30)}${String(i).padStart(2, '0')}`]);
 });
 
-// ── welcome cards: the worker's manifest ─────────────────────────────────────
+// ── welcome cards: the doctor's arithmetic ───────────────────────────────────
 // Welcome cards are posted by scripts/presence.js, a gateway worker this suite
 // cannot reach: it needs a socket and a real bot token. What it CAN hold is the
-// promise the worker image is built on.
+// part that decides whether the owner gets told the truth — the permission
+// arithmetic `npm run doctor:welcome` reports, which is pure, and the manifest
+// promise the worker image depends on.
+
+test('doctor:welcome computes channel permissions the way Discord does', async () => {
+  const { computePermissions, missingPermissions, membersIntentEnabled, verdictLines, NEEDED } = await import(
+    '../scripts/welcome-doctor.mjs'
+  );
+  const GUILD = '4242';
+  const BOT = '9001';
+  const BOTS_ROLE = '7001';
+  const ALL_FOUR = Object.values(NEEDED).reduce((a, b) => a | b, 0n);
+  const VIEW = NEEDED['View Channel'];
+  const ATTACH = NEEDED['Attach Files'];
+  const base = {
+    guildId: GUILD,
+    botId: BOT,
+    ownerId: '1',
+    roles: [
+      { id: GUILD, permissions: String(ALL_FOUR) }, // @everyone's role id IS the guild id
+      { id: BOTS_ROLE, permissions: '0' },
+    ],
+    memberRoleIds: [BOTS_ROLE],
+  };
+
+  assert.deepEqual(missingPermissions(computePermissions(base)), [], 'inherits @everyone with no overwrites');
+
+  // The classic: someone locks #welcome down to read-only for @everyone. The
+  // bot loses Send Messages with it, and the card is refused with a 403 that
+  // says nothing about which bit is missing.
+  assert.deepEqual(
+    missingPermissions(
+      computePermissions({ ...base, overwrites: [{ id: GUILD, type: 0, allow: '0', deny: String(NEEDED['Send Messages']) }] }),
+    ),
+    ['Send Messages'],
+  );
+
+  // A role allow must beat the @everyone deny — that is how a locked channel is
+  // opened to one bot, and reporting it as still-denied would send the owner
+  // hunting for a problem that is not there.
+  assert.deepEqual(
+    missingPermissions(
+      computePermissions({
+        ...base,
+        overwrites: [
+          { id: GUILD, type: 0, allow: '0', deny: String(ALL_FOUR) },
+          { id: BOTS_ROLE, type: 0, allow: String(ALL_FOUR), deny: '0' },
+        ],
+      }),
+    ),
+    [],
+  );
+
+  // Role overwrites are unioned first and the union of allows is applied AFTER
+  // the union of denies, so one role allowing Attach Files beats another role
+  // denying it. Subtracting per role in sequence would report the opposite and
+  // send the owner editing a channel that is already correct.
+  const twoRoles = {
+    ...base,
+    memberRoleIds: [BOTS_ROLE, '7002'],
+    roles: [...base.roles, { id: '7002', permissions: '0' }],
+  };
+  assert.deepEqual(
+    missingPermissions(
+      computePermissions({
+        ...twoRoles,
+        overwrites: [
+          { id: BOTS_ROLE, type: 0, allow: String(ALL_FOUR), deny: '0' },
+          { id: '7002', type: 0, allow: '0', deny: String(ATTACH) },
+        ],
+      }),
+    ),
+    [],
+  );
+  // With nothing allowing it back, the same deny does take the bit away.
+  assert.deepEqual(
+    missingPermissions(
+      computePermissions({ ...twoRoles, overwrites: [{ id: '7002', type: 0, allow: '0', deny: String(ATTACH) }] }),
+    ),
+    ['Attach Files'],
+  );
+
+  // A member-level overwrite on the bot itself is applied last and wins.
+  assert.deepEqual(
+    missingPermissions(
+      computePermissions({
+        ...base,
+        overwrites: [
+          { id: GUILD, type: 0, allow: '0', deny: String(ALL_FOUR) },
+          { id: BOT, type: 1, allow: String(ALL_FOUR), deny: '0' },
+        ],
+      }),
+    ),
+    [],
+  );
+  assert.deepEqual(
+    missingPermissions(
+      computePermissions({
+        ...base,
+        overwrites: [{ id: BOT, type: 1, allow: '0', deny: String(VIEW) }],
+      }),
+    ),
+    ['View Channel'],
+  );
+
+  // Administrator ignores every overwrite, including a deny aimed at the bot.
+  assert.deepEqual(
+    missingPermissions(
+      computePermissions({
+        ...base,
+        roles: [{ id: GUILD, permissions: '0' }, { id: BOTS_ROLE, permissions: String(1n << 3n) }],
+        overwrites: [{ id: BOT, type: 1, allow: '0', deny: String(ALL_FOUR) }],
+      }),
+    ),
+    [],
+  );
+
+  // The intent bit: either GATEWAY_GUILD_MEMBERS (verified app) or its LIMITED
+  // twin (under 100 servers) means the portal toggle is on. Neither means the
+  // gateway closes the worker with 4014 and no card is ever posted.
+  assert.equal(membersIntentEnabled(0), false);
+  assert.equal(membersIntentEnabled(1 << 14), true);
+  assert.equal(membersIntentEnabled(1 << 15), true);
+  assert.equal(membersIntentEnabled((1 << 13) | (1 << 18)), false, 'presence and message-content bits are not this one');
+
+  // Every failing verdict carries its fix, indented under the line, or the
+  // report is a list of complaints with no instructions.
+  const lines = verdictLines({ n: 3, status: 'FAIL', title: 'Server Members intent is enabled', detail: 'OFF', fix: 'fix  flip it\nin the portal' });
+  assert.match(lines[0], /^ 3\. FAIL {2}Server Members intent is enabled — OFF$/);
+  assert.deepEqual(lines.slice(1), ['         fix  flip it', '         in the portal']);
+});
 
 test('the worker image gets the card renderer: sharp is a runtime dependency', async () => {
   // Dockerfile.presence installs with --omit=dev, so a devDependency is simply
