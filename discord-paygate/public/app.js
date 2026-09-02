@@ -201,7 +201,7 @@ function renderBrand() {
   // one) is ever shown — no stand-in logo. Hidden until Discord answers.
   // Selected by its own class: the shop view's .logo sits earlier in the DOM.
   const logo = $('.op-server-icon');
-  if (state.server?.iconUrl) {
+  if (state.server?.iconUrl && logo.dataset.failed !== state.server.iconUrl) {
     logo.src = state.server.iconUrl;
     logo.alt = state.server.name ?? '';
     logo.hidden = false;
@@ -292,8 +292,12 @@ function renderOptions() {
     // The parent row predates its options and is named after the product —
     // its option label is its cadence. Added options are named by the owner.
     const optName = opt.id === par.id ? (opt.lifetime ? 'Lifetime' : 'Monthly') : opt.name;
+    // The cadence suffix is dropped when the label already IS the cadence —
+    // "Lifetime (lifetime)" said the same word twice.
+    const cadence = opt.lifetime ? '(lifetime)' : `/ ${esc(opt.interval)}`;
+    const sameWord = String(optName).trim().toLowerCase() === (opt.lifetime ? 'lifetime' : String(opt.interval ?? '').toLowerCase());
     row.innerHTML = `
-      <span class="opt-name">${esc(optName)}<small>${opt.lifetime ? '(lifetime)' : `/ ${esc(opt.interval)}`}</small></span>
+      <span class="opt-name">${esc(optName)}${sameWord ? '' : `<small>${cadence}</small>`}</span>
       <span class="opt-price">${fmtPrice(opt.priceUsd)}</span>`;
     row.onclick = () => {
       state.planId = opt.id;
@@ -993,7 +997,9 @@ function render() {
   renderBrand();
   const shop = $('#shop');
   const card = document.querySelector('.order-card');
-  const multi = state.plans.length > 1;
+  // Products only, like main(): a one-product store whose product has price
+  // options must not grow an "All products" button leading to a one-card shop.
+  const multi = state.plans.filter((p) => !p.variantOf).length > 1;
   if (shop) shop.hidden = state.view !== 'shop';
   if (card) card.hidden = state.view === 'shop';
   // The checkout wrapper caps itself at 640px with its own padding; the shop
@@ -1348,14 +1354,16 @@ function renderShop() {
   const icon = $('#shop-icon');
   const iconPh = $('#shop-icon-ph');
   if (!icon || !iconPh) return;
-  if (state.server?.iconUrl) {
+  // The letter is always ready: the image's onerror swaps to it mid-render,
+  // and a url that already failed counts as no icon on every later render.
+  iconPh.textContent = (name || '?').slice(0, 1).toUpperCase();
+  if (state.server?.iconUrl && icon.dataset.failed !== state.server.iconUrl) {
     icon.src = state.server.iconUrl;
     icon.hidden = false;
     iconPh.hidden = true;
   } else {
     icon.hidden = true;
     iconPh.hidden = false;
-    iconPh.textContent = (name || '?').slice(0, 1).toUpperCase();
   }
   $('#shop-name').textContent = name;
 
