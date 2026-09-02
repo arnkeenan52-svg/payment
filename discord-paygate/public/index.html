@@ -1788,23 +1788,22 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 .bcard:hover{border-color:var(--blue)}
 .fee-note{margin-top:10px;font-size:12px;line-height:18px;color:var(--micro)}
 
-/* The section's own headline and intro, OUTSIDE the card. The card used to be
-   the first thing after the role marquee, so it opened with "Calculate your
-   savings" and never said what there was to save or why — a widget with no
-   argument attached to it. */
+/* The band head, shared by "How it works" and "What it costs". It was one
+   section's private rule (.save-head) in a type scale nothing else on the page
+   used, so four mid-page sections opened four different ways. Now every band
+   speaks the site's display voice: eyebrow, display line, and — only where
+   there is an argument to make — one paragraph under it. */
 /* Anchored sections have to clear the fixed nav. Without this a link to
    #how or #save scrolls the heading exactly under the 64px bar, so the
    visitor lands on a section whose title they cannot see. */
 [id]{scroll-margin-top:calc(84px + env(safe-area-inset-top,0px))}
-.save-head{text-align:center;max-width:660px;margin:0 auto 34px}
-.save-head h2{
-  font-family:var(--jakarta);font-weight:600;
-  font-size:clamp(28px,3.8vw,42px);line-height:1.1;letter-spacing:-.02em;color:var(--ink);
-}
-.save-head p{margin-top:14px;font-size:15.5px;line-height:25px;color:var(--sec)}
+.band-head{text-align:center;max-width:720px;margin-inline:auto}
+/* balance, not a ch cap: these lines are 20-45 characters and a centred head
+   that breaks one word onto its own row is the thing this replaces. */
+.band-head .sec-display{margin-inline:auto;text-wrap:balance}
+.band-head p{margin-top:14px;font-size:15.5px;line-height:25px;color:var(--sec)}
 @media (max-width:600px){
-  .save-head{margin-bottom:26px}
-  .save-head p{font-size:15px;line-height:24px}
+  .band-head p{font-size:15px;line-height:24px}
 }
 
 /* ── the savings box: Subscord's calculator, on our glass ── */
@@ -1812,7 +1811,7 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
    and the FAQ — a padding shorthand here silently reset it to something else */
 .save{padding-block:72px 88px}
 .save-card{
-  width:min(640px,100%);margin:0 auto;padding:34px clamp(20px,4vw,40px) 28px;border-radius:26px;
+  width:min(640px,100%);margin:clamp(26px,3.4vw,38px) auto 0;padding:30px clamp(20px,4vw,40px) 28px;border-radius:26px;
   background:var(--glass);border:1px solid var(--glass-brd);
   box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
 }
@@ -1820,6 +1819,7 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
    figure, then the comparison. The two-column split is a desktop affordance
    and nothing below opts into it. */
 .save-grid{display:block}
+.save-left .save-rows-cap{margin-top:0}
 .save-rows-cap{
   margin:26px 0 14px;font:600 12px/1.35 var(--sans);letter-spacing:.08em;
   text-transform:uppercase;color:var(--sec);
@@ -1841,8 +1841,6 @@ html[data-theme="light"] .footer .fcol a:hover{color:#030507}
 .save-num:focus-visible{outline:2px solid var(--blue);outline-offset:1px;border-color:var(--blue)}
 
 
-.save-card h2{font-family:var(--jakarta);font-weight:500;font-size:clamp(26px,3vw,34px);letter-spacing:-.02em;text-align:center}
-.save-sub{margin:10px 0 26px;text-align:center;font-size:15px;line-height:23px;color:var(--sec)}
 .save-field{margin-top:18px}
 
 .save-lab{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:10px}
@@ -1926,7 +1924,7 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
      across both gaps, which is the even rhythm the reference has. The margins
      below stay as minimums for the widths where there is no slack to spread. */
   .save-left{display:flex;flex-direction:column;justify-content:space-between}
-  .save-left .save-field:first-child{margin-top:0}
+  .save-left .save-field:first-of-type{margin-top:0}
   .save-rows-cap{margin-top:0}
 
   /* Density. Two columns side by side means every control has HALF the width
@@ -1935,8 +1933,6 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
      stretched mobile layout rather than a desktop panel. Everything below is
      the same composition at desktop scale: smaller boxes, tighter rhythm, and
      a figure that is the biggest thing in the card without dominating it. */
-  .save-card h2{font-size:27px}
-  .save-sub{margin:8px 0 22px;font-size:14px;line-height:20px}
   .save-field{margin-top:20px}
   .save-lab{margin-bottom:6px;gap:12px}
   .save-lab label{font-size:14px}
@@ -2055,16 +2051,23 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
    answers one question — what are the three things I do — and the mockups
    were answering a different one at four times the height, so the reader had
    to work past a fake settings panel to find "connect Stripe". A centred
-   heading and three columns say it outright. */
-.how{padding-block:64px 30px}
-.how-title{
-  font-family:var(--jakarta);font-weight:600;text-align:center;
-  font-size:clamp(30px,4vw,44px);line-height:1.1;letter-spacing:-.02em;color:var(--ink);
-}
-/* ── the three-column icon row, used by How it works AND by the fee section ──
-   One pattern, one definition. It appeared twice within a day of itself, and
-   two near-identical blocks is how a spacing tweak lands on one of them and
-   the pair quietly stops matching. */
+   heading and three columns say it outright.
+
+   It is also the FIRST band under the marquee now. A visitor cannot judge a
+   fee calculator before they know what the thing does, so the mechanism comes
+   first and the arithmetic follows it. The payment strip closes the band: it
+   is what step three looks like to a buyer, and as its own section it sat
+   between two fee arguments answering a question nobody had asked yet. */
+.how{padding-block:72px 8px}
+/* the gap above the payment strip. It lives on the trio, not on .pay: the
+   night face restyles .pay as a panel with its own padding and margins and
+   would win any rule written there. */
+.how .trio{margin-bottom:clamp(38px,5vw,58px)}
+/* ── the three-column icon row ────────────────────────────────────────────
+   One pattern, one definition — and now one USE. The fee section carried a
+   second copy of this row a section below, which is how a spacing tweak lands
+   on one of them and the pair quietly stops matching, and how a reader ends up
+   scrolling past the same shape twice. */
 .trio{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
   gap:clamp(24px,4vw,56px);margin-top:clamp(32px,5vw,56px);
@@ -2078,12 +2081,6 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
   color:var(--sec);
 }
 .trio-badge svg{width:23px;height:23px}
-/* The fee row colours its badges by what each one is about: money leaving,
-   money held, money you cannot collect. Tinted from the same tokens the rest
-   of the site uses, so a theme change carries them. */
-.trio-badge.is-loss{color:var(--loss);background:color-mix(in srgb,var(--loss) 14%,transparent);border-color:color-mix(in srgb,var(--loss) 30%,transparent)}
-.trio-badge.is-risk{color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent);border-color:color-mix(in srgb,var(--gold) 30%,transparent)}
-.trio-badge.is-open{color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,transparent);border-color:color-mix(in srgb,var(--blue) 30%,transparent)}
 .trio-item h3{
   margin-top:18px;font-family:var(--jakarta);font-weight:600;
   font-size:17px;letter-spacing:-.01em;color:var(--ink);
@@ -2098,15 +2095,14 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
   .trio{grid-template-columns:1fr;gap:36px;max-width:460px;margin-inline:auto}
 }
 
-/* ── what platform fees cost ── */
-.why{padding-block:8px 40px;text-align:center}
-.why-title{
-  font-family:var(--jakarta);font-weight:600;text-align:center;
-  font-size:clamp(26px,3.4vw,38px);line-height:1.12;letter-spacing:-.02em;color:var(--ink);
-}
+/* The three-point "Stop losing money to platform fees" band used to sit here.
+   It was the .trio component again, one section below the .trio above, and all
+   three of its points are already made where they belong: percentage-scales-
+   with-you in the cost band's own paragraph, never-holds-your-money in step
+   one, and how-buyers-can-pay in the strip that closes this section. Two
+   identical icon rows arguing the same thing is what made the page feel long. */
 @media (max-width:600px){
-  .how{padding-block:48px 24px}
-  .why{padding-block:4px 28px}
+  .how{padding-block:52px 4px}
 }
 
 /* ── what sellers say: featured editorial card + stacked rail ── */
@@ -2209,7 +2205,8 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 }
 
 /* ── payment band framing: hairline-flanked caption + settle note ── */
-.pay{padding-top:26px}
+/* the gap above it belongs to `.how .trio`, which both faces obey — the strip
+   is the closing band of How it works, not a section with its own air. */
 .pay-cap{display:flex;align-items:center;gap:16px}
 .pay-cap::before,.pay-cap::after{content:"";height:1px;width:min(11vw,88px)}
 .pay-cap::before{background:linear-gradient(90deg,transparent,var(--hair))}
@@ -2416,17 +2413,66 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 </section>
 
 
-<!-- 5 · calculate your savings -->
+<!-- 5 · how it works — the mechanism, before any arithmetic -->
+<section class="how wrap" id="how">
+  <div class="band-head">
+    <p class="sec-eyebrow">HOW IT WORKS</p>
+    <h2 class="sec-display">Three steps to a paid role.</h2>
+  </div>
+  <div class="trio">
+    <article class="trio-item reveal">
+      <span class="trio-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
+      <h3>Set up payouts</h3>
+      <p>Connect your own Stripe account, add a crypto wallet, or both. Every payment settles straight into them &#8212; Dues never holds your money.</p>
+    </article>
+    <article class="trio-item reveal">
+      <span class="trio-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
+      <h3>Create a product</h3>
+      <p>Turn any role into a product &#8212; monthly, yearly or one-time lifetime. Set the price, pick the role, and choose how long access lasts.</p>
+    </article>
+    <article class="trio-item reveal">
+      <span class="trio-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+      <h3>Get paid</h3>
+      <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and every dollar goes to your account, not ours.</p>
+    </article>
+  </div>
+  <!-- the last step, shown rather than described: what a buyer is offered
+       at checkout. It used to be a section of its own, floating between two
+       fee arguments where nobody had asked the question yet. -->
+  <div class="pay">
+    <p class="pay-cap">Buyers can pay with</p>
+    <div class="pay-chips" aria-label="Supported payment methods">
+      <span class="pay-chip" aria-label="Visa"><b class="pm-visa">VISA</b></span>
+      <span class="pay-chip" aria-label="Mastercard"><svg viewBox="0 0 38 24" aria-hidden="true"><circle cx="15" cy="12" r="9" fill="#EB001B"/><circle cx="23" cy="12" r="9" fill="#F79E1B"/><path d="M19 4.8a9 9 0 0 1 0 14.4 9 9 0 0 1 0-14.4z" fill="#FF5F00"/></svg></span>
+      <span class="pay-chip pm-amexchip" aria-label="American Express"><b>AMEX</b></span>
+      <span class="pay-chip" aria-label="Apple Pay"><svg viewBox="0 0 15 18" aria-hidden="true" fill="#000"><path d="M12.3 9.6c0-2.1 1.7-3.1 1.8-3.15-1-1.4-2.5-1.6-3-1.65-1.3-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.45 2.52-.37 6.25 1.04 8.29.69 1 1.52 2.12 2.6 2.08 1.04-.04 1.44-.67 2.7-.67 1.26 0 1.62.67 2.72.65 1.12-.02 1.83-1.02 2.52-2.02.79-1.16 1.12-2.28 1.14-2.34-.03-.01-2.19-.84-2.22-3.29zM10.24 3.3c.57-.7.96-1.66.85-2.63-.83.03-1.83.55-2.42 1.24-.53.62-1 1.6-.87 2.55.92.07 1.86-.47 2.44-1.16z"/></svg><b class="pm-ink">Pay</b></span>
+      <span class="pay-chip" aria-label="Google Pay"><svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg><b class="pm-ink">Pay</b></span>
+      <span class="pay-chip pm-linkchip" aria-label="Link"><b>link</b></span>
+      <span class="pay-chip pm-klarnachip" aria-label="Klarna"><b>Klarna.</b></span>
+      <span class="pay-chip pm-cashchip" aria-label="Cash App Pay"><svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff"><path d="M16.19 7.06c.67.46 1.28 1 1.83 1.6a.66.66 0 0 0 .95.03l1.26-1.26a.68.68 0 0 0 0-.97 11.6 11.6 0 0 0-2.32-1.94l.5-2.01a.67.67 0 0 0-.65-.83h-2.44a.67.67 0 0 0-.65.51l-.33 1.32c-2.98-.6-6.09.35-6.7 3.42-.5 2.5 1.26 3.77 3.32 4.52 1.9.71 3.36 1.13 3.13 2.32-.2 1.03-1.44 1.55-3.16 1.28a7.3 7.3 0 0 1-2.98-1.36.67.67 0 0 0-.9.06l-1.32 1.35a.68.68 0 0 0 .03.98 9.6 9.6 0 0 0 2.66 1.68l-.5 2.05a.67.67 0 0 0 .66.82l2.45-.02c.31 0 .58-.21.65-.51l.33-1.33c3.58.62 6.43-.68 6.98-3.55.46-2.44-1.2-3.7-3.5-4.51-1.62-.6-2.99-1.03-2.79-2.16.2-1.12 1.77-1.36 3.49-.99z"/></svg><b>Cash&#8202;App</b></span>
+      <span class="pay-chip pay-xtra pm-paypalchip" aria-label="PayPal"><b><i class="pp1">Pay</i><i class="pp2">Pal</i></b></span>
+      <span class="pay-chip pay-xtra pm-idealchip" aria-label="iDEAL"><b>iDEAL</b></span>
+      <span class="pay-chip pay-xtra pm-mobilepaychip" aria-label="MobilePay"><b>MobilePay</b></span>
+      <span class="pay-chip pay-xtra pm-alipaychip" aria-label="Alipay"><b>Alipay</b></span>
+      <span class="pay-chip pay-xtra pm-wechatchip" aria-label="WeChat Pay"><b>WeChat Pay</b></span>
+      <span class="pay-chip pay-xtra pm-afterpaychip" aria-label="Afterpay"><b>afterpay</b></span>
+    </div>
+    <p class="pay-note">Cards, wallets and local methods &#8212; every one settles to your own Stripe account.</p>
+  </div>
+</section>
+
+
+<!-- 6 · what it costs — the arithmetic, once the product is understood -->
 <section class="save wrap" id="save">
-  <div class="save-head">
-    <h2>Every platform takes a cut. Dues takes none.</h2>
+  <div class="band-head">
+    <p class="sec-eyebrow">WHAT IT COSTS</p>
+    <h2 class="sec-display">Every platform takes a cut. Dues takes none.</h2>
     <p>Most Discord monetization tools bill a percentage of every sale, so the bigger you get the more you hand over. Dues charges a flat plan and 0% on sales &#8212; cards settle in your own Stripe, crypto forwards to your own wallet.</p>
   </div>
   <div class="save-card reveal">
-    <h2>Calculate your savings</h2>
-    <p class="save-sub">See what platform fees would cost at your size &#8212; and what Dues keeps flat.</p>
     <div class="save-grid">
      <div class="save-left">
+      <p class="save-rows-cap">Calculate your savings</p>
       <div class="save-field">
         <div class="save-lab">
           <label for="svSubs">Paying members</label>
@@ -2466,75 +2512,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </section>
 
-
-<!-- 5.2 · what platform fees actually cost -->
-<section class="why wrap" aria-label="What platform fees cost you">
-  <h2 class="why-title">Stop losing money to platform fees</h2>
-  <div class="trio">
-    <article class="trio-item reveal">
-      <span class="trio-badge is-loss" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17l-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg></span>
-      <h3>Lost revenue</h3>
-      <p>A percentage fee grows exactly as fast as you do. At 3% a &#36;10,000 month costs you &#36;300; at 8% it costs &#36;800 &#8212; every month, for as long as you keep selling.</p>
-    </article>
-    <article class="trio-item reveal">
-      <span class="trio-badge is-risk" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
-      <h3>Held funds</h3>
-      <p>When the platform holds your money it decides when you see it. On Dues it never lands with us at all &#8212; card payments settle straight into your Stripe account and crypto forwards to your wallet.</p>
-    </article>
-    <article class="trio-item reveal">
-      <span class="trio-badge is-open" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h13l-3-3"/><path d="M21 16H8l3 3"/></svg></span>
-      <h3>Fewer ways to pay</h3>
-      <p>A card-only checkout turns away everyone who would rather not use one. Dues takes cards and crypto, and the buyer picks which at checkout.</p>
-    </article>
-  </div>
-</section>
-
-
-<!-- 5.5 · payment methods -->
-<section class="pay wrap">
-  <p class="pay-cap">Payments run on Stripe</p>
-  <div class="pay-chips" aria-label="Supported payment methods">
-    <span class="pay-chip" aria-label="Visa"><b class="pm-visa">VISA</b></span>
-    <span class="pay-chip" aria-label="Mastercard"><svg viewBox="0 0 38 24" aria-hidden="true"><circle cx="15" cy="12" r="9" fill="#EB001B"/><circle cx="23" cy="12" r="9" fill="#F79E1B"/><path d="M19 4.8a9 9 0 0 1 0 14.4 9 9 0 0 1 0-14.4z" fill="#FF5F00"/></svg></span>
-    <span class="pay-chip pm-amexchip" aria-label="American Express"><b>AMEX</b></span>
-    <span class="pay-chip" aria-label="Apple Pay"><svg viewBox="0 0 15 18" aria-hidden="true" fill="#000"><path d="M12.3 9.6c0-2.1 1.7-3.1 1.8-3.15-1-1.4-2.5-1.6-3-1.65-1.3-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.45 2.52-.37 6.25 1.04 8.29.69 1 1.52 2.12 2.6 2.08 1.04-.04 1.44-.67 2.7-.67 1.26 0 1.62.67 2.72.65 1.12-.02 1.83-1.02 2.52-2.02.79-1.16 1.12-2.28 1.14-2.34-.03-.01-2.19-.84-2.22-3.29zM10.24 3.3c.57-.7.96-1.66.85-2.63-.83.03-1.83.55-2.42 1.24-.53.62-1 1.6-.87 2.55.92.07 1.86-.47 2.44-1.16z"/></svg><b class="pm-ink">Pay</b></span>
-    <span class="pay-chip" aria-label="Google Pay"><svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg><b class="pm-ink">Pay</b></span>
-    <span class="pay-chip pm-linkchip" aria-label="Link"><b>link</b></span>
-    <span class="pay-chip pm-klarnachip" aria-label="Klarna"><b>Klarna.</b></span>
-    <span class="pay-chip pm-cashchip" aria-label="Cash App Pay"><svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff"><path d="M16.19 7.06c.67.46 1.28 1 1.83 1.6a.66.66 0 0 0 .95.03l1.26-1.26a.68.68 0 0 0 0-.97 11.6 11.6 0 0 0-2.32-1.94l.5-2.01a.67.67 0 0 0-.65-.83h-2.44a.67.67 0 0 0-.65.51l-.33 1.32c-2.98-.6-6.09.35-6.7 3.42-.5 2.5 1.26 3.77 3.32 4.52 1.9.71 3.36 1.13 3.13 2.32-.2 1.03-1.44 1.55-3.16 1.28a7.3 7.3 0 0 1-2.98-1.36.67.67 0 0 0-.9.06l-1.32 1.35a.68.68 0 0 0 .03.98 9.6 9.6 0 0 0 2.66 1.68l-.5 2.05a.67.67 0 0 0 .66.82l2.45-.02c.31 0 .58-.21.65-.51l.33-1.33c3.58.62 6.43-.68 6.98-3.55.46-2.44-1.2-3.7-3.5-4.51-1.62-.6-2.99-1.03-2.79-2.16.2-1.12 1.77-1.36 3.49-.99z"/></svg><b>Cash&#8202;App</b></span>
-    <span class="pay-chip pay-xtra pm-paypalchip" aria-label="PayPal"><b><i class="pp1">Pay</i><i class="pp2">Pal</i></b></span>
-    <span class="pay-chip pay-xtra pm-idealchip" aria-label="iDEAL"><b>iDEAL</b></span>
-    <span class="pay-chip pay-xtra pm-mobilepaychip" aria-label="MobilePay"><b>MobilePay</b></span>
-    <span class="pay-chip pay-xtra pm-alipaychip" aria-label="Alipay"><b>Alipay</b></span>
-    <span class="pay-chip pay-xtra pm-wechatchip" aria-label="WeChat Pay"><b>WeChat Pay</b></span>
-    <span class="pay-chip pay-xtra pm-afterpaychip" aria-label="Afterpay"><b>afterpay</b></span>
-  </div>
-  <p class="pay-note">Cards, wallets and local methods &#8212; every one settles to your own Stripe account.</p>
-</section>
-
-<!-- 4.5 · how it works -->
-<section class="how wrap" id="how">
-  <h2 class="how-title">How it works</h2>
-  <div class="trio">
-    <article class="trio-item reveal">
-      <span class="trio-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
-      <h3>Set up payouts</h3>
-      <p>Connect your own Stripe account, add a crypto wallet, or both. Every payment settles straight into them &#8212; Dues never holds your money.</p>
-    </article>
-    <article class="trio-item reveal">
-      <span class="trio-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
-      <h3>Create a product</h3>
-      <p>Turn any role into a product &#8212; monthly, yearly or one-time lifetime. Set the price, pick the role, and choose how long access lasts.</p>
-    </article>
-    <article class="trio-item reveal">
-      <span class="trio-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-      <h3>Get paid</h3>
-      <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and every dollar goes to your account, not ours.</p>
-    </article>
-  </div>
-</section>
-
-<!-- 5.8 · what sellers say -->
+<!-- 7 · what sellers say -->
 <section class="voices wrap" aria-label="What communities say about Dues">
   <div class="mid-head">
     <div>
@@ -2573,7 +2551,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </section>
 
-<!-- 6 · community -->
+<!-- 8 · community -->
 <section class="comm wrap">
   <div class="comm-card reveal">
     <div class="comm-txt">
@@ -2591,7 +2569,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </section>
 
-<!-- 11 · faq -->
+<!-- 9 · faq -->
 <section id="faq" class="faq wrap">
   <div class="faq-head">
     <p class="sec-eyebrow">FAQ</p>
@@ -2629,7 +2607,7 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   </div>
 </section>
 
-<!-- 13 · footer -->
+<!-- 10 · footer -->
 </div><!-- /sheet -->
 <div class="footer-spacer" aria-hidden="true"></div>
 
