@@ -38,6 +38,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What counts as a paying member?","acceptedAnswer":{"@type":"Answer","text":"One person with active access, counted once across every store you run. Someone who buys three products from you is still one member, and anyone whose access has ended stops counting straight away."}},{"@type":"Question","name":"What happens if I pass my plan’s limit?","acceptedAnswer":{"@type":"Answer","text":"Nobody loses anything. Every existing member keeps the access they paid for — only brand-new signups pause, and they start again the moment you upgrade."}},{"@type":"Question","name":"Does Dues take a cut of my sales?","acceptedAnswer":{"@type":"Answer","text":"0% on every plan, including Free. Card payments settle into your own Stripe account and crypto forwards to your own wallet, so there is nothing for us to take a cut of — the money never passes through Dues."}},{"@type":"Question","name":"Then what do I actually pay?","acceptedAnswer":{"@type":"Answer","text":"Your plan, and the processing fees you would pay anyway. Stripe charges its own card rate directly to your account. On crypto the processor’s fee is added to the buyer’s total at checkout, and the network’s transfer fee comes out of the payout."}},{"@type":"Question","name":"Do I need Stripe to open a store?","acceptedAnswer":{"@type":"Answer","text":"Yes — connecting your Stripe account is how a store goes live, because that is where card payments land. Crypto is an extra method you can switch on afterwards from Settings."}},{"@type":"Question","name":"Can I change or cancel my plan?","acceptedAnswer":{"@type":"Answer","text":"Any time, from your dashboard. Cancelling ends the paid plan straight away rather than at the end of the period, so do it on the day you would have renewed. Your store, products, members and colours stay exactly where they are; only the paid wallpapers are parked until you re-subscribe, and they come back exactly as you left them."}},{"@type":"Question","name":"Is yearly really two months free?","acceptedAnswer":{"@type":"Answer","text":"Yes. A yearly plan is ten times the monthly price, so you pay for ten months and get twelve."}}]}</script>
 
 <style>
 /* ============ fonts ============ */
@@ -1141,9 +1142,10 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
 }
 
 /* ============ faq ============ */
-.faq{padding-block:100px}
+/* The section title is .faq-title, sized with .fees-title above. No .faq h2 or
+   .faq padding rule here: the homepage copies out-ranked that shared clamp and
+   the 860px padding rule, so the two sibling titles never matched. */
 .faq-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:80px;align-items:start}
-.faq h2{font-size:48px;line-height:56px}
 .faq-card{
   margin-top:36px;background:var(--slab);border:1px solid #232323;border-radius:16px;
   padding:24px;display:grid;gap:14px;justify-items:start;max-width:340px;
@@ -1296,8 +1298,6 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .plans{grid-template-columns:minmax(0,420px);justify-content:center;margin-top:44px;gap:16px;row-gap:36px}
   .plan{padding:26px 20px 22px}
   .plan-price .serif{font-size:38px}
-  .faq{padding-block:64px}
-  .faq h2{font-size:36px;line-height:44px}
   .acc-q{font-size:17px;padding:18px 2px}
   .final{margin-block:48px;padding:64px 24px 56px}
   .final h2{font-size:34px;line-height:42px}
@@ -1971,7 +1971,7 @@ html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
       <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
       <a class="btn btn-outline" href="/dashboard">Start selling</a>
       <div class="plan-cap"><b>50</b><span>paying members</span></div>
-      <p class="plan-look">All 44 backgrounds + uploads</p>
+      <p class="plan-look">All 44 backgrounds + your own by URL</p>
     </div>
     <div class="plan plan-pop">
       <div class="pop-tab">Popular</div>
@@ -1980,7 +1980,7 @@ html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
       <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
       <a class="btn btn-ink" href="/dashboard">Start selling</a>
       <div class="plan-cap"><b>500</b><span>paying members</span></div>
-      <p class="plan-look">All 44 backgrounds + uploads</p>
+      <p class="plan-look">All 44 backgrounds + your own by URL</p>
     </div>
     <div class="plan">
       <div class="plan-name"><b>Unlimited</b><i>For the biggest stores</i></div>
@@ -1988,7 +1988,7 @@ html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
       <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
       <a class="btn btn-outline" href="/dashboard">Start selling</a>
       <div class="plan-cap"><b class="cap-word">No limit</b><span>on paying members</span></div>
-      <p class="plan-look">All 44 backgrounds + uploads</p>
+      <p class="plan-look">All 44 backgrounds + your own by URL</p>
     </div>
   </div>
 

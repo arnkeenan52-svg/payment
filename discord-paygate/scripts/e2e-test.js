@@ -1243,6 +1243,78 @@ test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black
   assert.match(dcss, /#billing-body \.bill-toggle \{[^}]*flex-wrap: wrap/, 'the billing interval toggle wraps on narrow phones');
 });
 
+test('the pricing page prints TIERS — every price, yearly price and cap, by name', async () => {
+  // Every number on /pricing is hand-written HTML. The server charges what
+  // TIERS says (ensureTierPrice provisions a Stripe price from it), so the day
+  // TIERS moves and the page does not, Stripe bills one number while the page
+  // advertises another — the mirror image of the drift billing.js already
+  // documents once catching. Pinned card by card, by tier NAME, so a copy edit
+  // elsewhere on the card cannot pass for a price check.
+  const { TIERS } = await import('../src/services/billing.js');
+  const pricing = fs.readFileSync(new URL('../public/pricing.html', import.meta.url), 'utf8');
+  const cards = pricing.split(/<div class="plan(?: plan-pop)?">/).slice(1);
+  const usd = (n) => (n === 0 ? '$0' : '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  for (const tier of TIERS) {
+    const card = cards.find((c) => new RegExp(`<div class="plan-name"><b>${tier.name}</b>`).test(c));
+    assert.ok(card, `the pricing page must have a ${tier.name} card`);
+    const fig = card.match(/<span class="serif" data-monthly="([^"]*)" data-yearly="([^"]*)">([^<]*)</);
+    assert.ok(fig, `${tier.name} must carry both prices as data attributes`);
+    assert.equal(fig[1], usd(tier.priceUsd), `${tier.name} monthly price must be TIERS.priceUsd`);
+    assert.equal(fig[2], usd(tier.yearlyUsd), `${tier.name} yearly price must be TIERS.yearlyUsd`);
+    assert.equal(fig[3], fig[1], `${tier.name} must open on the monthly price the toggle starts on`);
+    // "2 months free" is only true while yearly is exactly ten monthlies.
+    assert.equal(Math.round(tier.yearlyUsd * 100), Math.round(tier.priceUsd * 100) * 10,
+      `${tier.name} yearly must be ten months or the "2 months free" toggle lies`);
+    const cap = card.match(/<div class="plan-cap"><b(?: class="cap-word")?>([^<]*)<\/b>/)?.[1];
+    assert.equal(cap, tier.maxMembers === null ? 'No limit' : String(tier.maxMembers),
+      `${tier.name} member cap must be TIERS.maxMembers`);
+  }
+  assert.equal(cards.length, TIERS.length, 'one card per tier, no card for a tier that does not exist');
+
+  // The paid cards describe a background IMPORT. The only control the product
+  // has for it is a URL field (dashboard #th-bgurl) — there is no file picker
+  // for a store background — so a card must not promise "uploads". If a picker
+  // is ever wired to bgUrl, this assertion is the one to drop.
+  const dash = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
+  assert.match(dash.match(/<input[^>]*id="th-bgurl"[^>]*>/)?.[0] ?? '', /type="url"/, 'the background import is a URL field');
+  for (const c of cards) {
+    if (/<b>Free<\/b>/.test(c)) continue;
+    const look = c.match(/class="plan-look">([^<]*)</)?.[1] ?? '';
+    assert.doesNotMatch(look, /upload/i, `a paid card must not advertise uploads the product does not take: "${look}"`);
+  }
+});
+
+test('the pricing FAQ is published as FAQPage structured data, word for word', async () => {
+  // The seven <details> are the most substantive Q&A on the site; the
+  // FAQPage block is what lets a search engine show them. It is a second
+  // copy of the same text, so the test reads BOTH from the file and requires
+  // them equal — an edit to one without the other fails here.
+  const pricing = fs.readFileSync(new URL('../public/pricing.html', import.meta.url), 'utf8');
+  const decode = (t) => t.replace(/&rsquo;/g, '’').replace(/&mdash;/g, '—').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  const list = pricing.match(/<div class="faq-list">([\s\S]*?)<\/div>\s*<div class="faq-cta">/)?.[1] ?? '';
+  const shown = [...list.matchAll(/<summary>([\s\S]*?)<\/summary>\s*<p>([\s\S]*?)<\/p>/g)]
+    .map((m) => ({ q: decode(m[1]), a: decode(m[2]) }));
+  assert.ok(shown.length >= 5, 'the pricing page keeps a real FAQ');
+  const blocks = [...pricing.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
+  const faq = blocks.find((b) => b['@type'] === 'FAQPage');
+  assert.ok(faq, 'the pricing page must ship a FAQPage block');
+  assert.deepEqual(
+    faq.mainEntity.map((e) => ({ q: e.name, a: e.acceptedAnswer.text })),
+    shown,
+    'FAQPage must mirror the visible FAQ, question for question',
+  );
+  for (const e of faq.mainEntity) {
+    assert.equal(e['@type'], 'Question');
+    assert.equal(e.acceptedAnswer['@type'], 'Answer');
+    assert.doesNotMatch(e.name + e.acceptedAnswer.text, /[<&]/, 'structured data carries text, not markup or entities');
+  }
+
+  // The FAQ title shares one clamp with the fees title (.fees-title,.faq-title).
+  // A leftover homepage `.faq h2` rule out-ranked it and made the two sibling
+  // titles differ by 8-20px at every width; the page must not grow one back.
+  assert.doesNotMatch(pricing, /\.faq h2\{|\.faq\{padding-block/, 'no homepage .faq rules overriding .faq-title on the pricing page');
+});
+
 test('every page on the site is named in the footer — checked against the filesystem', async () => {
   // A page nothing links to is a page nobody finds. The old version of this
   // test listed the twelve comparisons by hand and accepted an INDEX link for
