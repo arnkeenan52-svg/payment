@@ -19,6 +19,9 @@ npm test                 # e2e suite against mock Stripe/Coinbase/Discord (SQLit
 E2E_DATABASE_URL=postgres://… npm test   # same suite against real Postgres
 npm run migrate          # create tables against DATABASE_URL / DB_PATH
 npm run doctor           # LIVE-verify the whole setup before taking money
+npm run test:footer      # phone footer, measured headlessly at iPhone viewports
+npm run baseline:dash    # dashboard layout harness: record 243 states BEFORE a change…
+npm run test:dash        # …and diff against them after (baseline is local, see the file)
 ```
 
 Products live in `plans.json` — id, name, description, price, Stripe price
@@ -59,7 +62,10 @@ id, and the Discord role ids each plan grants. The live catalog is a single
   exact bytes sent; a parsed-and-reserialised body would fail verification.
 - **Routing**: `vercel.json` rewrites keep the public URLs stable —
   `/auth/login`, `/auth/callback`, `/auth/logout`, `/webhooks/stripe`,
-  `/webhooks/coinbase` map onto the corresponding `api/` functions.
+  `/webhooks/coinbase` map onto the corresponding `api/` functions. The
+  same file 301s the old domain (`ripleybot.com`, `www.ripleybot.com`) to
+  `https://dues.gg` with the path kept; that only takes effect once the old
+  domain is attached to the project in Vercel → Settings → Domains.
 - **Stripe-only capability flag**: crypto is live only when
   `COINBASE_API_KEY` + `COINBASE_WEBHOOK_SECRET` are set. Without them the
   storefront hides the crypto CTA and the coinbase endpoints answer 501 —

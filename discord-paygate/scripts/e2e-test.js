@@ -19,7 +19,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -48,6 +48,7 @@ const R2_VIP = '2200000000000000101';      // grantable role in G2
 const R2_BOT = '2200000000000000999';      // the bot's role in G2
 const OWNER2_KEY = 'rk_test_owner2';       // second owner's own Stripe key — restricted, the kind Stripe recommends
 const RESEND_KEY = 're_e2e_1234567890';
+const COMMUNITY_INVITE = 'https://discord.gg/e2e-community'; // one setting, two surfaces (site hop + receipt footer)
 const R_BOT = '1200000000000000999';
 const R_ADMIN = '1200000000000000555';   // above the bot — must be flagged unusable
 const R_NEW = '1200000000000000200';     // below the bot — pickable
@@ -824,6 +825,7 @@ const baseEnv = (mocks) => ({
   ROLE_CACHE_SECONDS: '0', // every resolution refetches, so a scenario can swap a guild's role list and be seen at once
   RESEND_API_KEY: RESEND_KEY,
   RESEND_API_BASE: mocks.resend.url,
+  COMMUNITY_INVITE: COMMUNITY_INVITE,
 });
 
 // ── tiny sequential harness ───────────────────────────────────────────────────
@@ -1126,6 +1128,147 @@ test('every page on the site is named in the footer — checked against the file
   const onDisk = new Set(pages);
   const dead = [...linked].filter((l) => !onDisk.has(l) && !l.startsWith('/api') && !APP.has(l)).sort();
   assert.deepEqual(dead, [], `footer links with no page behind them: ${dead.join(', ')}`);
+});
+
+test('every in-page anchor link on the site points at an id that exists — checked against the filesystem', async () => {
+  // A /#how link whose section was renamed scrolls nowhere and nobody sees
+  // it fail. This walk was cited by an earlier commit as "a check that every
+  // /#anchor on the site resolves to a real id" while living only in a
+  // scratch script that never landed; now it lives here.
+  const { readdirSync, statSync, existsSync, readFileSync } = await import('node:fs');
+  const { join, relative, dirname, resolve } = await import('node:path');
+  const PUBLIC = new URL('../public/', import.meta.url).pathname;
+  const walk = (dir, out = []) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full, out);
+      else if (name.endsWith('.html')) out.push(full);
+    }
+    return out;
+  };
+  const idsIn = new Map();
+  const idsOf = (file) => {
+    if (!idsIn.has(file)) {
+      idsIn.set(file, existsSync(file)
+        ? new Set([...readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]))
+        : null);
+    }
+    return idsIn.get(file);
+  };
+  let seen = 0;
+  const dead = [];
+  for (const file of walk(PUBLIC)) {
+    for (const [, target, id] of readFileSync(file, 'utf8').matchAll(/href="([^"#]*)#([^"]+)"/g)) {
+      if (/^https?:/.test(target)) continue;
+      seen++;
+      let page;
+      if (target === '') page = file;
+      else if (target.startsWith('/')) {
+        // cleanUrls: /pricing → pricing.html, /vs → vs/index.html, / → index.html.
+        const rel = target.slice(1);
+        page = rel === '' ? join(PUBLIC, 'index.html')
+          : [join(PUBLIC, `${rel}.html`), join(PUBLIC, rel, 'index.html'), join(PUBLIC, rel)].find((c) => existsSync(c)) ?? join(PUBLIC, `${rel}.html`);
+      } else page = resolve(dirname(file), target.endsWith('.html') ? target : `${target}.html`);
+      const ids = idsOf(page);
+      if (!ids) dead.push(`${relative(PUBLIC, file)} → ${target}#${id} (no such page)`);
+      else if (!ids.has(id)) dead.push(`${relative(PUBLIC, file)} → ${target}#${id} (no such id)`);
+    }
+  }
+  assert.ok(seen >= 4, `expected the site's anchor links to be walked, found ${seen}`);
+  assert.deepEqual(dead, [], `anchor links with nothing to scroll to: ${dead.join(', ')}`);
+});
+
+test('package.json scripts run files the repository ships (nothing behind a gitignore rule)', async () => {
+  // `npm run test:dash` once pointed at scripts/_verify-dash.mjs, which the
+  // `scripts/_*` rule keeps out of every commit: four commits cited it as
+  // their verification and a fresh clone could not run it. Every script
+  // entry must name a file that exists AND that git would not ignore.
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const targets = Object.entries(pkg.scripts)
+    .map(([name, cmd]) => [name, cmd.match(/^node (scripts\/[^\s]+)/)?.[1]])
+    .filter(([, file]) => file);
+  assert.ok(targets.length >= 8, 'the script table should still be node scripts/…');
+  const missing = targets.filter(([, file]) => !fs.existsSync(path.join(ROOT, file))).map(([n, f]) => `${n} → ${f}`);
+  assert.deepEqual(missing, [], `scripts pointing at files that do not exist: ${missing.join(', ')}`);
+  const git = spawnSync('git', ['check-ignore', ...targets.map(([, f]) => f)], { cwd: ROOT, encoding: 'utf8' });
+  if (git.error) return; // no git on this box — existence is all that can be checked
+  assert.equal(git.stdout.trim(), '', `scripts pointing at gitignored files: ${git.stdout.trim().split('\n').join(', ')}`);
+});
+
+test('every environment variable the code reads is named in .env.example, with the defaults it documents', async () => {
+  // README makes .env.example the deploy checklist ("set the environment
+  // variables listed in .env.example"), so a variable the code reads but the
+  // file never names is one nobody sets: RESEND_API_KEY was one, and its
+  // absence silently switches receipts off. The walk is over src/ and api/,
+  // the code that ships; scripts/ are local tooling with their own flags.
+  const { readdirSync, statSync } = await import('node:fs');
+  const walk = (dir, out = []) => {
+    for (const name of readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (statSync(full).isDirectory()) walk(full, out);
+      else if (name.endsWith('.js')) out.push(full);
+    }
+    return out;
+  };
+  const read = new Set();
+  for (const file of [...walk(path.join(ROOT, 'src')), ...walk(path.join(ROOT, 'api'))]) {
+    const src = fs.readFileSync(file, 'utf8');
+    for (const m of src.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)|\b(?:env|num)\('([A-Z][A-Z0-9_]*)'/g)) read.add(m[1] ?? m[2]);
+  }
+  // Not deploy settings: the two test/dev hooks that point the app at another
+  // .env or plan catalog, the flag Vercel injects itself, and the local
+  // arming switch for the bot-profile refresh that only runs in serverless.
+  const INTERNAL = new Set(['ENV_PATH', 'PLANS_PATH', 'VERCEL', 'BRAND_REFRESH']);
+  const example = fs.readFileSync(path.join(ROOT, '.env.example'), 'utf8');
+  const named = new Set([...example.matchAll(/^#?\s*([A-Z][A-Z0-9_]*)=/gm)].map((m) => m[1]));
+  const undocumented = [...read].filter((k) => !INTERNAL.has(k) && !named.has(k)).sort();
+  assert.deepEqual(undocumented, [], `read by src/ or api/ but absent from .env.example: ${undocumented.join(', ')}`);
+  assert.ok(read.size >= 30, `expected the full variable set to be walked, found ${read.size}`);
+
+  // The one default the file spells out must be the code's default: it said
+  // "Ripley" for a year after the platform became Dues, an invitation to
+  // paste the old brand back in.
+  const platformDefault = fs.readFileSync(path.join(ROOT, 'src', 'config.js'), 'utf8').match(/env\('PLATFORM_NAME', '([^']+)'\)/)[1];
+  assert.match(example, new RegExp(`^#\\s*PLATFORM_NAME=${platformDefault}$`, 'm'), `.env.example must document PLATFORM_NAME's real default (${platformDefault})`);
+});
+
+test('vercel.json: the old domain 301s to dues.gg with the path kept; the webhook aliases survive', async () => {
+  // The redirect only bites once ripleybot.com is attached to the project in
+  // Vercel — a human step — but the rule has to be right before that day.
+  const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+  const rule = vercel.redirects.find((r) => (r.has ?? []).some((h) => h.type === 'host' && /ripleybot/.test(h.value)));
+  assert.ok(rule, 'a host-conditioned redirect for ripleybot.com must exist');
+  const host = new RegExp(`^${rule.has.find((h) => h.type === 'host').value}$`);
+  for (const h of ['ripleybot.com', 'www.ripleybot.com']) assert.ok(host.test(h), `${h} must match the host condition`);
+  assert.equal(host.test('dues.gg'), false, 'the new domain must never match itself into a loop');
+  assert.equal(rule.permanent, true, 'a domain move is permanent (301/308), not a 307 the browser re-asks about');
+  assert.equal(rule.source, '/:path*', 'every path on the old host, the root included');
+  assert.equal(rule.destination, 'https://dues.gg/:path*', 'the path rides along, so old deep links keep working');
+  // The rewrites the storefront and providers depend on are untouched.
+  const rewritten = new Map(vercel.rewrites.map((r) => [r.source, r.destination]));
+  for (const [source, destination] of [
+    ['/webhooks/stripe', '/api/webhooks/stripe'],
+    ['/webhooks/coinbase', '/api/webhooks/coinbase'],
+    ['/webhooks/nowpayments', '/api/webhooks/nowpayments'],
+    ['/webhooks/stripe/:storeid', '/api/webhooks/stripe?store=:storeid'],
+    ['/s/:slug', '/api/store-page?store=:slug'],
+  ]) assert.equal(rewritten.get(source), destination, `${source} rewrite must be kept`);
+});
+
+test('the community invite is one setting: the site hop and the receipt read the same value, either name works', async () => {
+  // COMMUNITY_INVITE fed the receipt email while DISCORD_COMMUNITY_INVITE fed
+  // /api/community — re-issuing the invite under one name left the other
+  // surface on the dead link. Both now come from config.communityInvite.
+  const hop = await fetch(`${appUrl}/api/community`, { redirect: 'manual' });
+  assert.equal(hop.status, 302);
+  assert.equal(hop.headers.get('location'), COMMUNITY_INVITE, 'the site hop redirects to the configured invite');
+  // The older name is still honoured, so a deployment that set it keeps its invite.
+  const probe = (env) => spawnSync(process.execPath, ['-e', "import('./src/config.js').then((m) => console.log(m.config.communityInvite))"], {
+    cwd: ROOT, encoding: 'utf8',
+    env: { ...process.env, ENV_PATH: '/nonexistent/.env', PLANS_PATH, COMMUNITY_INVITE: '', DISCORD_COMMUNITY_INVITE: '', ...env },
+  }).stdout.trim();
+  assert.equal(probe({ DISCORD_COMMUNITY_INVITE: 'https://discord.gg/old-name' }), 'https://discord.gg/old-name');
+  assert.equal(probe({ COMMUNITY_INVITE: 'https://discord.gg/new-name', DISCORD_COMMUNITY_INVITE: 'https://discord.gg/old-name' }), 'https://discord.gg/new-name', 'the documented name wins when both are set');
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
@@ -2367,6 +2510,9 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
   assert.match(receipt.subject, /VIP Signals/);
   assert.match(receipt.html, /VIP Access/);
   assert.match(receipt.html, /\$49\.99/);
+  // The footer's community link is the configured invite, the same value the
+  // site's /api/community hop redirects to — one env var, both surfaces.
+  assert.ok(receipt.html.includes(COMMUNITY_INVITE), 'the receipt links the configured community invite');
 
   // The tenant owner's dashboard sees exactly their store — nothing else.
   const pay7 = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: u7Cookie } })).json();
