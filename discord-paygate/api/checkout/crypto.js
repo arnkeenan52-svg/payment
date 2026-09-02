@@ -108,7 +108,10 @@ export default guard(async function handler(req, res) {
         return;
       }
       try {
-        sendJson(res, 200, { ready: true, coins: await merchantCoins() });
+        // No coins is the same answer as no wallet: nothing here can be paid
+        // with, so say so instead of offering an empty picker.
+        const coins = await merchantCoins();
+        sendJson(res, 200, { ready: coins.length > 0, coins });
       } catch (err) {
         console.error(`[checkout] nowpayments coin list failed: ${err.message}`);
         sendJson(res, 502, { error: 'Could not load the coin list just now.' });
@@ -149,8 +152,8 @@ export default guard(async function handler(req, res) {
   // No wallet, no sale. Refusing here is the whole custody guarantee: a
   // payment created without a payout address settles into the platform's
   // NOWPayments balance, and this account still has custody switched on.
-  if (!String(store.cryptoWallet ?? '').trim()) {
-    console.error(`[checkout] ${store.slug} has crypto enabled but no payout wallet — refusing to create a payment`);
+  if (!String(store.cryptoWallet ?? '').trim() || !String(store.cryptoChain ?? '').trim()) {
+    console.error(`[checkout] ${store.slug} has crypto enabled but no payout wallet or chain — refusing to create a payment`);
     sendJson(res, 409, { error: 'This store has not finished setting up crypto payments yet. Pay by card, or check back shortly.' });
     return;
   }

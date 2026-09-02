@@ -249,8 +249,38 @@ const FAMILY_NAME = {
 
 // Version bytes are what separates a Litecoin address from a Bitcoin one:
 // both are base58check, and without this a BTC address saves happily as an
-// LTC payout wallet and the funds are gone.
-const B58_VERSIONS = { btc: [0x00, 0x05], ltc: [0x30, 0x32, 0x05], doge: [0x1e, 0x16] };
+// LTC payout wallet and the funds are gone. Litecoin's legacy P2SH prefix
+// 0x05 is deliberately NOT here: it is Bitcoin's P2SH byte, so every "3…"
+// address decodes on both chains and there is no way to tell which one the
+// seller meant. Litecoin moved its P2SH addresses to 0x32 ("M…") in 2018
+// precisely because of that clash; an old "3…" LTC address has to be
+// converted in the seller's wallet before it can be trusted here.
+const B58_VERSIONS = { btc: [0x00, 0x05], ltc: [0x30, 0x32], doge: [0x1e, 0x16] };
+
+// Cardano (CIP-19): a Shelley address is a header byte — address type in the
+// high nibble, network id in the low one — followed by one or two 28-byte
+// hashes. The bech32 checksum alone proves nothing about length, so a
+// six-character string with a valid checksum would otherwise pass as a
+// payout wallet.
+function cardanoOk(addr) {
+  const d = bech32Decode(addr);
+  if (!d || d.hrp !== 'addr' || d.spec !== 'bech32') return false;
+  const raw = convert5to8(d.data);
+  if (!raw || raw.length < 29) return false;
+  const type = raw[0] >> 4;
+  const network = raw[0] & 0x0f;
+  // Testnet addresses carry the 'addr_test' hrp, but the network nibble is
+  // the authoritative signal and mainnet is the only place a payout can go.
+  if (network !== 1) return false;
+  // 0-3: base (payment + stake credential), 57 bytes.
+  // 4-5: pointer, 29 bytes plus a variable-length stake pointer.
+  // 6-7: enterprise (payment credential only), 29 bytes.
+  // Everything else (Byron bootstrap, reward) is not a payment address.
+  if (type <= 3) return raw.length === 57;
+  if (type <= 5) return raw.length > 29;
+  if (type <= 7) return raw.length === 29;
+  return false;
+}
 
 function checkFamily(family, addr) {
   switch (family) {
@@ -271,7 +301,7 @@ function checkFamily(family, addr) {
       return Boolean(p && p.length === 21 && p[0] === 0x00);
     }
     case 'ada':
-      return Boolean(bech32Decode(addr)?.hrp === 'addr');
+      return cardanoOk(addr);
     case 'btc':
     case 'ltc':
     case 'doge': {

@@ -125,8 +125,41 @@ export async function merchantCoins() {
       .map((c) => c.ticker);
   })();
   coinCache = { at, promise };
-  promise.catch(() => { coinCache = null; });
+  // An empty list is answered but never remembered. It is what a response
+  // of an unexpected shape decodes to, and what a dashboard with every coin
+  // toggled off returns — either way the next request should ask again
+  // rather than refuse every coin for five minutes.
+  promise.then((list) => { if (!list.length && coinCache?.promise === promise) coinCache = null; }, () => { coinCache = null; });
   return promise;
+}
+
+// Is this address one NOWPayments can actually send `currency` to?
+//
+// There is no endpoint that lists the coins payouts can settle in — only
+// the deposit list (/merchant/coins), which answers a different question.
+// This is the provider's own check for the exact pair the seller is about
+// to save: a coin it cannot pay out in fails here the same way a malformed
+// address does. The success body is a bare "OK", not JSON, so this does not
+// go through npFetch.
+//
+// Returns { ok: true } or { ok: false, message } — and THROWS when the
+// provider could not be asked at all, so the caller can tell "no" from
+// "unknown" and treat only the latter as advisory.
+export async function validatePayoutAddress({ address, currency, extraId = null }) {
+  const res = await fetch(`${api()}/payout/validate-address`, {
+    method: 'POST',
+    headers: { 'x-api-key': config.nowpayments.apiKey, 'content-type': 'application/json' },
+    body: JSON.stringify({ address, currency: String(currency).toLowerCase(), extra_id: extraId }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (res.ok) return { ok: true };
+  const detail = await res.text().catch(() => '');
+  if (res.status === 400) {
+    let message = detail;
+    try { message = JSON.parse(detail)?.message ?? detail; } catch { /* plain text */ }
+    return { ok: false, message: String(message).slice(0, 300) };
+  }
+  throw new Error(`nowpayments: POST /payout/validate-address failed with ${res.status}: ${detail.slice(0, 300)}`);
 }
 
 export const minimumFor = (from, to) =>
@@ -151,6 +184,13 @@ export async function createPayment({ plan, store, amount, payCurrency, orderId 
     // is deliberately an exception rather than a fallback.
     throw new Error('nowpayments: refusing to create a payment with no payout address — funds would settle into the platform balance');
   }
+  const payoutChain = String(store?.cryptoChain ?? '').trim().toLowerCase();
+  if (!payoutChain) {
+    // The chain is part of the same guarantee. An address without a chain
+    // is not "pay them in whatever the buyer chose": that sends BTC to a
+    // Solana address, which is the one outcome worse than custody.
+    throw new Error('nowpayments: refusing to create a payment with a payout address but no payout chain');
+  }
   const currency = normalizeCurrency(plan.currency);
   const body = {
     price_amount: Number(amount ?? plan.priceUsd),
@@ -162,7 +202,7 @@ export async function createPayment({ plan, store, amount, payCurrency, orderId 
     // The coin the SELLER is paid in, which is a property of their wallet —
     // not of whatever the buyer chose to send. A seller with a Solana wallet
     // is paid in SOL whether the buyer paid in BTC or USDT.
-    payout_currency: String(store.cryptoChain || payCurrency).toLowerCase(),
+    payout_currency: payoutChain,
     order_id: orderId,
     order_description: `${plan.name} — ${store?.name ?? config.brand}`,
     ipn_callback_url: ipnCallbackUrl(),

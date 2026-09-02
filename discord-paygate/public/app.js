@@ -413,12 +413,28 @@ async function renderCoinPicker() {
   if (state.coins === null) {
     msg.textContent = 'Loading coins…';
     state.coins = [];
+    let failed = false;
     try {
       const res = await fetch(`/api/checkout/crypto?coins=1&store=${encodeURIComponent(STORE_SLUG)}`);
+      if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
       state.coins = Array.isArray(data.coins) ? data.coins : [];
     } catch {
-      state.coins = [];
+      // A transient failure must not leave the picker empty for the life of
+      // the page: forget the answer so the next open asks again.
+      state.coins = null;
+      failed = true;
+    }
+    if (failed) {
+      grid.innerHTML = '';
+      msg.textContent = '';
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'btn-ghost';
+      retry.textContent = 'Could not load coins — try again';
+      retry.onclick = () => render();
+      msg.append(retry);
+      return;
     }
     renderCoinPicker();
     return;
