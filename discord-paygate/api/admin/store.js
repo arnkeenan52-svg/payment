@@ -13,7 +13,7 @@ import { parseUploadDataUrl, uploadKind, UPLOAD_BODY_LIMIT } from '../../src/lib
 import { payoutCurrencies, invalidatePriceCache } from '../../src/lib/stripe.js';
 import { isSupported, normalize as normalizeCurrency, roundAmount, validateAmount, formatAmount } from '../../src/lib/currency.js';
 import { validateAddress, chainFamily } from '../../src/lib/crypto-address.js';
-import { merchantCoins } from '../../src/lib/nowpayments.js';
+import { merchantCoins, validatePayoutAddress } from '../../src/lib/nowpayments.js';
 import { capabilities } from '../../src/config.js';
 
 // Store identity settings: name, description, banner, custom link (slug).
@@ -210,15 +210,19 @@ export default guard(async function handler(req, res) {
       }
       const v = validateAddress(addr, chain);
       if (!v.ok) return sendJson(res, 400, { error: v.error });
-      // The coin has to be one this merchant account can actually pay out in.
-      // Advisory only: if NOWPayments cannot be reached the save still goes
-      // through, because a provider outage is not a reason to lock a seller
-      // out of their own settings.
+      // The coin has to be one NOWPayments can actually pay out in, to this
+      // address. That is the provider's own question to answer — the deposit
+      // list (/merchant/coins) is a different set, and gating on it both
+      // refused coins payouts handle fine and admitted ones they do not.
+      // A definite "no" refuses the save. Advisory only when the provider
+      // cannot be reached: an outage is not a reason to lock a seller out of
+      // their own settings.
       if (capabilities().nowpayments) {
         try {
-          const coins = await merchantCoins();
-          if (coins.length && !coins.includes(chain)) {
-            return sendJson(res, 400, { error: `${chain.toUpperCase()} is not one of the coins available for payouts right now — pick another.` });
+          const check = await validatePayoutAddress({ address: addr, currency: chain });
+          if (!check.ok) {
+            console.warn(`[store] nowpayments refused payout ${chain} for ${store.slug}: ${check.message}`);
+            return sendJson(res, 400, { error: `NOWPayments cannot send ${chain.toUpperCase()} payouts to that address — check the coin and the address, or pick another coin.` });
           }
         } catch (err) {
           console.warn(`[store] could not verify payout coin ${chain}: ${err.message}`);

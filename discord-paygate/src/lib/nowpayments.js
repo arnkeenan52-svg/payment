@@ -133,6 +133,35 @@ export async function merchantCoins() {
   return promise;
 }
 
+// Is this address one NOWPayments can actually send `currency` to?
+//
+// There is no endpoint that lists the coins payouts can settle in — only
+// the deposit list (/merchant/coins), which answers a different question.
+// This is the provider's own check for the exact pair the seller is about
+// to save: a coin it cannot pay out in fails here the same way a malformed
+// address does. The success body is a bare "OK", not JSON, so this does not
+// go through npFetch.
+//
+// Returns { ok: true } or { ok: false, message } — and THROWS when the
+// provider could not be asked at all, so the caller can tell "no" from
+// "unknown" and treat only the latter as advisory.
+export async function validatePayoutAddress({ address, currency, extraId = null }) {
+  const res = await fetch(`${api()}/payout/validate-address`, {
+    method: 'POST',
+    headers: { 'x-api-key': config.nowpayments.apiKey, 'content-type': 'application/json' },
+    body: JSON.stringify({ address, currency: String(currency).toLowerCase(), extra_id: extraId }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (res.ok) return { ok: true };
+  const detail = await res.text().catch(() => '');
+  if (res.status === 400) {
+    let message = detail;
+    try { message = JSON.parse(detail)?.message ?? detail; } catch { /* plain text */ }
+    return { ok: false, message: String(message).slice(0, 300) };
+  }
+  throw new Error(`nowpayments: POST /payout/validate-address failed with ${res.status}: ${detail.slice(0, 300)}`);
+}
+
 export const minimumFor = (from, to) =>
   npFetch(`/min-amount?currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`);
 

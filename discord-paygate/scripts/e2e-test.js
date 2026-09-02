@@ -577,8 +577,31 @@ async function nowpaymentsHandler(req, res) {
   }
   if (url.pathname === '/merchant/coins' && req.method === 'GET') {
     // Deliberately UPPERCASE: tickers are compared lowercase everywhere, and
-    // the provider is not consistent about which it sends.
-    json(res, 200, { selectedCurrencies: nowpayments.noCoins ? [] : ['BTC', 'SOL', 'USDTSOL', 'ETH'] });
+    // the provider is not consistent about which it sends. XMR is enabled for
+    // DEPOSITS only — see validate-address below — which is the case the
+    // payout gate must not confuse with "available for payouts".
+    json(res, 200, { selectedCurrencies: nowpayments.noCoins ? [] : ['BTC', 'SOL', 'USDTSOL', 'ETH', 'XMR'] });
+    return;
+  }
+  if (url.pathname === '/payout/validate-address' && req.method === 'POST') {
+    // The provider's own answer to "can this coin be paid out to this
+    // address". Its success body is a bare OK, not JSON — documented, and
+    // exactly the kind of thing a shared JSON fetch helper trips over.
+    const body = JSON.parse(await readBody(req));
+    (nowpayments.validated ??= []).push(body);
+    const shape = {
+      btc: /^(1|3)[1-9A-HJ-NP-Za-km-z]{25,34}$|^bc1[02-9ac-hj-np-z]{8,87}$/,
+      ltc: /^[LM][1-9A-HJ-NP-Za-km-z]{25,34}$|^ltc1[02-9ac-hj-np-z]{8,87}$/,
+      sol: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+      usdtsol: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+      eth: /^0x[0-9a-fA-F]{40}$/,
+    }[String(body.currency).toLowerCase()];
+    if (!shape || !shape.test(String(body.address))) {
+      json(res, 400, { status: false, statusCode: 400, code: 'BAD_CREATE_WITHDRAWAL_REQUEST', message: `Invalid payout_address: ${body.currency} ${body.address}` });
+      return;
+    }
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('OK');
     return;
   }
   if (url.pathname === '/min-amount' && req.method === 'GET') {
@@ -4370,9 +4393,33 @@ test('crypto: the payout wallet is checksum-checked and has to be typed twice', 
   assert.equal(wrongChain.status, 400);
   assert.match((await wrongChain.json()).error, /Solana/);
 
-  // A coin the merchant account does not have enabled.
-  const offCoin = await npStore({ cryptoWallet: SOL_WALLET, cryptoChain: 'doge' }, npCookie);
+  // A coin NOWPayments cannot pay out to this address. The provider is the
+  // authority on that pair — the deposit list (/merchant/coins) is a
+  // different set and must not be what decides it.
+  const offCoin = await npStore({ cryptoWallet: 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L', cryptoChain: 'doge' }, npCookie);
   assert.equal(offCoin.status, 400, 'payouts can only go out in a coin the account can actually send');
+  assert.match((await offCoin.json()).error, /cannot send DOGE payouts/);
+
+  // XMR is enabled for deposits in the mock but payouts cannot settle in
+  // it: gating on the deposit list would save this and every sale would
+  // then fail at the provider, on the buyer's screen.
+  const depositOnly = await npStore(
+    { cryptoWallet: '888tNkZrPN6JsEgekjMnABU4TBzc2Dt29EPAvkRxbANsAnjyPbb3iQ1YBRWKTHmfRUmsdzh1Yg3hCzE5aFbhQirD2u9vnXR', cryptoChain: 'xmr' },
+    npCookie,
+  );
+  assert.equal(depositOnly.status, 400, 'a deposit-only coin is not a payout coin');
+  assert.match((await depositOnly.json()).error, /cannot send XMR payouts/);
+
+  // The converse: Litecoin is NOT in the deposit list, but the provider pays
+  // out in it fine — so the save goes through (after the usual confirm).
+  const LTC_WALLET = 'MJRSgZ3UUFcTBTBAaN38XAXvZLwRe8WVw7';
+  const ltcUnconfirmed = await npStore({ cryptoWallet: LTC_WALLET, cryptoChain: 'ltc' }, npCookie);
+  assert.equal(ltcUnconfirmed.status, 409, 'a payout coin outside the deposit list is not refused — only confirmed');
+  const ltcSaved = await npStore({ cryptoWallet: LTC_WALLET, cryptoChain: 'ltc', cryptoWalletConfirm: LTC_WALLET }, npCookie);
+  assert.equal(ltcSaved.status, 200, await ltcSaved.clone().text());
+  assert.equal((await ltcSaved.json()).store.cryptoChain, 'ltc');
+  const validated = nowpayments.validated.at(-1);
+  assert.deepEqual({ address: validated.address, currency: validated.currency }, { address: LTC_WALLET, currency: 'ltc' }, 'the exact pair the seller is saving is what the provider was asked about');
 
   // Right address, right chain, no confirmation: refused, and told why.
   const unconfirmed = await npStore({ cryptoWallet: SOL_WALLET, cryptoChain: 'sol' }, npCookie);
@@ -4416,7 +4463,7 @@ test('crypto: checkout creates a payment carrying the payout address and its own
   nowpayments.noCoins = false;
   const coins = await (await fetch(`${appUrl}/api/checkout/crypto?coins=1&store=vip-signals`)).json();
   assert.equal(coins.ready, true, 'the empty answer was not cached');
-  assert.deepEqual(coins.coins, ['sol', 'usdtsol', 'btc', 'eth'], 'tickers arrive lowercased and cheapest chains first');
+  assert.deepEqual(coins.coins, ['sol', 'usdtsol', 'btc', 'eth', 'xmr'], 'tickers arrive lowercased and cheapest chains first');
 
   const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
   const plan = plans.plans[0];
