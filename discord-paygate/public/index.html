@@ -500,6 +500,9 @@ html:not([data-theme="light"]) .mid-note,html:not([data-theme="light"]) .save-de
 html:not([data-theme="light"]) .save-demo{width:fit-content;max-width:100%;margin-inline:auto}
 html:not([data-theme="light"]) .pay{width:min(880px,100% - 32px);margin:0 auto 40px;padding:28px 20px 30px;border-radius:22px;background:rgba(13,20,32,.62);border:1px solid rgba(255,255,255,.08)}
 @media (max-width:600px){html:not([data-theme="light"]) .pay{width:calc(100% - 24px);padding:24px 12px 26px}} /* the chip grid keeps the width it had, so Cash App stays on one line */
+/* the step cards ride the same navy glass for the same reason: --sec copy over
+   a bright cloud measured well under 4.5:1 on open sky. */
+html:not([data-theme="light"]) .trio-item{background:rgba(13,20,32,.62)}
 html:not([data-theme="light"]) .hero-core::before{
   content:"";position:absolute;top:50%;left:50%;width:1440px;height:760px;transform:translate(-50%,-50%);
   z-index:-1;pointer-events:none;
@@ -2061,26 +2064,57 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
 .how{padding-block:72px 8px}
 /* the gap above the payment strip. It lives on the trio, not on .pay: the
    night face restyles .pay as a panel with its own padding and margins and
-   would win any rule written there. */
-.how .trio{margin-bottom:clamp(38px,5vw,58px)}
-/* ── the three-column icon row ────────────────────────────────────────────
-   One pattern, one definition — and now one USE. The fee section carried a
-   second copy of this row a section below, which is how a spacing tweak lands
-   on one of them and the pair quietly stops matching, and how a reader ends up
-   scrolling past the same shape twice. */
+   would win any rule written there. One rhythm token, not a hand-picked clamp:
+   a whole section boundary of empty sky used to open between step three and
+   the strip that is step three's evidence. */
+.how .trio{margin-bottom:var(--sec-y)}
+/* ── the three steps ──────────────────────────────────────────────────────
+   Three centred paragraphs under three grey discs TOLD the mechanism and
+   showed none of it. A wallet glyph does not say "your own Stripe account", a
+   basket does not say "a role is the product", and nothing in the band said
+   which step came first — in a section headed "Three steps" the order was the
+   one thing the eye could not find. So: numbered, carded, read left to right,
+   with one left edge per step instead of three centred blocks the eye has to
+   re-find. Each step wears the real mark of the thing it names, and those
+   marks are the same white chips the payment strip below is built from, which
+   is what makes the strip read as the end of step three.
+   One pattern, one definition — and one USE. The fee section carried a second
+   copy of this row a section below, which is how a spacing tweak lands on one
+   of them and the pair quietly stops matching. */
 .trio{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
   gap:clamp(24px,4vw,56px);margin-top:clamp(32px,5vw,56px);
 }
-.trio-item{display:flex;flex-direction:column;align-items:center;text-align:center}
-.trio-badge{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:56px;height:56px;border-radius:50%;
-  background:var(--gl-glass-2,rgba(127,140,170,.14));
-  border:1px solid var(--gl-border,rgba(127,140,170,.22));
-  color:var(--sec);
+.trio-item{
+  display:flex;flex-direction:column;align-items:stretch;text-align:left;
+  padding:20px 22px 24px;border-radius:20px;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
 }
-.trio-badge svg{width:23px;height:23px}
+/* mark and number share one row, so all three cards agree on two baselines
+   however long a heading runs. */
+.trio-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.trio-badge{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:34px;padding:5px 12px;border-radius:10px;
+  background:#fff;border:1px solid rgba(15,22,38,.1);
+  box-shadow:0 2px 8px -4px rgba(15,22,38,.2);
+}
+.trio-badge svg{display:block;width:auto}
+.trio-stripe svg{height:17px;color:#635BFF}
+.trio-role{font:800 13.5px/1 var(--jakarta);letter-spacing:.01em;color:#5865f2}
+.trio-discord svg{height:15px;fill:#5865f2}
+/* the one green beat in the band, on the last step: the role landed. */
+.trio-ok{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:17px;height:17px;border-radius:50%;
+  background:rgba(22,163,74,.14);color:#16a34a;
+}
+.trio-ok svg{width:9px;height:9px;stroke:currentColor;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.trio-n{
+  font:800 clamp(26px,2.2vw,32px)/1 var(--jakarta);letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;color:var(--gl-blue);
+}
 .trio-item h3{
   margin-top:18px;font-family:var(--jakarta);font-weight:600;
   font-size:17px;letter-spacing:-.01em;color:var(--ink);
@@ -2091,8 +2125,20 @@ html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.9
      next row. */
   margin-top:8px;font-size:14.5px;line-height:23px;color:var(--sec);max-width:36ch;
 }
+/* Stacked, the steps are three cards in ONE run, so they close up — 28px of
+   air between bordered cards reads as three separate bands, which is the thing
+   the numbering exists to deny — and they stop short of the full band width,
+   which a single column of four-line paragraphs does not need. Written on the
+   same compound as the margin above, for the same reason: the width and gap a
+   phone wants are set further down the sheet, in the grid section. */
 @media (max-width:860px){
-  .trio{grid-template-columns:1fr;gap:36px;max-width:460px;margin-inline:auto}
+  .trio{grid-template-columns:1fr}
+  .how .trio{gap:12px;max-width:520px}
+}
+/* and on a phone the card gives back padding it does not need: stacked, three
+   cards at the desktop inset made this band taller than the essay it replaced. */
+@media (max-width:600px){
+  .trio-item{padding:16px 18px 20px}
 }
 
 /* The three-point "Stop losing money to platform fees" band used to sit here.
@@ -2212,6 +2258,15 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 .pay-cap::before{background:linear-gradient(90deg,transparent,var(--hair))}
 .pay-cap::after{background:linear-gradient(90deg,var(--hair),transparent)}
 .pay-note{font-size:12.5px;line-height:18px;color:var(--micro);text-align:center;margin-top:-2px}
+/* The day face left the strip bare on the open sky while the night face framed
+   it as a panel, so under three carded steps it read as a row of logos that had
+   drifted loose below the band rather than as the close of step three. Same
+   geometry as the night rule, day glass. It is a card treatment and not the
+   page gutter, which is why it is theme-scoped — the same exemption the night
+   panel takes, and it is written here rather than in the night block above so
+   that block stays what it says it is. */
+html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;padding:28px 20px 30px;border-radius:22px;background:var(--glass);border:1px solid var(--glass-brd);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
+@media (max-width:600px){html[data-theme="light"] .pay{width:calc(100% - 24px);padding:24px 12px 26px}}
 
 /* ── phone footer blind: the desktop reveal, phantom-safe. JS turns on
    html[data-blind] only when the footer fits the viewport; the in-flow
@@ -2559,19 +2614,37 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
     <p class="sec-eyebrow">HOW IT WORKS</p>
     <h2 class="sec-display">Three steps to a paid role.</h2>
   </div>
+  <!-- Numbered, and each step wearing the real mark of the thing it names: the
+       Stripe wordmark, the blurple role chip a storefront actually renders, the
+       Discord glyph the role lands in. The marks are the same white chips the
+       payment strip below is built from, so the strip reads as the end of step
+       three rather than a fourth thing. No product screenshot: every still in
+       the repo is either the retired Ripley brand (shot-store, shot-email) or a
+       superseded build of the storefront and checkout (land-storefront,
+       land-checkout), and the dashboard ones carry revenue and member figures
+       this page does not advertise. -->
   <div class="trio">
     <article class="trio-item reveal">
-      <span class="trio-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>
+      <div class="trio-top">
+        <span class="trio-badge trio-stripe" aria-hidden="true"><svg viewBox="54 36 360 150" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M414,113.4c0-25.6-12.4-45.8-36.1-45.8c-23.8,0-38.2,20.2-38.2,45.6c0,30.1,17,45.3,41.4,45.3c11.9,0,20.9-2.7,27.7-6.5v-20c-6.8,3.4-14.6,5.5-24.5,5.5c-9.7,0-18.3-3.4-19.4-15.2h48.9C413.8,121,414,115.8,414,113.4z M364.6,103.9c0-11.3,6.9-16,13.2-16c6.1,0,12.6,4.7,12.6,16H364.6z M301.1,67.6c-9.8,0-16.1,4.6-19.6,7.8l-1.3-6.2h-22v116.6l25-5.3l0.1-28.3c3.6,2.6,8.9,6.3,17.7,6.3c17.9,0,34.2-14.4,34.2-46.1C335.1,83.4,318.6,67.6,301.1,67.6z M295.1,136.5c-5.9,0-9.4-2.1-11.8-4.7l-0.1-37.1c2.6-2.9,6.2-4.9,11.9-4.9c9.1,0,15.4,10.2,15.4,23.3C310.5,126.5,304.3,136.5,295.1,136.5z M223.8,61.7l25.1-5.4V36l-25.1,5.3V61.7z M223.8,69.3h25.1v87.5h-25.1V69.3z M196.9,76.7l-1.6-7.4h-21.6v87.5h25V97.5c5.9-7.7,15.9-6.3,19-5.2v-23C214.5,68.1,202.8,65.9,196.9,76.7z M146.9,47.6l-24.4,5.2l-0.1,80.1c0,14.8,11.1,25.7,25.9,25.7c8.2,0,14.2-1.5,17.5-3.3V135c-3.2,1.3-19,5.9-19-8.9V90.6h19V69.3h-19L146.9,47.6z M79.3,94.7c0-3.9,3.2-5.4,8.5-5.4c7.6,0,17.2,2.3,24.8,6.4V72.2c-8.3-3.3-16.5-4.6-24.8-4.6C67.5,67.6,54,78.2,54,95.9c0,27.6,38,23.2,38,35.1c0,4.6-4,6.1-9.6,6.1c-8.3,0-18.9-3.4-27.3-8v23.8c9.3,4,18.7,5.7,27.3,5.7c20.8,0,35.1-10.3,35.1-28.2C117.4,100.6,79.3,105.9,79.3,94.7z"/></svg></span>
+        <span class="trio-n" aria-hidden="true">01</span>
+      </div>
       <h3>Set up payouts</h3>
       <p>Connect your own Stripe account, add a crypto wallet, or both. Every payment settles straight into them &#8212; Dues never holds your money.</p>
     </article>
     <article class="trio-item reveal">
-      <span class="trio-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 11-1-9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1-9"/></svg></span>
+      <div class="trio-top">
+        <span class="trio-badge trio-role" aria-hidden="true">@VIP</span>
+        <span class="trio-n" aria-hidden="true">02</span>
+      </div>
       <h3>Create a product</h3>
       <p>Turn any role into a product &#8212; monthly, yearly or one-time lifetime. Set the price, pick the role, and choose how long access lasts.</p>
     </article>
     <article class="trio-item reveal">
-      <span class="trio-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+      <div class="trio-top">
+        <span class="trio-badge trio-discord" aria-hidden="true"><svg viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg><span class="trio-ok"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></svg></span></span>
+        <span class="trio-n" aria-hidden="true">03</span>
+      </div>
       <h3>Get paid</h3>
       <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and every dollar goes to your account, not ours.</p>
     </article>
