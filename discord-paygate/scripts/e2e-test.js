@@ -643,7 +643,12 @@ async function nowpaymentsHandler(req, res) {
     return;
   }
   if (url.pathname === '/min-amount' && req.method === 'GET') {
-    nowpayments.minAmount.push({ from: url.searchParams.get('currency_from'), to: url.searchParams.get('currency_to') });
+    nowpayments.minAmount.push({
+      from: url.searchParams.get('currency_from'),
+      to: url.searchParams.get('currency_to'),
+      fixed: url.searchParams.get('is_fixed_rate'),
+      feeByUser: url.searchParams.get('is_fee_paid_by_user'),
+    });
     json(res, 200, { min_amount: 0.004, currency_from: url.searchParams.get('currency_from') });
     return;
   }
@@ -6941,7 +6946,11 @@ test("crypto: an open invoice holds its seat and its discount use for the invoic
   const under = await start(aCookie, { planId: tiny.planKey, payCurrency: 'btc' });
   assert.equal(under.status, 409);
   assert.match((await under.json()).error, /network minimum of about 0\.004 BTC/);
-  assert.deepEqual(nowpayments.minAmount.at(-1), { from: 'btc', to: 'sol' }, 'the minimum quoted is the one that refused the order');
+  assert.deepEqual(
+    nowpayments.minAmount.at(-1),
+    { from: 'btc', to: 'sol', fixed: 'true', feeByUser: 'true' },
+    'the minimum quoted is the one that refused the order — same pair AND the same flow flags createPayment sends, because NOWPayments answers a higher minimum for fixed-rate/fee-paid-by-user than for the standard flow',
+  );
   {
     const { rows } = await tq('SELECT * FROM checkout_attempts WHERE discord_id = ? AND plan_id = ?', [A, tiny.planKey]);
     assert.equal(rows.length, 1);

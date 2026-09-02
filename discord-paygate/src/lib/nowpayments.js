@@ -162,8 +162,18 @@ export async function validatePayoutAddress({ address, currency, extraId = null 
   throw new Error(`nowpayments: POST /payout/validate-address failed with ${res.status}: ${detail.slice(0, 300)}`);
 }
 
+// The two flags are not decoration. NOWPayments answers a DIFFERENT minimum
+// per flow — "it may differ from the standard flow!" — and the fixed-rate one
+// is the higher of the two (their own example: USDTTRC20→USDTTRC20 is ~9 at
+// the standard rate and ~20 fixed). createPayment sends both flags, so asking
+// without them quotes a floor the payment itself would still refuse, and a
+// buyer who sends below the real minimum gets a `failed` payment that the
+// provider says usually cannot be refunded. See docs/nowpayments-operations.md.
 export const minimumFor = (from, to) =>
-  npFetch(`/min-amount?currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`);
+  npFetch(
+    `/min-amount?currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`
+      + '&is_fixed_rate=true&is_fee_paid_by_user=true',
+  );
 
 export const estimate = (amount, from, to) =>
   npFetch(`/estimate?amount=${amount}&currency_from=${encodeURIComponent(from)}&currency_to=${encodeURIComponent(to)}`);
