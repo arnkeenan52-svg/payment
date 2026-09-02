@@ -199,6 +199,37 @@ async function open(theme, w, h, extraCss) {
   return { ctx, page };
 }
 
+// Scrolling to the bottom is not instant, and the wait after it cannot be a
+// stopwatch. styles.css turns on `scroll-behavior: smooth` under
+// (prefers-reduced-motion: no-preference); the landing and /pricing opt out of
+// it with a kit rule, and the day pages below do not — so on those a plain
+// scrollTo starts an animation that runs for the better part of a second over
+// a 3400px page. A fixed 350ms after it lands mid-flight: the scroll has
+// covered barely half the page, and Chromium is still filling the part of the
+// viewport it has not rasterised yet with the root canvas colour, which on
+// these pages is the sky. That frame is the sky-blue band this harness has
+// reported at the foot of /use-cases/trading — a screenshot of the scroll, not
+// of the page, which is why it came and went with machine load.
+//
+// So wait for the state every assertion here assumes: the page actually AT the
+// bottom, and still there. Held for three samples, because a document that
+// grows under a late font moves the bottom after the first arrival — and the
+// dwell the callers already had stays on top, for the CSS transitions that
+// only start once the scroll is over.
+const toBottom = async (page, dwell) => {
+  await page.evaluate(async () => {
+    const H = document.documentElement;
+    let still = 0, lastEnd = -1;
+    for (let i = 0; i < 200 && still < 3; i++) {
+      await new Promise((r) => setTimeout(r, 32));
+      const end = Math.max(0, H.scrollHeight - H.clientHeight);
+      if (end !== lastEnd) { lastEnd = end; still = 0; scrollTo(0, H.scrollHeight); continue; }
+      still = Math.abs(scrollY - end) <= 1 ? still + 1 : 0;
+    }
+  });
+  await page.waitForTimeout(dwell);
+};
+
 // Everything the page has settled into — plus the footer's own last gradient
 // stop, which is the single source of truth every other colour is judged by.
 const readState = (page) => page.evaluate(() => {
@@ -264,8 +295,7 @@ for (const theme of ['night', 'day']) {
     // ── small: what the fit guard sees ──────────────────────────────────────
     {
       const { ctx, page } = await open(theme, w, svh);
-      await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-      await page.waitForTimeout(350);
+      await toBottom(page, 350);
       const s = await readState(page);
       const edge = await edgeColour(page, w, svh);
       // the page's own arithmetic: the reserve is the band Safari's toolbar
@@ -292,8 +322,7 @@ for (const theme of ['night', 'day']) {
     // passes without testing its own premise.
     for (const [mode, css] of [['large', null], ['disarmed', `.footer-directory{padding-top:${lvh}px}`]]) {
       const { ctx, page } = await open(theme, w, lvh, css);
-      await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-      await page.waitForTimeout(400);
+      await toBottom(page, 400);
       const s = await readState(page);
       if (mode === 'disarmed' && s.blind) {
         fail(`${name} ${theme}: the forced-tall footer still armed — the disarmed scenario is not testing what it claims to`);
@@ -390,8 +419,7 @@ for (const theme of ['night', 'day']) {
     // ── the header comes back on the way up ─────────────────────────────────
     {
       const { ctx, page } = await open(theme, w, lvh);
-      await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-      await page.waitForTimeout(350);
+      await toBottom(page, 350);
       const bottom = await readState(page);
       await page.evaluate(() => scrollTo(0, 0));
       // The header fades back in on a CSS transition, so a fixed wait samples
@@ -463,8 +491,7 @@ for (const path of DAY_PAGES) {
   const page = await ctx.newPage();
   const res = await page.goto(BASE.replace(/\/$/, '') + path, { waitUntil: 'load' }).catch(() => null);
   if (!res || res.status() >= 400) { fail(`${path}: ${res ? res.status() : 'unreachable'}`); await ctx.close(); continue; }
-  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-  await page.waitForTimeout(350);
+  await toBottom(page, 350);
   const st = await page.evaluate(() => {
     const q = (sel) => { const el = document.querySelector(sel); return el ? getComputedStyle(el) : null; };
     const top = q('.ui-tint'), bot = q('.ui-tint-b');

@@ -27,14 +27,14 @@
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=203" />
+  <link rel="stylesheet" href="/styles.css?v=206" />
 </head>
 <body>
   <i class="ui-tint" aria-hidden="true"></i>
   <i class="ui-tint-b" aria-hidden="true"></i>
   <header class="top">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=203" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=206" alt="Dues" height="20" /></a>
     </div>
     <div id="account" class="account"></div>
   </header>
@@ -82,7 +82,6 @@
               <button type="button" class="shop-btn shop-join" id="shop-join">Join</button>
             </div>
           </div>
-          <p class="shop-sub" id="shop-sub" hidden></p>
           <!-- The rating sits directly under the name, where the reference
                puts it. It renders ONLY from real rows: no reviews means this
                stays hidden rather than showing an empty widget. -->
@@ -95,9 +94,17 @@
           <!-- Outside the clamped paragraph: inside it, a long description pushed the
                button onto the third line, which the clamp clipped away. -->
           <button type="button" class="shop-desc-more" id="shop-desc-more" hidden>&#8230; see more</button>
-          <!-- The seller's own claim about who is behind the store. -->
-          <p class="shop-creator" id="shop-creator" hidden>Created by <b id="shop-creator-name"></b></p>
-          <div class="shop-metaline" id="shop-metaline"></div>
+          <!-- ONE metadata row, the way the reference has it: where this is
+               (the Discord server), the seller's own links, and the seller's
+               own claim about who is behind the store. Three separate lines is
+               what made this block read as a stack of leftovers.
+               The children keep their ids and their old classes so a browser
+               still holding the previous store.html renders them as it did. -->
+          <div class="shop-meta" id="shop-meta" hidden>
+            <p class="shop-sub" id="shop-sub" hidden></p>
+            <div class="shop-metaline" id="shop-metaline"></div>
+            <p class="shop-creator" id="shop-creator" hidden>Created by <span class="shop-cr-face" id="shop-creator-face" aria-hidden="true"></span><b id="shop-creator-name"></b></p>
+          </div>
           <p class="shop-joined" id="shop-joined" hidden></p>
           <div class="shop-roleline" id="shop-roleline" hidden></div>
         </div>
@@ -256,10 +263,10 @@
 
   <footer>
     <span class="powered-label">Checkout powered by:</span>
-    <img class="powered-mark" src="/dues.png?v=203" alt="Dues" height="18" />
+    <img class="powered-mark" src="/dues.png?v=206" alt="Dues" height="18" />
     <a class="powered-community" href="/api/community" rel="noopener">Join the Dues community</a>
   </footer>
 
-  <script src="/app.js?v=203"></script>
+  <script src="/app.js?v=206"></script>
 </body>
 </html>

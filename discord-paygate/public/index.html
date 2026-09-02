@@ -20,7 +20,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Dues — Sell Discord access" />
   <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=203" />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=206" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -40,7 +40,7 @@
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
   <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
-  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=203" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=206" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline &#39;Monetize your community.&#39; and a field for claiming a store link" />
   <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -68,7 +68,7 @@
 }
 @font-face{
   font-family:'Plus Jakarta Sans';
-  src:url('/jakarta-latin.woff2?v=203') format('woff2');
+  src:url('/jakarta-latin.woff2?v=206') format('woff2');
   font-weight:200 800;font-style:normal;font-display:block;
 }
 /* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
@@ -353,16 +353,20 @@ html[data-theme="light"] .theme-btn .i-moon{display:block}
   padding-top:calc(64px + env(safe-area-inset-top,0px));
   display:flex;flex-direction:column;min-height:100svh;
 }
-/* 100svh is right on a phone — the first screen is the whole screen there,
-   and the reveal below depends on it. On a desktop it produced a 752px well
-   around 256px of content: two thirds empty sky, with nothing but the fold
-   itself to say the page continued. 86svh keeps the sky full-bleed (the slab
-   below is unaffected) while letting the role band's top edge sit inside the
-   fold — a floor under the hero, and a better invitation to scroll than any
-   marker in an empty half. */
-@media (min-width:601px){
-  .hero{min-height:clamp(620px,86svh,820px)}   /* and a ceiling, so a tall window shows more page rather than more sky */
-}
+/* The first screen is ONE SCREEN, on every width — the base 100svh, with no
+   desktop ceiling over it.
+   There was one for a while: clamp(620px, 86svh, 820px), added when the hero
+   held 256px of content in a 752px well and the argument was that a shorter
+   hero shows more page instead of more sky. What it also did was strand the
+   hero's foot — Pricing, Privacy, Terms and the two social marks — 250px above
+   the bottom of a 1076px window, floating in the middle of the sky with the
+   next section's eyebrow appearing underneath it. A footer that is not at the
+   foot of anything reads as debris.
+   The row is the hero's last flex child and .hero-core takes the slack, so at
+   100svh the copy still sits at optical centre and the links land on the
+   bottom edge, which is the one place a page's small print belongs. The role
+   band that used to be the floor here is gone, so nothing else was holding the
+   fold together either. */
 /* the sky: a sticky viewport-filling slab INSIDE the sheet, so the clouds are
    clipped to the sheet and lift away with it — the fixed footer underneath is
    revealed like a window blind. CSS photo fallback behind the shader canvas. */
@@ -482,7 +486,7 @@ html:not([data-theme="light"]) .btn-capture:hover{background:#ffffff}
 }
 .film-frame video{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
-  background:url('/hero-poster.webp?v=203') center/cover;
+  background:url('/hero-poster.webp?v=206') center/cover;
 }
 .sky-card{
   position:absolute;z-index:3;display:flex;align-items:center;gap:10px;
@@ -1984,10 +1988,14 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 @media (min-width:640px){
   .pay-chips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;width:min(100%,900px);max-width:900px}
   .pay-chip{min-width:0}
-  /* seven coins, one row — the same seven cells as the row above it, so the
-     two groups line up column for column rather than each finding its own
-     rhythm. */
-  .pay-chips.pay-crypto{width:min(100%,900px)}
+  /* Nine cells — eight coins and the "+ more" — in ONE row, across the same
+     900px the fourteen cards above occupy in two. Three columns of three was
+     the first attempt and it made each coin chip half again as wide as a card
+     chip: the same object in two sizes, which reads as two vocabularies. One
+     row of nine keeps the chip the chip and makes the second rail visibly the
+     lighter of the two, which it is. */
+  .pay-chips.pay-crypto{grid-template-columns:repeat(9,minmax(0,1fr));width:min(100%,900px)}
+  .pay-crypto .pay-chip{min-width:0;padding:5px 6px;gap:5px}
 }
 .pay-chip{
   display:inline-flex;align-items:center;justify-content:center;gap:4px;
@@ -2291,18 +2299,15 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   width:min(100%,760px);height:0;margin:26px 0 4px;
   border:0;border-top:1px solid var(--hair);
 }
-/* The coin marks are TYPOGRAPHIC — the currency glyphs (&#8383; &#926; &#8366; &#321;
-   &#272;), not redrawn brand logos. Each takes its own colour, which is what
-   makes a row of tickers scannable, and every one of them is measured against
-   the chip's ground rather than picked by eye. */
-.pay-crypto .cmark{font-style:normal;margin-right:5px;font-size:1.08em;line-height:1}
-.pm-btc b{color:#a2560a}
-.pm-eth b{color:#4a5a86}
-.pm-usdt b{color:#0a7263}
-.pm-usdc b{color:#1668c4}
-.pm-sol b{color:#7b52c9}
-.pm-ltc b{color:#41668c}
-.pm-doge b{color:#8a6c0d}
+/* The coin marks are the REAL logos, inlined exactly the way the Mastercard,
+   Apple Pay and Google Pay marks above them are: each coin's own disc in its
+   own colour, ticker beside it in the chip's ink. No per-coin text colour —
+   the logo carries the identity, and a coloured ticker had to be measured
+   against a white chip on both faces, which is a contrast bug waiting to
+   happen. The last chip is not a coin: the rail takes far more than eight, and
+   printing a list nobody reads is worse than saying so. */
+.pay-crypto .pay-chip svg{border-radius:50%}
+.pay-more b{color:var(--micro);font-weight:700}
 /* No night-face variants here, deliberately: the chip's ground is #fff on BOTH
    faces (like every other mark in this strip), so a colour lightened for a dark
    page would be lightened against white. The first version of this did exactly
@@ -2774,15 +2779,17 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
     <hr class="pay-split" />
     <p class="pay-cap">Crypto</p>
     <div class="pay-chips pay-crypto" aria-label="Supported coins">
-      <span class="pay-chip pm-btc" aria-label="Bitcoin"><b><i class="cmark">&#8383;</i>BTC</b></span>
-      <span class="pay-chip pm-eth" aria-label="Ethereum"><b><i class="cmark">&#926;</i>ETH</b></span>
-      <span class="pay-chip pm-usdt" aria-label="Tether"><b><i class="cmark">&#8366;</i>USDT</b></span>
-      <span class="pay-chip pm-usdc" aria-label="USD Coin"><b><i class="cmark">$</i>USDC</b></span>
-      <span class="pay-chip pm-sol" aria-label="Solana"><b>SOL</b></span>
-      <span class="pay-chip pm-ltc" aria-label="Litecoin"><b><i class="cmark">&#321;</i>LTC</b></span>
-      <span class="pay-chip pm-doge" aria-label="Dogecoin"><b><i class="cmark">&#272;</i>DOGE</b></span>
+      <span class="pay-chip pm-btc" aria-label="Bitcoin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#F7931A"/><path fill="#fff" d="M23.19 14.02c.31-2.09-1.28-3.21-3.46-3.96l.71-2.84-1.73-.43-.69 2.76c-.45-.11-.92-.22-1.39-.32l.7-2.78-1.73-.43-.71 2.84c-.38-.09-.75-.17-1.11-.26v-.01l-2.38-.6-.46 1.85s1.28.29 1.25.31c.7.17.83.64.81 1.01l-.81 3.24c.05.01.11.03.18.06l-.18-.05-1.13 4.54c-.09.21-.3.53-.79.41.02.03-1.25-.31-1.25-.31l-.86 1.98 2.25.56c.42.1.83.21 1.23.31l-.72 2.87 1.73.43.71-2.84c.47.13.93.25 1.38.36l-.71 2.83 1.73.43.72-2.87c2.95.56 5.17.33 6.11-2.34.75-2.15-.04-3.39-1.59-4.2 1.13-.26 1.98-1 2.21-2.54zm-3.95 5.55c-.53 2.15-4.16.99-5.34.7l.95-3.81c1.18.3 4.95.88 4.39 3.11zm.54-5.58c-.49 1.96-3.51.96-4.49.72l.86-3.45c.98.25 4.14.7 3.63 2.73z"/></svg><b class="pm-ink">BTC</b></span>
+      <span class="pay-chip pm-eth" aria-label="Ethereum"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#627EEA"/><g fill="#fff"><path fill-opacity=".6" d="M16.5 4v8.87l7.5 3.35z"/><path d="M16.5 4 9 16.22l7.5-3.35z"/><path fill-opacity=".6" d="M16.5 21.97V28L24 17.62z"/><path d="M16.5 28v-6.03L9 17.62z"/><path fill-opacity=".2" d="m16.5 20.57 7.5-4.35-7.5-3.35z"/><path fill-opacity=".6" d="M9 16.22l7.5 4.35v-7.7z"/></g></svg><b class="pm-ink">ETH</b></span>
+      <span class="pay-chip pm-usdt" aria-label="Tether"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#26A17B"/><path fill="#fff" d="M17.92 17.38v-.01c-.11.01-.68.04-1.95.04-1.01 0-1.73-.03-1.98-.04v.01c-3.9-.17-6.81-.85-6.81-1.66s2.91-1.49 6.81-1.66v2.64c.25.02.98.06 1.99.06 1.21 0 1.82-.05 1.93-.06v-2.64c3.89.17 6.79.85 6.79 1.66s-2.9 1.49-6.79 1.66zm0-3.59v-2.36h5.4V7.83H8.68v3.6h5.4v2.36c-4.39.2-7.69 1.07-7.69 2.11s3.3 1.91 7.69 2.11v7.57h3.84v-7.57c4.38-.2 7.67-1.07 7.67-2.11s-3.29-1.9-7.67-2.11z"/></svg><b class="pm-ink">USDT</b></span>
+      <span class="pay-chip pm-usdc" aria-label="USD Coin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#2775CA"/><path fill="#fff" d="M20.5 18.53c0-2.38-1.43-3.2-4.28-3.54-2.04-.27-2.45-.82-2.45-1.77s.68-1.56 2.04-1.56c1.23 0 1.91.41 2.25 1.43.07.2.27.34.48.34h1.09c.27 0 .48-.2.48-.48v-.07a3.42 3.42 0 0 0-3.07-2.79V8.63c0-.27-.2-.48-.55-.55h-1.02c-.27 0-.48.2-.55.55v1.43c-2.04.27-3.34 1.63-3.34 3.34 0 2.25 1.36 3.13 4.22 3.47 1.91.34 2.52.75 2.52 1.84s-.95 1.84-2.25 1.84c-1.77 0-2.38-.75-2.59-1.77-.07-.27-.27-.41-.48-.41h-1.16c-.27 0-.48.2-.48.48v.07c.27 1.7 1.36 2.93 3.61 3.27v1.43c0 .27.2.48.55.55h1.02c.27 0 .48-.2.55-.55v-1.43c2.04-.34 3.41-1.77 3.41-3.61z"/><path fill="#fff" d="M13.1 25.5c-5.31-1.91-8.04-7.84-6.06-13.08a10.1 10.1 0 0 1 6.06-6.06c.27-.14.41-.34.41-.68v-.95c0-.27-.14-.48-.41-.55-.07 0-.2 0-.27.07a12.28 12.28 0 0 0-8.04 15.46 12.2 12.2 0 0 0 8.04 8.04c.27.14.55 0 .61-.27.07-.07.07-.14.07-.27v-.95c0-.2-.2-.48-.41-.61zm6.06-21.18c-.27-.14-.55 0-.61.27-.07.07-.07.14-.07.27v.95c0 .27.2.55.41.68 5.31 1.91 8.04 7.84 6.06 13.08a10.1 10.1 0 0 1-6.06 6.06c-.27.14-.41.34-.41.68v.95c0 .27.14.48.41.55.07 0 .2 0 .27-.07a12.28 12.28 0 0 0 8.04-15.46 12.2 12.2 0 0 0-8.04-8.04z"/></svg><b class="pm-ink">USDC</b></span>
+      <span class="pay-chip pm-sol" aria-label="Solana"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#0B0B12"/><defs><linearGradient id="pmSol" x1="8" y1="22" x2="24" y2="10" gradientUnits="userSpaceOnUse"><stop stop-color="#9945FF"/><stop offset="1" stop-color="#14F195"/></linearGradient></defs><g fill="url(#pmSol)"><path d="M10.33 19.7a.6.6 0 0 1 .43-.18h13.5c.27 0 .4.33.21.52l-2.66 2.67a.6.6 0 0 1-.43.18H7.88a.3.3 0 0 1-.21-.52z"/><path d="M10.33 9.29a.6.6 0 0 1 .43-.18h13.5c.27 0 .4.33.21.52l-2.66 2.67a.6.6 0 0 1-.43.18H7.88a.3.3 0 0 1-.21-.52z"/><path d="M21.67 14.46a.6.6 0 0 0-.43-.18H7.74a.3.3 0 0 0-.21.52l2.66 2.67c.11.11.27.18.43.18h13.5a.3.3 0 0 0 .21-.52z"/></g></svg><b class="pm-ink">SOL</b></span>
+      <span class="pay-chip pm-ltc" aria-label="Litecoin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#345D9D"/><path fill="#fff" d="m10.43 20.42 1.1-4.15-1.73.65.4-1.5 1.73-.65 2.18-8.2h4.24l-1.62 6.1 1.7-.64-.4 1.5-1.7.63-1.28 4.8h6.9l-.73 2.74H10.6z"/></svg><b class="pm-ink">LTC</b></span>
+      <span class="pay-chip pm-doge" aria-label="Dogecoin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#C2A633"/><path fill="#fff" d="M13.15 14.9h3.02v2.24h-3.02v3.9h1.86c.73 0 1.34-.09 1.83-.28.49-.19.87-.46 1.16-.83.29-.37.49-.83.6-1.4.11-.56.17-1.22.17-1.98s-.06-1.42-.17-1.98c-.11-.56-.31-1.03-.6-1.4-.29-.37-.67-.64-1.16-.83-.49-.19-1.1-.28-1.83-.28h-1.86zM10.1 17.14H8.6V14.9h1.5V8.9h5.13c1.2 0 2.24.16 3.13.49.89.33 1.63.8 2.21 1.4.58.6 1.01 1.33 1.3 2.18.29.85.43 1.8.43 2.85s-.14 2-.43 2.85c-.29.85-.72 1.58-1.3 2.18-.58.6-1.32 1.07-2.21 1.4-.89.33-1.93.49-3.13.49H10.1z"/></svg><b class="pm-ink">DOGE</b></span>
+      <span class="pay-chip pm-xrp" aria-label="XRP"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#23292F"/><path fill="#fff" d="M21.9 8.5h2.86l-5.95 5.9a3.98 3.98 0 0 1-5.6 0L7.25 8.5h2.87l4.52 4.48c.75.74 1.97.74 2.72 0zM10.08 23.5H7.22l5.99-5.94a3.98 3.98 0 0 1 5.6 0l5.99 5.94h-2.86l-4.56-4.52a1.93 1.93 0 0 0-2.72 0z"/></svg><b class="pm-ink">XRP</b></span>
+      <span class="pay-chip pay-more" aria-label="and more coins"><b>+ more</b></span>
     </div>
-    <p class="pay-note">Paid on the chain the buyer picks, settled straight to the wallet you nominate.</p>
+    <p class="pay-note">Eight of the coins the rail takes &#8212; there are more. Paid on the chain the buyer picks, settled straight to the wallet you nominate.</p>
   </div>
 </section>
 
@@ -3001,7 +3008,7 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
   </div>
 </footer>
 
-<script src="/sky.js?v=203" defer></script>
+<script src="/sky.js?v=206" defer></script>
 <script>
 (function(){
   'use strict';

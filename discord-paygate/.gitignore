@@ -1,6 +1,11 @@
 .env
 data/
 node_modules/
+# …and the same directory when it is a SYMLINK, which is what a git worktree
+# gets so the packages are installed once. `node_modules/` with the trailing
+# slash matches a DIRECTORY and a symlink is not one, so `git add -A` staged
+# the link itself as a 47-byte gitlink and it rode into a commit.
+node_modules
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm

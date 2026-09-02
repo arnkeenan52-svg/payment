@@ -1002,6 +1002,17 @@ async function waitFor(desc, fn, timeoutMs = 6000) {
 
 const memberRoles = (uid) => discord.members.get(uid) ?? new Set();
 
+// A role switched on INSIDE DISCORD, by hand, with Dues nowhere in the loop —
+// the seller right-clicking a member and ticking the paid role. It writes
+// straight to the member's role set instead of going through the REST route
+// on purpose: no request reaches the app, nothing lands in discord.roleCalls,
+// and Dues has no way to hear about it. That silence is the whole exploit,
+// and the mock could not express it until now, which is why nothing caught it.
+const handAddRole = (uid, roleId) => {
+  if (!discord.members.has(uid)) discord.members.set(uid, new Set());
+  discord.members.get(uid).add(roleId);
+};
+
 // ── boot the real handlers via the dev shim ───────────────────────────────────
 
 const children = [];
@@ -1140,7 +1151,11 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   // say whether 1500 is $1,500.00 or ¥1,500, and the storefront formats from it.
   // `durationDays` rides beside them for the same reason: the crypto rail has
   // no renewal to point at, so the pay screen has to name the term itself.
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'durationDays', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
+  // `roles` rides beside `roleNames` and does not replace it: the names are
+  // what the seller stored and what every older reader expects, the roles are
+  // what the guild says those ids ARE right now — live name, live colour — so
+  // the storefront can draw a role as a role instead of as two grey letters.
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'durationDays', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'roles', 'variantOf']);
   assert.equal(plans[0].currency, 'usd', 'a store that never picked a currency prices in USD, exactly as before');
 });
 
@@ -1608,19 +1623,20 @@ test('the first screen earns its height: a capped well, a grounded claim field, 
   const index = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
   const css = index.slice(index.indexOf('<style>'), index.indexOf('</style>'));
 
-  // 1 · THE WELL. Above the phone breakpoint the hero is capped, which lets the
-  // top of the role band sit inside the fold — a floor under the hero, and a
-  // better reason to scroll than a marker in an empty half ever was.
+  // 1 · THE WELL. One screen on every width, and NO desktop ceiling over it.
+  // A clamp(620px,86svh,820px) cap lived here for a while; it stranded the
+  // hero's foot 250px above the bottom of a tall window, with the next
+  // section's eyebrow showing underneath the small print. The row is the
+  // hero's last flex child, so the height of the hero IS where those links
+  // land.
   //
-  // There is no chevron rule to pin beside this one. The scroll hint was
-  // deleted with the empty sky it pointed into, element and all, and the
-  // homepage scenario asserts the string is gone from the page — so a rule
-  // switching it off would be a rule about nothing, and the two pins would
-  // contradict each other. The cap is the whole change here.
-  const wide = css.match(/@media \(min-width:601px\)\{([\s\S]*?)\n\}/);
-  assert.ok(wide, 'the desktop-and-up hero block is where it was written');
-  assert.match(wide[1], /\.hero\{min-height:clamp\(620px,86svh,820px\)/,
-    'the first screen is capped, so a tall window shows more page rather than more sky');
+  // There is no chevron rule to pin beside this one either. The scroll hint
+  // was deleted with the empty sky it pointed into, element and all, and the
+  // homepage scenario asserts the string is gone from the page.
+  assert.match(css, /\.hero\{\n[^}]*min-height:100svh/,
+    'the hero is one screen tall');
+  assert.doesNotMatch(css, /\.hero\{min-height:clamp\(/,
+    'and carries no desktop ceiling that would lift its foot off the bottom');
   // the phone keeps the full-screen hero the footer reveal is built on
   assert.match(css, /\.hero\{min-height:100vh;min-height:100lvh\}/,
     'the phone hero still owns the whole screen — the blind depends on it');
@@ -3803,6 +3819,22 @@ test('multi-tenant: a second owner onboards their server end-to-end and sells th
     { id: tenantPlans.plans[0].id, imageUrl: tenantPlans.plans[0].imageUrl, roleNames: tenantPlans.plans[0].roleNames },
     { id: plan.planKey, imageUrl: 'https://cdn.e2e.test/vip.png', roleNames: ['@VIP'] },
   );
+  // A role reaches the storefront as the guild defines it — the live NAME and
+  // the live COLOUR — and not as the string the seller happened to type. The
+  // stored name here is "@VIP" with the sigil on it; the role's actual name is
+  // "VIP" and its colour is 5793266 (#5865f2), and both come from the guild's
+  // own role list keyed by the id the plan grants.
+  assert.deepEqual(
+    tenantPlans.plans[0].roles,
+    [{ name: 'VIP', color: '#5865f2' }],
+    'plans[].roles carries the guild role name and colour, resolved by id',
+  );
+  // @everyone shares the guild id and every member holds it already: naming it
+  // would tell a buyer they are paying for a role they have.
+  assert.ok(
+    !tenantPlans.plans.some((p) => p.roles.some((r) => r.name === '@everyone')),
+    '@everyone is never sold',
+  );
 
   // Buyer U8: signs in, checks out on the tenant store.
   const U8 = '508800000000000008';
@@ -5642,7 +5674,7 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   // aria-hidden product mock-ups on the marketing pages (.vz-*, .dc-app,
   // .browser-url, .appcard, the chart tick labels) — those are a DRAWING of an
   // interface, not text to read, and scaling their type breaks the drawing.
-  for (const sel of ['.shop-rolechip', '.alt-ours', '.footer-head', '.calc-note', '.calc-bar-sub', '.footer-disclaimer',
+  for (const sel of ['.shop-rolechip', '.rolechip', '.shop-rolelead', '.alt-ours', '.footer-head', '.calc-note', '.calc-bar-sub', '.footer-disclaimer',
     '.chip', '.order-card .label', '.kicker', '.shop-rv-you', '.shop-share-tip', '.coin span', '.cpay-coin']) {
     const sizes = rules(sel).flatMap(px);
     assert.ok(sizes.length, `${sel} declares a size`);
@@ -5777,14 +5809,21 @@ test('the homepage fold is copy and one field, and the calculator follows it', a
   const cryptoAt = home.indexOf('>Crypto<');
   assert.ok(cardsAt > 0 && splitAt > cardsAt && cryptoAt > splitAt,
     'cards, then the rule, then crypto — in that order');
-  for (const coin of ['BTC', 'ETH', 'USDT', 'USDC', 'SOL', 'LTC', 'DOGE']) {
-    assert.match(home, new RegExp(`class="pay-chip pm-${coin.toLowerCase()}"[^>]*>.*?${coin}`),
-      `the crypto row carries ${coin}`);
+  // Eight coins, each with its REAL mark inlined the way the Mastercard, Apple
+  // Pay and Google Pay marks are — an SVG in the chip, not a letter standing in
+  // for a logo. The ticker takes the chip's ink: the mark carries the colour,
+  // so no per-coin text colour has to be measured against white twice.
+  for (const coin of ['BTC', 'ETH', 'USDT', 'USDC', 'SOL', 'LTC', 'DOGE', 'XRP']) {
+    const chip = home.match(new RegExp(`<span class="pay-chip pm-${coin.toLowerCase()}"[\\s\\S]*?</span>`));
+    assert.ok(chip, `the crypto row carries ${coin}`);
+    assert.match(chip[0], /<svg[\s\S]*?<\/svg>/, `${coin} is drawn, not spelled`);
+    assert.match(chip[0], new RegExp(`<b class="pm-ink">${coin}</b>`), `${coin} is labelled in the chip's ink`);
   }
-  // The chip's ground is #fff on BOTH faces, so a night-face override would be
-  // lightening a colour against white. The first version did exactly that.
-  assert.doesNotMatch(home, /data-theme="light"\]\) \.pm-(btc|eth|usdt|usdc|sol|ltc|doge)/,
+  assert.doesNotMatch(home, /data-theme="light"\]\) \.pm-(btc|eth|usdt|usdc|sol|ltc|doge|xrp)/,
     'no night-face variant for a mark that always sits on white');
+  // And the row does not pretend eight is the whole list.
+  assert.match(home, /class="pay-chip pay-more"[^>]*>\s*<b>\+ more<\/b>/, 'the row says there are more coins');
+  assert.match(home, /Eight of the coins the rail takes &#8212; there are more/, 'and the note says so in words');
 
   // THE ROLE MARQUEE IS GONE, and nothing of it is left in the stylesheet.
   for (const gone of ['rolemarq', 'marq-track', 'marq-cap', 'keyframes marq']) {
@@ -6880,6 +6919,106 @@ test('a revoke whose Discord call fails is retried by the sweep and by the butto
   assert.ok(!memberRoles(UID).has(R2_VIP), 'a retry of the button reconciles');
   // A member who never had a row here is still a 404.
   assert.equal((await call({ action: 'revoke', discordId: '518800000000000018' })).status, 404);
+});
+
+test('a revoked member handed the paid role back by hand in Discord is corrected however long it has been, and the seller is told', async () => {
+  // THE EXPLOIT, as sellers run it on the competition: revoke a paying member
+  // in the dashboard — the live-member count the Dues plan is priced on drops
+  // and the seller stays under their limit — then tick the same paid role
+  // back on by hand inside Discord. The buyer keeps everything they were
+  // paying for and the seller pays for a smaller plan than they are using.
+  //
+  // It worked because nothing ever looked again. The sweep revisits a revoked
+  // row for a week (that window is for a removal CALL that failed) and after
+  // it no code in this repo ever asked about that person. Wait eight days,
+  // hand the role back, keep it for ever.
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const call = (body) =>
+    fetch(`${appUrl}/api/admin/member`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: u7Cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  // The number the seller's own Dues plan is priced on.
+  const usage = async () => (await (await fetch(`${appUrl}/api/billing`, { headers: { cookie: u7Cookie } })).json()).usage.members;
+  const plans = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans;
+  const plan = plans.find((p) => !p.variantOf && !p.requiredRoleName);
+  const CHEAT = '522200000000000022';
+  const FRIEND = '523300000000000023';
+  discord.members.set(CHEAT, new Set());
+  discord.members.set(FRIEND, new Set(['ROLE_MOD_UNMANAGED']));
+
+  assert.equal((await call({ action: 'grant', discordId: CHEAT, planId: plan.id })).status, 200);
+  assert.ok(memberRoles(CHEAT).has(R2_VIP), 'the membership delivered the paid role');
+  const counted = await usage();
+
+  assert.equal((await call({ action: 'revoke', discordId: CHEAT })).status, 200);
+  assert.ok(!memberRoles(CHEAT).has(R2_VIP), 'revoking takes the role back');
+  const afterRevoke = await usage();
+  assert.equal(afterRevoke, counted - 1, 'and drops the plan counter — the seller’s whole motive');
+
+  // Eight days later: past every revisit window this repo used to have.
+  // audited_at puts them at the head of the audit's rotating queue, because
+  // by now the suite holds more former members than one batch does and what
+  // is being pinned here is the correction, not where they landed in the
+  // rotation.
+  await tq('UPDATE subscriptions SET updated_at = ?, audited_at = ? WHERE discord_id = ?', [nowSec() - 8 * 86400, -1, CHEAT]);
+
+  // The seller ticks the paid role back on, in Discord, by hand. No request
+  // reaches Dues; nothing lands in discord.roleCalls.
+  const callsBefore = discord.roleCalls.length;
+  handAddRole(CHEAT, R2_VIP);
+  handAddRole(FRIEND, R2_VIP);
+  assert.equal(discord.roleCalls.length, callsBefore, 'a hand-added role is invisible to Dues at the moment it happens');
+
+  const postsBefore = discord.channelPosts.length;
+  const sweep = await hitCron();
+  assert.equal(sweep.status, 200, sweep.body);
+  const drift = JSON.parse(sweep.body).drift;
+  assert.ok(drift, 'the sweep reports its drift audit');
+  assert.ok(drift.checked <= 40, `the audit is bounded per run (checked ${drift.checked})`);
+  assert.ok(drift.corrected >= 1, 'and corrected what it found');
+
+  // 1. The revoked member: the role Dues delivered is a role Dues owns.
+  assert.ok(!memberRoles(CHEAT).has(R2_VIP), 'the hand-added paid role is taken back');
+
+  // 2. Someone Dues has never sold to, given the same role by the seller — a
+  //    moderator, a friend, a giveaway winner. Dues does not touch them: it
+  //    owns what it delivered, not the seller's decisions in their own server.
+  assert.ok(memberRoles(FRIEND).has(R2_VIP), 'Dues leaves a role on someone it has no record of');
+  assert.ok(memberRoles(FRIEND).has('ROLE_MOD_UNMANAGED'), 'and never touches unmanaged roles at all');
+
+  // 3. The seller hears about it, in the channel their sale pings land in,
+  //    naming the role and the honest way to give access.
+  const alert = discord.channelPosts
+    .slice(postsBefore)
+    .find((p) => /added outside Dues/i.test(p.body?.embeds?.[0]?.title ?? ''));
+  assert.ok(alert, 'the correction is announced to the seller, not made silently');
+  assert.match(alert.body.embeds[0].description, new RegExp(`<@&${R2_VIP}>`), 'the alert names the role it took back');
+  assert.match(alert.body.embeds[0].description, /Add member/, 'and names the way to gift access that counts');
+
+  // 4. The audit records that it looked, so the queue rotates instead of
+  //    re-asking about the same member every hour for ever.
+  const audited = Number((await tq('SELECT audited_at FROM subscriptions WHERE discord_id = ?', [CHEAT])).rows[0].audited_at);
+  assert.ok(audited > 0, 'the audited batch is marked');
+  const postsAfter = discord.channelPosts.length;
+  assert.equal((await hitCron()).status, 200);
+  assert.equal(
+    discord.channelPosts.slice(postsAfter).filter((p) => /added outside Dues/i.test(p.body?.embeds?.[0]?.title ?? '')).length,
+    0,
+    'a corrected member is not re-alerted every hour',
+  );
+
+  // 5. The counter is honest again: no access, not counted — and the seller's
+  //    real option costs one click and DOES count.
+  assert.equal(await usage(), afterRevoke, 'no access, not counted — the correction moves roles, never the ledger');
+  assert.equal((await call({ action: 'grant', discordId: CHEAT, planId: plan.id })).status, 200);
+  assert.ok(memberRoles(CHEAT).has(R2_VIP), 'gifting delivers the same role');
+  assert.equal(await usage(), afterRevoke + 1, 'and it is counted, which is the whole point');
+  assert.equal((await call({ action: 'revoke', discordId: CHEAT })).status, 200);
 });
 
 test('gifts are one row and zero revenue; a use counts only when a grant lands; a refused role does not 500 a paid sale', async () => {

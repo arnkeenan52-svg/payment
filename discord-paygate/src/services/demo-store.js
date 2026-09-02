@@ -18,21 +18,27 @@ export const DEMO_THEME = {
   bgPreset: '', material: 'glass',
 };
 
+// The demo's catalogue is declared fiction — the page says so in its own copy
+// and the checkout refuses the slug. Its roles carry colours for the same
+// reason the products carry names: this page exists to show a seller what a
+// finished Dues store looks like, and a role on a real store has a colour.
 export const demoPlans = () => [
   {
     id: 'vip-access', name: 'VIP Access', description: 'Every alpha channel, for life.',
     priceUsd: 49.99, interval: null, lifetime: true, imageUrl: null,
-    roleNames: ['VIP'], descriptionHighlight: null, linkSlug: null,
+    roleNames: ['VIP'], roles: [{ name: 'VIP', color: '#f0b232' }], descriptionHighlight: null, linkSlug: null,
   },
   {
     id: 'signals-monthly', name: 'Signals Monthly', description: 'Daily signals while your membership runs.',
     priceUsd: 14.99, interval: 'month', lifetime: false, imageUrl: null,
-    roleNames: ['Signals'], descriptionHighlight: null, linkSlug: null,
+    roleNames: ['Signals'], roles: [{ name: 'Signals', color: '#3ba55c' }], descriptionHighlight: null, linkSlug: null,
   },
   {
     id: 'inner-circle', name: 'Inner Circle', description: 'The private desk, lifetime.',
     priceUsd: 79.99, interval: null, lifetime: true, imageUrl: null,
-    roleNames: ['VIP'], descriptionHighlight: null, linkSlug: null,
+    roleNames: ['VIP', 'Inner Circle'],
+    roles: [{ name: 'VIP', color: '#f0b232' }, { name: 'Inner Circle', color: '#eb459e' }],
+    descriptionHighlight: null, linkSlug: null,
   },
 ];
 
