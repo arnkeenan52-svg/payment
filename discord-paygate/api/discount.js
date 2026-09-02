@@ -33,8 +33,8 @@ function recordMiss(keys, now) {
   for (const key of keys) misses.set(key, [...missesBy(key, now), now]);
 }
 
-function askerKey(req) {
-  const uid = sessionUserId(req);
+async function askerKey(req) {
+  const uid = await sessionUserId(req);
   if (uid) return `u:${uid}`;
   const fwd = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
   return `ip:${fwd || req.socket?.remoteAddress || '?'}`;
@@ -49,7 +49,7 @@ export default guard(async (req, res) => {
     return sendJson(res, 400, { error: 'bad request' });
   }
   const now = Math.floor(Date.now() / 1000);
-  const keys = [askerKey(req), `s:${slug}`];
+  const keys = [await askerKey(req), `s:${slug}`];
   if (missesBy(keys[0], now).length >= MAX_MISSES_PER_ASKER || missesBy(keys[1], now).length >= MAX_MISSES_PER_STORE) {
     return sendJson(res, 429, { error: 'Too many code attempts — try again in a few minutes.' });
   }
