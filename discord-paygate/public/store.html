@@ -40,6 +40,9 @@
   </header>
 
   <main class="checkout">
+    <!-- Everything below is drawn by app.js. With scripts off the page is a
+         header, a footer and an empty order card — say why, not nothing. -->
+    <noscript><p class="callout">Checkout needs JavaScript enabled — turn it on for this site and reload.</p></noscript>
     <!-- The store's overall page: banner, identity and every product as a
          card. app.js shows this when the store has more than one product and
          no ?plan deep link; picking a card slides into the checkout below. -->
@@ -55,7 +58,10 @@
           <video class="shop-banner media-fade" id="shop-banner-video" hidden autoplay muted loop playsinline disablepictureinpicture aria-hidden="true" onerror="this.hidden = true" onloadeddata="this.classList.add('loaded')"></video>
           <!-- no src attribute: src="" resolves to the page URL, so the browser fetched
                the whole document again as an image on every load. app.js sets it. -->
-          <img class="logo shop-avatar media-fade" id="shop-icon" alt="" width="96" height="96" hidden onload="this.classList.add('loaded')" />
+          <!-- A CDN miss (blocked network, a hash the seller just replaced) must fall back to
+               the letter placeholder, not leave a 96px hole: .media-fade keeps a failed image
+               at opacity 0. The failed url is remembered so re-renders do not re-show it. -->
+          <img class="logo shop-avatar media-fade" id="shop-icon" alt="" width="96" height="96" hidden onload="this.classList.add('loaded')" onerror="this.dataset.failed = this.getAttribute('src'); this.hidden = true; document.getElementById('shop-icon-ph').hidden = false" />
           <span class="shop-avatar shop-avatar-ph" id="shop-icon-ph" hidden aria-hidden="true"></span>
         </div>
 
@@ -152,7 +158,7 @@
         </div>
         <span class="op-price" id="price">&nbsp;</span>
         <div class="op-server">
-          <img class="logo op-server-icon" src="" alt="" width="34" height="34" hidden />
+          <img class="logo op-server-icon" src="" alt="" width="34" height="34" hidden onerror="this.dataset.failed = this.getAttribute('src'); this.hidden = true" />
           <span class="op-server-meta"><strong id="server-name" hidden></strong><span class="op-server-kind">Discord Server</span></span>
         </div>
       </div>

@@ -51,7 +51,9 @@ export function demoPlansPayload({ platformName, brandFallback }) {
       links: { website: 'https://dues.gg' },
       memberCount: 134,
     },
-    server: { name: DEMO_NAME, guildId: '', iconUrl: '/favicon.png' },
+    // The avatar box is 96 CSS px: the 48px favicon painted there is a 2x
+    // upscale on a laptop and 4x on retina, on the one page sellers judge by.
+    server: { name: DEMO_NAME, guildId: '', iconUrl: '/favicon-96x96.png' },
     capabilities: { stripe: true, crypto: false, demo: true },
     plans: demoPlans(),
   };

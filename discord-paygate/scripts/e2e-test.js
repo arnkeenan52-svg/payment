@@ -4093,6 +4093,11 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   // The plans payload is fixed, flagged, and never touches the database.
   const plans = await (await fetch(`${appUrl}/api/plans?store=demo`)).json();
   assert.equal(plans.brand, 'Dues Membership');
+  // The avatar box is 96 CSS px on the one page sellers judge their own store
+  // by; the 48px favicon painted there was a 2x upscale (4x on retina).
+  assert.equal(plans.server.iconUrl, '/favicon-96x96.png', 'the demo avatar is the asset that fits its box');
+  const avatar = await fs.promises.readFile(new URL('../public/favicon-96x96.png', import.meta.url));
+  assert.deepEqual([avatar.readUInt32BE(16), avatar.readUInt32BE(20)], [96, 96], 'and that asset really is 96x96');
   assert.equal(plans.capabilities.demo, true, 'the client needs the demo flag to disarm pay');
   assert.equal(plans.capabilities.stripe, true, 'the checkout still renders fully');
   assert.deepEqual(plans.plans.map((p) => p.priceUsd), [49.99, 14.99, 79.99]);
@@ -4271,6 +4276,7 @@ test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch,
   const list = async (cookie) =>
     (await (await fetch(`${appUrl}/api/reviews?store=vip-signals`, { headers: cookie ? { cookie } : {} })).json());
   const publicStore = async (slug) => (await (await fetch(`${appUrl}/api/plans?store=${slug}`)).json()).store;
+  const gate = (d) => ({ canWrite: d.canWrite, writeBlock: d.writeBlock });
   const storeCall = (body) =>
     fetch(`${appUrl}/api/admin/store`, {
       method: 'POST',
@@ -4289,15 +4295,22 @@ test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch,
   assert.equal(stranger.status, 403, 'a non-customer cannot review');
   assert.match((await stranger.json()).error, /bought from this store/);
   assert.equal(await rowCount(), 0, 'and nothing was written');
+  // The same verdict is reported up front on GET, so the storefront offers the
+  // composer only to someone whose post will land — and can say why to the rest.
+  assert.deepEqual(gate(await list(null)), { canWrite: false, writeBlock: 'signin' });
+  assert.deepEqual(gate(await list(u14Cookie)), { canWrite: false, writeBlock: 'notbuyer' }, 'a non-customer is told the composer is not for them');
+  assert.deepEqual(gate(await list(u7Cookie)), { canWrite: false, writeBlock: 'owner' }, 'the seller is offered no composer for their own store');
 
   // A brand-new purchase is still inside the cooling window.
   await tq('INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [storeId, U8, 'vip-access', 'stripe', 'sub_review_e2e', 'active', Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000)]);
   assert.equal((await post(u8Cookie, { store: 'vip-signals', rating: 5 })).status, 403, 'reviews open after a cooling period');
+  assert.deepEqual(gate(await list(u8Cookie)), { canWrite: false, writeBlock: 'cooling' }, 'inside the window the composer is withheld, with the reason');
 
   // Age that purchase past the window and the same buyer may speak.
   const old = Math.floor(Date.now() / 1000) - 10 * 24 * 60 * 60;
   await tq('UPDATE subscriptions SET created_at = ? WHERE provider_ref = ?', [old, 'sub_review_e2e']);
+  assert.deepEqual(gate(await list(u8Cookie)), { canWrite: true, writeBlock: null }, 'past the window the buyer is offered the composer');
   assert.equal((await post(u8Cookie, { store: 'vip-signals', rating: 9 })).status, 400, 'a rating outside 1-5 is not a rating');
   const wrote = await post(u8Cookie, { store: 'vip-signals', rating: 2, body: 'Signals were fine, pace was not for me.' });
   assert.equal(wrote.status, 200);
@@ -4335,6 +4348,7 @@ test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch,
   assert.equal(pub.reviews.on, true);
   assert.equal(pub.reviews.count, 1);
   assert.equal(pub.reviews.average, 4);
+  assert.equal((await list(u14Cookie)).writeBlock, 'notbuyer', 'the switch changes what is shown, never who may write');
 
   // THE CENTRAL RULE: there is no request a seller can make that removes,
   // hides or reorders ONE review. Every shape of the attempt is refused.
@@ -4383,6 +4397,41 @@ test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch,
   assert.equal(dstore.reviews.count, 1, 'the seller sees the true count regardless of the switch');
   assert.equal(dstore.reviews.average, 5);
   assert.equal(dstore.reviewsOn, false, 'and the dashboard payload carries the switch back to the form');
+});
+
+test('storefront client: the failure states the suite cannot drive in a browser are pinned in the source', async () => {
+  // These are client-side renders (no DOM here), so each is held by the line
+  // of source that fixes it. Each was a live bug measured in Chromium.
+  const read = (p) => fs.readFileSync(new URL(`../public/${p}`, import.meta.url), 'utf8');
+  const app = read('app.js');
+  // The "All products" button counts PRODUCTS, like main()'s routing does: a
+  // one-product store whose product has price options must not grow a button
+  // leading to a one-card shop it was designed never to show.
+  assert.match(app, /const multi = state\.plans\.filter\(\(p\) => !p\.variantOf\)\.length > 1;/, 'the back-to-shop button counts products, not price options');
+  // "Lifetime (lifetime)": the parent option's synthesised label is its cadence.
+  assert.match(app, /sameWord \? '' : `<small>\$\{cadence\}<\/small>`/, 'the cadence suffix is dropped when the label already is the cadence');
+  // A Discord CDN miss falls back to the letter placeholder instead of a hole,
+  // and a url that already failed is not re-shown by the next render.
+  assert.match(app, /icon\.dataset\.failed !== state\.server\.iconUrl/, 'the shop avatar remembers a failed url');
+  assert.match(app, /logo\.dataset\.failed !== state\.server\.iconUrl/, 'the checkout server icon remembers a failed url');
+  const store = read('store.html');
+  const img = (marker) => store.match(new RegExp(`<img[^>]*${marker}[^>]*>`))?.[0] ?? '';
+  assert.match(img('id="shop-icon"'), /onerror="[^"]*shop-icon-ph[^"]*"/, '#shop-icon swaps to the placeholder on error');
+  assert.match(img('class="logo op-server-icon"'), /onerror="[^"]*this\.hidden = true[^"]*"/, '.op-server-icon hides itself on error');
+  // The composer is gated on the server's verdict, never offered to a 403.
+  assert.match(app, /if \(!mine && !reviewState\.canWrite\)/, 'the review composer is gated on canWrite');
+  // With scripts off the app pages say so instead of rendering an empty shell.
+  for (const f of ['store.html', 'dashboard.html', 'account.html', 'receipt.html']) {
+    const m = read(f).match(/<noscript>([\s\S]*?)<\/noscript>/);
+    assert.ok(m, `${f} must carry a <noscript> line`);
+    assert.match(m[1].replace(/<[^>]+>/g, ''), /JavaScript enabled/, `${f}'s no-script line must say what is needed`);
+  }
+  // A receipt with no order behind it says so, rather than sitting on
+  // "Payment received / Finishing up your order…" forever.
+  const receipt = read('receipt.js');
+  assert.match(receipt, /if \(!plansRes\.ok\) return showNotFound\(\)/, 'an unknown store renders the not-found receipt');
+  assert.match(receipt, /if \(!plan\) return showNotFound\(\)/, 'a missing ?plan renders the not-found receipt');
+  assert.match(read('receipt.html'), /<section class="panel" id="r-details">/, 'the details panel is addressable so the not-found state can hide its dashes');
 });
 
 test('store creator and team: seller-authored, validated, and round-tripped to both payloads', async () => {

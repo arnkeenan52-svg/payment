@@ -25,6 +25,7 @@
   </header>
 
   <main class="checkout">
+    <noscript><p class="callout">This receipt needs JavaScript enabled — turn it on for this site and reload.</p></noscript>
     <div class="brand">
       <div class="check-ring pending" id="check-ring" role="status" aria-live="polite">
         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -35,7 +36,7 @@
       <p class="tagline" id="r-sub">Finishing up your order…</p>
     </div>
 
-    <section class="panel">
+    <section class="panel" id="r-details">
       <p class="label">Order details</p>
       <div class="order-row"><span class="k">Server</span><span class="v" id="r-server">—</span></div>
       <div class="order-row"><span class="k">Product</span><span class="v" id="r-product">—</span></div>

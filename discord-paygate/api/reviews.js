@@ -54,6 +54,18 @@ async function withNames(rows, viewerId) {
   );
 }
 
+// The write gate, asked up front. Exactly the checks the POST runs, in the
+// same order, so the storefront offers the composer only to someone whose
+// post will land — and can say why to someone whose post would not.
+async function writeBlock(store, uid) {
+  if (!uid) return 'signin';
+  if (store.ownerDiscordId && String(store.ownerDiscordId) === String(uid)) return 'owner';
+  const purchaseAt = await db.firstPurchaseAt(store.id, uid);
+  if (purchaseAt === null) return 'notbuyer';
+  if (nowSec() - purchaseAt < COOLING_SECONDS) return 'cooling';
+  return null;
+}
+
 async function resolveStore(slug) {
   if (!/^[a-z0-9-]{1,40}$/.test(slug) || slug === DEMO_SLUG) return null;
   const store = await storeBySlug(slug);
@@ -75,6 +87,7 @@ export default guard(async function handler(req, res) {
     // row only, because words you wrote should not become unreachable to you
     // just because someone else switched the display off.
     const isOwner = uid && store.ownerDiscordId && String(store.ownerDiscordId) === String(uid);
+    const block = await writeBlock(store, uid);
     if (!store.reviewsOn && !isOwner) {
       const own = uid ? await db.getReviewByAuthor(store.id, uid) : null;
       return sendJson(res, 200, {
@@ -83,6 +96,8 @@ export default guard(async function handler(req, res) {
         average: null,
         more: false,
         on: false,
+        canWrite: block === null,
+        writeBlock: block,
       });
     }
 
@@ -100,6 +115,8 @@ export default guard(async function handler(req, res) {
       more: rows.length > PAGE,
       cursor: page.length ? page[page.length - 1].id : null,
       on: Boolean(store.reviewsOn),
+      canWrite: block === null,
+      writeBlock: block,
     });
   }
 
