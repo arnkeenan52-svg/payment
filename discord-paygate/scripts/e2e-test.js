@@ -3780,8 +3780,17 @@ test('store themes: a light colour way inverts the white wordmark', async () => 
   assert.ok(themeCss({ bg: '#faf9f7' }).includes(invert), 'Ivory ground: the white mark would vanish, so it inverts');
   assert.ok(themeCss({ bg: '#ffffff' }).includes(invert));
   assert.ok(!themeCss({ bg: '#0a0a0a' }).includes(invert), 'a dark ground keeps the white mark');
-  assert.ok(!themeCss({ bg: '#faf9f7', bgPreset: 'midnight' }).includes(invert), 'with a background layer the ground is the layer, not --bg');
-  assert.ok(!themeCss({ bg: '#faf9f7', bgUrl: 'https://example.com/bg.gif' }).includes(invert));
+  // Over a wallpaper the mark sits on the CHROME, and the chrome is 68% of
+  // --bg — not the photograph. So --bg still decides, and a light-tone preset
+  // (which sets data-theme='light' for the column, and with it styles.css's
+  // invert rule) must not blacken the mark on a dark store: sakura and mint
+  // were painting a black wordmark onto a near-black footer bar.
+  assert.ok(themeCss({ bg: '#faf9f7', bgPreset: 'midnight' }).includes('body.has-bg .platform-mark, body.has-bg .powered-mark { filter: invert(1); }'),
+    'a light colour way inverts the mark over a wallpaper too');
+  assert.ok(themeCss({ bg: '#0a0a0a', bgPreset: 'sakura' }).includes('body.has-bg .platform-mark, body.has-bg .powered-mark { filter: none; }'),
+    'a dark colour way keeps the white mark even under a light-tone preset');
+  assert.ok(themeCss({ bg: '#faf9f7', bgUrl: 'https://example.com/bg.gif' }).includes('body.has-bg .platform-mark, body.has-bg .powered-mark { filter: invert(1); }'));
+  assert.ok(!themeCss({ bg: '#0a0a0a', bgPreset: 'sakura' }).includes(invert), 'and never the bare rule, which would lose to data-theme=light');
 });
 
 test('store themes: validated tokens in, server-rendered CSS out', async () => {
@@ -4657,7 +4666,12 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   assert.match(phone, /\.shop-icon-btn \{ width: 44px; height: 44px;/, 'share button is 44px on phones');
   assert.match(phone, /\.shop-btn \{ flex: 1; height: 44px; \}/, 'Join / Follow are 44px on phones');
   assert.match(rules('.menu-btn')[0], /min-width: 44px; min-height: 44px/, 'the /discover hamburger is 44px');
-  assert.match(rules('.shop-mlink')[0], /padding: 4px; margin: -4px;/, 'store links carry a 24px pointer hit box');
+  // A 4px padding sizes the hit box from the ICON, and the seller-link icons
+  // are not square: Discord's 16x12 mark measured 24x20 on a mouse, YouTube's
+  // 18x13 measured 26x21 and TikTok's 15x17 measured 23x25 — three of six
+  // under 24px in one axis. The floor has to be on the BOX, both axes.
+  assert.match(rules('.shop-mlink')[0], /min-width: 24px; min-height: 24px; padding: 4px; margin: -4px;/, 'store links carry a 24px pointer hit box in BOTH axes');
+  assert.match(rules('.shop-mlink')[0], /align-items: center; justify-content: center;/, 'and the icon stays centred in whatever box that makes');
   const touch = css.slice(css.indexOf('@media (pointer: coarse) {'));
   assert.ok(touch.length > 30, 'the touch pass exists');
   assert.match(touch, /\.shop-mlink \{ width: 44px; height: 44px; align-items: center; justify-content: center; margin: -13\.5px; \}/, 'store links reach 44px under a finger');
@@ -4678,7 +4692,15 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
 
   // Phone text floor: nothing a buyer reads sits under 12px.
   const px = (body) => [...body.matchAll(/font(?:-size)?:\s*(?:\d+\s+)?([\d.]+)px/g)].map((m) => Number(m[1]));
-  for (const sel of ['.shop-rolechip', '.alt-ours', '.footer-head', '.calc-note', '.calc-bar-sub', '.footer-disclaimer']) {
+  // The list below is every styles.css rule that a BUYER or a VISITOR reads
+  // at a size, measured by rendering each page at 390 and at 1440 and asking
+  // the browser for the computed font-size of every visible text node. What
+  // that sweep does NOT include, deliberately: the miniature type inside the
+  // aria-hidden product mock-ups on the marketing pages (.vz-*, .dc-app,
+  // .browser-url, .appcard, the chart tick labels) — those are a DRAWING of an
+  // interface, not text to read, and scaling their type breaks the drawing.
+  for (const sel of ['.shop-rolechip', '.alt-ours', '.footer-head', '.calc-note', '.calc-bar-sub', '.footer-disclaimer',
+    '.chip', '.order-card .label', '.kicker', '.shop-rv-you', '.shop-share-tip', '.coin span', '.cpay-coin']) {
     const sizes = rules(sel).flatMap(px);
     assert.ok(sizes.length, `${sel} declares a size`);
     assert.ok(sizes.every((n) => n >= 12), `${sel} must not go under 12px (got ${sizes})`);
@@ -4695,6 +4717,22 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
     assert.match(html, /\.footer \.fcol b\{[^}]*line-height:1\.1;/, `${file}: footer headings keep their 13px line box`);
   }
   const home = page('index.html');
+  // The rest of what a visitor reads under 12px on the landing page, found by
+  // the same render sweep. .pay-chip b is the load-bearing one: it outranks
+  // every .pm-* class rule below it (the .pm-cashchip comment says so), so
+  // this single number is the size of EVERY wordmark chip on a phone — VISA,
+  // AMEX and both "Pay" marks all measured 11.5px at 390.
+  for (const [re, what] of [
+    [/\.save-rows-cap\{\s*margin:26px 0 14px;font:600 ([\d.]+)px/, 'the calculator column caption'],
+    [/  \.pay-chip b\{font-size:([\d.]+)px\}/, 'the payment wordmark chips on a phone'],
+    [/  \.save-hero small\{margin-top:2px;font-size:([\d.]+)px\}/, 'the savings sub-line on a desktop'],
+    [/  \.sv-name em\{font-size:([\d.]+)px;margin-left:6px\}/, 'the plan tag in the comparison rows'],
+    [/  \.fee-note\{font-size:([\d.]+)px;line-height:17px\}/, 'the fee footnote on a desktop'],
+  ]) {
+    const m = home.match(re);
+    assert.ok(m, `index.html: ${what} must still match ${re}`);
+    assert.ok(Number(m[1]) >= 12, `index.html: ${what} is ${m[1]}px, under the 12px floor`);
+  }
   assert.match(home, /\.pay-cap\{font:600 12px/, 'the payment caption is 12px');
   assert.match(home, /\.save-cap\{display:block;font:600 12px/, 'the savings caption is 12px');
   assert.doesNotMatch(home, /\.save-cap\{font-size:10\.5px\}/, 'no phone override drags it back under');
@@ -4706,7 +4744,17 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   // Store chrome over a wallpaper: header and footer wear the column's
   // translucent ground and the ink, so their text no longer depends on the
   // seller's photo.
-  assert.match(css, /body\.has-bg \.top, body\.has-bg > footer \{\n  background: color-mix\(in srgb, var\(--bg\) 46%, transparent\);/, 'header + footer get the column ground over a wallpaper');
+  //
+  // The STRENGTH of that ground is the whole fix, so it is a number here, not
+  // a string. At 46% a near-white wallpaper still won: measured on the served
+  // storefront with a painted-pixel probe, the dark colour way gave Sign out
+  // 3.43:1 on sakura, 3.56 on mint, 4.39 on lavender, and the "powered by"
+  // line 3.89 on sakura/mint and 4.14 on lavender — four presets, mint and
+  // lavender both FREE tier. At 68% the worst of all forty presets, on both
+  // colour ways, signed in and out, top of page and foot, is 6.75:1.
+  const ground = css.match(/body\.has-bg \.top, body\.has-bg > footer \{\n  background: color-mix\(in srgb, var\(--bg\) (\d+)%, transparent\);/);
+  assert.ok(ground, 'header + footer get the column ground over a wallpaper');
+  assert.ok(Number(ground[1]) >= 68, `the chrome ground is ${ground[1]}%, under the 68% a bright wallpaper needs`);
   assert.doesNotMatch(css, /body\.has-bg \.top \{ background: transparent/, 'the header must not be transparent over a wallpaper');
   assert.match(css, /\nbody\.has-bg > footer, body\.has-bg \.powered-community,\nbody\.has-bg \.top \.nav-link, body\.has-bg \.top \.account, body\.has-bg \.top \.btn-ghost \{ color: var\(--ink\); \}/, 'chrome text over a wallpaper is the ink, not --dim');
 
@@ -4716,13 +4764,39 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   // generator AND in the committed artifacts, so a regenerate that was never
   // run cannot ship the old colour.
   const gen = fs.readFileSync(path.join(ROOT, 'scripts', 'gen-seo-pages.mjs'), 'utf8');
+  //
+  // The list has to cover the rules styles.css applies as well as the ones the
+  // generator writes: .legal a, .faq-item a, .seo-ticks a and .seo-step-num
+  // all paint var(--accent), which on a day page IS #5865f2. Measured on the
+  // served pages before this line existed: /help's "dashboard" link, /terms'
+  // "account page" and "contact@dues.gg", /vs/*'s "fee calculator" and the
+  // 1-2-3 numerals on all six /use-cases/* pages were still the button
+  // blurple at 4.3:1.
   const textLinks = ['--blurple-text: #424cbd;', '.guide-body a { color: var(--blurple-text); }', '.alt-card .seo-card-cta a { color: var(--blurple-text); }',
-    '.seo-card-cta, .cmp-table th:nth-child(2), .calc-label output { color: var(--blurple-text); }'];
+    '.seo-card-cta, .cmp-table th:nth-child(2), .calc-label output { color: var(--blurple-text); }',
+    '.legal a, .faq-item a, .seo-ticks a, .seo-step-num { color: var(--blurple-text); }'];
   for (const line of textLinks) assert.ok(gen.includes(line), `generator paints "${line}"`);
   assert.doesNotMatch(gen, /\.guide-body a \{ color: #5865f2/, 'prose links never go back to the button blurple');
-  for (const seo of ['help.html', 'vs/whop.html', 'tools/whop-fee-calculator.html', 'alternatives/whop-alternatives.html', 'guides/discord-paywall.html']) {
+  for (const seo of ['help.html', 'vs/whop.html', 'use-cases/trading.html', 'tools/whop-fee-calculator.html', 'alternatives/whop-alternatives.html', 'guides/discord-paywall.html']) {
     const html = page(seo);
     for (const line of textLinks) assert.ok(html.includes(line), `${seo} is regenerated with "${line}"`);
+  }
+  // terms.html, privacy.html and discover.html are HAND-WRITTEN — the
+  // generator does not own them, which is exactly how /terms kept serving
+  // #5865f2 prose links through a whole generator-only fix. They carry the
+  // same block, and in every one of the five day pages a declaration that
+  // paints #5865f2 as COLOUR must also paint a background, i.e. the blurple
+  // is a fill with white on it, never ink on paper.
+  for (const hand of ['terms.html', 'privacy.html', 'discover.html']) {
+    const html = page(hand);
+    for (const line of textLinks) assert.ok(html.includes(line), `${hand} carries "${line}"`);
+  }
+  for (const day of ['help.html', 'terms.html', 'privacy.html', 'discover.html', 'vs/whop.html', 'use-cases/trading.html']) {
+    const style = page(day).match(/<style>([\s\S]*?)<\/style>/)[1].replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const [, sel, body] of style.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (!/(^|[;\s])color:\s*#5865f2/i.test(body)) continue;
+      assert.match(body, /background:/, `${day}: ${sel.trim().slice(0, 60)} paints the button blurple as text`);
+    }
   }
 });
 

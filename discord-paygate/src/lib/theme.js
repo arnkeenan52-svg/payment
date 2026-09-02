@@ -255,11 +255,22 @@ export function themeCss(theme) {
   // The wordmark ships as a white PNG. public/styles.css inverts it under
   // html[data-theme='light'], but a store's lightness comes from --bg, not
   // from that attribute — so a light colour way leaves it near-white on
-  // near-white. With a background layer the ground is the layer, not --bg:
-  // light-tone presets already set data-theme='light', dark ones want the
-  // white mark, and an owner-imported image is unknowable, so skip those.
-  if (t.bg && !t.bgPreset && !t.bgUrl && inkFor(t.bg) === '#0a0a0a') {
-    lines.push('.platform-mark, .powered-mark { filter: invert(1); }');
+  // near-white.
+  //
+  // With a background layer the mark is NOT on the wallpaper either: the two
+  // places it appears, the header and the footer, wear 68% of --bg (see
+  // styles.css), so --bg decides there as well. A light-tone preset sets
+  // data-theme='light' for the COLUMN, and styles.css was reading that as
+  // permission to paint a black mark onto a black store's dark chrome bar —
+  // measured on sakura and mint. Hence the explicit `none`, at a specificity
+  // that outranks the html[data-theme='light'] rule and comes after it.
+  if (t.bg) {
+    const lightGround = inkFor(t.bg) === '#0a0a0a';
+    if (t.bgPreset || t.bgUrl) {
+      lines.push(`body.has-bg .platform-mark, body.has-bg .powered-mark { filter: ${lightGround ? 'invert(1)' : 'none'}; }`);
+    } else if (lightGround) {
+      lines.push('.platform-mark, .powered-mark { filter: invert(1); }');
+    }
   }
   if (t.radius !== undefined) {
     const small = Math.min(t.radius, 12);

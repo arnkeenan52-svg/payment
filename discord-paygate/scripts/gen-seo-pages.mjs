@@ -365,6 +365,15 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 .guide-body a { color: var(--blurple-text); }
 .alt-card .seo-card-cta a { color: var(--blurple-text); }
 .seo-card-cta, .cmp-table th:nth-child(2), .calc-label output { color: var(--blurple-text); }
+/* …and the four styles.css rules that paint TEXT with --accent, which on
+   these pages IS the button blurple: the prose links inside a legal/help
+   card and an FAQ answer, the tick-list links, and the step numerals on the
+   use-case pages. They were missed because the sweep above listed the
+   selectors this generator writes, not the ones styles.css already applies:
+   measured on the served pages, /help's "dashboard" link, /terms' "account
+   page", /vs/*'s "fee calculator" and /use-cases/*'s 1-2-3 numerals were all
+   still #5865f2, 4.3:1 on the paper. */
+.legal a, .faq-item a, .seo-ticks a, .seo-step-num { color: var(--blurple-text); }
 /* "our product" chip on the alternatives lists */
 .alt-ours { background: #5865f2; color: #ffffff; }
 /* search box as glass (discover) */

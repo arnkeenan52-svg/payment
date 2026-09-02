@@ -466,7 +466,7 @@ body {
 .coin.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .coin b { font-size: 14px; font-weight: 700; }
 .coin span {
-  font-size: 11.5px; color: var(--dim); font-weight: 500;
+  font-size: 12px; color: var(--dim); font-weight: 500;
   /* A coin label is one line; the grid cell is fixed, so a long one truncates
      rather than pushing the tile taller than its neighbours. */
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -518,7 +518,7 @@ body {
 }
 .cpay-amt code { text-align: left; }
 .cpay-coin {
-  flex: none; font-size: 11.5px; font-weight: 800; letter-spacing: 0.04em;
+  flex: none; font-size: 12px; font-weight: 800; letter-spacing: 0.04em;
   color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
   border-radius: 6px; padding: 4px 7px;
 }
@@ -823,7 +823,8 @@ footer {
 .checkout.wide { max-width: 860px; }
 
 .chip {
-  font-size: 11.5px;
+  /* 12px floor: these are the ROLE NAMES a buyer is buying. */
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   padding: 3px 9px;
@@ -2312,7 +2313,7 @@ h1, h2, h3, .section-title, .order-title, .wiz-head h1 { font-family: var(--font
 /* bracket kicker (dark-grid: “[ CAPABILITIES ]”) */
 .kicker {
   display: block; text-align: center; color: var(--dim);
-  font-size: 11.5px; font-weight: 650; letter-spacing: 0.16em; text-transform: uppercase;
+  font-size: 12px; line-height: 1.45; font-weight: 650; letter-spacing: 0.16em; text-transform: uppercase;
   margin: 0 0 12px;
 }
 .kicker::before { content: '[ '; color: var(--faint); }
@@ -2386,7 +2387,7 @@ a.kicker:hover { color: var(--ink); }
 .order-chip svg { color: var(--ink); }
 .order-card .label {
   border-top: 1px solid var(--edge); padding-top: 16px; margin: 6px 0 0;
-  font-size: 11px; letter-spacing: 0.12em;
+  font-size: 12px; letter-spacing: 0.12em;
 }
 .order-card .order-title { font-size: 22px; letter-spacing: -0.02em; }
 .totals { display: flex; flex-direction: column; gap: 7px; margin: 2px 0 4px; }
@@ -3183,7 +3184,12 @@ body[data-material='solid'].has-bg .shop-col {
 /* The icon is 17px; the hit box is not. Padding grows it to 25px for a
    pointer and the negative margin gives the layout the 17px back, so the
    row keeps its rhythm. The touch pass below takes the same box to 44. */
-.shop-mlink { color: var(--dim); display: inline-flex; padding: 4px; margin: -4px; }
+/* The seller's social links. Padding alone sized the hit box from the ICON,
+   and the icons are not square: Discord's 16x12 mark measured 24x20, YouTube's
+   18x13 measured 26x21 and TikTok's 15x17 measured 23x25 — all three under the
+   24px pointer minimum in one axis. A floor on both axes, with the icon centred
+   in whatever box that makes, so nothing on the row moves. */
+.shop-mlink { color: var(--dim); display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; padding: 4px; margin: -4px; }
 .shop-mlink:hover { color: var(--ink); }
 .shop-metaline[hidden] { display: none; }
 
@@ -3228,7 +3234,7 @@ body[data-material='solid'].has-bg .shop-col {
 .shop-rv-top { display: flex; align-items: center; gap: 8px; }
 .shop-rv-name { font-size: 15px; color: var(--ink); font-weight: 600; }
 .shop-rv-you {
-  font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  font-size: 12px; line-height: 1.3; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--dim); border: 1px solid var(--edge); border-radius: 99px; padding: 1px 7px;
 }
 .shop-rv-text { margin: 0; color: var(--dim); font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
@@ -3854,9 +3860,22 @@ body.has-bg .top, body.has-bg .checkout, body.has-bg > footer { position: relati
    and their --dim text is mixed from the palette, not from the photograph:
    on meadow the "powered by" line measured 1.2:1, on blossom 1.2:1, and the
    signed-in nav link 2.2:1 on sky-day. Same translucent ground the column
-   already wears, so their contrast stops depending on the seller's photo. */
+   already wears, so their contrast stops depending on the seller's photo.
+
+   46% was not enough of it. A near-white wallpaper under a dark colour way
+   still showed through: sakura measured 3.4:1 on Sign out and 3.9:1 on the
+   "powered by" line, mint 3.6/3.9, lavender 4.4/4.1, blossom 4.4 — four
+   presets, two of them free. The ground has to out-weigh the photograph, not
+   tint it, and the strength that does that on the brightest preset in the
+   catalogue is 68%: sakura then measures 7.4:1, the worst preset of all forty
+   6.7:1, on both colour ways and at 390 as well as 1280.
+
+   Still not a slab: 68% is LIGHTER than the .panel glass (74%) the products
+   already sit on, it is two thin strips at the extreme edges of a tall page,
+   and the seller's photograph runs full-strength behind everything between
+   them — which is where a meadow is worth looking at. */
 body.has-bg .top, body.has-bg > footer {
-  background: color-mix(in srgb, var(--bg) 46%, transparent);
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
   -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
 }
 body.has-bg .top { border-bottom-color: transparent; }
@@ -4277,7 +4296,7 @@ input, select, textarea {
 .shop-share-tip {
   position: absolute; top: calc(100% + 8px); right: 0; z-index: 5;
   background: var(--raised); color: var(--ink); border: 1px solid var(--edge);
-  border-radius: 7px; padding: 4px 9px; font-size: 11.5px; font-weight: 650; white-space: nowrap;
+  border-radius: 7px; padding: 4px 9px; font-size: 12px; font-weight: 650; white-space: nowrap;
   box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.45);
   opacity: 0; translate: 0 -3px; pointer-events: none;
   transition: opacity 180ms var(--ease-out), translate 180ms var(--ease-out);
