@@ -3364,6 +3364,20 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.equal(again.status, 200, await again.text());
   assert.equal(stripe.coupons.length, couponCount, 'the same code on the same terms mints no second coupon');
   assert.equal(stripe.checkoutSessions.at(-1)['discounts[0][coupon]'], sess['discounts[0][coupon]']);
+  // A fixed code that drags the total under Stripe's per-currency floor is
+  // refused by CHECKOUT itself, not only by the preview: the Pay button sends
+  // whatever is typed in the box, so a buyer who never clicked Apply must hit
+  // the same 409 here — before any coupon is minted on the seller's account.
+  const nearly = Math.round((vipNow.priceUsd - 0.25) * 100) / 100;
+  assert.equal((await disc({ action: 'create', code: 'NEARLY', kind: 'fixed', amount: nearly, planKey: vip.planKey })).status, 200);
+  const nearlyPrev = await fetch(`${appUrl}/api/discount?store=vip-signals&code=NEARLY&plan=${vip.planKey}`);
+  assert.equal(nearlyPrev.status, 409, 'preview refuses a total under the card floor');
+  const couponsBeforeFloor = stripe.coupons.length;
+  const underFloor = await checkout(u9Cookie, { planId: vip.planKey, discountCode: 'NEARLY' });
+  assert.equal(underFloor.status, 409, 'checkout refuses the same total, not just the preview');
+  assert.match((await underFloor.json()).error, /under the USD minimum of \$0\.50/);
+  assert.equal(stripe.coupons.length, couponsBeforeFloor, 'no coupon is minted for a total no card can clear');
+  assert.equal((await disc({ action: 'delete', code: 'NEARLY' })).status, 200);
   // Completed payment counts the use.
   await deliverStripe({
     id: 'evt_disc_1',
