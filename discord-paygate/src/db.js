@@ -91,6 +91,7 @@ const ddl = (dialect) => {
     currency      TEXT NOT NULL DEFAULT 'usd',
     discount_code TEXT,
     provider_ref  TEXT,                 -- crypto: the NOWPayments payment id
+    expires_at    ${int},               -- when the provider stops taking money for it; NULL = the card-form TTL
     status        TEXT NOT NULL,        -- 'started' | 'completed' | 'expired' (crypto: the provider closed the invoice unpaid)
     created_at    ${int} NOT NULL,
     completed_at  ${int},
@@ -376,6 +377,11 @@ function db() {
       // ourselves, so the payment id it maps to needs somewhere to live —
       // it is what the buyer's pay screen re-reads status from.
       await driver.exec('ALTER TABLE checkout_attempts ADD COLUMN provider_ref TEXT').catch(onlyDuplicateColumn);
+      // How long an open attempt holds its seat and its discount use. A card
+      // form dies with its Stripe session, so those rows leave this NULL and
+      // age out on created_at; a crypto invoice stays payable for as long as
+      // the provider says, which can be hours, so the row carries that date.
+      await driver.exec(`ALTER TABLE checkout_attempts ADD COLUMN expires_at ${intType}`).catch(onlyDuplicateColumn);
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -559,14 +565,33 @@ export async function purgeWebhookEvents(before) {
   return Number(changes ?? 0);
 }
 
+// An attempt somebody could still pay: started, and either a card form
+// opened after `since` (the Stripe session TTL, counted from created_at) or
+// a crypto invoice whose own expiry has not passed. Two placeholders:
+// `since`, then the current time.
+const OPEN_ATTEMPT = "status = 'started' AND ((expires_at IS NULL AND created_at >= ?) OR expires_at > ?)";
+
 // Buyers with an open checkout for any of these plans, younger than `since` —
 // the seller must not delete a product someone is paying for right now.
 export async function countOpenCheckoutsForPlans(storeId, planIds, since) {
   if (!planIds.length) return 0;
   const marks = planIds.map(() => '?').join(', ');
   const { rows } = await q(
-    `SELECT COUNT(DISTINCT discord_id) AS n FROM checkout_attempts WHERE store_id = ? AND status = 'started' AND created_at >= ? AND plan_id IN (${marks})`,
-    [storeId, since, ...planIds],
+    `SELECT COUNT(DISTINCT discord_id) AS n FROM checkout_attempts WHERE store_id = ? AND ${OPEN_ATTEMPT} AND plan_id IN (${marks})`,
+    [storeId, since, now(), ...planIds],
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
+// Crypto invoices this buyer could still pay in this store. One buyer needs
+// only one address; a loop minting hundreds is what a cap here stops before
+// the provider is asked for a single one.
+export async function countOpenCryptoAttemptsBy(storeId, discordId, since) {
+  const storeWhere = storeId === null ? 'store_id IS NULL' : 'store_id = ?';
+  const storeArgs = storeId === null ? [] : [storeId];
+  const { rows } = await q(
+    `SELECT COUNT(*) AS n FROM checkout_attempts WHERE discord_id = ? AND ${storeWhere} AND substr(session_id, 1, 3) = 'np_' AND provider_ref IS NOT NULL AND ${OPEN_ATTEMPT}`,
+    [discordId, ...storeArgs, since, now()],
   );
   return Number(rows[0]?.n ?? 0);
 }
@@ -633,8 +658,16 @@ export async function recordCheckoutAttempt({ storeId = null, planId, discordId,
   );
 }
 
-export async function setCheckoutAttemptRef(sessionId, providerRef) {
-  await q('UPDATE checkout_attempts SET provider_ref = ? WHERE session_id = ?', [providerRef, sessionId]);
+// `expiresAt` is the provider's own deadline for the payment (unix seconds):
+// the row holds its seat and its discount use until then.
+export async function setCheckoutAttemptRef(sessionId, providerRef, expiresAt = null) {
+  await q('UPDATE checkout_attempts SET provider_ref = ?, expires_at = ? WHERE session_id = ?', [providerRef, expiresAt, sessionId]);
+}
+
+// An attempt that can never be paid — the provider refused to create the
+// payment — stops holding anything the moment that is known.
+export async function releaseCheckoutAttempt(sessionId, at = now()) {
+  await q("UPDATE checkout_attempts SET expires_at = ? WHERE session_id = ? AND status = 'started'", [at, sessionId]);
 }
 
 // The order behind a crypto payment. NOWPayments' IPN carries only our own
@@ -1103,8 +1136,8 @@ export async function countBuyersOfPlan(storeId, planKey, { exceptUid = null, re
   const storeArgs = storeId === null ? [] : [storeId];
   const notMe = exceptUid ? ' AND discord_id <> ?' : '';
   const meArgs = exceptUid ? [exceptUid] : [];
-  const reserved = reservedSince === null ? '' : ` UNION SELECT discord_id FROM checkout_attempts WHERE plan_id = ? AND ${storeWhere} AND status = 'started' AND created_at >= ?${notMe}`;
-  const reservedArgs = reservedSince === null ? [] : [planKey, ...storeArgs, reservedSince, ...meArgs];
+  const reserved = reservedSince === null ? '' : ` UNION SELECT discord_id FROM checkout_attempts WHERE plan_id = ? AND ${storeWhere} AND ${OPEN_ATTEMPT}${notMe}`;
+  const reservedArgs = reservedSince === null ? [] : [planKey, ...storeArgs, reservedSince, now(), ...meArgs];
   const { rows } = await q(
     `SELECT COUNT(*) AS n FROM (SELECT discord_id FROM subscriptions WHERE plan_id = ? AND ${storeWhere}${notMe}${reserved}) t`,
     [planKey, ...storeArgs, ...meArgs, ...reservedArgs],
@@ -1116,8 +1149,8 @@ export async function countBuyersOfPlan(storeId, planKey, { exceptUid = null, re
 // the same reservation, for a usage limit.
 export async function countReservedDiscountUses(storeId, code, since, exceptUid) {
   const { rows } = await q(
-    "SELECT COUNT(DISTINCT discord_id) AS n FROM checkout_attempts WHERE store_id = ? AND discount_code = ? AND status = 'started' AND created_at >= ? AND discord_id <> ?",
-    [storeId, code, since, exceptUid ?? ''],
+    `SELECT COUNT(DISTINCT discord_id) AS n FROM checkout_attempts WHERE store_id = ? AND discount_code = ? AND ${OPEN_ATTEMPT} AND discord_id <> ?`,
+    [storeId, code, since, now(), exceptUid ?? ''],
   );
   return Number(rows[0]?.n ?? 0);
 }

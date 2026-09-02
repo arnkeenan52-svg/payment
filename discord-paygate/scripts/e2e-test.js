@@ -106,7 +106,7 @@ const AUTO_ENDPOINT_SECRET = 'whsec_auto_e2e_secret_1';
 const coinbase = { charges: [] };
 // NOWPayments: the crypto rail. `payments` is mutable so a test can advance a
 // payment through its statuses the way the real provider would.
-const nowpayments = { created: [], payments: new Map(), n: 0 };
+const nowpayments = { created: [], payments: new Map(), n: 0, minAmount: [] };
 const NOW_KEY = 'np_key_e2e';
 const NOW_IPN_SECRET = 'np_ipn_secret_e2e';
 const resend = { emails: [] };
@@ -608,6 +608,7 @@ async function nowpaymentsHandler(req, res) {
     return;
   }
   if (url.pathname === '/min-amount' && req.method === 'GET') {
+    nowpayments.minAmount.push({ from: url.searchParams.get('currency_from'), to: url.searchParams.get('currency_to') });
     json(res, 200, { min_amount: 0.004, currency_from: url.searchParams.get('currency_from') });
     return;
   }
@@ -5269,27 +5270,6 @@ test('crypto: an IPN whose order is not ours is answered, and grants nothing', a
   assert.equal(await subRow('nowpayments', 'npid_stranger'), null);
 });
 
-// The window is per address and outlives the test, so the guesses come from
-// an address of their own: the suite's loopback keeps previewing codes, and
-// the pin does not depend on how many of those happened in the last minute.
-test('the public discount preview is not a code oracle: one address gets thirty lookups a minute, then a 429', async () => {
-  const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf);
-  const lookup = (code) =>
-    fetch(`${appUrl}/api/discount?store=vip-signals&code=${code}&plan=${plan.id}`, { headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.1' } });
-  // 300 anonymous guesses used to come back in under a second, every one of
-  // them an honest yes/no — a two-character code space is 1,444 guesses.
-  const statuses = [];
-  for (let i = 0; i < 40; i++) statuses.push((await lookup(`GUESS${i}`)).status);
-  assert.ok(statuses.slice(0, 30).every((s) => s === 404), 'a buyer retyping a code a few times is never in the way');
-  assert.ok(statuses.slice(30).every((s) => s === 429), 'past the window the answer is 429 for every guess');
-  const throttled = await lookup('LAUNCH20');
-  assert.equal(throttled.status, 429, 'a real code from a throttled address is not confirmed either');
-  assert.match((await throttled.json()).error, /wait a minute/, 'the Apply button shows the reason');
-  assert.equal((await lookup('bad code!')).status, 400, 'malformed input is still refused as malformed, before the window');
-  const elsewhere = await fetch(`${appUrl}/api/discount?store=vip-signals&code=LAUNCH20&plan=${plan.id}`);
-  assert.equal(elsewhere.status, 200, 'the window is per address — a buyer somewhere else is not paying for it');
-});
-
 test('a kicked bot is named as the cause (not a buyer who has not joined), the sweep stops hammering that guild, and a phantom "already a member" join cannot spin', async () => {
   // Discord answers 404 to GET member for two very different reasons:
   // Unknown Member (the buyer is not in the server) and Unknown Guild (the
@@ -5509,6 +5489,142 @@ test('cron: idempotency claims older than any provider retry window are purged, 
   assert.ok(body.claimsPurged >= 1, JSON.stringify(body));
   assert.deepEqual(await claimRows('stripe:evt_ancient'), [], 'a claim no retry can ever match again is gone');
   assert.equal((await claimRows('nowpayments:npid_lag:%')).length, 1, 'a claim inside the window stays');
+});
+
+test("crypto: an open invoice holds its seat and its discount use for the invoice's life, a buyer's live invoices are capped, and a settled order polls as paid without its payment id", async () => {
+  const post = (path, body, cookie = npCookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const start = (cookie, body) => post('/api/checkout/crypto', { payCurrency: 'sol', ...body }, cookie);
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: npCookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const seat = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Crypto Seat', priceUsd: 40, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: seat.planKey, roleId: R2_VIP })).status, 200);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: 1 })).status, 200);
+  assert.equal((await post('/api/admin/discounts', { action: 'create', code: 'NPONE', kind: 'percent', amount: 10, maxUses: 1 })).status, 200);
+  const A = '525500000000000025';
+  const B = '526600000000000026';
+  const C = '527700000000000027';
+  for (const u of [A, B, C]) discord.members.set(u, new Set());
+  const aCookie = await signInAs('code_np_a', A, 'np_a');
+  const bCookie = await signInAs('code_np_b', B, 'np_b');
+  const cCookie = await signInAs('code_np_c', C, 'np_c');
+
+  // A takes the one seat and the one-use code on an invoice nobody has paid.
+  const a1 = await start(aCookie, { planId: seat.planKey, discountCode: 'NPONE' });
+  assert.equal(a1.status, 200, await a1.clone().text());
+  const aOrder = await a1.json();
+  const rowOf = async (id) => (await tq('SELECT * FROM checkout_attempts WHERE session_id = ?', [id])).rows[0];
+  assert.ok(asNum((await rowOf(aOrder.orderId)).expires_at) > nowSec() + 15 * 60, "the row carries the provider's own expiry, not the card-form TTL");
+  // B is refused the seat, and the code — a subscriptions row lands only when
+  // the IPN does, and a crypto invoice can sit unpaid for hours before that.
+  const bSeat = await start(bCookie, { planId: seat.planKey });
+  assert.equal(bSeat.status, 409);
+  assert.match(await bSeat.text(), /sold out/);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: null })).status, 200);
+  const bCode = await start(bCookie, { planId: seat.planKey, discountCode: 'NPONE' });
+  assert.equal(bCode.status, 400, await bCode.text());
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: 1 })).status, 200);
+  // Older than any card form could live, but the provider still takes money
+  // for it: the seat is still A's.
+  await tq('UPDATE checkout_attempts SET created_at = ? WHERE session_id = ?', [nowSec() - 2 * 3600, aOrder.orderId]);
+  assert.equal((await start(bCookie, { planId: seat.planKey })).status, 409, 'an invoice the provider still accepts holds its seat past the card-form TTL');
+  // Once the provider has given up on it, both are free.
+  await tq('UPDATE checkout_attempts SET expires_at = ? WHERE session_id = ?', [nowSec() - 1, aOrder.orderId]);
+  const bFree = await start(bCookie, { planId: seat.planKey, discountCode: 'NPONE' });
+  assert.equal(bFree.status, 200, await bFree.clone().text());
+  const bOrder = await bFree.json();
+
+  // The pay screen polls the order row before the provider. With no payment
+  // id attached it waits — and once the IPN has marked the order completed it
+  // says paid, whether or not the id ever got attached.
+  const poll = async (order, cookie) => (await fetch(`${appUrl}/api/checkout/crypto?store=vip-signals&order=${order}`, { headers: { cookie } })).json();
+  const bRef = (await rowOf(bOrder.orderId)).provider_ref;
+  await tq('UPDATE checkout_attempts SET provider_ref = NULL WHERE session_id = ?', [bOrder.orderId]);
+  assert.equal((await poll(bOrder.orderId, bCookie)).state, 'pending');
+  const bPayment = nowpayments.payments.get(bRef);
+  bPayment.payment_status = 'finished';
+  bPayment.actually_paid = bPayment.pay_amount;
+  bPayment.actually_paid_at_fiat = bPayment.price_amount;
+  assert.equal((await deliverNow({ payment_id: bRef, payment_status: 'finished', order_id: bOrder.orderId })).status, 200);
+  await waitFor("B's crypto grant to land", async () => (await subRow('nowpayments', bRef)) !== null);
+  assert.equal((await rowOf(bOrder.orderId)).status, 'completed');
+  const paid = await poll(bOrder.orderId, bCookie);
+  assert.deepEqual([paid.status, paid.state], ['finished', 'paid'], 'a settled order never polls as waiting');
+  assert.equal((await poll(bOrder.orderId, aCookie)).state, undefined, "still nobody else's to read");
+
+  // The network minimum is asked for the pair the payment used: the buyer's
+  // coin into the seller's payout coin, never the coin into itself.
+  const tiny = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Tiny', priceUsd: 0.75, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: tiny.planKey, roleId: R2_VIP })).status, 200);
+  const under = await start(aCookie, { planId: tiny.planKey, payCurrency: 'btc' });
+  assert.equal(under.status, 409);
+  assert.match((await under.json()).error, /network minimum of about 0\.004 BTC/);
+  assert.deepEqual(nowpayments.minAmount.at(-1), { from: 'btc', to: 'sol' }, 'the minimum quoted is the one that refused the order');
+  {
+    const { rows } = await tq('SELECT * FROM checkout_attempts WHERE discord_id = ? AND plan_id = ?', [A, tiny.planKey]);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].provider_ref, null);
+    assert.ok(asNum(rows[0].expires_at) <= nowSec(), 'an attempt the provider refused holds nothing');
+  }
+
+  // A buyer gets a few live addresses, not a loop's worth: each one holds a
+  // seat and a discount use until the provider gives up on it.
+  const loop = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Crypto Loop', priceUsd: 20, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: loop.planKey, roleId: R2_VIP })).status, 200);
+  const minted = nowpayments.created.length;
+  const cOrders = [];
+  for (let i = 0; i < 3; i += 1) {
+    const r = await start(cCookie, { planId: loop.planKey });
+    assert.equal(r.status, 200, await r.clone().text());
+    cOrders.push((await r.json()).orderId);
+  }
+  const fourth = await start(cCookie, { planId: loop.planKey });
+  assert.equal(fourth.status, 429, await fourth.text());
+  assert.equal(nowpayments.created.length, minted + 3, 'the provider was never asked for the fourth');
+  assert.equal((await start(bCookie, { planId: loop.planKey })).status, 200, "one buyer's cap is not another's");
+  await tq('UPDATE checkout_attempts SET expires_at = ? WHERE session_id = ?', [nowSec() - 1, cOrders[0]]);
+  assert.equal((await start(cCookie, { planId: loop.planKey })).status, 200, 'an expired invoice no longer counts');
+  // Cleanup: park the products.
+  for (const key of [seat.planKey, tiny.planKey, loop.planKey]) {
+    assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: key, active: false })).status, 200);
+  }
+});
+
+test('an option of a switched-off product is not for sale on either rail', async () => {
+  const post = (path, body, cookie = npCookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const owned = await (await fetch(`${appUrl}/api/admin/payments`, { headers: { cookie: npCookie } })).json();
+  const storeId = owned.stores.find((s) => s.slug === 'vip-signals').id;
+  const parent = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Cohort', priceUsd: 300, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: parent.planKey, roleId: R2_VIP })).status, 200);
+  const option = JSON.parse(await (await post('/api/onboard', { step: 'variant', storeId, planKey: parent.planKey, label: 'Monthly', priceUsd: 30, lifetime: false })).text()).plan;
+  const buyer = await signInAs('code_np_opt', '528800000000000028', 'np_opt');
+  discord.members.set('528800000000000028', new Set());
+  assert.equal((await post('/api/checkout/crypto', { planId: option.planKey, payCurrency: 'sol' }, buyer)).status, 200, 'the option sells while its product is on');
+  // The seller switches the PRODUCT off. The storefront hides the option;
+  // its own planId, from a cached link, must be just as dead at the API.
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: parent.planKey, active: false })).status, 200);
+  const viaCrypto = await post('/api/checkout/crypto', { planId: option.planKey, payCurrency: 'sol' }, buyer);
+  const viaCryptoBody = await viaCrypto.text();
+  assert.equal(viaCrypto.status, 409, viaCryptoBody);
+  assert.match(viaCryptoBody, /not for sale/);
+  const viaCard = await post('/api/checkout/stripe', { planId: option.planKey }, buyer);
+  const viaCardBody = await viaCard.text();
+  assert.equal(viaCard.status, 409, viaCardBody);
+  assert.match(viaCardBody, /not for sale/);
+});
+
+test('the discount preview budgets misses, so it cannot be walked as an oracle', async () => {
+  const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf);
+  const cookie = await signInAs('code_np_guess', '529900000000000029', 'np_guess');
+  const ask = (code, headers = {}) => fetch(`${appUrl}/api/discount?store=vip-signals&code=${code}&plan=${plan.id}`, { headers });
+  assert.equal((await ask('LAUNCH20', { cookie })).status, 200, 'a real code previews');
+  for (let i = 0; i < 8; i += 1) {
+    assert.equal((await ask(`GUESS${i}`, { cookie })).status, 404);
+  }
+  assert.equal((await ask('GUESS9', { cookie })).status, 429, 'the ninth miss in the window is refused');
+  assert.equal((await ask('LAUNCH20', { cookie })).status, 429, 'and so is a hit — the throttle must not be the oracle');
+  assert.equal((await ask('LAUNCH20')).status, 200, "another asker's budget is their own");
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════

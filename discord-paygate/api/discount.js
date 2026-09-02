@@ -3,35 +3,41 @@
 // Read-only — the authoritative validation still happens at checkout,
 // and uses are only counted by the completed-payment webhook.
 import { guard, sendJson } from '../src/lib/http.js';
+import { sessionUserId } from '../src/lib/session.js';
 import { storeBySlug, planOf } from '../src/services/stores.js';
 import { DEMO_SLUG, DEMO_DISCOUNT, demoPlans } from '../src/services/demo-store.js';
 import { getDiscount } from '../src/db.js';
 import { roundAmount, minCharge, formatAmount, normalize as normalizeCurrency } from '../src/lib/currency.js';
 
-// This route is anonymous and answers "valid or not" for any code on any
-// store, and codes may be as short as two characters — so without a ceiling
-// it is an enumeration oracle (300 guesses a second, measured). A buyer
-// retyping a code hits Apply a handful of times; thirty a minute from one
-// address is nobody's checkout. Per warm instance, like every in-memory
-// window here; the checkout itself validates the code again regardless.
-const WINDOW_MS = 60_000;
-const MAX_LOOKUPS_PER_WINDOW = 30;
-const lookups = new Map(); // ip → { count, until }
+// A 200-or-404 answer with no login and no limit is an oracle: walk a
+// wordlist against any store and every private code it ever made falls out,
+// discount and all. Misses are therefore budgeted — per asker (the session
+// when there is one, else the address) and per store, so a spread of
+// addresses buys nothing either. A valid code costs nothing against the
+// budget: only guessing does. Once over it, everything is refused alike,
+// so the throttle itself does not leak.
+const WINDOW_SECONDS = 10 * 60;
+const MAX_MISSES_PER_ASKER = 8;
+const MAX_MISSES_PER_STORE = 300;
+const misses = new Map(); // key → [unix seconds of each miss in the window]
 
-function throttled(req) {
-  const now = Date.now();
-  if (lookups.size > 5000) {
-    for (const [ip, w] of lookups) if (w.until <= now) lookups.delete(ip);
-  }
-  const forwarded = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
-  const ip = forwarded || req.socket?.remoteAddress || 'unknown';
-  const w = lookups.get(ip);
-  if (!w || w.until <= now) {
-    lookups.set(ip, { count: 1, until: now + WINDOW_MS });
-    return false;
-  }
-  w.count += 1;
-  return w.count > MAX_LOOKUPS_PER_WINDOW;
+function missesBy(key, now) {
+  const list = (misses.get(key) ?? []).filter((t) => t > now - WINDOW_SECONDS);
+  if (list.length) misses.set(key, list); else misses.delete(key);
+  return list;
+}
+
+function recordMiss(keys, now) {
+  // Kept small: entries older than the window are dropped on every write.
+  if (misses.size > 5000) for (const k of misses.keys()) missesBy(k, now);
+  for (const key of keys) misses.set(key, [...missesBy(key, now), now]);
+}
+
+function askerKey(req) {
+  const uid = sessionUserId(req);
+  if (uid) return `u:${uid}`;
+  const fwd = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
+  return `ip:${fwd || req.socket?.remoteAddress || '?'}`;
 }
 
 export default guard(async (req, res) => {
@@ -42,13 +48,19 @@ export default guard(async (req, res) => {
   if (!/^[a-z0-9-]{1,40}$/.test(slug) || !/^[A-Z0-9_-]{2,32}$/.test(code) || !planId) {
     return sendJson(res, 400, { error: 'bad request' });
   }
-  if (throttled(req)) {
-    return sendJson(res, 429, { error: 'Too many code attempts — wait a minute and try again.' });
+  const now = Math.floor(Date.now() / 1000);
+  const keys = [askerKey(req), `s:${slug}`];
+  if (missesBy(keys[0], now).length >= MAX_MISSES_PER_ASKER || missesBy(keys[1], now).length >= MAX_MISSES_PER_STORE) {
+    return sendJson(res, 429, { error: 'Too many code attempts — try again in a few minutes.' });
   }
+  const miss = () => {
+    recordMiss(keys, now);
+    return sendJson(res, 404, { error: 'That discount code is not valid for this product.' });
+  };
   if (slug === DEMO_SLUG) {
     const plan = demoPlans().find((p) => p.id === planId);
     if (!plan || code !== DEMO_DISCOUNT.code) {
-      return sendJson(res, 404, { error: 'That discount code is not valid for this product.' });
+      return miss();
     }
     const cur = normalizeCurrency(plan.currency);
     const off = (plan.priceUsd * DEMO_DISCOUNT.amount) / 100;
@@ -62,7 +74,6 @@ export default guard(async (req, res) => {
   const store = await storeBySlug(slug);
   const plan = store ? await planOf(store, planId) : null;
   const d = store && store.id !== null && store.id !== undefined ? await getDiscount(store.id, code) : null;
-  const now = Math.floor(Date.now() / 1000);
   const valid =
     plan &&
     d &&
@@ -72,7 +83,7 @@ export default guard(async (req, res) => {
     (d.expiresAt === null || d.expiresAt > now) &&
     (d.maxUses === null || d.uses < d.maxUses);
   if (!valid) {
-    return sendJson(res, 404, { error: 'That discount code is not valid for this product.' });
+    return miss();
   }
   // Rounded to what the currency can express. Rounding a yen price to two
   // decimals invents a half-yen that Stripe will refuse at the card form.
