@@ -209,9 +209,11 @@ export const estimate = (amount, from, to) =>
 
 // ── the invoice ─────────────────────────────────────────────────────────────
 
-// There is no IPN URL field in the NOWPayments dashboard, so the callback is
-// per-request: every create carries its own ipn_callback_url or the payment
-// completes and nothing is ever told about it.
+// The dashboard does have an IPN callback field, but the callback is set
+// per-request anyway: the API's own IPN instructions say to pass
+// ipn_callback_url on create_payment, and a URL that ships with the code
+// cannot be left pointing at a dead deploy by whoever last edited a dashboard
+// this code never reads.
 export function ipnCallbackUrl() {
   return `${config.publicBaseUrl.replace(/\/$/, '')}/api/webhooks/nowpayments`;
 }
@@ -298,7 +300,15 @@ export const listPayments = ({ limit = 100, page = 0 } = {}) =>
 export const GRANTS_ACCESS = new Set(['finished']);
 export const IN_FLIGHT = new Set(['waiting', 'confirming', 'confirmed', 'sending']);
 export const SHORT = new Set(['partially_paid']);
-export const DEAD = new Set(['failed', 'refunded', 'expired']);
+// `cancelled` is not in the API reference's list of nine statuses. The
+// provider's own status article is where it lives: a merchant can mark a
+// partially_paid payment cancelled to tell the buyer to get in touch, and
+// NOWPayments' Node SDK maps both spellings of it. It is terminal and it is
+// not a sale. Left unrecognised it was the one dead payment whose screen kept
+// saying "Checking on this payment…", and whose seat the backfill never
+// released until the seven-day window dropped it.
+// https://nowpayments.zendesk.com/hc/en-us/articles/18395434917149-Payment-statuses
+export const DEAD = new Set(['failed', 'refunded', 'expired', 'cancelled', 'canceled']);
 
 // Mirrors the dashboard's "Payment covering" setting. Used ONLY for wording
 // and for recon logging — never to decide whether something is paid.
