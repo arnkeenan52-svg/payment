@@ -55,6 +55,9 @@ export default guard(async function handler(req, res) {
   // is no shape of this payload that carries SOME of a store's reviews.
   const reviewsPublic =
     followable && store.reviewsOn ? { ...(await reviewSummary(store.id)), on: true } : { count: 0, average: null, on: false };
+  // The seller's half of the crypto rail. Same predicate the checkout guards
+  // with, so the page and the payment agree on whether the rail exists.
+  const cryptoPayout = Boolean(String(store.cryptoWallet ?? '').trim() && String(store.cryptoChain ?? '').trim());
   sendJson(res, 200, {
     brand: store.isDefault ? config.brand : store.name,
     platform: { name: config.platform },
@@ -91,12 +94,17 @@ export default guard(async function handler(req, res) {
     // store's crypto rail needs BOTH the platform's NOWPayments credentials
     // and that seller's own payout wallet — the platform half alone would
     // offer a button whose only outcome is the custody refusal at checkout.
+    // The seller's half is an address AND the chain to pay it on: checkout
+    // refuses on a half-filled row (paying out with no chain would send the
+    // buyer's coin to an address on another network), so the same pair has
+    // to decide whether the page offers the rail at all — otherwise the
+    // buyer picks a coin and only then gets turned away.
     capabilities: store.isDefault
-      ? { ...capabilities(), nowpayments: capabilities().nowpayments && Boolean(store.cryptoWallet) }
+      ? { ...capabilities(), nowpayments: capabilities().nowpayments && cryptoPayout }
       : {
           stripe: Boolean(store.stripeKey),
           crypto: false,
-          nowpayments: capabilities().nowpayments && Boolean(store.cryptoWallet),
+          nowpayments: capabilities().nowpayments && cryptoPayout,
         },
     plans: plans.map((p) => ({
       id: p.id,
@@ -118,6 +126,11 @@ export default guard(async function handler(req, res) {
       // checkout endpoint enforces both — these just explain the page.
       expiresAt: p.expiresAt ?? null,
       requiredRoleName: p.requiredRoleName ?? null,
+      // How long the access lasts. The crypto rail has no renewal to point
+      // at, so the pay screen has to name the term itself — without this
+      // field it can only say "a fixed term" and a buyer paying for a year
+      // is told nothing about when their role goes away.
+      durationDays: p.lifetime ? null : (p.durationDays ?? null),
     })),
   });
 });

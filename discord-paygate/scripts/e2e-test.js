@@ -978,7 +978,9 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   assert.match(diagBody, /Confirm Order/, 'unclaimed slugs serve the storefront shell');
   // `currency` rides beside priceUsd on every plan: the number alone cannot
   // say whether 1500 is $1,500.00 or ¥1,500, and the storefront formats from it.
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
+  // `durationDays` rides beside them for the same reason: the crypto rail has
+  // no renewal to point at, so the pay screen has to name the term itself.
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'durationDays', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
   assert.equal(plans[0].currency, 'usd', 'a store that never picked a currency prices in USD, exactly as before');
 });
 
@@ -5380,6 +5382,16 @@ test('crypto: a payout address with no chain refuses to create a payment rather 
   const before = nowpayments.created.length;
   try {
     const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+    // And the storefront must not advertise the rail on half a row. One
+    // predicate — wallet AND chain — decides the tile, the coin list and the
+    // payment, so a buyer is never walked through picking a coin only to be
+    // refused at the end of it.
+    assert.equal(plans.capabilities.nowpayments, false, 'half a payout row is not a working crypto rail');
+    assert.deepEqual(
+      await (await fetch(`${appUrl}/api/checkout/crypto?coins=1&store=vip-signals`)).json(),
+      { ready: false, coins: [] },
+      'the coin picker is told there is nothing to pay with, not handed a grid',
+    );
     const res = await fetch(`${appUrl}/api/checkout/crypto`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', cookie: npBuyerCookie },
@@ -6611,12 +6623,21 @@ test('crypto: buyer-facing copy never promises a renewal or a cancellation the r
   const assureExpr = app.match(/assure\.textContent = ([\s\S]*?);\n\s*area\.append\(assure\)/)?.[1];
   assert.ok(assureExpr, 'the note under the pay button must still be a single expression');
   const assure = new Function('plan', 'crypto', 'termDays', `return (${assureExpr});`);
-  const monthly = { lifetime: false, durationDays: 30 };
-  assert.match(assure(monthly, false, 30), /cancel anytime/i, 'a card membership really can be cancelled from /account');
-  const cryptoNote = assure(monthly, true, 30);
+  // The plan object is the one /api/plans actually serves, not a hand-built
+  // stand-in: the note can only name the term if the payload carries it, and
+  // a projection that drops durationDays leaves every buyer reading "a fixed
+  // term" however carefully the sentence is written.
+  const served = (await (await fetch(`${appUrl}/api/plans?store=tradeleaks`)).json()).plans;
+  const monthly = served.find((p) => !p.lifetime);
+  assert.ok(monthly, 'the storefront must still sell a term product');
+  assert.ok(Number(monthly.durationDays) > 0, '/api/plans has to carry the term length — the pay screen has nowhere else to read it');
+  assert.match(assure(monthly, false, Number(monthly.durationDays)), /cancel anytime/i, 'a card membership really can be cancelled from /account');
+  const cryptoNote = assure(monthly, true, Number(monthly.durationDays));
   assert.doesNotMatch(cryptoNote, /cancel/i, 'nothing on a crypto term can be cancelled — do not say it');
   assert.match(cryptoNote, /nothing renews|does not renew|no renewal/i, 'the crypto note must say the term does not renew');
-  assert.match(cryptoNote, /\b30 days\b/, 'the fixed term is the one fact the buyer needs');
+  assert.match(cryptoNote, new RegExp(`\\b${monthly.durationDays} days\\b`), 'the fixed term is the one fact the buyer needs');
+  const lifetimePlan = served.find((p) => p.lifetime);
+  if (lifetimePlan) assert.equal(lifetimePlan.durationDays, null, 'a lifetime product has no term to advertise');
   assert.doesNotMatch(assure({ lifetime: true, durationDays: null }, true, NaN), /cancel|renews/i);
 
   const account = fs.readFileSync(new URL('../public/account.js', import.meta.url), 'utf8');
@@ -6631,6 +6652,50 @@ test('crypto: buyer-facing copy never promises a renewal or a cancellation the r
     assert.doesNotMatch(text, /renews <|will renew|auto-renew(?!s\b)/i, `${provider}: nothing will charge again, so it must not say Renews`);
     assert.match(text, /ends <1800000000>/i, `${provider}: the buyer is told the date the role goes away`);
   }
+  // A membership the owner granted by hand was never bought. It ends like a
+  // crypto term, but calling it a payment and telling the member to buy again
+  // invoices them for a gift — so "one-time payment"/"buy again" is reserved
+  // for the rails that really took money, and anything else stays neutral.
+  for (const provider of ['manual', undefined]) {
+    const text = expiry({ ...base, provider }, fmt);
+    assert.match(text, /ends <1800000000>/i, `${String(provider)}: the member is still told when access ends`);
+    assert.doesNotMatch(text, /payment|buy again|renews </i, `${String(provider)}: a comped membership was not paid for`);
+  }
+});
+
+test('crypto: the two coin pickers survive answers the deposit list does not describe', async () => {
+  // Both pickers are browser code this suite does not run, so the two pure
+  // decisions behind them are lifted out of the files and executed as written.
+
+  // Seller side. /merchant/coins is the DEPOSIT list; payouts are gated by
+  // payout/validate-address instead, and the suite above proves a store can
+  // legitimately be saved on LTC while LTC is absent from that list. A
+  // <select> cannot hold a value it has no option for, so a picker built from
+  // the deposit list alone would open on "Choose a coin…", show generic copy
+  // for an address that is in fact valid, and refuse to save until the seller
+  // moved their payouts to another network.
+  const dashSrc = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
+  const payoutCoinsSrc = dashSrc.match(/function payoutCoins\(coins, current\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(payoutCoinsSrc, 'dashboard.js must still decide the payout options in one place');
+  const payoutCoins = new Function(`${payoutCoinsSrc}\n return payoutCoins;`)();
+  const deposit = ['sol', 'usdtsol', 'btc', 'eth', 'xmr'];
+  assert.ok(payoutCoins(deposit, 'ltc').includes('ltc'), 'the chain on file is always offered — otherwise the card cannot round-trip it');
+  assert.equal(payoutCoins(deposit, 'ltc')[0], 'ltc', 'and it is the one already selected, so Save works untouched');
+  assert.deepEqual(payoutCoins(deposit, 'sol'), deposit, 'a chain already in the list is not duplicated');
+  assert.deepEqual(payoutCoins(deposit, ''), deposit, 'a store with no chain yet just gets the starting set');
+
+  // Buyer side. `ready:false` and an empty list are the same fact — nothing
+  // here can be paid with — and remembering either parks an empty grid under
+  // a live Crypto tile for the life of the page, even after the seller
+  // finishes their setup a minute later. null is "ask again".
+  const appSrc = fs.readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  const fromAnswerSrc = appSrc.match(/const coinsFromAnswer = \(data\) => \{[\s\S]*?\n\};/)?.[0];
+  assert.ok(fromAnswerSrc, 'app.js must still decide what to keep from a ?coins=1 answer in one place');
+  const coinsFromAnswer = new Function(`${fromAnswerSrc}\n return coinsFromAnswer;`)();
+  assert.equal(coinsFromAnswer({ ready: false, coins: [] }), null, 'a not-ready rail is never cached as "no coins"');
+  assert.equal(coinsFromAnswer({ ready: true, coins: [] }), null, 'nor is a ready answer with nothing in it');
+  assert.equal(coinsFromAnswer({}), null);
+  assert.deepEqual(coinsFromAnswer({ ready: true, coins: ['sol', 'btc'] }), ['sol', 'btc'], 'a real list is kept as it arrived');
 });
 
 test('crypto: an IPN the runtime already parsed is still verified, not answered with a blanket 400', async () => {

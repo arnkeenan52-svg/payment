@@ -3760,6 +3760,17 @@ function wireCurrency(store, slug) {
   };
 }
 
+// Which coins the payout picker offers. /merchant/coins is the provider's
+// DEPOSIT list — a curated starting point, not the limit of what it can pay
+// out in (the save asks payout/validate-address about the exact pair). So a
+// store already saved on a chain outside that list has to find its own coin
+// here: a <select> cannot hold a value it has no option for, and dropping it
+// would blank the card and refuse to save until the seller moved their
+// payouts to a different network than the one on file.
+function payoutCoins(coins, current) {
+  return current && !coins.includes(current) ? [current, ...coins] : coins;
+}
+
 // The crypto payout wallet.
 //
 // Everything about this card is shaped by one fact: a payout is an on-chain
@@ -3842,12 +3853,12 @@ function wireCryptoWallet(store, slug) {
       save.disabled = true;
       return;
     }
-    const coins = info.coins ?? [];
     const current = String(store.cryptoChain ?? '').toLowerCase();
+    const coins = payoutCoins(info.coins ?? [], current);
     chain.innerHTML = ['<option value="">Choose a coin…</option>']
       .concat(coins.map((c) => `<option value="${esc(c)}">${esc(label(c))}</option>`))
       .join('');
-    if (current && coins.includes(current)) chain.value = current;
+    if (current) chain.value = current;
     // Re-check what is already saved. A seller opening this card should be
     // told the wallet on file is still valid for the chain on file, not be
     // shown generic copy that says nothing about their own address.
