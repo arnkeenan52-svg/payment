@@ -1433,6 +1433,79 @@ test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black
   assert.match(dcss, /#billing-body \.bill-toggle \{[^}]*flex-wrap: wrap/, 'the billing interval toggle wraps on narrow phones');
 });
 
+test('every dashboard table row survives a 320px phone as a labelled card', async () => {
+  // The owner opened the live dashboard on a phone and found the Products
+  // price painted on top of "+ Option", "Link", the toggle and "Edit", with
+  // the product name gone entirely; Transactions ran the product name under
+  // the amount; the platform Stores table stacked owner, status, plan, id and
+  // date into one line. The cause was a desktop table shrunk rather than
+  // rebuilt: five nowrap columns cannot share 320px, so they overlapped.
+  //
+  // Below 760px a <tr> is now a card and each <td> a labelled line, and the
+  // label is the cell's data-th. That makes data-th load-bearing markup, not
+  // decoration: a cell without one renders a value with nothing saying what it
+  // is. Both halves of the contract are pinned here — the cells carry the
+  // attribute, and the stylesheet is still the thing that prints it.
+  const dash = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
+  const dcss = fs.readFileSync(new URL('../public/dash.css', import.meta.url), 'utf8');
+
+  const rows = dash.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/g) ?? [];
+  assert.ok(rows.length >= 7, `expected the dashboard's row templates, found ${rows.length}`);
+  let labelled = 0;
+  for (const row of rows) {
+    const cells = row.match(/<td\b[^>]*>/g) ?? [];
+    for (const [i, cell] of cells.entries()) {
+      // The first cell is the card's title and needs no label; the actions
+      // cell is a row of buttons that name themselves; a colspan cell is an
+      // empty state ("No stores yet.") and is a whole sentence already.
+      if (i === 0 || /row-actions/.test(cell) || /colspan=/.test(cell)) continue;
+      assert.match(cell, /data-th="[^"]+"/,
+        `every cell after the first needs a phone label — this one has none: ${cell.replace(/\s+/g, ' ')}`);
+      labelled += 1;
+    }
+  }
+  assert.ok(labelled >= 25, `expected the whole dashboard's cells to be labelled, counted ${labelled}`);
+
+  // The label must be the column's own header, or the phone tells the seller
+  // one thing and the desktop another. Every <th> with words in it — first
+  // column excepted, since that cell is the card's title — has to appear as a
+  // data-th somewhere.
+  for (const table of dash.match(/<table class="data-table[^"]*">[\s\S]*?<\/thead>/g) ?? []) {
+    const heads = (table.match(/<th[^>]*>([^<]*)<\/th>/g) ?? [])
+      .map((h) => h.replace(/<[^>]*>/g, '').trim());
+    for (const label of heads.slice(1)) {
+      if (!label) continue;
+      assert.ok(dash.includes(`data-th="${label}"`),
+        `column "${label}" has no cell carrying data-th="${label}"`);
+    }
+  }
+
+  // The stylesheet half. Without these the attributes are inert and the table
+  // is a desktop table again, at 320px, colliding.
+  const phone = dcss.match(/@media \(max-width: 760px\) \{[\s\S]*?\n\}/g) ?? [];
+  const stack = phone.find((b) => /content: attr\(data-th\)/.test(b));
+  assert.ok(stack, 'dash.css must print data-th as the cell label below 760px');
+  assert.match(stack, /white-space: normal/, 'and release the nowrap that made the cells overlap');
+  assert.match(stack, /body\.app \.data-table thead \{ display: none; \}/, 'and retire the header row the labels replace');
+  assert.match(stack, /td\.row-actions \{[\s\S]*?flex-wrap: wrap/, 'and give the row actions a wrapped row of their own');
+
+  // The platform tables were the worst of it and they were reusing .t-pay,
+  // whose phone column priority hides columns 5 and 6 — which on those two
+  // tables are Members/Revenue and First/Last seen, not Date. Their own
+  // classes are what keeps that rule off them.
+  assert.match(dash, /<table class="data-table t-stores">/, 'the platform Stores table has its own class');
+  assert.match(dash, /<table class="data-table t-users">/, 'the platform Users table has its own class');
+
+  // Safe area: the shell pays back every inset it opted into by asking for a
+  // cover viewport, or the wordmark sits under the clock.
+  const dhtml = fs.readFileSync(new URL('../public/dashboard.html', import.meta.url), 'utf8');
+  assert.match(dhtml, /name="viewport"[^>]*viewport-fit=cover/, 'the dashboard opts into the full screen');
+  for (const edge of ['top', 'left', 'right', 'bottom']) {
+    assert.ok(dcss.includes(`env(safe-area-inset-${edge}, 0px)`),
+      `the ${edge} inset must be paid back, with a 0px fallback`);
+  }
+});
+
 test('the pricing page prints TIERS — every price, yearly price and cap, by name', async () => {
   // Every number on /pricing is hand-written HTML. The server charges what
   // TIERS says (ensureTierPrice provisions a Stripe price from it), so the day

@@ -391,38 +391,131 @@ body.app .table-scroll.scroll-more {
   mask-image: linear-gradient(to right, #000 calc(100% - 20px), rgba(0, 0, 0, .35));
 }
 
-/* Phone: hold the old table density. The 12px cell padding above is right for
-   a desktop table and wrong for a 360px one — it widened the content and
-   narrowed the container at the same time, pushing more of each row off-screen
-   than before. Until the four record tables are rebuilt as rows (a separate
-   change, and the one that finally lets a seller revoke a member from a
-   phone), a restyle must not make the phone worse to make the desktop better. */
+/* ── the phone record card ────────────────────────────────────────────────
+   A DESKTOP TABLE SHRUNK IS NOT A PHONE TABLE. The previous attempt here was
+   `table-layout: fixed` plus `max-width: 0` on the first column, on the theory
+   that the first cell just needed permission to be narrow. It was granted, and
+   the result is the bug the owner photographed: at 390px the Products name was
+   squeezed to nothing and disappeared, while `white-space: nowrap` (inherited
+   from styles.css, and the thing that makes .table-scroll scroll at all) kept
+   every other cell at its full intrinsic width — so "$25.00" painted itself on
+   top of "+ Option", "Link", the active toggle and "Edit", all in the same
+   pixels. Transactions did the same with the product name under the amount,
+   and the platform Stores table stacked five fields into one line.
+
+   Five columns cannot be made to fit in 390px. So below 760px a row stops
+   being a row: each <tr> becomes a card, each <td> a labelled line, and the
+   actions get a wrapped row of their own underneath, which is also the first
+   time a seller can hit Revoke or Delete on a phone without a mis-tap. The
+   label comes from the cell's data-th, which dashboard.js writes from the same
+   string as the <th> — generated content is announced by screen readers, so
+   the labels survive the loss of the table grid.
+
+   Desktop is untouched: everything here is inside the query. */
 @media (max-width: 760px) {
+  body.app .data-table,
+  body.app .data-table tbody,
+  body.app .data-table tr,
   body.app .data-table th,
-  body.app .data-table td { padding: 10px var(--s-2); }
-  /* The real repair is upstream of the fade: these tables were overflowing
-     because their first column is unbounded. A product name or a customer
-     handle can be any length, `white-space: nowrap` is inherited from
-     styles.css, and a flex .prod-cell means the ellipsis declared above never
-     fires. Fixed layout plus a zero max-width is what actually lets a cell
-     agree to be narrow, so Price and Amount land on screen instead of behind
-     a gradient. */
-  body.app .t-products,
-  body.app .t-pay,
-  body.app .t-members { table-layout: fixed; width: 100%; }
-  body.app .t-products td:first-child,
-  body.app .t-pay td:first-child,
-  body.app .t-members td:first-child { max-width: 0; }
-  body.app .t-products td:first-child .prod-cell > :not(.prod-thumb),
-  body.app .t-pay td:first-child,
-  body.app .t-members td:first-child { overflow: hidden; text-overflow: ellipsis; }
-  /* The money column is the reason the table exists. It never shrinks and it
-     never wraps. */
-  body.app .data-table th.num,
-  body.app .data-table td.num { width: 5.5em; white-space: nowrap; }
+  body.app .data-table td { display: block; }
+  /* The header row's words move onto the cells, one per line. */
+  body.app .data-table thead { display: none; }
+  body.app .data-table tr {
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid var(--d-table-border);
+  }
+  body.app .data-table tr:last-child { border-bottom: none; }
+  body.app .data-table td {
+    padding: 0;
+    border: none;
+    /* The whole collision, in one declaration. */
+    white-space: normal;
+    /* And a wallet address or a Discord id has no space in it to break at, so
+       it would push the card wider than the phone all by itself. */
+    overflow-wrap: anywhere;
+  }
+  /* The first cell is the row's title: no label, full width, and the one line
+     allowed to carry weight. */
+  body.app .data-table td:first-child {
+    font-size: var(--fs-2);
+    line-height: var(--lh-2);
+    font-weight: var(--fw-medium);
+    color: var(--d-a12);
+  }
+  /* …except the product cell, which keeps its thumbnail beside the name. */
+  body.app .data-table td.prod-cell { display: flex; align-items: center; gap: var(--s-3); }
+  body.app .data-table td.prod-cell > :not(.prod-thumb) { white-space: normal; overflow: visible; }
+  /* Every other cell: the label in a fixed gutter, the value beside it. The
+     gutter is a hanging indent rather than a grid column, because a cell's
+     contents are not one thing — "One-time · lifetime · <strong>ended</strong>"
+     and "VIP Access<span class=row-when>Aug 28</span>" are two and three boxes,
+     and grid would have made each of them a separate cell of its own and dealt
+     them down the column one per line. An indent lets them stay a sentence. */
+  body.app .data-table td[data-th] {
+    display: block;
+    padding-left: 84px;
+    text-indent: -84px;
+    margin-top: var(--s-1);
+  }
+  body.app .data-table td[data-th]::before {
+    content: attr(data-th);
+    display: inline-block;
+    width: 84px;
+    text-indent: 0;
+    font-size: var(--fs-1);
+    line-height: var(--lh-2);
+    color: var(--d-muted);
+    vertical-align: baseline;
+  }
+  /* The hanging indent is inherited, and a block child (.row-when) would take
+     it as a real -84px of its own and start outside the card. */
+  body.app .data-table td[data-th] > * { text-indent: 0; }
+  /* A cell with nothing in it must not leave a labelled blank line — the
+     platform Users table has three of those per row. */
+  body.app .data-table td[data-th]:empty { display: none; }
+  /* Money stays tabular but stops hugging a right edge that no longer exists. */
+  body.app .data-table td.num { text-align: left; }
+  /* The actions, as a real row of targets. */
+  body.app .data-table td.row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: var(--s-2);
+    margin-top: var(--s-2);
+  }
+  body.app .data-table td.row-actions:empty { display: none; }
+  body.app .data-table .btn-ghost,
+  body.app .row-actions .btn-ghost { padding: 0 10px; min-height: 36px; }
+  /* Column priority, restated. styles.css hides these below 640px at (0,2,1),
+     which loses to everything above — so each one is restated here at (0,4,2),
+     one class more than the `td[data-th]` rules it has to beat. Same columns,
+     same reasons: Date and the raw Discord id are already said by .row-when
+     and the handle, and Billing/Members/Revenue/Scope/Expires/Products are the
+     desktop's detail, not the phone's. A product row on a phone is a name, a
+     price, an on/off and its four actions. */
+  body.app .data-table.t-pay td:nth-child(5),
+  body.app .data-table.t-pay td:nth-child(6),
+  body.app .data-table.t-pay td:first-child .dim,
+  body.app .data-table.t-products td:nth-child(3),
+  body.app .data-table.t-products td:nth-child(4),
+  body.app .data-table.t-products td:nth-child(5),
+  body.app .data-table.t-disc td:nth-child(3),
+  body.app .data-table.t-disc td:nth-child(5),
+  body.app .data-table.t-members td:nth-child(2),
+  body.app .data-table.t-members td:first-child .dim,
+  /* The platform tables print a 19-digit Discord id beside every handle. On a
+     phone that is half a line of digits nobody reads and the only thing still
+     wide enough to make the card scroll sideways. The handle identifies the
+     account; the id is on the desktop. */
+  body.app .data-table.t-stores td:nth-child(2) .dim,
+  body.app .data-table.t-users td:first-child .dim { display: none; }
+  /* .row-when is the date, printed under the product name. It is a block at
+     ≤640 in styles.css; the card wants it at ≤760 too. */
+  body.app .row-when { display: block; font-size: var(--fs-1); line-height: var(--lh-1); color: var(--d-muted); margin-top: 2px; }
+  /* An empty-state row ("No stores yet.") is one plain line, not a title. */
+  body.app .data-table td[colspan] { font-weight: var(--fw-regular); color: var(--d-muted); }
   body.app .chart-card,
   body.app .table-panel { padding: var(--s-4); }
-  body.app .data-table .btn-ghost { padding: 0 10px; min-height: 36px; }
 }
 
 /* ── 9. the type ramp, applied ─────────────────────────────────────────────
@@ -532,3 +625,67 @@ body.app .side-item svg { width: 16px; height: 16px; }
    margin-inline block above; this body was not in that list. */
 body.app .set-card > .dc-body { margin-inline: var(--s-5); margin-top: var(--s-3); }
 body.app .set-card > .dc-body:last-child { margin-bottom: var(--s-5); }
+
+/* ── the phone's own edges ─────────────────────────────────────────────────
+   dashboard.html now ships `viewport-fit=cover`, so the page paints into the
+   notch and the home-indicator strip instead of being letterboxed away from
+   them. That is the only way to fill the screen, and also the way to end up
+   with the wordmark under the clock — which is what four of the owner's five
+   screenshots show — unless the insets are then paid back. They are, on every
+   edge of the shell.
+
+   `env(…, 0px)` is a no-op on a desktop and on any engine without support, so
+   not one of these declarations moves anything but a phone. The header also
+   becomes sticky at the width where the layout is already a different shape:
+   at that point it is a 44px bar, it is the only way back to the account menu,
+   and a page scrolled under a transparent one puts a table row under the
+   status bar. It stays exactly as it was on a desktop. */
+body.app .top {
+  padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  padding-left: calc(28px + env(safe-area-inset-left, 0px));
+  padding-right: calc(28px + env(safe-area-inset-right, 0px));
+}
+body.app .app-main {
+  padding-left: calc(22px + env(safe-area-inset-left, 0px));
+  padding-right: calc(22px + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 860px) {
+  body.app .top {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    /* Opaque, not tinted: a translucent bar over a scrolling table is how the
+       status bar ended up reading two lines of text at once. */
+    background: var(--bg);
+  }
+  /* The section strip is the widest thing on the page here, so it pays the
+     side insets too or its first tab hides behind a rounded corner. */
+  body.app .sidebar {
+    padding-left: calc(12px + env(safe-area-inset-left, 0px));
+    padding-right: calc(12px + env(safe-area-inset-right, 0px));
+  }
+}
+@media (max-width: 760px) {
+  body.app .top {
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  }
+  /* The revenue card's head is the one that is not a title plus a button:
+     .chart-side is `width: 100%` at these widths, and in a nowrap flex row
+     that squeezed the subtitle to nothing and left "This period against the
+     previous 30 days" painted straight across the legend. It wraps; every
+     other card head keeps the one-row shape styles.css chose for it, with the
+     action holding the top-right corner. */
+  body.app #rev-card .card-head { flex-wrap: wrap; }
+}
+
+/* The platform stat tiles are the only ones that hold currency: "US$706.87"
+   sets at the value size in about 120px, and a two-column grid inside the
+   admin wrap's own padding leaves 105px on a 320px phone — so the tile, which
+   hides its overflow to draw the hairline grid, ate the last digits and
+   reported a smaller number than the owner has. One column below 420px. */
+@media (max-width: 420px) {
+  body.app .admin-stats { grid-template-columns: 1fr; }
+}

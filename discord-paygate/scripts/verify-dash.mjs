@@ -7,10 +7,11 @@
 //
 // It serves public/ with the dashboard's API surface stubbed — the dashboard
 // renders entirely on the client, so fixtures are enough to measure layout —
-// then walks all nine sections at eight widths in both faces and records the
+// then walks every section at nine widths in all three faces and records the
 // numbers a reskin can silently break: horizontal overflow, the phone nav
 // strip's scroll state and active-tab position, whether the hidden-by-default
-// forms are still hidden, and the computed value of every colour token.
+// forms are still hidden, overlapping text, and the computed value of every
+// colour token.
 //
 //   npm run baseline:dash                      # measure, write baseline
 //   npm run test:dash                          # measure, diff against baseline
@@ -39,19 +40,28 @@ const PUBLIC = path.join(ROOT, 'public');
 const BASELINE = path.join(ROOT, 'scripts', 'verify-dash.baseline.json');
 // scratch/ is gitignored, so screenshots land beside the other throwaways.
 const SHOT_DIR = process.env.DASH_SHOTS ?? path.join(ROOT, 'scratch', 'dash');
+// Which widths --shots writes, and whether it captures the whole scrolled
+// section or just the fold. Both are debug knobs: neither is measured, so
+// neither can move the baseline.
+const SHOT_WIDTHS = new Set((process.env.DASH_SHOT_WIDTHS ?? '390,1440').split(',').map(Number));
+const SHOT_FULL = process.env.DASH_SHOT_FULL === '1';
 
 const CHECK = process.argv.includes('--check');
 const SHOTS = process.argv.includes('--shots');
 
-// The nine sections, in sidebar order. Settings and Store are called out in
+// The store sections, in sidebar order. Settings and Store are called out in
 // the plan as the two needing the largest scrollLeft to bring the active tab
 // into view, so they are the ones that catch a broken nav strip first.
-const SECTIONS = ['overview', 'products', 'members', 'payments', 'discounts', 'store', 'customize', 'billing', 'settings'];
+// 'admin' is not a store section — it is the platform view at #/admin, and it
+// was the single worst screen in the owner's phone screenshots: owner, status,
+// plan, id and date all painted into one line of the Stores table. It went
+// unmeasured here for exactly as long as it was broken, so it is measured now.
+const SECTIONS = ['overview', 'products', 'members', 'payments', 'discounts', 'store', 'customize', 'billing', 'settings', 'admin'];
 const WIDTHS = [320, 360, 390, 430, 768, 861, 1024, 1280, 1440];
 // Three faces, not two. 'black' is the dark ground with data-dark set — a
 // third of the dashboard's surface area was previously unmeasured, and a
 // theme nobody measures is a theme whose overflow and clipping nobody knows
-// about. 243 states instead of 162.
+// about.
 const FACES = ['light', 'dark', 'black'];
 
 // ── fixtures ────────────────────────────────────────────────────────────────
@@ -134,6 +144,29 @@ const ROUTES = {
     current: { tier: 'growth', name: 'Max', maxMembers: 500, status: 'active', periodEnd: nowS + 12 * DAY },
     usage: { members: 412, limit: 500 },
     exempt: false,
+  },
+  // The platform view. Long owner handles, a 19-digit Discord id and a full
+  // date in the same row is the shape that collided.
+  '/api/admin/platform': {
+    totals: {
+      users: 41, storesLive: 3, storesDraft: 1, activeMembers: 30, allTimeUsd: 3275,
+      checkoutsStarted: 18, checkoutsCompleted: 6, mrrUsd: 59.98, payingOwners: 2, sellers: 3,
+    },
+    stores: [
+      { slug: 'vip-signals', name: 'VIP Signals', ownerUsername: 'vip_owner', ownerDiscordId: '514400000000000007', status: 'live', ownerTier: 'Max', members: 22, revenueUsd: 2750, createdAt: nowS - 120 * DAY },
+      { slug: 'apex-garage', name: 'Apex Garage', ownerUsername: 'apex_workshop_owner', ownerDiscordId: '164000000000000411', status: 'live', ownerTier: 'Free', members: 8, revenueUsd: 525, createdAt: nowS - 40 * DAY },
+      { slug: 'ringside', name: 'Ringside Picks', ownerUsername: 'ringside', ownerDiscordId: '148900000000000682', status: 'draft', ownerTier: 'Free', members: 0, revenueUsd: 0, createdAt: nowS - 3 * DAY },
+    ],
+    users: Array.from({ length: 12 }, (_, i) => ({
+      discordId: `300000000000000${String(i).padStart(3, '0')}`,
+      username: ['factbinger', 'shrij', 'nenmarken', 'jeronimo', 'xaurel', 'varun'][i % 6] + (i || ''),
+      seller: i % 5 === 0,
+      entitled: i % 3 !== 0,
+      memberships: i % 4 === 0 ? 0 : (i % 3) + 1,
+      spentUsd: i % 4 === 0 ? 0 : 44.99 * ((i % 3) + 1),
+      joinedAt: nowS - (i + 2) * DAY,
+      lastSeenAt: nowS - i * 3600,
+    })),
   },
   '/api/admin/payments': {
     canCustomise: true,
@@ -326,6 +359,95 @@ const probe = () => {
       }
       return out;
     })(),
+    // OVERLAPPING TEXT. `clipped` above catches a box eating its own content.
+    // It says nothing about two different boxes painting into the same pixels,
+    // and that is the defect that actually reached the owner: at 390px the
+    // Products table rendered "$25.00" on top of "+ Option", "Link" and the
+    // active toggle, while this harness reported "clipped content: none"
+    // through all of it. A layout check that measures only overflow will bless
+    // a collision every time.
+    //
+    // Measured on TEXT RANGES, not element boxes. An element's box is often
+    // legitimately larger than its glyphs — a flex row, a padded cell, a
+    // wrapper — so element-box intersection reports dozens of harmless
+    // containments. Range.getClientRects() returns the boxes the glyphs are
+    // actually painted into, one per line, which is the thing an eye sees.
+    //
+    // Pairs where one node's parent contains the other's are skipped: that is
+    // ordinary inline flow (a <strong> inside a <td>), not a collision. Two or
+    // fewer pixels in either axis is ignored — antialiasing, a descender
+    // brushing a following line, and the odd sub-pixel rounding all live there.
+    overlaps: (() => {
+      const root = document.querySelector('body.app');
+      if (!root) return [];
+      const selOf = (el) =>
+        el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') +
+        (el.className && typeof el.className === 'string' && el.className.trim()
+          ? '.' + el.className.trim().split(/\s+/).join('.')
+          : '');
+      // Range rects are UNCLIPPED: a cell scrolled out of sight inside
+      // .table-scroll, or a name cut short by an ellipsis, still reports the
+      // geometry it would have had with room. Left alone that invents
+      // collisions between panels that never touch — the Recent Transactions
+      // table "overlapping" Recent Sales two columns away. So every rect is
+      // intersected with the boxes of the ancestors that actually clip it.
+      const clipOf = (el) => {
+        let x1 = -Infinity, y1 = -Infinity, x2 = Infinity, y2 = Infinity;
+        for (let p = el; p && p !== document.documentElement; p = p.parentElement) {
+          const cs = getComputedStyle(p);
+          const cx = cs.overflowX !== 'visible';
+          const cy = cs.overflowY !== 'visible';
+          if (!cx && !cy) continue;
+          const b = p.getBoundingClientRect();
+          if (cx) { x1 = Math.max(x1, b.left); x2 = Math.min(x2, b.right); }
+          if (cy) { y1 = Math.max(y1, b.top); y2 = Math.min(y2, b.bottom); }
+        }
+        return { x1, y1, x2, y2 };
+      };
+      const items = [];
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const text = (n.nodeValue || '').replace(/\s+/g, ' ').trim();
+        if (!text) continue;
+        const el = n.parentElement;
+        if (!el) continue;
+        // <option> text is painted by the OS popup, not the page.
+        if (['OPTION', 'SCRIPT', 'STYLE', 'NOSCRIPT', 'TITLE'].includes(el.tagName)) continue;
+        if (!el.checkVisibility({ opacityProperty: true, visibilityProperty: true, contentVisibilityAuto: true })) continue;
+        const clip = clipOf(el);
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        for (const r of range.getClientRects()) {
+          if (r.width < 2 || r.height < 2) continue;
+          const x1 = Math.max(r.left, clip.x1); const x2 = Math.min(r.right, clip.x2);
+          const y1 = Math.max(r.top, clip.y1); const y2 = Math.min(r.bottom, clip.y2);
+          if (x2 - x1 < 2 || y2 - y1 < 2) continue;
+          items.push({ el, text: text.slice(0, 32), sel: selOf(el), x1, y1, x2, y2 });
+        }
+      }
+      // Sorted by top edge, so the inner loop can stop as soon as a candidate
+      // starts below the current box: nothing further down can reach back up.
+      items.sort((a, b) => a.y1 - b.y1);
+      const out = [];
+      const seen = new Set();
+      for (let i = 0; i < items.length; i += 1) {
+        const a = items[i];
+        for (let j = i + 1; j < items.length; j += 1) {
+          const b = items[j];
+          if (b.y1 >= a.y2 - 2) break;
+          if (a.el === b.el || a.el.contains(b.el) || b.el.contains(a.el)) continue;
+          const ox = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
+          const oy = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);
+          if (ox <= 2 || oy <= 2) continue;
+          const key = `${a.sel}|${a.text}|${b.sel}|${b.text}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push({ a: a.text, aSel: a.sel, b: b.text, bSel: b.sel, byX: Math.round(ox), byY: Math.round(oy) });
+          if (out.length >= 40) return out;
+        }
+      }
+      return out;
+    })(),
   };
 };
 
@@ -357,7 +479,8 @@ for (const face of FACES) {
       });
     }, face);
     for (const section of SECTIONS) {
-      await page.goto(`${base}/dashboard.html#/store/vip-signals/${section}`, { waitUntil: 'networkidle' });
+      const hash = section === 'admin' ? '#/admin' : `#/store/vip-signals/${section}`;
+      await page.goto(`${base}/dashboard.html${hash}`, { waitUntil: 'networkidle' });
       await page.evaluate((f) => {
         document.documentElement.dataset.theme = f === 'black' ? 'dark' : f;
         // Re-asserted after each navigation: the dashboard re-derives this
@@ -368,11 +491,13 @@ for (const face of FACES) {
       }, face);
       // The dashboard renders sections asynchronously; wait for the nav to
       // exist and then let the section's own fetches settle.
-      await page.waitForSelector('.side-item', { timeout: 10_000 }).catch(() => {});
+      // The platform view has no section rail — waiting for one there would
+      // burn the full timeout on every one of its states.
+      await page.waitForSelector(section === 'admin' ? '.admin-wrap' : '.side-item', { timeout: 10_000 }).catch(() => {});
       await page.waitForTimeout(450);
       out[`${face}|${width}|${section}`] = await page.evaluate(probe);
-      if (SHOTS && (width === 390 || width === 1440)) {
-        await page.screenshot({ path: `${SHOT_DIR}/${face}-${width}-${section}.png`, fullPage: false });
+      if (SHOTS && SHOT_WIDTHS.has(width)) {
+        await page.screenshot({ path: `${SHOT_DIR}/${face}-${width}-${section}.png`, fullPage: SHOT_FULL });
       }
     }
     await page.close();
@@ -414,6 +539,30 @@ if (clips.length) {
   }
 } else {
   console.log('clipped content: none');
+}
+// Overlap is a FAILURE, not a recorded number. Everything else here is
+// diffed against a baseline because it is a judgement call — a padding, a
+// scroll position, a colour. Two pieces of text in the same pixels is not a
+// judgement call, so it fails the run outright rather than waiting to be
+// noticed in a diff.
+const laps = Object.entries(out).flatMap(([k, v]) => (v.overlaps ?? []).map((o) => ({ state: k, ...o })));
+if (laps.length) {
+  const byPair = new Map();
+  for (const o of laps) {
+    const key = `${o.aSel} × ${o.bSel}`;
+    const e = byPair.get(key) ?? { n: 0, worstX: 0, worstY: 0, a: o.a, b: o.b, states: [] };
+    e.n += 1; e.worstX = Math.max(e.worstX, o.byX); e.worstY = Math.max(e.worstY, o.byY);
+    if (e.states.length < 3) e.states.push(o.state);
+    byPair.set(key, e);
+  }
+  console.error(`FAIL: OVERLAPPING TEXT — ${byPair.size} pair(s) painting into the same pixels`);
+  for (const [pair, e] of [...byPair].sort((x, y) => y[1].worstX * y[1].worstY - x[1].worstX * x[1].worstY)) {
+    console.error(`  ${pair}`);
+    console.error(`    "${e.a}" over "${e.b}"  ${e.worstX}x${e.worstY}px in ${e.n} state(s)  e.g. ${e.states[0]}`);
+  }
+  process.exitCode = 1;
+} else {
+  console.log('overlapping text: none');
 }
 console.log(`hidden-by-default leaks: ${badHidden.length === 0 ? 'none' : badHidden.map(([k]) => k).join(', ')}`);
 if (pageErrs.length) {
