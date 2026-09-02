@@ -5177,6 +5177,19 @@ test('an option of a switched-off product is not for sale on either rail', async
   assert.match(viaCardBody, /not for sale/);
 });
 
+test('the discount preview budgets misses, so it cannot be walked as an oracle', async () => {
+  const plan = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans.find((p) => !p.variantOf);
+  const cookie = await signInAs('code_np_guess', '529900000000000029', 'np_guess');
+  const ask = (code, headers = {}) => fetch(`${appUrl}/api/discount?store=vip-signals&code=${code}&plan=${plan.id}`, { headers });
+  assert.equal((await ask('LAUNCH20', { cookie })).status, 200, 'a real code previews');
+  for (let i = 0; i < 8; i += 1) {
+    assert.equal((await ask(`GUESS${i}`, { cookie })).status, 404);
+  }
+  assert.equal((await ask('GUESS9', { cookie })).status, 429, 'the ninth miss in the window is refused');
+  assert.equal((await ask('LAUNCH20', { cookie })).status, 429, 'and so is a hit — the throttle must not be the oracle');
+  assert.equal((await ask('LAUNCH20')).status, 200, "another asker's budget is their own");
+});
+
 // ═══ runner ═══════════════════════════════════════════════════════════════════
 
 async function main() {
