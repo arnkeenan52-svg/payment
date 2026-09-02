@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { config } from './config.js';
+import { sealSecret, openSecret } from './lib/secretbox.js';
 
 // Schema is identical across dialects; only the id autoincrement spelling and
 // the integer width differ. current_period_end IS NULL means LIFETIME and
@@ -393,6 +394,17 @@ const now = () => Math.floor(Date.now() / 1000);
 
 // ── users ─────────────────────────────────────────────────────────────────────
 
+// OAuth tokens sit beside the sealed Stripe keys and get the same box: the
+// scopes are `identify guilds guilds.join`, so a database-only leak (a
+// backup, a read-only credential) must not hand out a token that lists
+// every seller's servers and adds accounts to them. Sealed on write, opened
+// on read. A row written before sealing still holds cleartext and reads
+// as-is until the next sign-in rewrites it; a sealed value that no longer
+// opens (SESSION_SECRET rotated) reads as no token, which every caller
+// already answers with "sign in again".
+const sealToken = (v) => (v == null ? null : sealSecret(v));
+const openToken = (v) => (v == null ? null : String(v).startsWith('v1.') ? openSecret(v) : v);
+
 export async function upsertUser({ discordId, username, accessToken = null, refreshToken = null }) {
   await q(
     `INSERT INTO users (discord_id, username, access_token, refresh_token, created_at, updated_at)
@@ -402,13 +414,15 @@ export async function upsertUser({ discordId, username, accessToken = null, refr
        access_token = COALESCE(excluded.access_token, users.access_token),
        refresh_token = COALESCE(excluded.refresh_token, users.refresh_token),
        updated_at = excluded.updated_at`,
-    [discordId, username ?? null, accessToken, refreshToken, now(), now()],
+    [discordId, username ?? null, sealToken(accessToken), sealToken(refreshToken), now(), now()],
   );
 }
 
 export async function getUser(discordId) {
   const { rows } = await q('SELECT * FROM users WHERE discord_id = ?', [discordId]);
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  return { ...row, access_token: openToken(row.access_token), refresh_token: openToken(row.refresh_token) };
 }
 
 // Every Discord account that has ever signed in, WITHOUT the OAuth token

@@ -1170,10 +1170,30 @@ test('OAuth login requests guilds.join, stores the token, and carries the plan b
   assert.equal(cb.headers.get('location'), '/dashboard?plan=insider', 'a store-less sign-in lands on the dashboard, never on any store');
   u1Cookie = cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
 
-  assert.equal((await userRow(U1)).access_token, 'tok_code_u1');
+  // The OAuth token is sealed at rest like the Stripe keys (same secretbox):
+  // a database-only leak must not yield a guilds.join-scoped token. The
+  // guilds.join PUT further down proves it opens back to `tok_code_u1`.
+  const stored = await userRow(U1);
+  assert.match(stored.access_token, /^v1\./, 'access_token must be sealed at rest');
+  assert.match(stored.refresh_token, /^v1\./, 'refresh_token must be sealed at rest');
+  assert.ok(!stored.access_token.includes('tok_code_u1') && !stored.refresh_token.includes('ref_code_u1'), 'no cleartext token in the row');
 
   const me = await (await fetch(`${appUrl}/api/me`, { headers: { cookie: u1Cookie } })).json();
   assert.deepEqual({ loggedIn: me.loggedIn, username: me.username }, { loggedIn: true, username: 'trader_one' });
+
+  // Lazy migration: a row written before sealing holds cleartext and must
+  // keep working (the mock only honours `Bearer tok_<code>`, so a 200 here
+  // means the raw value reached Discord unchanged) until the next sign-in
+  // rewrites it sealed.
+  await tq('UPDATE users SET access_token = ? WHERE discord_id = ?', ['tok_code_u1', U1]);
+  assert.equal((await fetch(`${appUrl}/api/my/guilds`, { headers: { cookie: u1Cookie } })).status, 200, 'a legacy cleartext token still reads');
+  const again = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+  const againState = new URL(again.headers.get('location')).searchParams.get('state');
+  await fetch(`${appUrl}/auth/callback?code=code_u1&state=${againState}`, {
+    redirect: 'manual',
+    headers: { cookie: again.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ') },
+  });
+  assert.match((await userRow(U1)).access_token, /^v1\./, 'the next sign-in re-seals the row');
 });
 
 test('OAuth state mismatch auto-heals once, then reports plainly (no loop)', async () => {
