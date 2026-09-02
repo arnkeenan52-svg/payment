@@ -1079,6 +1079,79 @@ test('the free look: colours on every plan, wallpapers on a paid one', async () 
     `every paid plan must advertise all ${total} backgrounds`);
 });
 
+test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black face holds on every route', async () => {
+  // The dashboard renders on the client, which this suite does not run. These
+  // are the pure functions it reads its money and growth figures with, lifted
+  // out of the file by shape and executed as written.
+  const dash = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
+  const lift = (name, re, ...args) => {
+    const src = dash.match(re)?.[0];
+    assert.ok(src, `dashboard.js must still define ${name}`);
+    return new Function(...args, `${src}\n return ${name};`);
+  };
+
+  // A $600 yearly plan is $50 of monthly recurring revenue, not $600; a
+  // quarterly one is a third; a weekly one is a bit over four weeks' worth. No
+  // term and a monthly term stay as they are.
+  const monthlyRate = lift('monthlyRate', /const TERM_MONTHS = [\s\S]*?\nfunction monthlyRate\(p\) \{[\s\S]*?\n\}/)();
+  assert.equal(monthlyRate({ amountUsd: 600, durationDays: 365 }), 50);
+  assert.equal(monthlyRate({ amountUsd: 600, durationDays: 366 }), 50);
+  assert.equal(monthlyRate({ amountUsd: 90, durationDays: 90 }), 30);
+  assert.equal(monthlyRate({ amountUsd: 120, durationDays: 180 }), 20);
+  assert.equal(monthlyRate({ amountUsd: 25, durationDays: 31 }), 25);
+  assert.equal(monthlyRate({ amountUsd: 25, durationDays: 30 }), 25);
+  assert.equal(monthlyRate({ amountUsd: 25, durationDays: null }), 25);
+  assert.equal(monthlyRate({ amountUsd: 25 }), 25);
+  assert.equal(Math.round(monthlyRate({ amountUsd: 10, durationDays: 7 }) * 100) / 100, 43.45, 'a weekly $10 is ~4.35 weeks a month');
+  assert.match(dash, /mrrRows = data\.payments\.filter\([^\n]*\.map\(\(p\) => \(\{ \.\.\.p, amountUsd: monthlyRate\(p\) \}\)\)/,
+    'the MRR card must sum monthly rates, not period prices');
+
+  // Top Products and the Revenue card sit side by side and must agree that
+  // no change is not growth: 0% is flat in both, never a green ▲0%.
+  const deltaChip = lift('deltaChip', /function deltaChip\(delta\) \{[\s\S]*?\n\}/)();
+  const pct = (cur, prev) => (prev <= 0 ? null : ((cur - prev) / prev) * 100);
+  const prev = new Map([['VIP', 200], ['Up', 100], ['Down', 100]]);
+  const topDelta = lift('topDelta', /const topDelta = \(name, v\) => \{[\s\S]*?\n  \};/, 'byPlanPrev', 'pct')(prev, pct);
+  assert.equal(topDelta('VIP', 200), '<span class="delta flat">0%</span>');
+  assert.equal(deltaChip(0), '<span class="delta flat">0%</span>');
+  assert.match(topDelta('Up', 150), /class="delta up".*▲.*50%/);
+  assert.match(topDelta('Down', 50), /class="delta down".*▼.*50%/);
+  assert.equal(topDelta('New', 50), '', 'nothing to compare against says nothing');
+
+  // The black face: stamped before first paint from the key dashboard.js
+  // remembers the SAVED face under, and re-applied by route() for the views
+  // that have no store — so an unsaved Customize preview cannot follow the
+  // seller out to "All servers", and the picker wears the same ground
+  // whether it was loaded cold or reached by navigating back.
+  const html = fs.readFileSync(new URL('../public/dashboard.html', import.meta.url), 'utf8');
+  const key = dash.match(/const DARK_FACE_KEY = '([a-z-]+)'/)?.[1];
+  assert.ok(key, 'dashboard.js names the face key');
+  assert.ok(html.includes(`localStorage.getItem('${key}') === 'black'`), 'the head script reads the same key');
+  const routeSrc = dash.match(/async function route\(\) \{[\s\S]*?\n\}/)[0];
+  const at = (needle) => { const i = routeSrc.indexOf(needle); assert.ok(i >= 0, `route() must contain ${needle}`); return i; };
+  assert.ok(at('applyDarkFace(savedDarkFace())') < at('viewSetup(') && at('applyDarkFace(savedDarkFace())') < at('viewAdmin()') && at('applyDarkFace(savedDarkFace())') < at('viewPicker()'),
+    'the saved face is applied before every store-less view');
+  assert.ok(!/const pickedFace[\s\S]*?rememberDarkFace/.test(dash.match(/function wireCustomize[\s\S]*?\n\}/)?.[0] ?? ''),
+    'a preview is never remembered as the saved face');
+  // And the night rules that the black face inherits name tokens, not navy:
+  // the revenue tooltip and the preview's browser bar were the four that did.
+  for (const sel of ['.chart-tip', '.th-frame-bar', '.th-frame-url']) {
+    const rule = html.match(new RegExp(`html:not\\(\\[data-theme='light'\\]\\) ${sel.replace('.', '\\.')} \\{([^}]*)\\}`))?.[1] ?? '';
+    assert.ok(rule && !/#131b2d|#101827|19, 27, 45|16, 24, 39/.test(rule), `${sel} night rule must not hard-code navy: ${rule}`);
+  }
+  assert.match(html, /html\[data-dark='black'\]:not\(\[data-theme='light'\]\) \.th-frame-dot/, 'the preview dots get a black-face value');
+
+  // Saving the storefront or dashboard appearance re-renders to a screen that
+  // looks exactly like the one before the click; each says it landed.
+  assert.match(dash, /theme: read\(\) \}\);\n\s+state\.data = null;\n\s+await viewStore\(slug\);\n\s+flashSaved\('#th-note'\)/, 'Save appearance confirms into #th-note');
+  assert.match(dash, /dashboardPrefs: prefsBody \}\);\n\s+state\.data = null;\n\s+await viewStore\(slug\);\n\s+flashSaved\('#dc-ok'\)/, 'Customize save confirms into #dc-ok');
+  assert.match(dash, /id="dc-ok" role="status"/, 'and the slot exists in the Customize foot');
+  // The 320px billing card: the interval toggle wraps rather than slicing the
+  // "2 months free" note at the card edge.
+  const dcss = fs.readFileSync(new URL('../public/dash.css', import.meta.url), 'utf8');
+  assert.match(dcss, /#billing-body \.bill-toggle \{[^}]*flex-wrap: wrap/, 'the billing interval toggle wraps on narrow phones');
+});
+
 test('every page on the site is named in the footer — checked against the filesystem', async () => {
   // A page nothing links to is a page nobody finds. The old version of this
   // test listed the twelve comparisons by hand and accepted an INDEX link for
@@ -2180,6 +2253,11 @@ test('platform: payments dashboard endpoint is owner-gated and its totals add up
     { username: u6row.username, planId: u6row.planId, amountUsd: u6row.amountUsd, lifetime: u6row.lifetime },
     { username: 'trader_six', planId: 'lifetime', amountUsd: 299, lifetime: true },
   );
+  // Every row says what term it renews on, off its plan: the dashboard's MRR
+  // divides a yearly price by twelve with it, and cannot without it.
+  assert.equal(u6row.durationDays, null, 'a lifetime row has no term');
+  const monthlyRow = data.payments.find((p) => !p.lifetime && p.planId === 'insider');
+  assert.equal(monthlyRow?.durationDays, 31, 'a monthly row carries its plan\'s 31-day term');
   assert.ok(data.totals.activeMembers >= 2);
   assert.ok(data.totals.lifetimeMembers >= 1);
 
