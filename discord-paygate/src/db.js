@@ -324,6 +324,8 @@ async function createDriver() {
     async exec(sql) {
       sqlite.exec(sql);
     },
+    // The key is a Postgres lock id and has no use here: one connection with
+    // one transaction at a time already serializes every caller.
     async serialized(key, fn) {
       const run = async () => {
         sqlite.exec('BEGIN IMMEDIATE');
@@ -677,9 +679,10 @@ export async function countOpenCheckoutsForPlans(storeId, planIds, since) {
 
 // Crypto invoices this buyer could still pay in this store. One buyer needs
 // only one address; a loop minting hundreds is what a cap here stops before
-// the provider is asked for a single one.
-// This buyer's live crypto invoices in this store, as a WHERE fragment so the
-// conditional insert below counts exactly the same rows. Deliberately NOT
+// the provider is asked for a single one. A WHERE fragment rather than a
+// query, so the conditional insert below counts exactly the same rows.
+//
+// Deliberately NOT
 // restricted to rows that already carry a provider_ref: the order row is
 // written BEFORE the provider is asked for an address, so a row still waiting
 // on that call is an invoice this buyer is in the middle of being given —
