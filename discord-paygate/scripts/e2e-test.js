@@ -2257,6 +2257,123 @@ test('the fee calculators compute real figures from the ids the served markup ac
   }
 });
 
+test("the landing's cost band computes from TIERS, and every figure on it is derived", async () => {
+  // The band is the argument the whole landing page is built on and it prints
+  // seven live figures. Two things can rot underneath it silently. One: the
+  // Dues ladder is a copy of src/services/billing.js TIERS written out by hand
+  // in an inline script, so the day a price or a member cap moves in TIERS,
+  // the page keeps quoting the old one at a visitor while Stripe bills the new
+  // one. Two: an id can be renamed on one side of the markup/script pair and
+  // every figure it feeds silently stops updating. So the page's own script is
+  // lifted out and run against a DOM that knows ONLY the ids the markup
+  // declares, with the slider bounds read off the markup too, and the
+  // arithmetic is checked against TIERS and against the published competitor
+  // rates the copy states in its own rows.
+  const { TIERS } = await import('../src/services/billing.js');
+  const index = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+
+  // The row the section exists for has to state the basis it is arguing about,
+  // in the same grammar the four it is compared with use.
+  const duesRow = index.slice(index.indexOf('class="save-row save-dues"'), index.indexOf('id="svBarDues"'));
+  assert.match(duesRow, /id="svDuesPlan"/, 'the Dues row names the plan the member count lands on');
+  assert.match(duesRow, /0% of sales/, 'the Dues row states its cut, beside "3% of sales" and "8% of sales"');
+
+  const script = [...index.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+    .map((m) => m[1]).find((s) => s.includes("getElementById('svSubs')"));
+  assert.ok(script, 'the landing still carries an inline calculator script');
+
+  // The two range inputs ARE the bounds this test computes against: read them
+  // off the markup rather than repeating them, so widening a slider cannot
+  // quietly leave the expectations behind.
+  const attrs = {};
+  for (const m of index.matchAll(/<input[^>]*>/g)) {
+    const id = m[0].match(/\sid="([^"]+)"/)?.[1];
+    if (!id) continue;
+    const at = (n) => m[0].match(new RegExp(`\\s${n}="([^"]+)"`))?.[1];
+    attrs[id] = { min: at('min'), max: at('max'), step: at('step'), value: at('value') };
+  }
+  const ids = new Set([...index.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+  const nodes = new Map();
+  const on = {};
+  const document = {
+    activeElement: null,
+    getElementById(id) {
+      if (!ids.has(id)) return null;
+      if (!nodes.has(id)) {
+        nodes.set(id, {
+          ...(attrs[id] ?? {}),
+          textContent: '',
+          style: { width: '', setProperty() {} },
+          addEventListener(type, fn) { (on[id] ??= {}); (on[id][type] ??= []).push(fn); },
+        });
+      }
+      return nodes.get(id);
+    },
+  };
+  new Function('document', script)(document); // runs, and paints once itself
+  assert.ok(on.svSubs?.input?.length && on.svPrice?.input?.length, 'the sliders were never wired up');
+
+  const read = (id) => String(nodes.get(id).textContent);
+  const drive = (members, price) => {
+    nodes.get('svSubs').value = String(members);
+    nodes.get('svPrice').value = String(price);
+    on.svSubs.input[0]();
+  };
+  const money = (n) => `$${n > 0 && n < 10 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')}`;
+
+  // 1. The ladder IS TIERS: at every cap, and one step past it.
+  const step = Number(attrs.svSubs.step);
+  const top = Number(attrs.svSubs.max);
+  TIERS.forEach((tier, i) => {
+    const at = tier.maxMembers ?? top;
+    drive(at, 20);
+    assert.equal(read('svDuesPlan'), `${tier.name} plan`, `${at} members is the ${tier.name} tier`);
+    assert.equal(read('svDues'), tier.priceUsd ? `$${tier.priceUsd.toFixed(2)}` : '$0',
+      `${tier.name} must be quoted at TIERS.priceUsd`);
+    const next = TIERS[i + 1];
+    if (!next) return;
+    drive(tier.maxMembers + step, 20);
+    assert.equal(read('svDuesPlan'), `${next.name} plan`,
+      `one member past the ${tier.name} cap of ${tier.maxMembers} is the ${next.name} tier`);
+  });
+  // …and the free tier draws no bar at all, because it costs nothing.
+  drive(TIERS[0].maxMembers, 20);
+  assert.equal(nodes.get('svBarDues').style.width, '0%', 'a $0 plan draws no bar');
+
+  // 2. The comparison, the sales volume it is a percentage of, and the saving.
+  // The rates are the publicly listed pricing each row states in its own copy.
+  const RATES = {
+    svWhop: ['Whop', (rev) => rev * 0.03],
+    svLp: ['LaunchPass', (rev) => 29 + rev * 0.035],
+    svPatreon: ['Patreon', (rev) => rev * 0.08],
+    svDoorfee: ['DoorFee', (rev) => rev * 0.1],
+  };
+  const planCost = (m) => (TIERS.find((t) => t.maxMembers !== null && m <= t.maxMembers) ?? TIERS.at(-1)).priceUsd;
+  for (const [members, price] of [[10, 1], [50, 1], [100, 20], [510, 1], [1000, 100]]) {
+    drive(members, price);
+    const rev = members * price;
+    const where = `${members} members x $${price}`;
+    assert.equal(read('svRev'), money(rev), `${where}: the sales volume every percentage is a percentage of`);
+    const costs = Object.entries(RATES).map(([id, [, f]]) => [id, f(rev)]);
+    for (const [id, cost] of costs) assert.equal(read(id), money(cost), `${where}: ${id}`);
+    const [worstId, worst] = costs.reduce((a, b) => (b[1] > a[1] ? b : a));
+    const gap = worst - planCost(members);
+    assert.equal(read('svAnnual'), money(Math.max(0, gap * 12)), `${where}: the annual saving`);
+    // and the line under it never names a platform as the priciest thing on
+    // screen when the flat plan has grown past all four.
+    if (gap > 0) assert.equal(read('svVs'), `kept versus ${RATES[worstId][0]}, the priciest at your numbers`, `${where}: names who it beat`);
+    else assert.doesNotMatch(read('svVs'), /priciest/, `${where}: a $0 saving must not claim to have beaten anyone`);
+  }
+
+  // 3. A typed number is clamped to its slider, so no box can quote a figure
+  // the ladder above was never evaluated at.
+  const box = nodes.get('svSubsNum');
+  box.value = '100000';
+  on.svSubsNum.input[0]();
+  assert.equal(nodes.get('svSubs').value, top, 'a typed member count lands inside the slider');
+  assert.equal(read('svDuesPlan'), `${TIERS.at(-1).name} plan`, 'and the ladder follows it there');
+});
+
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {
   assert.equal((await hitCron({ omitHeader: true })).status, 401);
   assert.equal((await hitCron({ secret: 'wrong-secret' })).status, 401);
