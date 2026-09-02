@@ -2872,7 +2872,11 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 }
 .admin-live-link:hover { text-decoration-color: currentColor; }
 .admin-live-link svg { flex: none; }
-.admin-live-none { display: block; margin-top: 2px; font-size: 0.86em; font-weight: 400; }
+.admin-live-none { font-size: 0.86em; font-weight: 400; }
+/* The row's two destinations, side by side under the name and wrapping to
+   their own lines when the column is narrow. Flex rather than two blocks so
+   the desktop row does not grow a third line for a pair of short links. */
+.admin-row-links { display: flex; flex-wrap: wrap; align-items: center; gap: 0 14px; margin-top: 2px; }
 @media (max-width: 760px) { .admin-live-link { min-height: 44px; } }
 /* picker: the owner's door into the admin page */
 .admin-link {

@@ -309,11 +309,20 @@ async function viewAdmin() {
   // already as wide as its panel: one more column and the whole thing starts
   // scrolling sideways, which costs every other row to gain this one.
   const storeRow = (st) => `<tr>
-      <td><a class="admin-store-link" href="#/store/${esc(st.slug)}">${esc(st.name)}</a><span class="dim"> /${esc(st.slug)}</span>${
-        st.status === 'live'
-          ? `<a class="admin-live-link" href="${esc(`${location.origin}/${st.slug}`)}" target="_blank" rel="noopener noreferrer">${I.external} Open live page</a>`
-          : '<span class="admin-live-none dim">Not live yet</span>'
-      }</td>
+      <td><a class="admin-store-link" href="#/store/${esc(st.slug)}">${esc(st.name)}</a><span class="dim"> /${esc(st.slug)}</span>
+        <span class="admin-row-links">${
+          st.status === 'live'
+            ? `<a class="admin-live-link" href="${esc(`${location.origin}/${st.slug}`)}" target="_blank" rel="noopener noreferrer">${I.external} Live page</a>`
+            : '<span class="admin-live-none dim">Not live yet</span>'
+        }${
+          // The same deep link the receipt page uses. It opens the server for
+          // anyone already in it, which is the case that matters here — this
+          // page is the platform owner's, and the question it answers is
+          // "which server is this store actually selling into".
+          st.guildId
+            ? `<a class="admin-live-link" href="https://discord.com/channels/${esc(String(st.guildId))}" target="_blank" rel="noopener noreferrer">${I.external} Discord server</a>`
+            : ''
+        }</span></td>
       <td data-th="Owner">${st.ownerUsername ? `@${esc(st.ownerUsername)}<span class="dim"> ${esc(st.ownerDiscordId ?? '')}</span>` : esc(st.ownerDiscordId ?? '')}</td>
       <td data-th="Status">${st.status === 'live' ? '<span class="chip chip-good">Live</span>' : '<span class="chip chip-off">Draft</span>'}</td>
       <td data-th="Plan">${esc(st.ownerTier)}</td>

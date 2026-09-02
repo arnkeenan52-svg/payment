@@ -5614,55 +5614,37 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   }
 });
 
-test('the homepage fold shows the product, and its caption matches the store it photographed', async () => {
-  // The first screen used to be a headline on an empty sky: the page CLAIMED a
-  // buyer pays and a Discord role lands, and showed neither. It now carries two
-  // frames of the running product — the /demo storefront and its checkout —
-  // cut by scripts/build-home-shots.mjs. Three things rot here, and all three
-  // have rotted on this page before: the file goes missing (a broken image at
-  // the top of the site), the shot outlives the product it photographed
-  // (land-storefront.png survived two storefront redesigns and the Ripley
-  // rename before anyone noticed), or the caption drifts off the price it
-  // captions.
+test('the homepage fold is copy and one field, and the calculator follows it', async () => {
+  // The first screen carried two photographs of the running product for a
+  // while. They are gone at the owner's call, so what is pinned here is the
+  // shape that replaced them — and, more importantly, that NOTHING of the
+  // frames is left behind: a stylesheet full of rules for elements that no
+  // longer exist is how the last three redesigns each left a layer of debris.
   const home = fs.readFileSync(path.join(ROOT, 'public', 'index.html'), 'utf8');
   const hero = home.slice(home.indexOf('<header class="hero">'), home.indexOf('<main>'));
 
+  assert.match(hero, /id="captureInput"/, 'the fold still carries the one field a visitor can act on');
+  assert.doesNotMatch(hero, /<img /, 'and no image in the fold');
+  for (const gone of ['hero-demo', 'demo-store', 'demo-pay', 'demo-chip', 'browser-bar', 'win-dots', 'browser-url']) {
+    assert.ok(!home.includes(gone), `no ${gone} left behind, markup or rule`);
+  }
   for (const file of ['home-store.webp', 'home-checkout.webp']) {
-    assert.match(
-      hero,
-      new RegExp(`<img src="/${file.replace('.', '\\.')}\\?v=\\d+" width="\\d+" height="\\d+" alt="[^"]{40,}"`),
-      `the fold shows /${file} at its intrinsic size, with alt text that describes it`,
-    );
-    const bytes = fs.readFileSync(path.join(ROOT, 'public', file));
-    assert.equal(
-      bytes.subarray(0, 4).toString('latin1') + bytes.subarray(8, 12).toString('latin1'),
-      'RIFFWEBP',
-      `${file} is a real WebP`,
-    );
-    // A hero image is the one image a phone cannot defer. The pair this
-    // replaced were 1920x1080 PNGs cropped down to a slice in CSS: 130KB down
-    // the wire and ~16MB of decoded bitmap to show it. Nothing in the fold goes
-    // back over 120KB.
-    assert.ok(bytes.length < 120 * 1024, `${file} is ${(bytes.length / 1024) | 0}KB, too heavy for the fold`);
-    assert.equal((await fetch(`${appUrl}/${file}`)).status, 200, `/${file} is served`);
+    assert.ok(!fs.existsSync(path.join(ROOT, 'public', file)), `${file} is deleted, not merely unreferenced`);
   }
 
-  // The stale-art guard. The chip beside the frames quotes a price and a role.
-  // Both belong to the demo store the frames were shot from, so editing the
-  // demo catalogue fails here instead of quietly leaving the homepage quoting a
-  // price the store no longer charges.
-  const { demoPlans } = await import('../src/services/demo-store.js');
-  const vip = demoPlans().find((p) => p.id === 'vip-access');
-  const at = hero.indexOf('class="sky-card demo-chip"');
-  assert.ok(at > 0, 'the fold carries the receipt chip');
-  const chip = hero.slice(at, hero.indexOf('</p>', at));
-  assert.ok(chip.includes(`&#36;${vip.priceUsd} paid`), `the chip quotes the demo store's own price ($${vip.priceUsd})`);
-  assert.ok(chip.includes(`&#64;${vip.roleNames[0]} role delivered`), `the chip names the role that product grants (@${vip.roleNames[0]})`);
-  assert.match(hero, /<span class="browser-url">dues\.gg\/demo<\/span>/, 'the storefront frame is labelled with the URL it was shot at');
+  // THE ORDER BELOW THE HERO. The calculator is the first thing the page asks
+  // the visitor about — what they charge, and what a rival's cut of it costs
+  // them — so it comes before the explanation of how any of it works. The
+  // role band stays part of the hero band above it.
+  const order = ['class="rolemarq"', 'class="save wrap" id="save"', 'class="how wrap" id="how"'];
+  let cursor = 0;
+  for (const mark of order) {
+    const at = home.indexOf(mark, cursor);
+    assert.ok(at > 0, `${mark} is on the page, after what precedes it`);
+    cursor = at;
+  }
 
-  // The bouncing chevron went with the empty sky it pointed down: a frame cut
-  // off by the bottom of the screen says "there is more" without an animation
-  // running forever on every visit.
+  // The bouncing chevron went with the empty sky it pointed down.
   assert.doesNotMatch(home, /hero-scrollhint/, 'no scroll hint left behind');
   assert.doesNotMatch(home, /duesHint/, 'and no keyframes left for it');
 });
