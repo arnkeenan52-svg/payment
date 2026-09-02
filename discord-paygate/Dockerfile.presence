@@ -29,6 +29,13 @@ RUN fc-cache -f >/dev/null
 
 # Only the manifest first, so the dependency layer caches independently of
 # source changes. --omit=dev keeps the web app's test tooling out of the image.
+#
+# Which is exactly why sharp has to stay in "dependencies" in package.json: the
+# card renderer imports it at runtime, and a devDependency simply is not here.
+# It has been moved to devDependencies once already ("sharp is a build tool"),
+# and the only symptom was welcome cards going quiet — every join threw
+# "Cannot find package 'sharp'" in a log nobody reads. scripts/e2e-test.js
+# pins the manifest against that.
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev --no-audit --no-fund
 

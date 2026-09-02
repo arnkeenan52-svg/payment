@@ -7206,6 +7206,23 @@ test('crypto backfill: orders the provider never advances take their turn instea
   for (let i = 0; i < 20; i += 1) await tq("UPDATE checkout_attempts SET status = 'expired' WHERE session_id = ?", [`np_${'e'.repeat(30)}${String(i).padStart(2, '0')}`]);
 });
 
+// ── welcome cards: the worker's manifest ─────────────────────────────────────
+// Welcome cards are posted by scripts/presence.js, a gateway worker this suite
+// cannot reach: it needs a socket and a real bot token. What it CAN hold is the
+// promise the worker image is built on.
+
+test('the worker image gets the card renderer: sharp is a runtime dependency', async () => {
+  // Dockerfile.presence installs with --omit=dev, so a devDependency is simply
+  // absent in the deployed worker. renderWelcomeCard imports sharp, and with it
+  // missing every join throws "Cannot find package 'sharp'" — cards stop, and
+  // nothing else does, which is exactly how this went unnoticed once.
+  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  assert.ok(manifest.dependencies?.sharp, 'sharp must be in dependencies, not devDependencies');
+  assert.ok(!manifest.devDependencies?.sharp, 'and only there, so --omit=dev cannot drop it');
+  const dockerfile = fs.readFileSync(path.join(ROOT, 'Dockerfile.presence'), 'utf8');
+  assert.match(dockerfile, /--omit=dev/, 'the assumption above still holds for the worker image');
+});
+
 // ═══ runner ═══════════════════════════════════════════════════════════════════
 
 // ── session revocation ────────────────────────────────────────────────────────

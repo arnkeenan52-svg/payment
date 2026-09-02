@@ -24,12 +24,12 @@
   },
   "dependencies": {
     "pg": "^8.23.0",
-    "qrcode-generator": "^2.0.4"
+    "qrcode-generator": "^2.0.4",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "jsqr": "^1.4.0",
     "playwright": "^1.62.1",
-    "pngjs": "^7.0.0",
-    "sharp": "^0.35.3"
+    "pngjs": "^7.0.0"
   }
 }
