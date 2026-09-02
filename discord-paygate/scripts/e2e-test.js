@@ -6448,6 +6448,31 @@ test('the discount preview budgets misses, so it cannot be walked as an oracle',
   assert.equal((await ask('GUESS9', { cookie })).status, 429, 'the ninth miss in the window is refused');
   assert.equal((await ask('LAUNCH20', { cookie })).status, 429, 'and so is a hit — the throttle must not be the oracle');
   assert.equal((await ask('LAUNCH20')).status, 200, "another asker's budget is their own");
+
+  // Checkout answers the same question — hit or miss, synchronously, to any
+  // Discord login — so budgeting only the preview moved the oracle one
+  // endpoint over instead of closing it. One budget, shared.
+  const guesser = await signInAs('code_np_guess2', '529900000000000030', 'np_guess2');
+  discord.members.set('529900000000000030', new Set());
+  const buy = (discountCode) => fetch(`${appUrl}/api/checkout/stripe`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: guesser },
+    body: JSON.stringify({ store: 'vip-signals', planId: plan.id, discountCode }),
+  });
+  for (let i = 0; i < 8; i += 1) {
+    assert.equal((await buy(`CGUESS${i}`)).status, 400, `checkout miss ${i}`);
+  }
+  assert.equal((await buy('LAUNCH20')).status, 429, 'past the budget checkout refuses alike — a hit must not be the tell');
+  assert.equal((await ask('LAUNCH20', { cookie: guesser })).status, 429, 'one budget for both endpoints, not one each');
+
+  // The store-wide cap is shared by every visitor of that store, so refusing
+  // on it let ~38 guessers switch the Apply button off for a store's real
+  // buyers, renewably. It may refuse guessing; it may not refuse a real code.
+  for (let i = 0; i < 300; i += 1) {
+    await ask(`FLOOD${i}`, { 'x-forwarded-for': `10.${Math.floor(i / 250)}.${i % 250}.7` });
+  }
+  assert.equal((await ask('LAUNCH20', { 'x-forwarded-for': '10.9.9.9' })).status, 200, 'a real code still previews once a store is over its cap');
+  assert.equal((await ask('NOPE', { 'x-forwarded-for': '10.9.9.9' })).status, 429, 'guessing past the store cap is refused');
 });
 
 

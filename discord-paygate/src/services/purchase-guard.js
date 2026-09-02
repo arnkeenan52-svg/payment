@@ -108,3 +108,40 @@ export async function resolveDiscount({ store, plan, code, uid = null }) {
     : Math.min(d.amount, plan.priceUsd);
   return { code: codeRaw, row: d, priceAfter: Math.max(0, roundAmount(plan.priceUsd - off, cur)) };
 }
+
+// The guessing budget that goes with it, and for the same reason: an answer
+// that separates "no such code" from "here is the discount", given away with
+// no limit, is an oracle — walk a wordlist and every private code a store
+// ever made falls out, discount and all. Budgeting only the preview moved
+// that oracle one endpoint over: checkout answers the same question, just as
+// fast and to any Discord account. So the budget lives here, next to the
+// validator, and every caller of resolveDiscount shares one count.
+//
+// Misses are counted per asker (the session when there is one, else the
+// address) and per store. A valid code never costs anything: only guessing
+// does, and a store's own cap must never be the reason a real code is
+// refused — see the callers.
+//
+// In memory, so a runtime that spreads the endpoints across instances gives
+// each its own copy — as the preview's own count always did. It bounds a
+// walk from one session; it is not a distributed rate limiter.
+export const TOO_MANY_CODE_ATTEMPTS = 'Too many code attempts — try again in a few minutes.';
+export const GUESS_WINDOW_SECONDS = 10 * 60;
+export const MAX_MISSES_PER_ASKER = 8;
+export const MAX_MISSES_PER_STORE = 300;
+const discountMisses = new Map(); // key → [unix seconds of each miss in the window]
+
+export function discountMissesIn(key, now = Math.floor(Date.now() / 1000)) {
+  const list = (discountMisses.get(key) ?? []).filter((t) => t > now - GUESS_WINDOW_SECONDS);
+  if (list.length) discountMisses.set(key, list); else discountMisses.delete(key);
+  return list.length;
+}
+
+export function recordDiscountMiss(keys, now = Math.floor(Date.now() / 1000)) {
+  // Kept small: entries older than the window are dropped on every write.
+  if (discountMisses.size > 5000) for (const k of discountMisses.keys()) discountMissesIn(k, now);
+  for (const key of keys) {
+    const list = (discountMisses.get(key) ?? []).filter((t) => t > now - GUESS_WINDOW_SECONDS);
+    discountMisses.set(key, [...list, now]);
+  }
+}

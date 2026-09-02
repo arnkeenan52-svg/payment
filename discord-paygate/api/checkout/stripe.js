@@ -4,7 +4,7 @@ import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { createCheckoutSession, stripeFetch } from '../../src/lib/stripe.js';
 import { fromMinor, toMinor, normalize as normalizeCurrency, minCharge, formatAmount } from '../../src/lib/currency.js';
-import { purchaseBlocked, resolveDiscount } from '../../src/services/purchase-guard.js';
+import { purchaseBlocked, resolveDiscount, discountMissesIn, recordDiscountMiss, MAX_MISSES_PER_ASKER, TOO_MANY_CODE_ATTEMPTS } from '../../src/services/purchase-guard.js';
 import * as db from '../../src/db.js';
 
 export default guard(async function handler(req, res) {
@@ -58,8 +58,19 @@ export default guard(async function handler(req, res) {
   let discountCode = null;
   const wanted = typeof body?.discountCode === 'string' ? body.discountCode : '';
   if (wanted.trim()) {
+    // This endpoint separates "no such code" from "here is your discount"
+    // just as plainly as the preview does, and to anyone with a Discord
+    // login — so it spends the same guessing budget. Only the per-asker
+    // count gates here: a store-wide refusal on the checkout path would be
+    // an attacker switching off every seller's discount codes mid-sale.
+    const guessKeys = [`u:${uid}`, `s:${store.slug}`];
+    if (discountMissesIn(guessKeys[0]) >= MAX_MISSES_PER_ASKER) {
+      sendJson(res, 429, { error: TOO_MANY_CODE_ATTEMPTS });
+      return;
+    }
     const applied = await resolveDiscount({ store, plan, code: wanted, uid });
     if (applied.error) {
+      recordDiscountMiss(guessKeys);
       sendJson(res, 400, { error: applied.error });
       return;
     }
