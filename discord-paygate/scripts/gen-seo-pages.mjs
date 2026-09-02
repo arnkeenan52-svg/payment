@@ -1421,7 +1421,7 @@ function cryptoPage() {
     <section class="xsection">
       <div class="wrap narrow guide-body">
         <h2>There is no coin list on this page, and that is deliberate</h2>
-        <p>Plenty of checkout pages advertise “100+ cryptocurrencies”. We cannot source a number like that, so we do not print one.</p>
+        <p>Plenty of checkout pages advertise a big round number of supported cryptocurrencies. Dues cannot source one, so Dues does not print one &mdash; not on the homepage, and not here.</p>
         <p>What Dues can tell you is where the list comes from. When a buyer opens a crypto checkout, Dues asks the crypto rail which coins its merchant account currently has switched on, and builds the picker out of the answer. The list is never written down in this site&rsquo;s code. Turn a coin off on the rail and it disappears from the picker within minutes, with nothing to deploy; a coin that is not enabled is refused before a payment is ever created, so a buyer cannot be sent to an address for something that would bounce.</p>
         <p>If the rail cannot be reached at all, the checkout says so rather than showing an empty picker or a coin it cannot honour. A store with no payout wallet saved does not offer the option in the first place.</p>
 
