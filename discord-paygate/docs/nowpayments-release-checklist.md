@@ -85,15 +85,25 @@ payment and clicks its **push button** (Payments → filter Action = Continue).
 On a self-serve product where nobody is watching the dashboard, that is a buyer
 who paid and got nothing, indefinitely.
 
-**Read the caveat before switching it on.** NOWPayments' own recommendation is
-the opposite of ours for e-commerce: they advise checking `parent_payment_id`
-and *not* auto-granting, because a wrong-asset or repeated deposit "may differ
-from the expected payment amount." Their auto-processing creates a **new
-payment with a new `payment_id`**, linked to the original by
-`parent_payment_id`. Our webhook keys entirely on our own `order_id`, so
-whether we ever see that follow-up payment is unverified — see the operations
-note, "Contradictions found in our own code", item 3. Turn this on, and treat
-the sandbox test there as a release blocker.
+**Read this before switching it on.** NOWPayments' own recommendation is the
+opposite of ours for e-commerce: they advise checking `parent_payment_id` and
+*not* auto-granting, because a wrong-asset or repeated deposit "may differ from
+the expected payment amount." Their auto-processing creates a **new payment
+with a new `payment_id`**, linked to the original by `parent_payment_id` and
+carrying `"order_id": null`.
+
+The webhook now follows that advice literally. It re-reads the parent to find
+the order the deposit belongs to, grants nothing on it either way, and posts
+the seller an alert in their sale-notification channel: "extra payment, not a
+new sale" when the order was already delivered, "did not complete the order"
+when it is still open. A deposit that resolves to no order at all alerts the
+platform's own channel instead. So this setting no longer decides whether a
+buyer is heard from — it decides whether their coins are processed at all, and
+off means a payment parked until someone opens the dashboard.
+
+Still worth a sandbox run before release: what a real follow-up IPN carries
+(operations note, §6 item 3). The code is written to the documentation, not to
+an observation.
 
 ## 4. Set the short-payment default — **Settings → Payments → Deposits → Default payment status**
 

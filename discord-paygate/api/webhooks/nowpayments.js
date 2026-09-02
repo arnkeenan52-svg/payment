@@ -91,8 +91,14 @@ export default guard(async function handler(req, res) {
   // 'undelivered' is settled too: the money landed, the order is closed and
   // the seller has been told. A retry would find the same closed order, so
   // asking for one is only noise on a delivery there is nothing left to do
-  // about.
-  const settled = outcome === 'granted' || outcome === 'undelivered' || outcome === 'ignored' || outcome === 'dead';
+  // about. So are the three provider-minted shapes — a repeat deposit on a
+  // closed order ('extra'), one on an open order ('topup') and a payment that
+  // belongs to no order of ours ('orphan'): none of them can become a sale on
+  // a later attempt, and each has already raised the alarm that IS its
+  // answer. An alarm that could not be raised throws instead, and is caught
+  // above as the retry it should be.
+  const settled = outcome === 'granted' || outcome === 'undelivered' || outcome === 'ignored' || outcome === 'dead'
+    || outcome === 'extra' || outcome === 'topup' || outcome === 'orphan';
   if (outcome === 'in-progress' || (GRANTS_ACCESS.has(status) && !settled)) {
     console.warn(`[webhooks] nowpayments ${paymentId}: delivery says ${status}, re-read says ${outcome} — asking the provider to retry`);
     sendText(res, 503, 'not settled yet');

@@ -769,6 +769,83 @@ function npDepositAfterExpiry(ref) {
   return payment;
 }
 
+// A deposit NOWPayments MINTED ITSELF, which is the only way a second
+// transfer to a used address — or a deposit in a coin the invoice was not
+// created for, with extra-deposits auto processing on — reaches a merchant.
+//
+// Not a variation on the parent payment: "Repeated deposits to the same
+// addresses will automatically create a new payment with another id". The new
+// payment has its own id, names the original in `parent_payment_id`, and
+// carries `"order_id": null` — their own example webhook body for one does.
+// The parent does NOT move: an underpaid invoice stays partially_paid however
+// much arrives after it, and a wrong-coin deposit never touches its
+// actually_paid.
+//
+// The mock used to be unable to express any of that (every payment it made
+// carried our order_id), which is exactly why a handler that resolved
+// everything through order_id passed the whole suite.
+function npRepeatDeposit(parentId, { status = 'finished', payCurrency = null, actuallyPaid = 0.5, atFiat = 0 } = {}) {
+  const parent = nowpayments.payments.get(parentId);
+  assert.ok(parent, `no parent payment ${parentId} to deposit against`);
+  const id = `npid_${++nowpayments.n}`;
+  const child = {
+    payment_id: id,
+    // The link back to the invoice, and the only one.
+    parent_payment_id: parent.payment_id,
+    invoice_id: null,
+    payment_status: status,
+    // The same deposit address: that is what makes it a repeat.
+    pay_address: parent.pay_address,
+    payin_extra_id: null,
+    // A deposit the provider minted has no invoice of its own behind it, so
+    // it carries no price to reason about — the field the app reaches for
+    // first everywhere else.
+    price_amount: null,
+    price_currency: null,
+    pay_amount: null,
+    actually_paid: actuallyPaid,
+    actually_paid_at_fiat: atFiat,
+    pay_currency: payCurrency ?? parent.pay_currency,
+    order_id: null,
+    order_description: null,
+    // Shared with the parent: "Special identifier for handling
+    // partially_paid payments".
+    purchase_id: parent.purchase_id,
+    outcome_amount: actuallyPaid,
+    outcome_currency: parent.outcome_currency,
+    payment_extra_ids: null,
+    fee: { currency: payCurrency ?? parent.pay_currency, depositFee: 0.0985, withdrawalFee: 0, serviceFee: 0 },
+  };
+  nowpayments.payments.set(id, child);
+  // "array of child payments for this payment" — the provider lists them on
+  // the parent, so the mock does too.
+  parent.payment_extra_ids = [...(parent.payment_extra_ids ?? []), id];
+  return child;
+}
+
+// What the provider POSTs for one of those: the payment body itself, order_id
+// and all — which here means order_id null.
+const npDepositIpn = (child) => ({
+  payment_id: child.payment_id,
+  parent_payment_id: child.parent_payment_id,
+  invoice_id: null,
+  payment_status: child.payment_status,
+  pay_address: child.pay_address,
+  payin_extra_id: null,
+  price_amount: null,
+  price_currency: null,
+  pay_amount: null,
+  actually_paid: child.actually_paid,
+  actually_paid_at_fiat: child.actually_paid_at_fiat,
+  pay_currency: child.pay_currency,
+  order_id: null,
+  order_description: null,
+  purchase_id: child.purchase_id,
+  outcome_amount: child.outcome_amount,
+  outcome_currency: child.outcome_currency,
+  fee: child.fee,
+});
+
 async function coinbaseHandler(req, res) {
   if (new URL(req.url, 'http://mock').pathname === '/charges' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req));
@@ -7242,10 +7319,13 @@ test('crypto: waiting and partially_paid show progress and grant nothing', async
   assert.equal(other.status, 404);
 });
 
-test('crypto: a wrong-asset deposit is judged on fiat, never on the coin that was asked for', async () => {
+test('crypto: a deposit is judged on the fiat the provider reported, never on the coin maths', async () => {
   const payment = nowpayments.payments.get('npid_1');
-  // Wrong-asset auto-processing is ON for this account: what arrived is not
-  // pay_currency, so actually_paid and actually_paid_at_fiat disagree.
+  // The two figures disagree: actually_paid counts units of the coin the
+  // invoice asked for, actually_paid_at_fiat is what the provider says the
+  // deposit was worth. (A deposit in a coin the invoice was NOT created for
+  // does not land on this payment at all — it becomes its own child payment,
+  // which is the scenario further down.)
   payment.actually_paid = 0.35;
   payment.actually_paid_at_fiat = Number((payment.price_amount * 0.4).toFixed(2));
   const { describeStatus, settledFiat } = await import('../src/lib/nowpayments.js');
@@ -8256,6 +8336,125 @@ test('crypto: a provider-shaped IPN — nested fee object, array of child ids, n
   };
   assert.equal((await deliverNow(ipn)).status, 200, 'the shape the provider actually sends has to verify');
   assert.equal((await deliverNow(ipn, { signature: signNow({ ...ipn, actually_paid: 0.6 }) })).status, 400, 'and a signature over anything else must not');
+});
+
+test('crypto: a second deposit on a delivered order is money the seller is TOLD about, not silence', async () => {
+  // The shape the documentation sweep found a hole under. The buyer paid,
+  // the role landed, and then they sent more to the same address — a mistake,
+  // a double-click on a wallet, a top-up they thought was needed. NOWPayments
+  // takes it, mints a payment of its own for it, forwards the coins to the
+  // seller, and posts an IPN with no order_id. Resolved only through our own
+  // order id, that IPN was "payment without order_id, ignoring" and a 200:
+  // the seller's wallet grew and nobody was told anything.
+  // The order the earlier scenario paid for and had delivered.
+  const payment = nowpayments.payments.get('npid_1');
+  assert.equal(payment.payment_status, 'finished');
+  assert.equal(await npAttemptStatus(npOrder.orderId), 'completed');
+  const order = npOrder;
+
+  const pings0 = discord.channelPosts.length;
+  const child = npRepeatDeposit(payment.payment_id, { atFiat: Number(payment.price_amount) });
+  assert.equal(child.order_id, null, 'the provider does not put our order id on a payment it minted itself');
+  assert.deepEqual(
+    nowpayments.payments.get(payment.payment_id).payment_extra_ids,
+    [child.payment_id],
+    'and it lists the child on the parent, which is the documented "array of child payments"',
+  );
+  const ipn = npDepositIpn(child);
+  const res = await deliverNow(ipn);
+  assert.deepEqual([res.status, res.body], [200, 'ok'], 'answered: this cannot become a sale on a retry');
+  assert.equal(await subRow('nowpayments', child.payment_id), null, 'a repeat deposit is not a second sale');
+  assert.equal(await npAttemptStatus(order.orderId), 'completed', 'and it does not reopen or re-close the order');
+  assert.equal(discord.channelPosts.length, pings0 + 1, 'money the seller was sent and did not sell is not silence');
+  const embed = discord.channelPosts.at(-1).body.embeds[0];
+  assert.match(embed.title, /not a new sale/i);
+  assert.doesNotMatch(embed.title, /New Subscriber/, 'it is money, but it is not a subscriber');
+  assert.ok(embed.description.includes(child.payment_id), 'the id the seller needs to find it in the dashboard');
+  assert.match(embed.description, /SOL/, 'and which coin was sent');
+
+  // Once. NOWPayments has no replay protection, and one deposit produces
+  // several transitions — each of which re-reads `finished` here.
+  assert.equal((await deliverNow(ipn)).status, 200);
+  assert.equal(discord.channelPosts.length, pings0 + 1, 'exactly one alert per deposit');
+});
+
+test('crypto: a wrong-coin deposit is a CHILD payment — the order stays open and the seller hears about it', async () => {
+  // The account has extra-deposits auto processing on (the release checklist
+  // requires it), so a buyer who sends a coin the invoice was not created for
+  // does not get it bounced. What they also do not get is credit against the
+  // invoice: the provider makes a new payment with a new id, names the
+  // invoice in parent_payment_id, and leaves the original exactly where it
+  // was. The file header used to claim the opposite — converted "and credited
+  // anyway" against the same payment — which is why nothing ever looked for
+  // the child.
+  const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+  const { order, payment } = await npCheckout(plans.plans[0].id);
+  const pings0 = discord.channelPosts.length;
+  const child = npRepeatDeposit(payment.payment_id, { payCurrency: 'btc', actuallyPaid: 0.0004, atFiat: Number(payment.price_amount) });
+  const res = await deliverNow(npDepositIpn(child));
+  assert.deepEqual([res.status, res.body], [200, 'ok']);
+
+  assert.equal(nowpayments.payments.get(payment.payment_id).payment_status, 'waiting', 'the invoice itself does not move');
+  assert.equal(await subRow('nowpayments', child.payment_id), null, 'a deposit the provider minted is not a sale to grant on');
+  assert.equal(await subRow('nowpayments', payment.payment_id), null, 'nor is it a reason to grant on the invoice');
+  assert.equal(await npAttemptStatus(order.orderId), 'started', 'the order stays open — finishing it is the seller\'s call, in their dashboard');
+  assert.equal(discord.channelPosts.length, pings0 + 1, 'the seller learns coins arrived for an order that is not delivered');
+  const embed = discord.channelPosts.at(-1).body.embeds[0];
+  assert.match(embed.title, /did not complete the order/i);
+  assert.match(embed.description, /BTC/, 'which coin turned up, since it is not the one the invoice asked for');
+  assert.ok(embed.description.includes(child.payment_id));
+  assert.match(embed.description, /Members|dashboard/, 'and what they can do about it');
+
+  // The buyer is not told "confirmed": nothing was delivered.
+  const view = await npView(order.orderId);
+  assert.equal(view.state, 'pending', JSON.stringify(view));
+
+  // Housekeeping, not behaviour: this order is deliberately left OPEN by the
+  // code under test (the seller may still finish the payment), and a live
+  // invoice holds one of this buyer's three invoice slots in this store. Let
+  // it lapse so the scenarios after this one keep their own budget.
+  await tq('UPDATE checkout_attempts SET expires_at = ? WHERE session_id = ?', [nowSec() - 60, order.orderId]);
+});
+
+test('crypto: a payment that resolves to no order of ours is an alarm, not a log line', async () => {
+  // Two ways a deposit ends up unattributable: no order_id and no parent at
+  // all, and a parent the provider itself does not know. Neither can be
+  // turned into a sale from here — only the NOWPayments dashboard holds the
+  // deposit address that says which invoice it was sent to — but money on the
+  // platform's own merchant account arriving for nothing is not something to
+  // leave in a serverless log nobody reads.
+  const row = (await tq('SELECT id, notify_channel_id FROM stores WHERE guild_id = ?', [GUILD])).rows[0];
+  assert.ok(row, 'the platform guild has a store whose channel this alarm belongs in');
+  await tq('UPDATE stores SET notify_channel_id = ? WHERE id = ?', ['800000000000000002', row.id]);
+  try {
+    nowpayments.payments.set('npid_orphan', {
+      payment_id: 'npid_orphan', parent_payment_id: null, payment_status: 'finished',
+      order_id: null, price_currency: 'usd', pay_currency: 'sol',
+      actually_paid: 0.5, actually_paid_at_fiat: 49.99, purchase_id: '5312822699',
+    });
+    const pings0 = discord.channelPosts.length;
+    const orphan = { payment_id: 'npid_orphan', parent_payment_id: null, order_id: null, payment_status: 'finished', actually_paid: 0.5, pay_currency: 'sol' };
+    assert.equal((await deliverNow(orphan)).status, 200, 'nothing here gets better by making the provider retry');
+    assert.equal(discord.channelPosts.length, pings0 + 1, 'it is visible where a seller actually looks');
+    const embed = discord.channelPosts.at(-1).body.embeds[0];
+    assert.match(embed.title, /matches no order/i);
+    assert.ok(embed.description.includes('npid_orphan'), 'the id to look up');
+    assert.match(embed.description, /deposit address/, 'and where the answer lives');
+    assert.equal((await deliverNow(orphan)).status, 200);
+    assert.equal(discord.channelPosts.length, pings0 + 1, 'once, however many deliveries arrive');
+
+    // A parent id we can ask about and the provider 404s: unattributable, and
+    // it must not become an endless retry either.
+    nowpayments.payments.set('npid_orphan2', {
+      payment_id: 'npid_orphan2', parent_payment_id: 'npid_never_existed', payment_status: 'finished',
+      order_id: null, price_currency: 'usd', pay_currency: 'sol', actually_paid: 0.25, actually_paid_at_fiat: 0,
+    });
+    assert.equal((await deliverNow({ payment_id: 'npid_orphan2', parent_payment_id: 'npid_never_existed', order_id: null, payment_status: 'finished' })).status, 200);
+    assert.equal(discord.channelPosts.length, pings0 + 2);
+    assert.ok(discord.channelPosts.at(-1).body.embeds[0].description.includes('npid_orphan2'));
+  } finally {
+    await tq('UPDATE stores SET notify_channel_id = ? WHERE id = ?', [row.notify_channel_id ?? null, row.id]);
+  }
 });
 
 test('crypto: `cancelled` is a status the provider really sends, and it ends the payment', async () => {
