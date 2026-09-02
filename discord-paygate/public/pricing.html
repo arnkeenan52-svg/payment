@@ -1647,8 +1647,21 @@ html[data-theme="light"] .footer{
      top of a desktop screen. It is the desktop equivalent of the --foot-edge
      ground swap the phone block does, and removing it to "tidy up" a
      full-bleed footer would bring the bug straight back. */
-  .footer{position:fixed;inset:auto 0 0 0;min-height:100vh;margin-top:0}
-  .footer-spacer{height:100vh}
+  html[data-blind] .footer{position:fixed;inset:auto 0 0 0;min-height:100vh}
+  html[data-blind] .footer-spacer{height:100vh}
+  /* Gated on the blind for the same reason the phone is: a footer taller
+     than the viewport, pinned to bottom:0, hides its own title and CTA above
+     the top of the screen. When it does not fit it flows, flush under the
+     sheet's lip, and the title is a scroll away. */
+  .footer{margin-top:0}
+  /* Tighten before giving up, as the phone does: paddings first, then the
+     watermark, so the reveal survives a laptop viewport with browser chrome. */
+  html[data-foot-tight] .footer-stage{padding-top:20px}
+  html[data-foot-tight] .footer-title{margin-bottom:8px}
+  html[data-foot-tight] .footer-cta{margin-bottom:16px}
+  html[data-foot-tight] .footer .fcol{gap:7px}
+  html[data-foot-tight] .footer-watermark{margin-top:0}
+  html[data-foot-tighter] .footer-watermark{display:none}
 }
 .footer-stage{
   position:relative;z-index:1;display:flex;flex-direction:column;box-sizing:border-box;
@@ -2554,8 +2567,29 @@ html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
   // thing someone can see and reason about.
   var fit = function(){
     if(!footer){ return; }
-    html.removeAttribute('data-foot-tight');
-    if(!phoneMq.matches){ disarm(); return; }
+    var tiers = ['data-foot-tight','data-foot-tighter','data-foot-tightest'];
+    var loosen = function(){ for(var i = 0; i < tiers.length; i++){ html.removeAttribute(tiers[i]); } };
+    loosen();
+    if(!phoneMq.matches){
+      // Desktop: measured IN FLOW, then pinned only if the whole footer fits
+      // the viewport. Not tryArm(): .footer-stage{min-height:100vh} makes the
+      // in-flow height equal the viewport exactly when it fits, and tryArm's
+      // slack would reject that. Tightening tiers before giving up.
+      var armDesk = function(){
+        html.removeAttribute('data-blind');
+        var hd = footer.offsetHeight;
+        if(hd <= largeVh()){ html.setAttribute('data-blind',''); html.style.setProperty('--footH', hd + 'px'); return true; }
+        return false;
+      };
+      if(armDesk()){ return; }
+      for(var t = 0; t < tiers.length; t++){
+        html.setAttribute(tiers[t], '');
+        if(armDesk()){ return; }
+      }
+      loosen();
+      disarm();
+      return;
+    }
     if(tryArm()){ return; }
     html.setAttribute('data-foot-tight','');
     if(tryArm()){ return; }
@@ -2587,7 +2621,7 @@ html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
     // short for the blind the footer is an ordinary block at the end of the
     // document — nothing rises, so hiding the header for a screen and a half
     // costs the visitor their only way back up and buys nothing.
-    var willReveal = phoneMq.matches ? html.hasAttribute('data-blind') : true;
+    var willReveal = html.hasAttribute('data-blind');
     var revealed = willReveal && bottom <= seenVh + 1;
     html.toggleAttribute('data-footer-revealed', revealed);
     // the pinned footer may only paint near the reveal (see the CSS gate).
