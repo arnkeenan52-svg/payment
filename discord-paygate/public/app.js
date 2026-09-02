@@ -675,9 +675,22 @@ function wireCopy(sel, value) {
   };
 }
 
-// The quoted coin amount is fixed-rate, so it has an expiry. Counting down to
-// it is the difference between "this number is still good" and a buyer sending
-// against a rate that lapsed twenty minutes ago and landing short.
+// The countdown is the payment's own expiry — the instant NOWPayments stops
+// accepting this invoice (valid_until), which on a fixed-rate payment is about
+// ten minutes. It used to be labelled as the quoted rate's expiry, which was
+// both the wrong field and the wrong story: what runs out here is the payment.
+// Say which window it is, in the words a buyer would use.
+const cryptoClockText = (left) => {
+  const hh = String(Math.floor(left / 3600)).padStart(2, '0');
+  const mm = String(Math.floor((left % 3600) / 60)).padStart(2, '0');
+  const ss = String(left % 60).padStart(2, '0');
+  return left > 0 ? `Expires in ${hh}:${mm}:${ss}` : 'Expired';
+};
+// And when it runs out. Not "cancelled" and not "failed": the address is still
+// watched for a week, so a buyer who already sent it is told to sit tight
+// rather than pay twice — the cron finds that deposit and the role follows.
+const CRYPTO_EXPIRED_NOTE =
+  'This payment window has closed — start again for a fresh amount. If you already sent it, do not send it again: it still reaches the seller and your access follows.';
 let cryptoClock = null;
 function stopCryptoClock() {
   if (cryptoClock) clearInterval(cryptoClock);
@@ -695,17 +708,12 @@ function startCryptoClock(expiresAt) {
   el.hidden = false;
   const tick = () => {
     const left = Math.max(0, Math.floor((until - Date.now()) / 1000));
-    const hh = String(Math.floor(left / 3600)).padStart(2, '0');
-    const mm = String(Math.floor((left % 3600) / 60)).padStart(2, '0');
-    const ss = String(left % 60).padStart(2, '0');
-    el.textContent = `${hh}:${mm}:${ss}`;
+    el.textContent = cryptoClockText(left);
     el.classList.toggle('out', left === 0);
     if (left === 0) {
       stopCryptoClock();
       const t = $('#cryptopay-status-text');
-      // Not "cancelled": the address still works. What lapsed is the quoted
-      // amount, and sending the old figure now is how a buyer underpays.
-      if (t) t.textContent = 'The quoted rate has expired — start the payment again for a fresh amount.';
+      if (t) t.textContent = CRYPTO_EXPIRED_NOTE;
     }
   };
   tick();

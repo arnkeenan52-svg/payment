@@ -112,6 +112,12 @@ const coinbase = { charges: [] };
 // NOWPayments: the crypto rail. `payments` is mutable so a test can advance a
 // payment through its statuses the way the real provider would.
 const nowpayments = { created: [], payments: new Map(), n: 0, minAmount: [], delayCreateMs: 0 };
+// How long a created payment can be paid for. The provider freezes the rate on
+// the fixed-rate, fee-paid-by-user flow this rail always asks for "for 10
+// minutes. If there are no incoming payments during this period, the payment
+// status changes to 'expired'." A mock that never expired anything is why a
+// ten-minute invoice could be held for seven days with nothing to catch it.
+const NP_VALID_FOR_MS = 10 * 60_000;
 const NOW_KEY = 'np_key_e2e';
 const NOW_IPN_SECRET = 'np_ipn_secret_e2e';
 const resend = { emails: [] };
@@ -707,7 +713,19 @@ async function nowpaymentsHandler(req, res) {
       outcome_currency: body.payout_currency,
       payment_extra_ids: null,
       fee: { currency: body.pay_currency, depositFee: 0.09853637216235617, withdrawalFee: 0, serviceFee: 0 },
+      // TWO expiries, because the provider documents two and they are not the
+      // same instant. This one is the ESTIMATE's — "expiration date of this
+      // estimate" — and it is deliberately the later of the pair, so a rail
+      // that reads it as the payment's life is caught by every assertion about
+      // the window rather than passing by coincidence.
       expiration_estimate_date: new Date(Date.now() + 20 * 60_000).toISOString(),
+      // ...and this one is the PAYMENT's: "this parameter indicated when
+      // payment go expired". Every payment this app creates is fixed-rate with
+      // the fee paid by the buyer, and NOWPayments' note on both flags is the
+      // same — "the rate of exchange will be frozen for 10 minutes. If there
+      // are no incoming payments during this period, the payment status
+      // changes to 'expired'".
+      valid_until: new Date(Date.now() + (nowpayments.validForMs ?? NP_VALID_FOR_MS)).toISOString(),
     };
     nowpayments.payments.set(id, payment);
     json(res, 201, payment);
@@ -720,10 +738,35 @@ async function nowpaymentsHandler(req, res) {
       json(res, 404, { message: 'not found' });
       return;
     }
+    // The provider expires a payment nothing was sent to before valid_until,
+    // and it does so SILENTLY: "no callbacks are sent after a payment expires".
+    // So it only ever becomes visible on a lookup — which is exactly why our
+    // own polling is the only thing that can find a deposit afterwards.
+    if (payment.payment_status === 'waiting' && Number(payment.actually_paid ?? 0) <= 0
+        && payment.valid_until && Date.parse(payment.valid_until) <= Date.now()) {
+      payment.payment_status = 'expired';
+    }
     json(res, 200, payment);
     return;
   }
   json(res, 404, { message: 'no route' });
+}
+
+// A deposit that lands on an invoice the provider has already expired. Their
+// help centre is explicit that both halves of this happen: "no callbacks are
+// sent after a payment expires. Deposits can still be received, but they will
+// not trigger any further IPN callbacks" — and a payment "lives for 7 days -
+// after that, our system will stop tracking it".
+//
+// So this moves the payment on and delivers NOTHING: no IPN is sent anywhere,
+// because the provider would send none. The only way anyone learns about this
+// money is the next time we ask about the payment ourselves.
+function npDepositAfterExpiry(ref) {
+  const payment = nowpayments.payments.get(ref);
+  payment.actually_paid = payment.pay_amount;
+  payment.actually_paid_at_fiat = payment.price_amount;
+  payment.payment_status = 'finished';
+  return payment;
 }
 
 async function coinbaseHandler(req, res) {
@@ -7057,7 +7100,11 @@ test('crypto: a claim left by an invocation that died is retaken, and the cron r
   const O_GONE = `np_${'d'.repeat(32)}`;
   await npOpenOrder({ storeId, plan, uid: DIED, orderId: O_DIED, ref: 'npid_died', status: 'finished', age: 60 });
   await npOpenOrder({ storeId, plan, uid: LOST, orderId: O_LOST, ref: 'npid_lost', status: 'finished', age: 7200 });
-  await npOpenOrder({ storeId, plan, uid: GONE, orderId: O_GONE, ref: 'npid_gone', status: 'expired', age: 7200 });
+  // Expired AND past the seven days the provider keeps watching the deposit
+  // address for. Only now is there nothing left that could land on it, so only
+  // now is closing it honest — an invoice that expired an hour ago is the next
+  // scenario's business, and it stays open.
+  await npOpenOrder({ storeId, plan, uid: GONE, orderId: O_GONE, ref: 'npid_gone', status: 'expired', age: 8 * 86400 });
 
   // 1. Another invocation took the claim on this very work 30 seconds ago
   // and may still be running: neither duplicate it nor consume the delivery.
@@ -7080,11 +7127,11 @@ test('crypto: a claim left by an invocation that died is retaken, and the cron r
   assert.equal(cron.status, 200, cron.body);
   const body = JSON.parse(cron.body);
   assert.equal(body.cryptoBackfill?.recovered, 1, `the cron recovers the sale: ${cron.body}`);
-  assert.equal(body.cryptoBackfill?.closed, 1, `and closes the invoice the provider expired: ${cron.body}`);
+  assert.equal(body.cryptoBackfill?.closed, 1, `and closes the invoice whose tracking window is spent: ${cron.body}`);
   assert.ok(memberRoles(LOST).has(R2_VIP), 'the role is delivered');
   assert.equal(await attemptStatus(O_LOST), 'completed');
   assert.equal(discord.channelPosts.length, pings0 + 1, 'the seller is pinged');
-  assert.equal(await attemptStatus(O_GONE), 'expired', 'an invoice closed unpaid is closed here too');
+  assert.equal(await attemptStatus(O_GONE), 'expired', 'an invoice nothing can land on any more is closed here too');
   // A second sweep has nothing open left and asks the provider nothing.
   const reqs = nowpayments.requests;
   assert.deepEqual(JSON.parse((await hitCron()).body).cryptoBackfill, { checked: 0, recovered: 0, closed: 0 });
@@ -7093,6 +7140,100 @@ test('crypto: a claim left by an invocation that died is retaken, and the cron r
   const lateIpn = await deliverNow({ payment_id: 'npid_lost', payment_status: 'finished', order_id: O_LOST });
   assert.deepEqual([lateIpn.status, lateIpn.body], [200, 'duplicate']);
   assert.equal(discord.channelPosts.length, pings0 + 1, 'no second ping');
+});
+
+test('crypto: an invoice the provider expired keeps looking for money, and a deposit that lands after it still delivers the role', async () => {
+  // The case that loses a buyer's money. NOWPayments expires a fixed-rate
+  // payment when nothing has arrived before valid_until — ten minutes on the
+  // flow this rail always asks for — and from that moment it says nothing at
+  // all: "no callbacks are sent after a payment expires. Deposits can still be
+  // received, but they will not trigger any further IPN callbacks", while it
+  // goes on crediting that address for seven days. So a buyer who sends a
+  // minute late produces NO IPN, ever. This sweep is the only thing that can
+  // find that money, and closing the order the hour it lapsed — which is what
+  // this rail used to do — is what made it disappear with nothing delivered.
+  const storeId = await npStoreId();
+  const post = (path, body, cookie = npCookie) =>
+    fetch(`${appUrl}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const made = JSON.parse(await (await post('/api/onboard', { step: 'product', storeId, name: 'Late Deposit', priceUsd: 25, lifetime: true })).text()).plan;
+  assert.equal((await post('/api/onboard', { step: 'role', storeId, planKey: made.planKey, roleId: R2_VIP })).status, 200);
+  const LATE = '536600000000000038';
+  discord.members.set(LATE, new Set());
+  const lateCookie = await signInAs('code_np_late', LATE, 'np_late');
+  const start = () => post('/api/checkout/crypto', { planId: made.planKey, payCurrency: 'sol' }, lateCookie);
+
+  // A real checkout against a provider whose window is about to close. Same
+  // field, same code path as the ten-minute one — only the number is small
+  // enough for a test to outlive.
+  nowpayments.validForMs = 1200;
+  let order;
+  try {
+    const started = await start();
+    assert.equal(started.status, 200, await started.clone().text());
+    order = await started.json();
+  } finally {
+    delete nowpayments.validForMs;
+  }
+  const row = (await tq('SELECT * FROM checkout_attempts WHERE session_id = ?', [order.orderId])).rows[0];
+  const ref = row.provider_ref;
+  assert.ok(asNum(row.expires_at) - nowSec() < 60,
+    "the hold is the provider's own deadline, so it lapses with the invoice instead of a week later");
+  assert.equal(Math.floor(Date.parse(order.expiresAt) / 1000), asNum(row.expires_at),
+    'and the countdown the buyer watches is that same instant');
+  await sleep(1500);
+
+  // The buyer's own screen once the window closes. The provider has expired it
+  // silently; the one thing this must not say to someone whose transfer is
+  // already on its way is that the payment failed.
+  const poll = await (await fetch(`${appUrl}/api/checkout/crypto?store=vip-signals&order=${order.orderId}`, { headers: { cookie: lateCookie } })).json();
+  assert.equal(poll.status, 'expired', 'the provider expires the invoice on its own, and only a lookup reveals it');
+  assert.match(poll.message, /already sent/i, 'a buyer whose deposit is in flight is told to sit tight, not to pay twice');
+
+  // It also tells them to start again — so doing exactly that has to work.
+  // An expired invoice holds no seat, no discount use, and counts for nothing
+  // against the three live invoices a buyer may hold. Held for a week, this
+  // third restart was the moment a buyer got locked out of a product they had
+  // never bought.
+  const restarts = [];
+  for (let i = 0; i < 3; i += 1) {
+    const again = await start();
+    assert.equal(again.status, 200, `restart ${i + 1} after an expired invoice: ${await again.clone().text()}`);
+    restarts.push((await again.json()).orderId);
+  }
+
+  // The money lands on the invoice the provider already gave up on. Nothing is
+  // delivered to us: no IPN is sent here, because NOWPayments would send none.
+  const pings0 = discord.channelPosts.length;
+  await tq('UPDATE checkout_attempts SET created_at = ? WHERE session_id = ?', [nowSec() - 7200, order.orderId]);
+  let body = JSON.parse((await hitCron()).body);
+  assert.equal(body.cryptoBackfill?.closed, 0, `an expired invoice inside the tracking window is not closed: ${JSON.stringify(body.cryptoBackfill)}`);
+  assert.equal(await attemptStatus(order.orderId), 'started', 'it stays open, because it is the only thing still looking for that deposit');
+
+  npDepositAfterExpiry(ref);
+  body = JSON.parse((await hitCron()).body);
+  assert.equal(body.cryptoBackfill?.recovered, 1, `the deposit nobody was told about is found: ${JSON.stringify(body.cryptoBackfill)}`);
+  assert.ok(memberRoles(LATE).has(R2_VIP), 'and the buyer gets the role they paid for');
+  assert.equal(await attemptStatus(order.orderId), 'completed');
+  assert.ok((await subRow('nowpayments', ref)) !== null, 'the membership row is written like any other sale');
+  assert.equal(discord.channelPosts.length, pings0 + 1, 'the seller is pinged once, by the sweep that delivered it');
+
+  // The pay screen tells the same story as the API. Both sentences are lifted
+  // out of the browser source and evaluated, so a copy edit is fine and a
+  // wrong window is not.
+  const appSrc = fs.readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  const clockSrc = appSrc.match(/const cryptoClockText = \(left\) => \{[\s\S]*?\n\};/)?.[0];
+  assert.ok(clockSrc, 'app.js must still decide the countdown wording in one place');
+  const clockText = new Function(`${clockSrc}\n return cryptoClockText;`)();
+  assert.match(clockText(600), /^expires in 00:10:00$/i, 'the countdown names what is running out');
+  assert.doesNotMatch(clockText(600), /rate|quote/i, 'what expires is the payment, not a rate quote that outlives it');
+  const note = appSrc.match(/const CRYPTO_EXPIRED_NOTE =\n?\s*'([^']*)';/)?.[1];
+  assert.ok(note, 'app.js must still say what a closed window means in one place');
+  assert.doesNotMatch(note, /rate has expired/i, 'the payment is what closed — the buyer cannot pay this invoice any more');
+  assert.match(note, /already sent/i, 'and a buyer who already sent it is told not to send it again');
+
+  // Cleanup: the three live restarts are nobody's business after this.
+  for (const id of restarts) await tq('UPDATE checkout_attempts SET expires_at = ? WHERE session_id = ?', [nowSec() - 1, id]);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: made.planKey, active: false })).status, 200);
 });
 
 test('cron: idempotency claims older than any provider retry window are purged, younger ones stay', async () => {
@@ -7127,16 +7268,17 @@ test("crypto: an open invoice holds its seat and its discount use for the invoic
   assert.equal(a1.status, 200, await a1.clone().text());
   const aOrder = await a1.json();
   const rowOf = async (id) => (await tq('SELECT * FROM checkout_attempts WHERE session_id = ?', [id])).rows[0];
-  // The hold is the provider's payment window (a week), NOT the rate quote's
-  // expiry the pay screen counts down to (the mock's estimate is 20 minutes
-  // out, the card TTL is 35) — the deposit address stays payable long past
-  // that quote, and a late `finished` grants, so a seat released at the quote
-  // is a seat sold twice. Three distinct numbers, so neither the old estimate
-  // nor the card-form fallback can satisfy this.
-  assert.ok(Math.abs(asNum((await rowOf(aOrder.orderId)).expires_at) - (nowSec() + 7 * 86400)) < 120,
-    "the row holds its seat for the provider's whole payment window, not the rate quote's expiry");
-  assert.ok(Math.abs(Date.parse(aOrder.expiresAt) / 1000 - (nowSec() + 20 * 60)) < 120,
-    "the buyer's countdown is still the quoted amount's expiry");
+  // One instant, three uses. The seat hold, the discount hold and the buyer's
+  // countdown are all the payment's own `valid_until` — ten minutes on the
+  // fixed-rate flow this rail always asks for. Not the ESTIMATE's expiry (the
+  // mock puts that 20 minutes out), not the card-form TTL (35), and not the
+  // seven days this used to hold for: four distinct numbers, so nothing but
+  // valid_until satisfies both of these.
+  const heldUntil = asNum((await rowOf(aOrder.orderId)).expires_at);
+  assert.ok(Math.abs(heldUntil - (nowSec() + 10 * 60)) < 120,
+    'the seat and the discount use are held for exactly as long as the provider will accept the payment');
+  assert.equal(Math.floor(Date.parse(aOrder.expiresAt) / 1000), heldUntil,
+    "the buyer's countdown runs to the same instant the seat is held to — one fact, one number");
   // B is refused the seat, and the code — a subscriptions row lands only when
   // the IPN does, and a crypto invoice can sit unpaid for hours before that.
   const bSeat = await start(bCookie, { planId: seat.planKey });
