@@ -52,6 +52,10 @@
       "destination": "/help.html"
     },
     {
+      "source": "/crypto",
+      "destination": "/crypto.html"
+    },
+    {
       "source": "/privacy",
       "destination": "/privacy.html"
     },

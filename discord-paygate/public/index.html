@@ -503,7 +503,7 @@ html:not([data-theme="light"]) .sky-card{background:rgba(13,20,32,.6)}
    same photo. A darker card ground keeps the glass look and the ink legible;
    the sky copy outside the cards gets a soft shadow for the same reason. */
 html:not([data-theme="light"]) .plan{background:rgba(15,13,34,.62)}
-html:not([data-theme="light"]) .microcopy,html:not([data-theme="light"]) .sec-eyebrow,html:not([data-theme="light"]) .mid-note,html:not([data-theme="light"]) .pay-cap,html:not([data-theme="light"]) .pay-note,html:not([data-theme="light"]) .fees-note,html:not([data-theme="light"]) .plan-name i,html:not([data-theme="light"]) .plan-note,html:not([data-theme="light"]) .hero-sub,html:not([data-theme="light"]) .page-hero-sub{text-shadow:0 1px 2px rgba(6,10,24,.55)}
+html:not([data-theme="light"]) .microcopy,html:not([data-theme="light"]) .sec-eyebrow,html:not([data-theme="light"]) .mid-note,html:not([data-theme="light"]) .pay-note,html:not([data-theme="light"]) .fees-note,html:not([data-theme="light"]) .plan-name i,html:not([data-theme="light"]) .plan-note,html:not([data-theme="light"]) .hero-sub,html:not([data-theme="light"]) .page-hero-sub{text-shadow:0 1px 2px rgba(6,10,24,.55)}
 /* Night, the rest of it: the shadow above buys about one stop, and the cloud
    bodies the shader paints (luminance to ~0.17, more under the moon's halo)
    still leave this copy under 4.5:1 whenever one drifts behind it — the 5th
@@ -1976,73 +1976,97 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
   .save-dues .sv-cost{font-size:16px}
   .fee-note{font-size:12px;line-height:17px}
 }
-/* payment methods: real brand marks on white chips, its own section */
+/* ── the payment strip: bare brand marks, one composition ──────────────────
+   Heading, one sentence, the coin marks, the line that says where the coin
+   list comes from, a rule, the card marks, and who processes them.
+
+   The marks are BARE. Every one of them used to sit on a white pill, which is
+   why each colour below was once chosen against #fff and only #fff. Now they
+   land on the panel itself: pale glass by day (measured #caddf6 at 1440 to
+   #edf1f6 at 390) and navy glass by night (#101828 to #232c40). A fill that
+   reads on one of those can vanish on the other, so nothing here is left to
+   the eye — the ratios are in the commit message, and the markup comment says
+   which of the three treatments each mark takes. */
 .pay{padding-block:8px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
-.pay-cap{font:600 12px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--micro)}
-.pay-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:800px}
-/* desktop: all 14 marks in a strict symmetric 7x2 grid of equal cells */
-@media (min-width:640px){
-  .pay-chips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;width:min(100%,900px);max-width:900px}
-  .pay-chip{min-width:0}
-  /* Nine cells — eight coins and the "+ more" — in ONE row, across the same
-     900px the fourteen cards above occupy in two. Three columns of three was
-     the first attempt and it made each coin chip half again as wide as a card
-     chip: the same object in two sizes, which reads as two vocabularies. One
-     row of nine keeps the chip the chip and makes the second rail visibly the
-     lighter of the two, which it is. */
-  .pay-chips.pay-crypto{grid-template-columns:repeat(9,minmax(0,1fr));width:min(100%,900px)}
-  .pay-crypto .pay-chip{min-width:0;padding:5px 6px;gap:5px}
+/* --pay-edge: a hairline that keeps a mark's OWN ground legible where its fill
+   lands close to the face behind it — Klarna's pink block by day (1.2:1
+   against the glass), Visa's navy one by night (1.2:1 against the panel). It
+   draws the edge of the block; it does not touch anybody's colour. */
+.pay{--pay-edge:rgba(15,22,38,.16)}
+html:not([data-theme="light"]) .pay{--pay-edge:rgba(255,255,255,.22)}
+.pay-lede{
+  margin:0;font-family:var(--jakarta);font-weight:600;font-size:var(--t-sub);
+  line-height:1.18;letter-spacing:-.02em;color:var(--ink);text-align:center;text-wrap:balance;
 }
-.pay-chip{
-  display:inline-flex;align-items:center;justify-content:center;gap:4px;
-  min-height:34px;min-width:64px;padding:5px 15px;border-radius:10px;
-  background:#fff;border:1px solid rgba(15,22,38,.1);
-  box-shadow:0 2px 8px -4px rgba(15,22,38,.2);
+.pay-say{
+  max-width:54ch;margin:0;font-size:var(--t-body);line-height:24px;
+  color:var(--sec);text-align:center;text-wrap:pretty;
 }
-.pay-chip svg{display:block;height:15px;width:auto}
-.pay-chip b{font-weight:800;font-size:13px;letter-spacing:.02em}
-.pm-visa{color:#1A1F71;font-style:italic;letter-spacing:.06em;font-size:14px}
-.pm-ink{color:#111}
-.pm-amexchip{background:#016FD0;border-color:#016FD0}
-.pm-amexchip b{color:#fff;letter-spacing:.1em;font-size:12px}
-.pm-linkchip{background:#33DDB3;border-color:#33DDB3}
-.pm-linkchip b{color:#011e0f;text-transform:lowercase;font-size:14px}
-.pm-klarnachip{background:#FFB3C7;border-color:#FFB3C7}
-.pm-klarnachip b{color:#0A0B09;font-size:13.5px;letter-spacing:0}
-.pm-cashchip{background:#00D632;border-color:#00D632}
-.pm-cashchip svg{height:14px}
-/* .pm-cashchip b, not a bare class: .pay-chip b outranks a lone class and was
-   quietly winning, leaving this white-on-green logotype the smallest chip */
-.pm-cashchip b{color:#fff;font-size:14px;letter-spacing:.01em;white-space:nowrap}
-.pm-paypalchip b{font-style:italic;letter-spacing:.01em;font-size:13.5px}
-.pm-paypalchip i{font-style:italic}
-.pm-paypalchip .pp1{color:#003087}
-.pm-paypalchip .pp2{color:#009cde}
-.pm-idealchip b{color:#c06;font-size:13.5px;letter-spacing:.01em}
-.pm-mobilepaychip{background:#5a78ff;border-color:#5a78ff}
-.pm-mobilepaychip b{color:#fff;font-size:12.5px;letter-spacing:0}
-.pm-alipaychip b{color:#1677ff;font-size:13px;letter-spacing:0}
-.pm-wechatchip b{color:#07c160;font-size:12.5px;letter-spacing:0}
-.pm-afterpaychip{background:#b2fce4;border-color:#b2fce4}
-.pm-afterpaychip b{color:#0a1a14;text-transform:lowercase;font-size:13.5px;letter-spacing:0}
-/* phones keep the core eight in a strict symmetric 4x2 grid */
+.pay-marks{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:18px 24px;margin:4px 0}
+.pay-mark{display:inline-flex;align-items:center;justify-content:center;gap:5px;color:var(--ink)}
+.pay-mark b{font-weight:800;font-size:15px;letter-spacing:.02em}
+/* the coins: each brand's own disc, at a size that can carry the glyph inside
+   it. The hairline is what keeps a disc a disc on the face its fill is closest
+   to — Bitcoin's orange is 1.7:1 on the day glass, XRP's near-black 1.2:1 on
+   the night panel. */
+.pay-coins{max-width:540px}
+.pay-coins .pay-mark svg{display:block;width:34px;height:34px;border-radius:50%;box-shadow:0 0 0 1px var(--pay-edge)}
+.pay-cards{max-width:620px}
+.pay-cards .pay-mark svg{display:block;height:20px;width:auto}
+.pm-mc svg{height:24px}
+.pm-apple svg{height:19px}
+.pm-gpay svg{height:19px}
+/* the three marks that ARE a block: their own fill, their own type, on the
+   same 28px line as the wordmarks beside them */
+.pay-block{height:28px;padding:0 10px;border-radius:6px;border:1px solid var(--pay-edge)}
+.pm-visa{background:#1A1F71;border-color:#1A1F71}
+.pm-visa b{color:#fff;font-style:italic;letter-spacing:.06em;font-size:15px}
+.pm-amex{background:#016FD0;border-color:#016FD0}
+.pm-amex b{color:#fff;letter-spacing:.1em;font-size:13.5px}
+.pm-klarna{background:#FFB3C7}
+.pm-klarna b{color:#0A0B09;font-size:15px;letter-spacing:0}
+.pm-paypal b{font-style:italic;letter-spacing:.01em;font-size:16px}
+.pm-paypal i{font-style:italic}
+.pm-paypal .pp1{color:#003087}
+.pm-paypal .pp2{color:#009cde}
+/* ── the marks that ship in two versions, wearing the right one per face ──
+   Apple Pay and Google Pay's "Pay" take the page's ink, which is Apple's own
+   black-and-white pair and Google's. PayPal's navy measures 1.0:1 on the night
+   panel — invisible, not dim — so the night face takes PayPal's white
+   logotype. Solana and XRP are near-black DISCS: by day the disc is the mark's
+   ground, by night the page already is that colour, so the disc goes and the
+   glyph stands bare, which is each brand's own reverse lockup. Scaled back up
+   because a bare glyph inside a 34px box reads smaller than a filled disc. */
+html:not([data-theme="light"]) .pm-paypal .pp1,
+html:not([data-theme="light"]) .pm-paypal .pp2{color:#fff}
+html:not([data-theme="light"]) .pm-sol .pm-plate,
+html:not([data-theme="light"]) .pm-xrp .pm-plate{display:none}
+html:not([data-theme="light"]) .pm-sol svg,
+html:not([data-theme="light"]) .pm-xrp svg{box-shadow:none}
+html:not([data-theme="light"]) .pm-sol svg>g,
+html:not([data-theme="light"]) .pm-xrp svg>path{transform-box:fill-box;transform-origin:center;transform:scale(1.42)}
+/* the sourced lines under each row, and the close */
+.pay-link{color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.pay-close{display:flex;align-items:center;justify-content:center;gap:8px}
+.pay-stripe{display:inline-flex;color:#635BFF}
+.pay-stripe svg{display:block;height:20px;width:auto}
+/* phones: the coins in a strict 4x2 grid, the cards breaking 4 then 3 */
 @media (max-width:639px){
-  .pay-chip.pay-xtra{display:none}
-  .pay-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:min(100%,376px)}
-  .pay-chip{min-width:0;padding:5px 4px}
-  .pay-chip b{font-size:12px}
-  .pm-visa{font-size:12.5px}
-  .pm-linkchip b{font-size:12.5px}
-  .pm-klarnachip b{font-size:12px}
-  .pay-chip svg{height:13px}
-  .pm-cashchip svg{height:12px}
-  .pm-cashchip b{font-size:12.5px}
-}
-/* below 400px a 4-up chip is ~60-75px wide: glyph + wordmark no longer fit on
-   one line, and the old rendering quietly broke "Cash App" over two. The
-   wordmark alone still reads as the brand; the glyph does not */
-@media (max-width:400px){
-  .pm-cashchip svg{display:none}
+  .pay-marks{gap:15px 18px}
+  .pay-coins{display:grid;grid-template-columns:repeat(4,auto);justify-content:center;max-width:none}
+  .pay-coins .pay-mark svg{width:31px;height:31px}
+  .pay-cards{max-width:302px}
+  .pay-cards .pay-mark svg{height:18px}
+  .pay-mark b{font-size:14px}
+  .pay-block{height:26px;padding:0 9px}
+  .pm-visa b{font-size:14px}
+  .pm-amex b{font-size:12.5px}
+  .pm-klarna b{font-size:14px}
+  .pm-paypal b{font-size:15px}
+  .pm-mc svg{height:22px}
+  .pm-apple svg{height:17px}
+  .pm-gpay svg{height:17px}
+  .pay-stripe svg{height:18px}
 }
 @media (max-width:600px){
   .sky-grain{display:none}
@@ -2070,7 +2094,6 @@ html[data-theme="light"] .sec-eyebrow{color:#1b2c57}      /* was #5865f2 — 1.7
 html[data-theme="light"] .microcopy{color:#22314f}           /* the crescendo note under Start selling sat on the sky at ~2.5:1 */
 html[data-theme="light"] .hero-sub,
 html[data-theme="light"] .hero .microcopy{color:#22314f}   /* --sec/--micro on the bare sky measured 1.69–3.2:1; 5.0:1 now */
-html[data-theme="light"] .pay-cap,
 html[data-theme="light"] .pay-note{color:#22314f}         /* was #67748f — 1.80:1, now 5.0:1 */
 html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.96:1, now 5.0:1 */
 @media (max-width:800px){
@@ -2280,35 +2303,20 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
   .comm{padding-block:22px 48px}
 }
 
-/* ── payment band framing: hairline-flanked caption + settle note ── */
+/* ── payment band framing: the sourced lines and the rule ── */
 /* the gap above it belongs to `.how .trio`, which both faces obey — the strip
    is the closing band of How it works, not a section with its own air. */
-.pay-cap{display:flex;align-items:center;gap:16px}
-.pay-cap::before,.pay-cap::after{content:"";height:1px;width:min(11vw,88px)}
-.pay-cap::before{background:linear-gradient(90deg,transparent,var(--hair))}
-.pay-cap::after{background:linear-gradient(90deg,var(--hair),transparent)}
-.pay-note{font-size:12.5px;line-height:18px;color:var(--micro);text-align:center;margin-top:-2px}
+/* The two uppercase captions ("CARDS AND WALLETS", "CRYPTO") are gone: the
+   heading and its one sentence now say what the strip is, and each row's own
+   line says what its marks leave out. A label that only repeats the marks
+   under it is a third voice saying nothing. */
+.pay-note{font-size:12.5px;line-height:18px;color:var(--micro);text-align:center;max-width:62ch;margin:0 auto}
 /* The division between the two rails. A real rule rather than more whitespace:
-   the two groups sit in the same strip, in the same chip shape, and only a
-   drawn line says they settle in two different places. */
+   the two groups settle in two different places, and only a drawn line says so. */
 .pay-split{
-  width:min(100%,760px);height:0;margin:26px 0 4px;
+  width:min(100%,760px);height:0;margin:22px 0 6px;
   border:0;border-top:1px solid var(--hair);
 }
-/* The coin marks are the REAL logos, inlined exactly the way the Mastercard,
-   Apple Pay and Google Pay marks above them are: each coin's own disc in its
-   own colour, ticker beside it in the chip's ink. No per-coin text colour —
-   the logo carries the identity, and a coloured ticker had to be measured
-   against a white chip on both faces, which is a contrast bug waiting to
-   happen. The last chip is not a coin: the rail takes far more than eight, and
-   printing a list nobody reads is worse than saying so. */
-.pay-crypto .pay-chip svg{border-radius:50%}
-.pay-more b{color:var(--micro);font-weight:700}
-/* No night-face variants here, deliberately: the chip's ground is #fff on BOTH
-   faces (like every other mark in this strip), so a colour lightened for a dark
-   page would be lightened against white. The first version of this did exactly
-   that and four of the seven tickers went to about 2:1. One colour per coin,
-   chosen against white. */
 /* The day face left the strip bare on the open sky while the night face framed
    it as a panel, so under three carded steps it read as a row of logos that had
    drifted loose below the band rather than as the close of step three. Same
@@ -2430,12 +2438,12 @@ html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;pa
   html[data-foot-tight] .footer .fcol a:nth-of-type(n+4){display:none}
   html[data-foot-tight] .f-socials{margin-top:6px}
 }
-/* ── micro-motion: chips lift, cards settle; all off under reduced motion ── */
-.pay-chip{transition:transform .2s cubic-bezier(.23,1,.32,1)}
-.pay-chip:hover{transform:translateY(-2px)}
+/* ── micro-motion: marks lift, cards settle; all off under reduced motion ── */
+.pay-mark{transition:transform .2s cubic-bezier(.23,1,.32,1)}
+.pay-mark:hover{transform:translateY(-2px)}
 @media (prefers-reduced-motion:reduce){
-  .voice-card,.pay-chip{transition:none}
-  .voice-card:hover,.pay-chip:hover{transform:none}
+  .voice-card,.pay-mark{transition:none}
+  .voice-card:hover,.pay-mark:hover{transform:none}
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2534,7 +2542,7 @@ html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;pa
    "FAQ", "MONTHLY PLATFORM COST" and "ESTIMATED ANNUAL SAVING" finally read as
    the same kind of thing. Colour is left alone — every one of these was tuned
    against the sky for contrast, and none of them changes size class. */
-.pay-cap,.sec-eyebrow,.save-rows-cap,.save-cap{
+.sec-eyebrow,.save-rows-cap,.save-cap{
   font:600 var(--t-micro)/1.45 var(--sans);letter-spacing:.1em;text-transform:uppercase;
 }
 .sec-eyebrow{margin-bottom:10px}
@@ -2744,48 +2752,63 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
       <p>Share your dues.gg store link. Buyers check out, roles land in seconds, and every dollar goes to your account, not ours.</p>
     </article>
   </div>
-  <!-- the last step, shown rather than described: what a buyer is offered
-       at checkout. It used to be a section of its own, floating between two
-       fee arguments where nobody had asked the question yet. -->
-  <div class="pay">
-    <p class="pay-cap">Cards and wallets</p>
-    <div class="pay-chips" aria-label="Cards and wallets">
-      <span class="pay-chip" aria-label="Visa"><b class="pm-visa">VISA</b></span>
-      <span class="pay-chip" aria-label="Mastercard"><svg viewBox="0 0 38 24" aria-hidden="true"><circle cx="15" cy="12" r="9" fill="#EB001B"/><circle cx="23" cy="12" r="9" fill="#F79E1B"/><path d="M19 4.8a9 9 0 0 1 0 14.4 9 9 0 0 1 0-14.4z" fill="#FF5F00"/></svg></span>
-      <span class="pay-chip pm-amexchip" aria-label="American Express"><b>AMEX</b></span>
-      <span class="pay-chip" aria-label="Apple Pay"><svg viewBox="0 0 15 18" aria-hidden="true" fill="#000"><path d="M12.3 9.6c0-2.1 1.7-3.1 1.8-3.15-1-1.4-2.5-1.6-3-1.65-1.3-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.45 2.52-.37 6.25 1.04 8.29.69 1 1.52 2.12 2.6 2.08 1.04-.04 1.44-.67 2.7-.67 1.26 0 1.62.67 2.72.65 1.12-.02 1.83-1.02 2.52-2.02.79-1.16 1.12-2.28 1.14-2.34-.03-.01-2.19-.84-2.22-3.29zM10.24 3.3c.57-.7.96-1.66.85-2.63-.83.03-1.83.55-2.42 1.24-.53.62-1 1.6-.87 2.55.92.07 1.86-.47 2.44-1.16z"/></svg><b class="pm-ink">Pay</b></span>
-      <span class="pay-chip" aria-label="Google Pay"><svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg><b class="pm-ink">Pay</b></span>
-      <span class="pay-chip pm-linkchip" aria-label="Link"><b>link</b></span>
-      <span class="pay-chip pm-klarnachip" aria-label="Klarna"><b>Klarna.</b></span>
-      <span class="pay-chip pm-cashchip" aria-label="Cash App Pay"><svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff"><path d="M16.19 7.06c.67.46 1.28 1 1.83 1.6a.66.66 0 0 0 .95.03l1.26-1.26a.68.68 0 0 0 0-.97 11.6 11.6 0 0 0-2.32-1.94l.5-2.01a.67.67 0 0 0-.65-.83h-2.44a.67.67 0 0 0-.65.51l-.33 1.32c-2.98-.6-6.09.35-6.7 3.42-.5 2.5 1.26 3.77 3.32 4.52 1.9.71 3.36 1.13 3.13 2.32-.2 1.03-1.44 1.55-3.16 1.28a7.3 7.3 0 0 1-2.98-1.36.67.67 0 0 0-.9.06l-1.32 1.35a.68.68 0 0 0 .03.98 9.6 9.6 0 0 0 2.66 1.68l-.5 2.05a.67.67 0 0 0 .66.82l2.45-.02c.31 0 .58-.21.65-.51l.33-1.33c3.58.62 6.43-.68 6.98-3.55.46-2.44-1.2-3.7-3.5-4.51-1.62-.6-2.99-1.03-2.79-2.16.2-1.12 1.77-1.36 3.49-.99z"/></svg><b>Cash&#8202;App</b></span>
-      <span class="pay-chip pay-xtra pm-paypalchip" aria-label="PayPal"><b><i class="pp1">Pay</i><i class="pp2">Pal</i></b></span>
-      <span class="pay-chip pay-xtra pm-idealchip" aria-label="iDEAL"><b>iDEAL</b></span>
-      <span class="pay-chip pay-xtra pm-mobilepaychip" aria-label="MobilePay"><b>MobilePay</b></span>
-      <span class="pay-chip pay-xtra pm-alipaychip" aria-label="Alipay"><b>Alipay</b></span>
-      <span class="pay-chip pay-xtra pm-wechatchip" aria-label="WeChat Pay"><b>WeChat Pay</b></span>
-      <span class="pay-chip pay-xtra pm-afterpaychip" aria-label="Afterpay"><b>afterpay</b></span>
-    </div>
-    <p class="pay-note">Cards, wallets and local methods &#8212; every one settles to your own Stripe account.</p>
+  <!-- THE PAYMENT STRIP, rebuilt as one composition rather than two labelled
+       rows of chips.
 
-    <!-- The second rail, kept visibly separate. Card money settles to the
-         seller's own Stripe account and crypto settles to their own wallet:
-         two different rails with two different destinations, so a single
-         undivided row of marks would say they are one thing. The rule and the
-         caption are the division; the note under it names the destination. -->
-    <hr class="pay-split" />
-    <p class="pay-cap">Crypto</p>
-    <div class="pay-chips pay-crypto" aria-label="Supported coins">
-      <span class="pay-chip pm-btc" aria-label="Bitcoin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#F7931A"/><path fill="#fff" d="M23.19 14.02c.31-2.09-1.28-3.21-3.46-3.96l.71-2.84-1.73-.43-.69 2.76c-.45-.11-.92-.22-1.39-.32l.7-2.78-1.73-.43-.71 2.84c-.38-.09-.75-.17-1.11-.26v-.01l-2.38-.6-.46 1.85s1.28.29 1.25.31c.7.17.83.64.81 1.01l-.81 3.24c.05.01.11.03.18.06l-.18-.05-1.13 4.54c-.09.21-.3.53-.79.41.02.03-1.25-.31-1.25-.31l-.86 1.98 2.25.56c.42.1.83.21 1.23.31l-.72 2.87 1.73.43.71-2.84c.47.13.93.25 1.38.36l-.71 2.83 1.73.43.72-2.87c2.95.56 5.17.33 6.11-2.34.75-2.15-.04-3.39-1.59-4.2 1.13-.26 1.98-1 2.21-2.54zm-3.95 5.55c-.53 2.15-4.16.99-5.34.7l.95-3.81c1.18.3 4.95.88 4.39 3.11zm.54-5.58c-.49 1.96-3.51.96-4.49.72l.86-3.45c.98.25 4.14.7 3.63 2.73z"/></svg><b class="pm-ink">BTC</b></span>
-      <span class="pay-chip pm-eth" aria-label="Ethereum"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#627EEA"/><g fill="#fff"><path fill-opacity=".6" d="M16.5 4v8.87l7.5 3.35z"/><path d="M16.5 4 9 16.22l7.5-3.35z"/><path fill-opacity=".6" d="M16.5 21.97V28L24 17.62z"/><path d="M16.5 28v-6.03L9 17.62z"/><path fill-opacity=".2" d="m16.5 20.57 7.5-4.35-7.5-3.35z"/><path fill-opacity=".6" d="M9 16.22l7.5 4.35v-7.7z"/></g></svg><b class="pm-ink">ETH</b></span>
-      <span class="pay-chip pm-usdt" aria-label="Tether"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#26A17B"/><path fill="#fff" d="M17.92 17.38v-.01c-.11.01-.68.04-1.95.04-1.01 0-1.73-.03-1.98-.04v.01c-3.9-.17-6.81-.85-6.81-1.66s2.91-1.49 6.81-1.66v2.64c.25.02.98.06 1.99.06 1.21 0 1.82-.05 1.93-.06v-2.64c3.89.17 6.79.85 6.79 1.66s-2.9 1.49-6.79 1.66zm0-3.59v-2.36h5.4V7.83H8.68v3.6h5.4v2.36c-4.39.2-7.69 1.07-7.69 2.11s3.3 1.91 7.69 2.11v7.57h3.84v-7.57c4.38-.2 7.67-1.07 7.67-2.11s-3.29-1.9-7.67-2.11z"/></svg><b class="pm-ink">USDT</b></span>
-      <span class="pay-chip pm-usdc" aria-label="USD Coin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#2775CA"/><path fill="#fff" d="M20.5 18.53c0-2.38-1.43-3.2-4.28-3.54-2.04-.27-2.45-.82-2.45-1.77s.68-1.56 2.04-1.56c1.23 0 1.91.41 2.25 1.43.07.2.27.34.48.34h1.09c.27 0 .48-.2.48-.48v-.07a3.42 3.42 0 0 0-3.07-2.79V8.63c0-.27-.2-.48-.55-.55h-1.02c-.27 0-.48.2-.55.55v1.43c-2.04.27-3.34 1.63-3.34 3.34 0 2.25 1.36 3.13 4.22 3.47 1.91.34 2.52.75 2.52 1.84s-.95 1.84-2.25 1.84c-1.77 0-2.38-.75-2.59-1.77-.07-.27-.27-.41-.48-.41h-1.16c-.27 0-.48.2-.48.48v.07c.27 1.7 1.36 2.93 3.61 3.27v1.43c0 .27.2.48.55.55h1.02c.27 0 .48-.2.55-.55v-1.43c2.04-.34 3.41-1.77 3.41-3.61z"/><path fill="#fff" d="M13.1 25.5c-5.31-1.91-8.04-7.84-6.06-13.08a10.1 10.1 0 0 1 6.06-6.06c.27-.14.41-.34.41-.68v-.95c0-.27-.14-.48-.41-.55-.07 0-.2 0-.27.07a12.28 12.28 0 0 0-8.04 15.46 12.2 12.2 0 0 0 8.04 8.04c.27.14.55 0 .61-.27.07-.07.07-.14.07-.27v-.95c0-.2-.2-.48-.41-.61zm6.06-21.18c-.27-.14-.55 0-.61.27-.07.07-.07.14-.07.27v.95c0 .27.2.55.41.68 5.31 1.91 8.04 7.84 6.06 13.08a10.1 10.1 0 0 1-6.06 6.06c-.27.14-.41.34-.41.68v.95c0 .27.14.48.41.55.07 0 .2 0 .27-.07a12.28 12.28 0 0 0 8.04-15.46 12.2 12.2 0 0 0-8.04-8.04z"/></svg><b class="pm-ink">USDC</b></span>
-      <span class="pay-chip pm-sol" aria-label="Solana"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#0B0B12"/><defs><linearGradient id="pmSol" x1="8" y1="22" x2="24" y2="10" gradientUnits="userSpaceOnUse"><stop stop-color="#9945FF"/><stop offset="1" stop-color="#14F195"/></linearGradient></defs><g fill="url(#pmSol)"><path d="M10.33 19.7a.6.6 0 0 1 .43-.18h13.5c.27 0 .4.33.21.52l-2.66 2.67a.6.6 0 0 1-.43.18H7.88a.3.3 0 0 1-.21-.52z"/><path d="M10.33 9.29a.6.6 0 0 1 .43-.18h13.5c.27 0 .4.33.21.52l-2.66 2.67a.6.6 0 0 1-.43.18H7.88a.3.3 0 0 1-.21-.52z"/><path d="M21.67 14.46a.6.6 0 0 0-.43-.18H7.74a.3.3 0 0 0-.21.52l2.66 2.67c.11.11.27.18.43.18h13.5a.3.3 0 0 0 .21-.52z"/></g></svg><b class="pm-ink">SOL</b></span>
-      <span class="pay-chip pm-ltc" aria-label="Litecoin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#345D9D"/><path fill="#fff" d="m10.43 20.42 1.1-4.15-1.73.65.4-1.5 1.73-.65 2.18-8.2h4.24l-1.62 6.1 1.7-.64-.4 1.5-1.7.63-1.28 4.8h6.9l-.73 2.74H10.6z"/></svg><b class="pm-ink">LTC</b></span>
-      <span class="pay-chip pm-doge" aria-label="Dogecoin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#C2A633"/><path fill="#fff" d="M13.15 14.9h3.02v2.24h-3.02v3.9h1.86c.73 0 1.34-.09 1.83-.28.49-.19.87-.46 1.16-.83.29-.37.49-.83.6-1.4.11-.56.17-1.22.17-1.98s-.06-1.42-.17-1.98c-.11-.56-.31-1.03-.6-1.4-.29-.37-.67-.64-1.16-.83-.49-.19-1.1-.28-1.83-.28h-1.86zM10.1 17.14H8.6V14.9h1.5V8.9h5.13c1.2 0 2.24.16 3.13.49.89.33 1.63.8 2.21 1.4.58.6 1.01 1.33 1.3 2.18.29.85.43 1.8.43 2.85s-.14 2-.43 2.85c-.29.85-.72 1.58-1.3 2.18-.58.6-1.32 1.07-2.21 1.4-.89.33-1.93.49-3.13.49H10.1z"/></svg><b class="pm-ink">DOGE</b></span>
-      <span class="pay-chip pm-xrp" aria-label="XRP"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#23292F"/><path fill="#fff" d="M21.9 8.5h2.86l-5.95 5.9a3.98 3.98 0 0 1-5.6 0L7.25 8.5h2.87l4.52 4.48c.75.74 1.97.74 2.72 0zM10.08 23.5H7.22l5.99-5.94a3.98 3.98 0 0 1 5.6 0l5.99 5.94h-2.86l-4.56-4.52a1.93 1.93 0 0 0-2.72 0z"/></svg><b class="pm-ink">XRP</b></span>
-      <span class="pay-chip pay-more" aria-label="and more coins"><b>+ more</b></span>
+       It opens with a heading and one sentence, shows each rail's marks BARE
+       — no white pills under them — and closes each block with the line that
+       says what the marks do not: where the coin list actually comes from,
+       and who processes the cards. The rule between the two blocks stays; it
+       is the only thing that says card money and coin money settle in two
+       different places.
+
+       BARE MARKS ON TWO FACES is the whole difficulty. Every colour here used
+       to be chosen against one ground (#fff, on both faces) and now has to
+       hold on a pale glass panel by day and a navy one by night. Three
+       answers, in order of preference:
+         1. a mark that is a coloured disc or block with white inside it holds
+            on both (the disc softens on one face; the white glyph never does);
+         2. a mark whose brand ships a light AND a dark version wears the right
+            one per face — Apple Pay, Google Pay's "Pay", PayPal;
+         3. a mark that is near-black keeps its own ground where that ground is
+            what makes it itself, and drops it where the face already is that
+            colour — Solana and XRP show their disc by day and the bare glyph
+            by night, which is each brand's own reverse lockup.
+       Nobody's hue is recoloured to make a number work. Measured ratios are in
+       the commit that introduced this. -->
+  <div class="pay">
+    <h3 class="pay-lede">However they want to pay.</h3>
+    <p class="pay-say">Cards, wallets and local methods on one rail; coins on the other. Whichever your buyer reaches for, the money lands in an account you own &#8212; Dues never holds it.</p>
+
+    <div class="pay-marks pay-coins" aria-label="Coins the crypto rail takes">
+      <span class="pay-mark pm-btc" role="img" aria-label="Bitcoin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#F7931A"/><path fill="#fff" d="M23.19 14.02c.31-2.09-1.28-3.21-3.46-3.96l.71-2.84-1.73-.43-.69 2.76c-.45-.11-.92-.22-1.39-.32l.7-2.78-1.73-.43-.71 2.84c-.38-.09-.75-.17-1.11-.26v-.01l-2.38-.6-.46 1.85s1.28.29 1.25.31c.7.17.83.64.81 1.01l-.81 3.24c.05.01.11.03.18.06l-.18-.05-1.13 4.54c-.09.21-.3.53-.79.41.02.03-1.25-.31-1.25-.31l-.86 1.98 2.25.56c.42.1.83.21 1.23.31l-.72 2.87 1.73.43.71-2.84c.47.13.93.25 1.38.36l-.71 2.83 1.73.43.72-2.87c2.95.56 5.17.33 6.11-2.34.75-2.15-.04-3.39-1.59-4.2 1.13-.26 1.98-1 2.21-2.54zm-3.95 5.55c-.53 2.15-4.16.99-5.34.7l.95-3.81c1.18.3 4.95.88 4.39 3.11zm.54-5.58c-.49 1.96-3.51.96-4.49.72l.86-3.45c.98.25 4.14.7 3.63 2.73z"/></svg></span>
+      <span class="pay-mark pm-eth" role="img" aria-label="Ethereum"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#627EEA"/><g fill="#fff"><path fill-opacity=".6" d="M16.5 4v8.87l7.5 3.35z"/><path d="M16.5 4 9 16.22l7.5-3.35z"/><path fill-opacity=".6" d="M16.5 21.97V28L24 17.62z"/><path d="M16.5 28v-6.03L9 17.62z"/><path fill-opacity=".2" d="m16.5 20.57 7.5-4.35-7.5-3.35z"/><path fill-opacity=".6" d="M9 16.22l7.5 4.35v-7.7z"/></g></svg></span>
+      <span class="pay-mark pm-usdt" role="img" aria-label="Tether"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#26A17B"/><path fill="#fff" d="M17.92 17.38v-.01c-.11.01-.68.04-1.95.04-1.01 0-1.73-.03-1.98-.04v.01c-3.9-.17-6.81-.85-6.81-1.66s2.91-1.49 6.81-1.66v2.64c.25.02.98.06 1.99.06 1.21 0 1.82-.05 1.93-.06v-2.64c3.89.17 6.79.85 6.79 1.66s-2.9 1.49-6.79 1.66zm0-3.59v-2.36h5.4V7.83H8.68v3.6h5.4v2.36c-4.39.2-7.69 1.07-7.69 2.11s3.3 1.91 7.69 2.11v7.57h3.84v-7.57c4.38-.2 7.67-1.07 7.67-2.11s-3.29-1.9-7.67-2.11z"/></svg></span>
+      <span class="pay-mark pm-usdc" role="img" aria-label="USD Coin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#2775CA"/><path fill="#fff" d="M20.5 18.53c0-2.38-1.43-3.2-4.28-3.54-2.04-.27-2.45-.82-2.45-1.77s.68-1.56 2.04-1.56c1.23 0 1.91.41 2.25 1.43.07.2.27.34.48.34h1.09c.27 0 .48-.2.48-.48v-.07a3.42 3.42 0 0 0-3.07-2.79V8.63c0-.27-.2-.48-.55-.55h-1.02c-.27 0-.48.2-.55.55v1.43c-2.04.27-3.34 1.63-3.34 3.34 0 2.25 1.36 3.13 4.22 3.47 1.91.34 2.52.75 2.52 1.84s-.95 1.84-2.25 1.84c-1.77 0-2.38-.75-2.59-1.77-.07-.27-.27-.41-.48-.41h-1.16c-.27 0-.48.2-.48.48v.07c.27 1.7 1.36 2.93 3.61 3.27v1.43c0 .27.2.48.55.55h1.02c.27 0 .48-.2.55-.55v-1.43c2.04-.34 3.41-1.77 3.41-3.61z"/><path fill="#fff" d="M13.1 25.5c-5.31-1.91-8.04-7.84-6.06-13.08a10.1 10.1 0 0 1 6.06-6.06c.27-.14.41-.34.41-.68v-.95c0-.27-.14-.48-.41-.55-.07 0-.2 0-.27.07a12.28 12.28 0 0 0-8.04 15.46 12.2 12.2 0 0 0 8.04 8.04c.27.14.55 0 .61-.27.07-.07.07-.14.07-.27v-.95c0-.2-.2-.48-.41-.61zm6.06-21.18c-.27-.14-.55 0-.61.27-.07.07-.07.14-.07.27v.95c0 .27.2.55.41.68 5.31 1.91 8.04 7.84 6.06 13.08a10.1 10.1 0 0 1-6.06 6.06c-.27.14-.41.34-.41.68v.95c0 .27.14.48.41.55.07 0 .2 0 .27-.07a12.28 12.28 0 0 0 8.04-15.46 12.2 12.2 0 0 0-8.04-8.04z"/></svg></span>
+      <span class="pay-mark pm-sol" role="img" aria-label="Solana"><svg viewBox="0 0 32 32" aria-hidden="true"><circle class="pm-plate" cx="16" cy="16" r="16" fill="#0B0B12"/><defs><linearGradient id="pmSol" x1="8" y1="22" x2="24" y2="10" gradientUnits="userSpaceOnUse"><stop stop-color="#9945FF"/><stop offset="1" stop-color="#14F195"/></linearGradient></defs><g fill="url(#pmSol)"><path d="M10.33 19.7a.6.6 0 0 1 .43-.18h13.5c.27 0 .4.33.21.52l-2.66 2.67a.6.6 0 0 1-.43.18H7.88a.3.3 0 0 1-.21-.52z"/><path d="M10.33 9.29a.6.6 0 0 1 .43-.18h13.5c.27 0 .4.33.21.52l-2.66 2.67a.6.6 0 0 1-.43.18H7.88a.3.3 0 0 1-.21-.52z"/><path d="M21.67 14.46a.6.6 0 0 0-.43-.18H7.74a.3.3 0 0 0-.21.52l2.66 2.67c.11.11.27.18.43.18h13.5a.3.3 0 0 0 .21-.52z"/></g></svg></span>
+      <span class="pay-mark pm-ltc" role="img" aria-label="Litecoin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#345D9D"/><path fill="#fff" d="m10.43 20.42 1.1-4.15-1.73.65.4-1.5 1.73-.65 2.18-8.2h4.24l-1.62 6.1 1.7-.64-.4 1.5-1.7.63-1.28 4.8h6.9l-.73 2.74H10.6z"/></svg></span>
+      <span class="pay-mark pm-doge" role="img" aria-label="Dogecoin"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#C2A633"/><path fill="#fff" d="M13.15 14.9h3.02v2.24h-3.02v3.9h1.86c.73 0 1.34-.09 1.83-.28.49-.19.87-.46 1.16-.83.29-.37.49-.83.6-1.4.11-.56.17-1.22.17-1.98s-.06-1.42-.17-1.98c-.11-.56-.31-1.03-.6-1.4-.29-.37-.67-.64-1.16-.83-.49-.19-1.1-.28-1.83-.28h-1.86zM10.1 17.14H8.6V14.9h1.5V8.9h5.13c1.2 0 2.24.16 3.13.49.89.33 1.63.8 2.21 1.4.58.6 1.01 1.33 1.3 2.18.29.85.43 1.8.43 2.85s-.14 2-.43 2.85c-.29.85-.72 1.58-1.3 2.18-.58.6-1.32 1.07-2.21 1.4-.89.33-1.93.49-3.13.49H10.1z"/></svg></span>
+      <span class="pay-mark pm-xrp" role="img" aria-label="XRP"><svg viewBox="0 0 32 32" aria-hidden="true"><circle class="pm-plate" cx="16" cy="16" r="16" fill="#23292F"/><path fill="#fff" d="M21.9 8.5h2.86l-5.95 5.9a3.98 3.98 0 0 1-5.6 0L7.25 8.5h2.87l4.52 4.48c.75.74 1.97.74 2.72 0zM10.08 23.5H7.22l5.99-5.94a3.98 3.98 0 0 1 5.6 0l5.99 5.94h-2.86l-4.56-4.52a1.93 1.93 0 0 0-2.72 0z"/></svg></span>
     </div>
-    <p class="pay-note">Eight of the coins the rail takes &#8212; there are more. Paid on the chain the buyer picks, settled straight to the wallet you nominate.</p>
+    <p class="pay-note">Which coins a buyer can pay in is read live from the crypto rail at checkout &#8212; never a list kept on this page. <a class="pay-link" href="/crypto">See the full list</a></p>
+
+    <!-- The division between the two rails. A real rule rather than more
+         whitespace: card money settles to the seller's own Stripe account and
+         coin money to a wallet they nominate, so an undivided run of marks
+         would say the two are one thing. -->
+    <hr class="pay-split" />
+
+    <div class="pay-marks pay-cards" aria-label="Cards and wallets">
+      <span class="pay-mark pay-block pm-visa" role="img" aria-label="Visa"><b>VISA</b></span>
+      <span class="pay-mark pm-mc" role="img" aria-label="Mastercard"><svg viewBox="0 0 38 24" aria-hidden="true"><circle cx="15" cy="12" r="9" fill="#EB001B"/><circle cx="23" cy="12" r="9" fill="#F79E1B"/><path d="M19 4.8a9 9 0 0 1 0 14.4 9 9 0 0 1 0-14.4z" fill="#FF5F00"/></svg></span>
+      <span class="pay-mark pay-block pm-amex" role="img" aria-label="American Express"><b>AMEX</b></span>
+      <span class="pay-mark pm-paypal" role="img" aria-label="PayPal"><b><i class="pp1">Pay</i><i class="pp2">Pal</i></b></span>
+      <span class="pay-mark pay-block pm-klarna" role="img" aria-label="Klarna"><b>Klarna.</b></span>
+      <span class="pay-mark pm-apple" role="img" aria-label="Apple Pay"><svg viewBox="0 0 15 18" aria-hidden="true" fill="currentColor"><path d="M12.3 9.6c0-2.1 1.7-3.1 1.8-3.15-1-1.4-2.5-1.6-3-1.65-1.3-.13-2.5.75-3.15.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.45 2.52-.37 6.25 1.04 8.29.69 1 1.52 2.12 2.6 2.08 1.04-.04 1.44-.67 2.7-.67 1.26 0 1.62.67 2.72.65 1.12-.02 1.83-1.02 2.52-2.02.79-1.16 1.12-2.28 1.14-2.34-.03-.01-2.19-.84-2.22-3.29zM10.24 3.3c.57-.7.96-1.66.85-2.63-.83.03-1.83.55-2.42 1.24-.53.62-1 1.6-.87 2.55.92.07 1.86-.47 2.44-1.16z"/></svg><b>Pay</b></span>
+      <span class="pay-mark pm-gpay" role="img" aria-label="Google Pay"><svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg><b>Pay</b></span>
+    </div>
+    <p class="pay-note">Link, Cash App, iDEAL, MobilePay, Alipay, WeChat Pay and Afterpay too &#8212; Checkout offers whatever your own Stripe account has switched on.</p>
+    <p class="pay-note pay-close">Card payments powered by <span class="pay-stripe" role="img" aria-label="Stripe"><svg viewBox="54 36 360 150" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M414,113.4c0-25.6-12.4-45.8-36.1-45.8c-23.8,0-38.2,20.2-38.2,45.6c0,30.1,17,45.3,41.4,45.3c11.9,0,20.9-2.7,27.7-6.5v-20c-6.8,3.4-14.6,5.5-24.5,5.5c-9.7,0-18.3-3.4-19.4-15.2h48.9C413.8,121,414,115.8,414,113.4z M364.6,103.9c0-11.3,6.9-16,13.2-16c6.1,0,12.6,4.7,12.6,16H364.6z M301.1,67.6c-9.8,0-16.1,4.6-19.6,7.8l-1.3-6.2h-22v116.6l25-5.3l0.1-28.3c3.6,2.6,8.9,6.3,17.7,6.3c17.9,0,34.2-14.4,34.2-46.1C335.1,83.4,318.6,67.6,301.1,67.6z M295.1,136.5c-5.9,0-9.4-2.1-11.8-4.7l-0.1-37.1c2.6-2.9,6.2-4.9,11.9-4.9c9.1,0,15.4,10.2,15.4,23.3C310.5,126.5,304.3,136.5,295.1,136.5z M223.8,61.7l25.1-5.4V36l-25.1,5.3V61.7z M223.8,69.3h25.1v87.5h-25.1V69.3z M196.9,76.7l-1.6-7.4h-21.6v87.5h25V97.5c5.9-7.7,15.9-6.3,19-5.2v-23C214.5,68.1,202.8,65.9,196.9,76.7z M146.9,47.6l-24.4,5.2l-0.1,80.1c0,14.8,11.1,25.7,25.9,25.7c8.2,0,14.2-1.5,17.5-3.3V135c-3.2,1.3-19,5.9-19-8.9V90.6h19V69.3h-19L146.9,47.6z M79.3,94.7c0-3.9,3.2-5.4,8.5-5.4c7.6,0,17.2,2.3,24.8,6.4V72.2c-8.3-3.3-16.5-4.6-24.8-4.6C67.5,67.6,54,78.2,54,95.9c0,27.6,38,23.2,38,35.1c0,4.6-4,6.1-9.6,6.1c-8.3,0-18.9-3.4-27.3-8v23.8c9.3,4,18.7,5.7,27.3,5.7c20.8,0,35.1-10.3,35.1-28.2C117.4,100.6,79.3,105.9,79.3,94.7z"/></svg></span></p>
   </div>
 </section>
 
@@ -2910,6 +2933,7 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
         <a href="/pricing">Plans</a>
         <a href="/pricing">Pricing</a>
         <a href="/discover">Discover stores</a>
+        <a href="/crypto">Crypto payments</a>
         <a href="/api/invite">Invite Dues</a>
       </div>
       <!-- EVERY page on the site is listed here by name, one link each: 12

@@ -2061,6 +2061,10 @@ body.home .btn-fill, body.home .btn-secondary { font-weight: 700; }
 .seo-card:hover { border-color: var(--dim); }
 .seo-card p { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.55; }
 .seo-card-cta { color: var(--accent); font-size: 13px; font-weight: 700; margin-top: auto; padding-top: 6px; }
+/* /crypto: the assets in each settlement tier, one line per card. Heavier and
+   inkier than the .seo-card paragraph above it because it is a list of names
+   being scanned, not a sentence being read. */
+.crypto-chains { margin: 0; padding-top: 2px; color: color-mix(in srgb, var(--ink) 86%, transparent); font-size: 13px; line-height: 1.7; font-weight: 600; letter-spacing: 0.01em; }
 .cmp-card { padding: 20px; }
 .cmp-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
 .cmp-table th { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--edge); font-size: 13px; }

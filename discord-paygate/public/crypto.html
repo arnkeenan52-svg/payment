@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#70a3e6" />
-  <title>Dues vs Whop — Discord monetization compared</title>
-  <meta name="description" content="Whop charges 3% of sales + payout fees — Dues takes 0% of your sales and payments land in your own Stripe account. A side-by-side comparison for Discord server owners." />
-  <link rel="canonical" href="https://dues.gg/vs/whop" />
+  <title>Crypto payments on Dues — coins, chains, payouts</title>
+  <meta name="description" content="Which coins a Dues store can take is read live from the crypto rail at checkout, never a hardcoded list. The chains Dues ranks first for settlement, why cheap gas comes first, and where the payout lands." />
+  <link rel="canonical" href="https://dues.gg/crypto" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Dues vs Whop — Discord monetization compared" />
-  <meta property="og:description" content="Whop charges 3% of sales + payout fees — Dues takes 0% of your sales and payments land in your own Stripe account. A side-by-side comparison for Discord server owners." />
+  <meta property="og:title" content="Crypto payments on Dues — coins, chains, payouts" />
+  <meta property="og:description" content="Which coins a Dues store can take is read live from the crypto rail at checkout, never a hardcoded list. The chains Dues ranks first for settlement, why cheap gas comes first, and where the payout lands." />
   <meta property="og:image" content="https://dues.gg/og-card.jpg?v=204" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
@@ -20,7 +20,7 @@
        unfurls as a bare screenshot from an unnamed domain. -->
   <meta property="og:site_name" content="Dues" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:url" content="https://dues.gg/vs/whop" />
+  <meta property="og:url" content="https://dues.gg/crypto" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:creator" content="@duesdiscord" />
@@ -167,8 +167,8 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 /* search box as glass (discover) */
 .search-box { background: rgba(255,255,255,.62); border-color: rgba(255,255,255,.75); }
 </style>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://dues.gg/"},{"@type":"ListItem","position":2,"name":"Compare","item":"https://dues.gg/vs"},{"@type":"ListItem","position":3,"name":"Dues vs Whop","item":"https://dues.gg/vs/whop"}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much does Whop cost compared to Dues?","acceptedAnswer":{"@type":"Answer","text":"Whop's publicly listed pricing is 3% of sales + payout fees. Dues charges a flat plan (free up to 10 paying members, then from $14.99/mo) and takes 0% of your sales."}},{"@type":"Question","name":"Does Dues really take 0% of sales?","acceptedAnswer":{"@type":"Answer","text":"Yes. Dues charges a flat monthly plan only. Stripe’s standard card-processing fees still apply, as they do on every platform."}},{"@type":"Question","name":"Where does my money go with Dues?","acceptedAnswer":{"@type":"Answer","text":"Straight into your own Stripe account. Dues never holds, routes, or freezes your funds."}},{"@type":"Question","name":"Can I switch without losing my members?","acceptedAnswer":{"@type":"Answer","text":"Your members keep their Discord roles while you set Dues up, and your Stripe customers stay in your own Stripe account either way."}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://dues.gg/"},{"@type":"ListItem","position":2,"name":"Crypto payments","item":"https://dues.gg/crypto"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many cryptocurrencies can I accept?","acceptedAnswer":{"@type":"Answer","text":"There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved."}},{"@type":"Question","name":"Which chain should I take payouts on?","acceptedAnswer":{"@type":"Answer","text":"Dues ranks 23 assets for settlement, cheapest first, and the picker opens on the cheap end. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — Solana, Tron, Polygon and Base settle for cents, Bitcoin and Ethereum do not."}},{"@type":"Question","name":"Where does the crypto go?","acceptedAnswer":{"@type":"Answer","text":"To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold."}},{"@type":"Question","name":"Do I have to take crypto?","acceptedAnswer":{"@type":"Answer","text":"No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain."}}]}</script>
   <script src="/theme.js?v=204"></script>
 </head>
 <body class="home seo-page">
@@ -194,54 +194,74 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 
     <section class="xhero seo-hero">
       <div class="hero-inner">
-        <h1>Dues vs Whop</h1>
-        <p class="hero-sub">Whop is a marketplace: your store lives on whop.com, buyers check out through Whop, and Whop takes a percentage of every sale before paying you out.</p>
-        <p class="hero-sub">Dues is the other model: a flat plan, <strong>0% of your sales</strong>, and payments that land in <strong>your own Stripe account</strong> with roles delivered in seconds.</p>
+        <h1>Crypto payments on Dues</h1>
+        <p class="hero-sub">Which coins a buyer can pay in, which chains we rank first for settlement, and why this page does not print a number.</p>
       </div>
     </section>
     <section class="xsection">
-      <div class="wrap narrow">
-        <div class="panel cmp-card">
-          <div class="table-scroll"><table class="cmp-table">
-            <thead><tr><th></th><th>Dues</th><th>Whop</th></tr></thead>
-            <tbody>
-            <tr><td>Platform fee on sales</td><td class="cmp-good">0% — always</td><td>3% of every sale*</td></tr>
-            <tr><td>Monthly cost</td><td class="cmp-good">Free up to 10 paying members, then from $14.99/mo</td><td>$0 base</td></tr>
-            <tr><td>Where the money goes</td><td class="cmp-good">Your own Stripe account, directly</td><td>Held by the platform, paid out to you</td></tr>
-            <tr><td>Your store lives at</td><td class="cmp-good">dues.gg/yourname</td><td>whop.com marketplace page</td></tr>
-            <tr><td>Discord roles</td><td class="cmp-good">Delivered in seconds, removed on lapse</td><td>Varies by integration</td></tr>
-            </tbody>
-          </table></div>
-          <p class="calc-note">* Whop pricing as publicly listed — check their site for current numbers. Stripe’s standard card-processing fees apply on every platform.</p>
+      <div class="wrap narrow guide-body">
+        <h2>There is no coin list on this page, and that is deliberate</h2>
+        <p>Plenty of checkout pages advertise “100+ cryptocurrencies”. We cannot source a number like that, so we do not print one.</p>
+        <p>What Dues can tell you is where the list comes from. When a buyer opens a crypto checkout, Dues asks the crypto rail which coins its merchant account currently has switched on, and builds the picker out of the answer. The list is never written down in this site&rsquo;s code. Turn a coin off on the rail and it disappears from the picker within minutes, with nothing to deploy; a coin that is not enabled is refused before a payment is ever created, so a buyer cannot be sent to an address for something that would bounce.</p>
+        <p>If the rail cannot be reached at all, the checkout says so rather than showing an empty picker or a coin it cannot honour. A store with no payout wallet saved does not offer the option in the first place.</p>
+
+        <h2>The chains Dues ranks first, and why</h2>
+        <p>The coins come from the rail. The <em>order</em> they are offered in is ours, and it is not cosmetic.</p>
+        <p><strong>A payout is an on-chain transfer, and its fee is flat.</strong> It does not scale down for a small sale. On an expensive chain, moving $10 can cost a meaningful slice of the $10 — so the cheap chains are ranked first, and that is what keeps a small membership from losing money to its own settlement. 23 assets are ranked in three tiers; anything the rail offers that is not in the table sorts after them, rather than being hidden.</p>
+      </div>
+      <div class="wrap">
+        <div class="seo-grid crypto-tiers">
+          <div class="panel seo-card crypto-tier">
+            <strong>Ranked first</strong>
+            <p>Flat fees measured in cents. A $10 membership settles here without the transfer eating the sale.</p>
+            <p class="crypto-chains">Solana · Tron · USDT on Solana · USDC on Solana · USDT on Tron · USDC on Polygon · Polygon · USDT on Polygon · Base · USDC on Base</p>
+          </div>
+          <div class="panel seo-card crypto-tier">
+            <strong>Ranked next</strong>
+            <p>More than the first tier and far less than the third — fine for a membership priced in tens of dollars.</p>
+            <p class="crypto-chains">BNB Chain · USDT on BNB Chain · USDC on BNB Chain · Litecoin · Dogecoin · XRP · Cardano · Algorand</p>
+          </div>
+          <div class="panel seo-card crypto-tier">
+            <strong>Ranked last</strong>
+            <p>The chains everyone knows, and the ones whose transfer fee can rival a small membership. Still offered; just never the default the picker opens on.</p>
+            <p class="crypto-chains">Bitcoin · Ethereum · USDT on Ethereum · USDC on Ethereum · DAI</p>
+          </div>
         </div>
       </div>
     </section>
     <section class="xsection">
-      <div class="wrap narrow">
-        <h2 class="section-title center">Why server owners pick Dues</h2>
-        <ul class="tick-list seo-ticks">
-          <li><strong>0% platform fees</strong> — a flat plan, whatever you earn. Estimate the difference with the <a href="/tools/whop-fee-calculator">fee calculator</a>.</li>
-          <li><strong>Your own Stripe account</strong> — revenue is never held or routed by a middleman.</li>
-          <li><strong>Roles in seconds</strong> — payment clears, the role lands; lapses take it away automatically.</li>
-          <li><strong>A real store page</strong> — your name, your icon, your products, at your own link.</li>
-          <li><strong>No lock-in</strong> — your Stripe account, your customers, your data. Leave any time.</li>
+      <div class="wrap narrow guide-body">
+        <h2>Where the money goes</h2>
+        <p>The same place all your money goes on Dues: an account you own. You save a payout wallet and its chain in the dashboard, and every payment is created carrying that address, so settlement is a transfer out to you rather than a balance sitting somewhere with your name on it.</p>
+        <ul>
+          <li><strong>No wallet, no sale.</strong> If a store has crypto switched on but no payout address saved, checkout refuses and says so. Money Dues would have to hold is money Dues will not take.</li>
+          <li><strong>You pick the chain.</strong> The wallet is checked against the real rules of that chain before it saves, and typed a second time to confirm — an on-chain transfer cannot be undone.</li>
+          <li><strong>The role lands on a finished payment.</strong> Not on a pending one, and not on a short one: an underpayment stays open and the seller is told, rather than access being handed out for money that did not fully arrive.</li>
         </ul>
+        <p>Crypto is opt-in per store, and it is still being rolled out. Until it reaches your store, card checkout is what your buyers see &mdash; on your own Stripe account, at <a href="/pricing">0% platform fee</a>, as always.</p>
+
+        <h2>The rail&rsquo;s own current list</h2>
+        <p>Dues&rsquo; crypto rail is <a href="https://nowpayments.io" rel="noopener">NOWPayments</a>. They publish a per-coin page showing what is available for payments and withdrawals right now, along with each coin&rsquo;s minimum payment amount &mdash; that page, not this one, is the live answer to &ldquo;can I pay in X today?&rdquo;:</p>
+        <ul>
+          <li><a href="https://nowpayments.io/status-page" rel="noopener">nowpayments.io/status-page</a> &mdash; per-coin availability and minimums, updated by the provider.</li>
+        </ul>
+        <p>Minimums matter more than the list does. Every coin has a floor below which a payment cannot be made, it differs per pair, and Dues quotes it from the rail at checkout for the exact pair the buyer is on rather than guessing.</p>
       </div>
     </section>
     <section class="xsection">
       <div class="wrap narrow">
         <h2 class="section-title center">Frequently asked</h2>
         <div class="faq">
-          <details class="panel faq-item"><summary>How much does Whop cost compared to Dues?</summary><p>Whop's publicly listed pricing is 3% of sales + payout fees. Dues charges a flat plan (free up to 10 paying members, then from $14.99/mo) and takes 0% of your sales.</p></details>
-          <details class="panel faq-item"><summary>Does Dues really take 0% of sales?</summary><p>Yes. Dues charges a flat monthly plan only. Stripe’s standard card-processing fees still apply, as they do on every platform.</p></details>
-          <details class="panel faq-item"><summary>Where does my money go with Dues?</summary><p>Straight into your own Stripe account. Dues never holds, routes, or freezes your funds.</p></details>
-          <details class="panel faq-item"><summary>Can I switch without losing my members?</summary><p>Your members keep their Discord roles while you set Dues up, and your Stripe customers stay in your own Stripe account either way.</p></details>
+          <details class="panel faq-item"><summary>How many cryptocurrencies can I accept?</summary><p>There is no fixed number, which is why this site does not print one. The coins a buyer can pay in are read from the crypto rail live at checkout, so the answer changes when the rail changes and no deploy of this site is involved.</p></details>
+          <details class="panel faq-item"><summary>Which chain should I take payouts on?</summary><p>Dues ranks 23 assets for settlement, cheapest first, and the picker opens on the cheap end. A payout is an on-chain transfer whose fee is flat, so on an expensive chain it can cost more than a small membership is worth — Solana, Tron, Polygon and Base settle for cents, Bitcoin and Ethereum do not.</p></details>
+          <details class="panel faq-item"><summary>Where does the crypto go?</summary><p>To the wallet you nominate, on the chain you nominate. Every payment is created with your payout address on it, and a store with no wallet saved cannot start a crypto checkout at all — Dues refuses rather than take money it would have to hold.</p></details>
+          <details class="panel faq-item"><summary>Do I have to take crypto?</summary><p>No. Card checkout runs on your own Stripe account and needs nothing else. Crypto is opt-in per store: it appears only once you have saved a payout wallet and chain.</p></details>
         </div>
       </div></section>
 
     <section class="xsection">
       <div class="wrap narrow center">
-        <h2 class="section-title">Switching from Whop?</h2>
+        <h2 class="section-title">Start selling — cards today, coins when you want them</h2>
         <p class="section-sub">Free for your first 10 paying members — no card required.</p>
         <p><a class="btn-fill btn-hero" href="/dashboard">Start free <span aria-hidden="true">→</span></a></p>
       </div>
