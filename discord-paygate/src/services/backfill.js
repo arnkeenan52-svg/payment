@@ -17,7 +17,7 @@ import { config, capabilities } from '../config.js';
 import * as db from '../db.js';
 import { openSecret } from '../lib/secretbox.js';
 import { stripeFetch } from '../lib/stripe.js';
-import { getPayment, GRANTS_ACCESS, DEAD } from '../lib/nowpayments.js';
+import { getPayment, GRANTS_ACCESS, DEAD, LAPSED, TRACKING_WINDOW_SECONDS } from '../lib/nowpayments.js';
 import { storeById } from './stores.js';
 import { processStripeEvent } from './stripe-events.js';
 import { processNowPayment } from './nowpayments-events.js';
@@ -96,8 +96,14 @@ export async function backfillMissedSales({ now = Math.floor(Date.now() / 1000) 
 // (Not the account-wide payment list: that pages over every store's
 // payments to find the few that matter, and these rows already say which.)
 // A finished one goes through the same idempotent handler the IPN uses; one
-// the provider closed unpaid is closed here too, so it is not asked about
-// again every hour for a week.
+// the provider gave up on for good — failed, refunded, cancelled — is closed
+// here too, so it is not asked about again every hour for a week.
+//
+// `expired` is the exception, and it is the reason this function is the only
+// backstop the crypto rail has: after a payment expires NOWPayments sends no
+// callbacks at all, while still crediting deposits to the address for seven
+// days. An expired order therefore stays open and keeps being asked about
+// until that window is spent — see the branch below.
 //
 // Bounded twice — a batch per run and a wall-clock budget — because this
 // runs inside the cron's own time limit after everything else in it, and a
@@ -108,6 +114,12 @@ export async function backfillMissedSales({ now = Math.floor(Date.now() / 1000) 
 const CRYPTO_BATCH = 20;
 const CRYPTO_BUDGET_MS = 15_000;
 
+// How far back the sweep looks for open crypto orders. The provider's own
+// tracking window is the ceiling on when a deposit can still turn up, and a
+// couple of days past it so an order that ages out is still picked up once and
+// CLOSED here rather than left 'started' for ever with nothing looking at it.
+const CRYPTO_WINDOW = TRACKING_WINDOW_SECONDS + 2 * 86400;
+
 export async function backfillMissedCryptoSales({ now = Math.floor(Date.now() / 1000), budgetMs = CRYPTO_BUDGET_MS } = {}) {
   if (!capabilities().nowpayments) return { checked: 0, recovered: 0, closed: 0 };
   const started = Date.now();
@@ -115,7 +127,7 @@ export async function backfillMissedCryptoSales({ now = Math.floor(Date.now() / 
   let recovered = 0;
   let closed = 0;
   const failures = [];
-  const open = await db.openCryptoAttempts({ since: now - WINDOW, until: now - HOUR, limit: CRYPTO_BATCH });
+  const open = await db.openCryptoAttempts({ since: now - CRYPTO_WINDOW, until: now - HOUR, limit: CRYPTO_BATCH });
   for (const attempt of open) {
     if (Date.now() - started > budgetMs) break;
     checked += 1;
@@ -134,6 +146,21 @@ export async function backfillMissedCryptoSales({ now = Math.floor(Date.now() / 
         if ((await processNowPayment(payment)) === 'granted') {
           recovered += 1;
           console.warn(`[backfill] recovered crypto sale ${attempt.session_id} (payment ${attempt.provider_ref}) — its IPN never arrived`);
+        }
+      } else if (LAPSED.has(status)) {
+        // `expired` is not the end of the money — it is the end of the
+        // CALLBACKS. The provider watches the deposit address for seven days
+        // from creation and tells nobody what turns up there, so closing the
+        // order the hour it lapses is what makes a late deposit disappear: no
+        // IPN, no grant, no alert, and a cron that has stopped asking. Left
+        // open, this same loop reads `finished` on the next pass and delivers
+        // the role. The order holds nothing while it waits — its seat and its
+        // discount use were released the moment the invoice expired.
+        if (now - Number(attempt.created_at ?? 0) >= TRACKING_WINDOW_SECONDS) {
+          // Past the provider's own tracking window nothing will ever land on
+          // it. NOW it is closed, and stops being asked about.
+          await db.markCheckoutExpired(attempt.session_id);
+          closed += 1;
         }
       } else if (DEAD.has(status)) {
         await db.markCheckoutExpired(attempt.session_id);

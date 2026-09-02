@@ -279,6 +279,46 @@ export async function createPayment({ plan, store, amount, payCurrency, orderId 
 
 export const getPayment = (id) => npFetch(`/payment/${encodeURIComponent(id)}`);
 
+// WHEN DOES THIS PAYMENT STOP BEING PAYABLE?
+//
+// Two documented fields, and they are not the same instant:
+//
+//   valid_until                "This parameter indicated when payment go
+//                              expired" — the PAYMENT's own deadline.
+//   expiration_estimate_date   "expiration date of this estimate",
+//                              "Estimate validity period" — the QUOTE's.
+//
+// Reading the estimate as the payment's life is how a ten-minute invoice was
+// taken for a week-long one. Every payment created here is fixed-rate with the
+// fee paid by the buyer, and the provider attaches the same note to both
+// flags: "the rate of exchange will be frozen for 10 minutes. If there are no
+// incoming payments during this period, the payment status changes to
+// 'expired'". So the payment's deadline is minutes, not days — read the field
+// that says so, and fall back to the estimate only when it is absent.
+//
+// Answers unix seconds, or null when the payment carries neither field (the
+// caller decides what to assume, and says so where it decides it).
+export function paymentExpiryAt(payment) {
+  for (const raw of [payment?.valid_until, payment?.expiration_estimate_date]) {
+    if (raw === null || raw === undefined || raw === '') continue;
+    // A number is already epoch — seconds or milliseconds, both of which the
+    // provider's fields have been seen in — and Date.parse would reject it.
+    const n = typeof raw === 'number' ? raw : Number.NaN;
+    const ms = Number.isFinite(n) ? (n > 1e11 ? n : n * 1000) : Date.parse(String(raw));
+    if (Number.isFinite(ms)) return Math.floor(ms / 1000);
+  }
+  return null;
+}
+
+// How long the provider itself keeps watching a payment's deposit address:
+// payments "live for 7 days - after that, our system will stop tracking it",
+// and `expired` is the status of one with "no deposit at all within 7 days
+// after payment creation". That is the honest ceiling on how long a deposit
+// can still turn up on an invoice whose quote lapsed — and, because "no
+// callbacks are sent after a payment expires", the whole window in which our
+// own polling is the only thing that can find that money.
+export const TRACKING_WINDOW_SECONDS = 7 * 86400;
+
 // Recon reads PAYMENTS, never the balance: this is the list of what was
 // forwarded, not of what is being held. (See rule 2 at the top.)
 //
@@ -318,7 +358,20 @@ export const SHORT = new Set(['partially_paid']);
 // saying "Checking on this payment…", and whose seat the backfill never
 // released until the seven-day window dropped it.
 // https://nowpayments.zendesk.com/hc/en-us/articles/18395434917149-Payment-statuses
-export const DEAD = new Set(['failed', 'refunded', 'expired', 'cancelled', 'canceled']);
+//
+// `expired` is the one of those that is not the end of the MONEY. The same
+// article that defines it says a deposit can still arrive afterwards, and the
+// help centre says the provider will keep watching the address for seven days
+// from creation — while sending nothing: "no callbacks are sent after a
+// payment expires. Deposits can still be received, but they will not trigger
+// any further IPN callbacks." So an expired invoice is a closed WINDOW (no
+// seat held, no discount use held, nothing counted against the buyer's cap)
+// and an OPEN order: the backfill keeps asking about it, because it is the
+// only thing that can find a deposit nobody will be told about. Closing the
+// order on `expired` — which is what this rail used to do — is what turned
+// that money into a payment with no role, no alert and nothing still looking.
+export const LAPSED = new Set(['expired']);
+export const DEAD = new Set(['failed', 'refunded', 'cancelled', 'canceled', ...LAPSED]);
 
 // Mirrors the dashboard's "Payment covering" setting. Used ONLY for wording
 // and for recon logging — never to decide whether something is paid.
@@ -421,6 +474,15 @@ export function describeStatus(p, { currency } = {}) {
     return { state: 'short', message: `Underpaid — the amount received was below the order total. ${TOP_UP}` };
   }
   if (IN_FLIGHT.has(s)) return { state: 'pending', message: 'Confirming on-chain…' };
+  // Not "did not complete": the address is still watched for a week, so a
+  // buyer who already sent it must not be told the payment failed and go and
+  // send it a second time.
+  if (LAPSED.has(s)) {
+    return {
+      state: 'dead',
+      message: 'This payment window has closed — start again for a fresh amount. If you already sent it, do not send it again: it still reaches the seller and your access follows.',
+    };
+  }
   if (DEAD.has(s)) return { state: 'dead', message: 'This payment did not complete.' };
   // A status none of the sets know (or none at all) is not an on-chain
   // confirmation in progress — claiming one would tell the buyer the money

@@ -5,7 +5,7 @@ import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { sessionUserId } from '../../src/lib/session.js';
 import { purchaseBlocked, resolveDiscount, seatLimitFor, DISCOUNT_WINDOW_SECONDS, MAX_DISCOUNT_MISSES } from '../../src/services/purchase-guard.js';
 import { publicPaymentView } from '../../src/services/nowpayments-events.js';
-import { createPayment, getPayment, merchantCoins, minimumFor } from '../../src/lib/nowpayments.js';
+import { createPayment, getPayment, merchantCoins, minimumFor, paymentExpiryAt } from '../../src/lib/nowpayments.js';
 import { normalize as normalizeCurrency, formatAmount, minCharge } from '../../src/lib/currency.js';
 import { qrForPayment } from '../../src/lib/qr.js';
 import { CHECKOUT_TTL_SECONDS } from '../../src/lib/stripe.js';
@@ -26,24 +26,41 @@ const ORDER_RE = /^np_[0-9a-f]{32}$/;
 
 // Live invoices one buyer may hold in one store. One is all a purchase
 // needs; a couple more cover a changed mind about the coin. Past that it is
-// a loop, and every invoice it mints holds a seat and a discount use until
-// the provider gives up on it.
+// a loop, and every invoice it mints holds a seat and a discount use for as
+// long as it can be paid.
+//
+// LIVE is the whole of it: the cap counts the same `expires_at > now` rows the
+// seat does, so an invoice the provider has already expired is not one of the
+// three. It has to work that way, because the pay screen's own answer to a
+// lapsed invoice is "start again" — a buyer who does what we tell them three
+// times must not be locked out of a product they never bought.
 const MAX_OPEN_INVOICES = 3;
 
-// How long a live invoice holds its seat and its discount use.
+// How long a live invoice holds its seat and its discount use: exactly as long
+// as the provider will let anyone pay it, and not one second more.
 //
-// NOT expiration_estimate_date: that is when the QUOTED COIN AMOUNT stops
-// being valid, and the deposit address stays payable long past it — a payment
-// is only given up on when nothing was sent to it for a week, which is exactly
-// the window src/services/backfill.js keeps asking the provider about it for,
-// and a late `finished` grants like any other. Releasing the seat at the rate
-// quote's expiry put it back on sale while the first buyer could still pay: if
-// they then did, the second buyer's irreversible crypto payment was refused at
-// settlement with nothing delivered. The hold ends when the payment is really
-// closed — the IPN or the cron marks the row expired on expired/failed/
-// refunded — and the buyer's own countdown still runs to the quote's expiry,
-// which is what the pay screen is given below.
-const INVOICE_HOLD_SECONDS = 7 * 86400;
+// That instant is the payment's own `valid_until` (paymentExpiryAt reads it,
+// and explains why the estimate's expiry is a different field). Every payment
+// here is fixed-rate with the fee paid by the buyer, and NOWPayments freezes
+// the rate on that flow for TEN MINUTES — "if there are no incoming payments
+// during this period, the payment status changes to 'expired'".
+//
+// This used to hold for seven days, on the reading that the payment itself
+// lived that long. Seven days is how long the provider keeps WATCHING the
+// deposit address, not how long the invoice can be started against, and the
+// difference cost buyers the product: an invoice that lapsed at minute ten
+// told them to start again, each restart minted another week-long hold on the
+// seat and the discount use, and the third one hit MAX_OPEN_INVOICES below —
+// locked out of something they never bought, with a seat nobody could buy.
+//
+// The other half of that seven days — that money can still land on a lapsed
+// invoice — is real, and is answered where it belongs: src/services/backfill.js
+// keeps asking the provider about an expired order for its whole tracking
+// window, and a deposit that turns up is granted like any other. If the seat
+// went to someone else in the meantime, settlement re-runs the purchase guard
+// and the seller is told to refund — a certain, week-long lockout for every
+// other buyer is the worse trade.
+const RATE_FREEZE_SECONDS = 10 * 60;
 
 async function loadStore(slug) {
   const store = await storeBySlug(typeof slug === 'string' ? slug : '');
@@ -301,7 +318,13 @@ export default guard(async function handler(req, res) {
     return;
   }
 
-  await db.setCheckoutAttemptRef(orderId, String(payment.payment_id), Math.floor(Date.now() / 1000) + INVOICE_HOLD_SECONDS).catch((err) => {
+  // One instant, three uses: the seat hold, the discount hold and the
+  // countdown the buyer is shown are all this number, because they are all the
+  // same fact — when the provider stops accepting this payment. A payment that
+  // volunteers neither expiry field falls back to the documented rate freeze
+  // for the flow we always ask for, never to a window of our own invention.
+  const expiresAt = paymentExpiryAt(payment) ?? Math.floor(Date.now() / 1000) + RATE_FREEZE_SECONDS;
+  await db.setCheckoutAttemptRef(orderId, String(payment.payment_id), expiresAt).catch((err) => {
     // Not fatal: the IPN still resolves the order by order_id. Only the
     // buyer's live status poll degrades, and it degrades to "waiting" until
     // the webhook marks the row completed (the poll reads that first).
@@ -317,9 +340,11 @@ export default guard(async function handler(req, res) {
     // coin figure moves with the market and is not the thing they agreed to.
     amount,
     currency,
-    // NOWPayments returns this on fixed-rate payments; the pay screen counts
-    // down to it so a buyer knows the quoted coin amount has an expiry.
-    expiresAt: payment.expiration_estimate_date ?? null,
+    // The same instant the row above holds its seat until — the moment the
+    // provider expires this payment. The pay screen counts down to it, so what
+    // the buyer is watching run out is the payment, not a rate quote that
+    // outlives it or a hold that outlives them both.
+    expiresAt: new Date(expiresAt * 1000).toISOString(),
     // Present only on chains that need it (XRP, XLM, TON…). A buyer who
     // misses a required memo loses the payment, so it is never optional
     // where it exists.

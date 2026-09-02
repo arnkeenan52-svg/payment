@@ -86,8 +86,8 @@ partners@nowpayments.io.
    (checklist item 10). Call it from the deployed function, not from a laptop.
 3. Whether a wrong-asset or repeated deposit arrives carrying our `order_id`
    or a null one (see §6, item 3).
-4. That the pay screen's countdown matches the real `expiration_estimate_date`
-   for a fixed-rate payment (see §6, item 1).
+4. That a real fixed-rate payment carries `valid_until`, that it is about ten
+   minutes out, and that the pay screen's countdown matches it (see §6, item 1).
 
 ---
 
@@ -296,29 +296,52 @@ payout fee, because the account is set to "withdrawal fee paid by Receiver".
 Everything here is our documentation disagreeing with theirs. None of it is a
 custody or fund-safety break.
 
-### 1. The 10-minute fixed-rate window vs. the 7-day hold — **unresolved, verify in sandbox**
+### 1. The 10-minute fixed-rate window vs. the 7-day hold — **resolved: they are two different windows**
 
-`api/checkout/crypto.js` sets `INVOICE_HOLD_SECONDS = 7 * 86400` and explains:
-"the deposit address stays payable long past [the quote expiry] — a payment is
-only given up on when nothing was sent to it for a week."
-
-That is true of the **standard** flow. We do not use the standard flow. The API
-reference, on `is_fixed_rate` and on `is_fee_paid_by_user`, both say:
+They were never one number, and reading them as one is what cost buyers the
+product. The API reference, on `is_fixed_rate` and on `is_fee_paid_by_user` —
+the two flags every payment here carries — both say:
 
 > the rate of exchange will be frozen for 10 minutes. If there are no incoming
 > payments during this period, **the payment status changes to "expired"**.
 
-Meanwhile the help centre's *Payment statuses* says expired means "no deposit
-at all within 7 days after payment creation". The two are not reconciled
-anywhere in their material.
+while the help centre's *Payment statuses* says expired also covers "no deposit
+at all within 7 days after payment creation", and that a payment "lives for 7
+days - after that, our system will stop tracking it".
 
-If the 10-minute reading is right, our seat-and-discount hold is 1008× longer
-than the invoice it is protecting: a buyer who abandons at the pay screen locks
-a limited seat for a week, until the hourly cron sees `expired` and closes it.
-(The cron does close it — `backfillMissedCryptoSales` marks `DEAD` statuses
-expired — so this self-heals within an hour of the real expiry. It is a
-capacity bug, not a correctness one.) **Test:** create a fixed-rate sandbox
-payment, wait 11 minutes, read its status.
+Both are true of different things:
+
+| window | what it bounds | where it is read |
+| --- | --- | --- |
+| `valid_until` (~10 min here) | how long **this invoice can be paid** | `paymentExpiryAt()` → the seat hold, the discount hold, the buyer's countdown |
+| 7 days from creation | how long the provider keeps **watching the address** | `TRACKING_WINDOW_SECONDS` → how long `backfillMissedCryptoSales()` keeps asking |
+
+`expiration_estimate_date` is neither: their own wording is "expiration date of
+this estimate". We read `valid_until` and fall back to the estimate only when
+it is absent.
+
+What the old single number did: `api/checkout/crypto.js` held the seat and the
+discount use for `7 * 86400`, so an invoice that lapsed at minute ten went on
+holding both for a week; the pay screen said "start the payment again", each
+restart minted another week-long hold, and the third hit `MAX_OPEN_INVOICES`
+— a buyer locked out of a product they never bought, with a seat nobody else
+could buy either. Meanwhile the hourly cron closed the order on `expired`,
+which is the one status where the money is not finished with us: **no callbacks
+are sent after expiry, and deposits can still be received.** A late deposit
+therefore produced no IPN, no grant, no alert, and a sweep that had stopped
+asking.
+
+Now: the hold ends when the provider's own window does, and an `expired` order
+stays open and keeps being polled until the seven days are spent (then it is
+closed). If the seat was taken by someone else in the meantime, the settlement
+re-check answers it the way it answers every late crypto settlement — nothing
+delivered, seller alerted to refund. That trade is deliberate: a certain
+week-long lockout for every other buyer is worse than a rare late one.
+
+**Still worth watching in the sandbox:** that a real fixed-rate payment carries
+`valid_until` at all, and that a deposit made after expiry really does move the
+payment to `finished` on a later `GET /payment/{id}` (the whole backstop rests
+on it).
 
 ### 2. `minimumFor()` asked about the wrong flow — **fixed on this branch**
 
