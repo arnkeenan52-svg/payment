@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#70a3e6" />
-  <title>Patreon fee calculator — what Patreon costs your Discord</title>
+  <title>Patreon fee calculator — what it costs your Discord</title>
   <meta name="description" content="Estimate what Patreon's fees (8–12% of earnings) cost your Discord community each month, compared with Dues's flat 0%-fee plans." />
   <link rel="canonical" href="https://dues.gg/tools/patreon-fee-calculator" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Patreon fee calculator — what Patreon costs your Discord" />
+  <meta property="og:title" content="Patreon fee calculator — what it costs your Discord" />
   <meta property="og:description" content="Estimate what Patreon's fees (8–12% of earnings) cost your Discord community each month, compared with Dues's flat 0%-fee plans." />
   <meta property="og:image" content="https://dues.gg/og-card.jpg?v=197" />
   <meta property="og:image:type" content="image/jpeg" />
@@ -26,18 +26,13 @@
   <meta name="twitter:creator" content="@duesdiscord" />
   <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=197" />
   <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline 'Monetize your community.' and a field for claiming a store link" />
-  <!-- Icons, all four at STABLE urls with no ?v= on them. Google caches the
+  <!-- Icons, all four at STABLE urls with no ?v= on them: Google caches the
        search-result favicon by URL and re-crawls it rarely, so a version query
        that moves on every ship hands it a URL it has never seen instead of the
-       one it already holds. The reasoning was written here before and then
-       contradicted two lines down, which is how the one URL Google prefers —
-       the 96px PNG — ended up as the only versioned one. Vercel serves these
-       with must-revalidate, so the query bought no freshness either.
-       Sizes are what the files ARE: favicon.ico now carries 48 and 96, both
-       multiples of 48, which is what Google requires. It used to hold a single
-       16x16 and be declared as 32x32; the comment here claimed 16/32/48/64.
-       Three answers, one 449-byte file, none of them checked. Rebuild it with
-       scripts/gen-favicon-ico.mjs, which reads its own output back. -->
+       one it already holds. Sizes are what favicon.ico IS — 48 and 96, built
+       by scripts/gen-favicon-ico.mjs, which reads its output back and carries
+       the rule as Google states it: square, at least 8x8, larger than 48x48
+       recommended. -->
   <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
@@ -208,9 +203,9 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
             </div>
             <div class="calc-bars">
               <span class="calc-bars-label">Monthly platform cost</span>
-            <div class="calc-bar-row" id="t-row-ripley">
-              <div class="calc-bar-meta"><span class="calc-bar-name">Dues</span><span class="calc-bar-amt" id="t-ripley">$0</span></div>
-              <div class="calc-bar mine"><span id="t-bar-ripley"></span></div>
+            <div class="calc-bar-row" id="t-row-dues">
+              <div class="calc-bar-meta"><span class="calc-bar-name">Dues</span><span class="calc-bar-amt" id="t-dues">$0</span></div>
+              <div class="calc-bar mine"><span id="t-bar-dues"></span></div>
               <span class="calc-bar-sub">Flat plan · 0% of sales</span>
             </div>
             <div class="calc-bar-row">
@@ -246,7 +241,7 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
   (function () {
     var subs = document.getElementById('t-subs'), price = document.getElementById('t-price');
     var fmt = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
-    function ripleyCost(members) {
+    function duesCost(members) {
       if (members <= 10) return 0;
       if (members <= 50) return 14.99;
       if (members <= 500) return 44.99;
@@ -257,18 +252,18 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
       document.getElementById('t-subs-out').textContent = m;
       document.getElementById('t-price-out').textContent = '$' + p;
       document.getElementById('t-rev').textContent = fmt(rev) + '/mo';
-      var ripley = ripleyCost(m);
+      var dues = duesCost(m);
       var rows = [{ id: 'patreon', cost: rev * 0.08 }];
-      var max = ripley; rows.forEach(function (r) { if (r.cost > max) max = r.cost; });
+      var max = dues; rows.forEach(function (r) { if (r.cost > max) max = r.cost; });
       var worst = 0;
-      document.getElementById('t-ripley').textContent = fmt(ripley) + '/mo';
-      document.getElementById('t-bar-ripley').style.width = Math.max((ripley / (max || 1)) * 100, 2) + '%';
+      document.getElementById('t-dues').textContent = fmt(dues) + '/mo';
+      document.getElementById('t-bar-dues').style.width = Math.max((dues / (max || 1)) * 100, 2) + '%';
       rows.forEach(function (r) {
         if (r.cost > worst) worst = r.cost;
         document.getElementById('t-' + r.id).textContent = fmt(r.cost) + '/mo';
         document.getElementById('t-bar-' + r.id).style.width = Math.max((r.cost / (max || 1)) * 100, 2) + '%';
       });
-      document.getElementById('t-save').textContent = fmt(Math.max(worst - ripley, 0) * 12) + '/yr';
+      document.getElementById('t-save').textContent = fmt(Math.max(worst - dues, 0) * 12) + '/yr';
     }
     subs.addEventListener('input', upd); price.addEventListener('input', upd); upd();
   })();
@@ -291,25 +286,28 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
       <a href="/vs/memberful">Dues vs Memberful</a><a href="/vs/gumroad">Dues vs Gumroad</a>
       <a href="/vs/ko-fi">Dues vs Ko-fi</a><a href="/vs/buymeacoffee">Dues vs Buy Me a Coffee</a>
       <a href="/vs/upgrade-chat">Dues vs Upgrade.Chat</a><a href="/vs/mighty-networks">Dues vs Mighty Networks</a>
-      <a href="/vs/">All comparisons</a>
+      <a href="/vs">All comparisons</a>
       <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
       <a href="/alternatives/whop-alternatives">Whop alternatives</a>
-      <a href="/alternatives/">All alternatives</a></nav>
+      <a href="/alternatives">All alternatives</a></nav>
     <nav class="footer-col"><span class="footer-head">Guides</span>
       <a href="/guides/best-discord-monetization-platform">Best platform to use</a>
       <a href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
       <a href="/guides/how-to-sell-discord-roles">Sell Discord roles</a>
       <a href="/guides/discord-paywall">Paywall a Discord</a>
-      <a href="/guides/discord-membership-bot">Discord membership bots</a></nav>
+      <a href="/guides/discord-membership-bot">Discord membership bots</a>
+      <a href="/guides">All guides</a></nav>
     <nav class="footer-col"><span class="footer-head">Tools</span>
       <a href="/tools/discord-fee-calculator">Discord fee calculator</a>
       <a href="/tools/whop-fee-calculator">Whop fee calculator</a>
       <a href="/tools/launchpass-fee-calculator">LaunchPass fee calculator</a>
-      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a></nav>
+      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a>
+      <a href="/tools">All calculators</a></nav>
     <nav class="footer-col"><span class="footer-head">Use cases</span>
       <a href="/use-cases/trading">Trading signals</a><a href="/use-cases/sports-betting">Sports picks</a>
       <a href="/use-cases/fitness">Fitness coaching</a><a href="/use-cases/reselling">Cook groups</a>
-      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a></nav>
+      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a>
+      <a href="/use-cases">All use cases</a></nav>
     <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
     <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
   </footer>

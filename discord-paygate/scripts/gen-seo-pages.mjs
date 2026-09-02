@@ -380,6 +380,12 @@ const nav = `
     </div>
   </header>`;
 
+// Index links are the bare form — /vs, never /vs/. The canonical, the sitemap,
+// every breadcrumb and every vercel.json rewrite all name the bare URL; a
+// trailing slash here linked a second URL for the same page from 46 pages,
+// held together only by rel=canonical (or a redirect hop, depending on the
+// host). And each column links its own index, so /guides and /use-cases are
+// reachable from somewhere other than the homepage.
 export const footerHtml = `
   <footer class="site-footer cols seo-footer">
     <div class="footer-brand">
@@ -397,25 +403,28 @@ export const footerHtml = `
       <a href="/vs/memberful">Dues vs Memberful</a><a href="/vs/gumroad">Dues vs Gumroad</a>
       <a href="/vs/ko-fi">Dues vs Ko-fi</a><a href="/vs/buymeacoffee">Dues vs Buy Me a Coffee</a>
       <a href="/vs/upgrade-chat">Dues vs Upgrade.Chat</a><a href="/vs/mighty-networks">Dues vs Mighty Networks</a>
-      <a href="/vs/">All comparisons</a>
+      <a href="/vs">All comparisons</a>
       <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
       <a href="/alternatives/whop-alternatives">Whop alternatives</a>
-      <a href="/alternatives/">All alternatives</a></nav>
+      <a href="/alternatives">All alternatives</a></nav>
     <nav class="footer-col"><span class="footer-head">Guides</span>
       <a href="/guides/best-discord-monetization-platform">Best platform to use</a>
       <a href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
       <a href="/guides/how-to-sell-discord-roles">Sell Discord roles</a>
       <a href="/guides/discord-paywall">Paywall a Discord</a>
-      <a href="/guides/discord-membership-bot">Discord membership bots</a></nav>
+      <a href="/guides/discord-membership-bot">Discord membership bots</a>
+      <a href="/guides">All guides</a></nav>
     <nav class="footer-col"><span class="footer-head">Tools</span>
       <a href="/tools/discord-fee-calculator">Discord fee calculator</a>
       <a href="/tools/whop-fee-calculator">Whop fee calculator</a>
       <a href="/tools/launchpass-fee-calculator">LaunchPass fee calculator</a>
-      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a></nav>
+      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a>
+      <a href="/tools">All calculators</a></nav>
     <nav class="footer-col"><span class="footer-head">Use cases</span>
       <a href="/use-cases/trading">Trading signals</a><a href="/use-cases/sports-betting">Sports picks</a>
       <a href="/use-cases/fitness">Fitness coaching</a><a href="/use-cases/reselling">Cook groups</a>
-      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a></nav>
+      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a>
+      <a href="/use-cases">All use cases</a></nav>
     <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
     <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
   </footer>`;
@@ -462,18 +471,13 @@ function page({ urlPath, title, desc, body, jsonld = [], crumbs = [] }) {
   <meta name="twitter:creator" content="@duesdiscord" />
   <meta name="twitter:image" content="${BASE}/og-card.jpg?v=${V}" />
   <meta name="twitter:image:alt" content="${esc(OG_ALT)}" />
-  <!-- Icons, all four at STABLE urls with no ?v= on them. Google caches the
+  <!-- Icons, all four at STABLE urls with no ?v= on them: Google caches the
        search-result favicon by URL and re-crawls it rarely, so a version query
        that moves on every ship hands it a URL it has never seen instead of the
-       one it already holds. The reasoning was written here before and then
-       contradicted two lines down, which is how the one URL Google prefers —
-       the 96px PNG — ended up as the only versioned one. Vercel serves these
-       with must-revalidate, so the query bought no freshness either.
-       Sizes are what the files ARE: favicon.ico now carries 48 and 96, both
-       multiples of 48, which is what Google requires. It used to hold a single
-       16x16 and be declared as 32x32; the comment here claimed 16/32/48/64.
-       Three answers, one 449-byte file, none of them checked. Rebuild it with
-       scripts/gen-favicon-ico.mjs, which reads its own output back. -->
+       one it already holds. Sizes are what favicon.ico IS — 48 and 96, built
+       by scripts/gen-favicon-ico.mjs, which reads its output back and carries
+       the rule as Google states it: square, at least 8x8, larger than 48x48
+       recommended. -->
   <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
@@ -520,7 +524,7 @@ const cta = (label = 'Start selling with 0% platform fees') => `
       </div>
     </section>`;
 
-const ripleyRows = {
+const duesRows = {
   fee: '0% — always',
   monthly: 'Free up to 10 paying members, then from $14.99/mo',
   money: 'Your own Stripe account, directly',
@@ -539,7 +543,7 @@ function vsPage(slug, c) {
     ['Can I switch without losing my members?', 'Your members keep their Discord roles while you set Dues up, and your Stripe customers stay in your own Stripe account either way.'],
   ];
   const row = (k, label) => `
-            <tr><td>${esc(label)}</td><td class="cmp-good">${esc(ripleyRows[k])}</td><td>${esc(c.rows[k])}</td></tr>`;
+            <tr><td>${esc(label)}</td><td class="cmp-good">${esc(duesRows[k])}</td><td>${esc(c.rows[k])}</td></tr>`;
   const body = `
     <section class="xhero seo-hero">
       <div class="hero-inner">
@@ -612,7 +616,7 @@ function vsIndex() {
 ${cta()}`;
   return page({
     urlPath: '/vs',
-    title: 'Dues vs Whop, LaunchPass, Patreon & more — compare Discord monetization',
+    title: 'Dues vs Whop, LaunchPass & Patreon — Discord monetization',
     desc: 'Side-by-side comparisons of Discord monetization platforms: fees, payouts, role delivery and lock-in. See what 0% platform fees change.',
     body,
     crumbs: [['Compare', '/vs']],
@@ -627,7 +631,7 @@ function calcScript(rowsJs) {
   (function () {
     var subs = document.getElementById('t-subs'), price = document.getElementById('t-price');
     var fmt = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
-    function ripleyCost(members) {
+    function duesCost(members) {
       if (members <= 10) return 0;
       if (members <= 50) return 14.99;
       if (members <= 500) return 44.99;
@@ -638,18 +642,18 @@ function calcScript(rowsJs) {
       document.getElementById('t-subs-out').textContent = m;
       document.getElementById('t-price-out').textContent = '$' + p;
       document.getElementById('t-rev').textContent = fmt(rev) + '/mo';
-      var ripley = ripleyCost(m);
+      var dues = duesCost(m);
       var rows = ${rowsJs};
-      var max = ripley; rows.forEach(function (r) { if (r.cost > max) max = r.cost; });
+      var max = dues; rows.forEach(function (r) { if (r.cost > max) max = r.cost; });
       var worst = 0;
-      document.getElementById('t-ripley').textContent = fmt(ripley) + '/mo';
-      document.getElementById('t-bar-ripley').style.width = Math.max((ripley / (max || 1)) * 100, 2) + '%';
+      document.getElementById('t-dues').textContent = fmt(dues) + '/mo';
+      document.getElementById('t-bar-dues').style.width = Math.max((dues / (max || 1)) * 100, 2) + '%';
       rows.forEach(function (r) {
         if (r.cost > worst) worst = r.cost;
         document.getElementById('t-' + r.id).textContent = fmt(r.cost) + '/mo';
         document.getElementById('t-bar-' + r.id).style.width = Math.max((r.cost / (max || 1)) * 100, 2) + '%';
       });
-      document.getElementById('t-save').textContent = fmt(Math.max(worst - ripley, 0) * 12) + '/yr';
+      document.getElementById('t-save').textContent = fmt(Math.max(worst - dues, 0) * 12) + '/yr';
     }
     subs.addEventListener('input', upd); price.addEventListener('input', upd); upd();
   })();
@@ -658,9 +662,9 @@ function calcScript(rowsJs) {
 
 function calcBars(rows) {
   return `
-            <div class="calc-bar-row" id="t-row-ripley">
-              <div class="calc-bar-meta"><span class="calc-bar-name">Dues</span><span class="calc-bar-amt" id="t-ripley">$0</span></div>
-              <div class="calc-bar mine"><span id="t-bar-ripley"></span></div>
+            <div class="calc-bar-row" id="t-row-dues">
+              <div class="calc-bar-meta"><span class="calc-bar-name">Dues</span><span class="calc-bar-amt" id="t-dues">$0</span></div>
+              <div class="calc-bar mine"><span id="t-bar-dues"></span></div>
               <span class="calc-bar-sub">Flat plan · 0% of sales</span>
             </div>${rows
               .map(
@@ -749,7 +753,7 @@ function competitorCalculator(key) {
     slug,
     html: calculatorPage({
       slug,
-      title: `${c.name} fee calculator — what ${c.name} costs your Discord`,
+      title: `${c.name} fee calculator — what it costs your Discord`,
       desc: `Estimate what ${c.name}'s fees (${c.feeLine.replace('*', '')}) cost your Discord community each month, compared with Dues's flat 0%-fee plans.`,
       h1: `${c.name} Fee Calculator`,
       intro: `${c.name}'s publicly listed pricing is ${c.feeLine.replace('*', '')}. Move the sliders to see what that costs at your size — and what the same store costs on Dues's flat plans.`,
@@ -779,7 +783,7 @@ function allInOneCalculator() {
     slug: 'discord-fee-calculator',
     html: calculatorPage({
       slug: 'discord-fee-calculator',
-      title: 'Discord monetization fee calculator — Whop vs LaunchPass vs Patreon vs Dues',
+      title: 'Discord fee calculator — Whop vs LaunchPass vs Dues',
       desc: 'Compare what Whop, LaunchPass, Patreon and Upgrade.Chat cost your Discord community each month against Dues’s flat 0%-fee plans.',
       h1: 'Discord Monetization Fee Calculator',
       intro: 'Every platform prices differently — percentages, subscriptions, or both. Set your community size and price to compare monthly platform costs side by side.',
@@ -905,7 +909,7 @@ function useCasesIndex() {
 ${cta()}`;
   return page({
     urlPath: '/use-cases',
-    title: 'Discord monetization use cases — trading, coaching, cook groups & more',
+    title: 'Discord monetization use cases — trading, coaching & more',
     desc: 'How trading groups, sports picks communities, coaches, cook groups and creators sell Discord access with 0% platform fees on Dues.',
     body,
     crumbs: [['Use cases', '/use-cases']],
@@ -1150,7 +1154,7 @@ function guidesIndex() {
 ${cta()}`;
   return page({
     urlPath: '/guides',
-    title: 'Discord monetization guides — sell roles, run paid servers, pick your stack',
+    title: 'Discord monetization guides — sell roles, paid servers',
     desc: 'Guides to monetizing Discord: selling roles, building paid servers, choosing a subscription bot, and pricing memberships.',
     body,
     crumbs: [['Guides', '/guides']],
@@ -1160,7 +1164,7 @@ ${cta()}`;
 // ── /alternatives/<slug> — honest listicles for "X alternatives" queries ─────
 
 const ALT_LIST = {
-  ripley: {
+  dues: {
     name: 'Dues',
     line: 'Flat plans (free up to 10 paying members, then from $14.99/mo), 0% of sales, payments straight into your own Stripe account, roles delivered in seconds. That is us — the disclosure is the point.',
     href: '/',
@@ -1182,47 +1186,54 @@ const ALT_LIST = {
 const ALTERNATIVES = {
   'whop-alternatives': {
     target: 'Whop',
-    picks: ['ripley', 'launchpass', 'upgrade-chat', 'subscord', 'memberful'],
+    picks: ['dues', 'launchpass', 'upgrade-chat', 'subscord', 'memberful'],
     why: 'Owners usually look past Whop for two reasons: the percentage taken from every sale, and the storefront living on a marketplace domain rather than their own link. If either bothers you, the field below is the shortlist.',
   },
   'launchpass-alternatives': {
     target: 'LaunchPass',
-    picks: ['ripley', 'upgrade-chat', 'subscord', 'whop', 'memberful'],
+    picks: ['dues', 'upgrade-chat', 'subscord', 'whop', 'memberful'],
     why: 'LaunchPass pairs a monthly subscription with a percentage of sales on its listed pricing — a double cost that grows with you. The alternatives below split into flat-fee and percentage camps; know which you are choosing.',
   },
   'subscord-alternatives': {
     target: 'Subscord',
-    picks: ['ripley', 'launchpass', 'upgrade-chat', 'whop'],
+    picks: ['dues', 'launchpass', 'upgrade-chat', 'whop'],
     why: 'Subscord popularized the subscription-bot shape: Stripe checkout, paid roles, hosted checkout pages. If you are comparing the category, the platforms below do the same job with different pricing models and different answers to who holds your money.',
   },
   'patreon-alternatives-for-discord': {
     target: 'Patreon',
-    picks: ['ripley', 'launchpass', 'ko-fi', 'buymeacoffee', 'whop'],
+    picks: ['dues', 'launchpass', 'ko-fi', 'buymeacoffee', 'whop'],
     why: 'Patreon takes a listed 8–12% of earnings and owns the member relationship, with Discord bolted on through an integration. For a community that lives on Discord, purpose-built tools deliver roles faster and cost a different shape of money.',
   },
   'xoe-alternatives': {
     target: 'XOE',
-    picks: ['ripley', 'subscord', 'doorfee', 'launchpass', 'paybot'],
+    picks: ['dues', 'subscord', 'doorfee', 'launchpass', 'paybot'],
     why: 'XOE leans crypto-forward: its listed pricing takes a cut on crypto payments and keeps cards at 0%, with an optional paid tier. If you would rather sell in cards on a flat, predictable plan with money landing in your own Stripe account, the tools below are the shortlist.',
   },
   'doorfee-alternatives': {
     target: 'DoorFee',
-    picks: ['ripley', 'subscord', 'launchpass', 'whop', 'paybot'],
+    picks: ['dues', 'subscord', 'launchpass', 'whop', 'paybot'],
     why: 'DoorFee charges a percentage of every sale — higher on its free plan, lower on a paid plan. If the percentage is what you want to escape, the flat-fee options below cost the same whatever you earn.',
   },
   'best-discord-monetization-platforms': {
     target: 'Discord monetization platform',
-    picks: ['ripley', 'whop', 'launchpass', 'subscord', 'doorfee', 'xoe', 'patreon'],
+    // Not an "X alternatives" page, so the template's copy does not fit: it
+    // read "Best Discord monetization platform Alternatives for Discord" on
+    // the one page aimed at the site's highest-intent query. Hand-written.
+    title: 'Best Discord Monetization Platforms (2026)',
+    desc: 'The Discord monetization platforms compared honestly: flat-fee vs percentage pricing, who holds your money, and how roles are delivered.',
+    faqQ: 'What is the best Discord monetization platform?',
+    card: 'Best Discord monetization platforms',
+    picks: ['dues', 'whop', 'launchpass', 'subscord', 'doorfee', 'xoe', 'patreon'],
     why: 'Every tool here sells Discord access; they differ in what they take from each sale and who holds your money. The list splits into flat-fee (a fixed plan, 0% of sales) and percentage or marketplace models — pick the shape that matches how you plan to grow.',
   },
 };
 
 function altPage(slug, a) {
   const picks = a.picks.map((k) => ALT_LIST[k]).filter(Boolean);
-  const title = `Best ${a.target} Alternatives for Discord (2026)`;
-  const desc = `${a.target} alternatives for monetizing a Discord server, compared honestly: flat-fee vs percentage pricing, who holds your money, and how roles are delivered.`;
+  const title = a.title ?? `Best ${a.target} Alternatives for Discord (2026)`;
+  const desc = a.desc ?? `${a.target} alternatives for monetizing a Discord server, compared honestly: flat-fee vs percentage pricing, who holds your money, and how roles are delivered.`;
   const faq = [
-    [`What is the best ${a.target} alternative?`, `It depends on the pricing shape you want. Flat-fee platforms like Dues cost the same whatever you earn and pay into your own Stripe account; percentage platforms scale their cut with your revenue. The list above marks each model.`],
+    [a.faqQ ?? `What is the best ${a.target} alternative?`, `It depends on the pricing shape you want. Flat-fee platforms like Dues cost the same whatever you earn and pay into your own Stripe account; percentage platforms scale their cut with your revenue. The list above marks each model.`],
     ['Are the listed fees current?', 'They are the publicly listed prices at the time of writing, always asterisked — verify on each platform’s own site.'],
     ['Is this list neutral?', 'No, and it does not pretend to be: Dues is our product and it is listed first. Every factual claim about other platforms is their own published pricing, linked from the full comparison pages.'],
   ];
@@ -1275,7 +1286,7 @@ function altIndex() {
     .map(
       ([slug, a]) => `
           <a class="panel seo-card" href="/alternatives/${slug}">
-            <strong>Best ${esc(a.target)} alternatives</strong>
+            <strong>${esc(a.card ?? `Best ${a.target} alternatives`)}</strong>
             <p>${esc(a.why.split('.')[0])}.</p>
             <span class="seo-card-cta">See the list →</span>
           </a>`,
@@ -1297,7 +1308,7 @@ function altIndex() {
 ${cta()}`;
   return page({
     urlPath: '/alternatives',
-    title: 'Whop, LaunchPass, Subscord & Patreon alternatives for Discord',
+    title: 'Whop, LaunchPass & Patreon alternatives for Discord',
     desc: 'Honest alternative lists for Discord monetization platforms: flat-fee vs percentage pricing, payouts, and role delivery compared.',
     body,
     crumbs: [['Alternatives', '/alternatives']],
@@ -1459,13 +1470,15 @@ Competitor pricing referenced anywhere on this site is the publicly listed prici
 
 // sitemap + robots: the landing page plus every generated page. Store pages
 // are user content and terms/privacy/dashboard/account are noindex — none of
-// those belong in the sitemap.
+// those belong in the sitemap. /demo is the exception among store URLs: it is
+// the platform's own hosted demo (api/store-page.js, DEMO_SLUG) with a
+// hand-written head, indexable and linked from the homepage and /help.
 const urls = ['/', '/pricing', '/vs', ...Object.keys(COMPETITORS).map((s) => `/vs/${s}`), '/tools',
   '/tools/discord-fee-calculator', '/tools/whop-fee-calculator', '/tools/launchpass-fee-calculator', '/tools/patreon-fee-calculator', '/tools/doorfee-fee-calculator',
   '/use-cases', ...Object.keys(USE_CASES).map((s) => `/use-cases/${s}`),
   '/guides', ...Object.keys(GUIDES).map((s) => `/guides/${s}`),
   '/alternatives', ...Object.keys(ALTERNATIVES).map((s) => `/alternatives/${s}`),
-  '/discover', '/help'];
+  '/discover', '/help', '/demo'];
 const today = new Date().toISOString().slice(0, 10);
 emit(
   'sitemap.xml',

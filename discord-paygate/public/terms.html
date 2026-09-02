@@ -145,10 +145,20 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
 <body>
 <i class="ui-tint" aria-hidden="true"></i>
 <i class="ui-tint-b" aria-hidden="true"></i>
-  <header class="top">
-    <div class="top-left"><a href="/"><img class="platform-mark" src="/dues.png?v=197" alt="Dues" height="20" /></a></div>
-    <div class="account"></div>
+  <header class="top xoe-nav">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/dues.png?v=197" alt="Dues" height="20" /></a>
+    </div>
+    <nav class="top-center" aria-label="Main">
+      <a class="nav-link" href="/discover">Discover</a>
+      <a class="nav-link" href="/pricing">Pricing</a>
+      <a class="nav-link" href="/vs">Compare</a>
+      <a class="nav-link" href="/tools">Tools</a>
+    </nav>
+    <div class="top-right">
+      <div class="account"><a class="btn-fill" href="/dashboard">Start free</a></div>
       <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
   </header>
   <main class="checkout">
     <div class="brand"><h1>Terms of Service</h1></div>
@@ -169,10 +179,17 @@ body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
       <p>For anything about a specific purchase &mdash; delivery, refunds, access &mdash; contact the store owner on Discord; they are the seller and they hold the funds. For anything about Dues itself, email <a href="mailto:contact@dues.gg">contact@dues.gg</a>.</p>
     </section>
   </main>
-  <footer class="site-footer">
-    <img class="powered-mark" src="/dues.png?v=197" alt="Dues" height="16" />
-    <nav class="footer-nav"><a href="/account">Account</a><a href="/privacy">Privacy</a></nav>
-    <span class="footer-copy">© Dues</span>
+  <footer class="site-footer cols seo-footer">
+    <div class="footer-brand">
+      <img class="powered-mark" src="/dues.png?v=197" alt="Dues" height="16" />
+      <span class="footer-copy">© Dues</span>
+    </div>
+    <nav class="footer-col"><span class="footer-head">Product</span>
+      <a href="/discover">Discover stores</a><a href="/pricing">Pricing</a><a href="/help">Help</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a><a href="mailto:contact@dues.gg">contact@dues.gg</a></nav>
+    <nav class="footer-col"><span class="footer-head">Compare</span>
+      <a href="/vs">All comparisons</a><a href="/guides">Guides</a><a href="/tools">Fee calculators</a><a href="/alternatives">Alternatives</a></nav>
+    <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
+    <p class="footer-disclaimer">Payments are processed by Stripe on each store owner’s own account.</p>
   </footer>
 </body>
 </html>

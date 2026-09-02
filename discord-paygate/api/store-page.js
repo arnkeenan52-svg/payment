@@ -42,6 +42,10 @@ export default guard(async (req, res) => {
       ? `${demoPlan.description} $${demoPlan.priceUsd.toFixed(2)}${demoPlan.lifetime ? ' · lifetime' : '/month'} — a Dues demo product.`
       : 'Walk a live Dues checkout — themed store page, products and discounts. Nothing here is for sale.';
     const image = `${config.publicBaseUrl}/shot-store.png`;
+    // A demo product page is its own URL, as on a real store below: it has its
+    // own title and description, so canonicalising it to /demo told Google to
+    // drop the page it had just been handed.
+    const demoUrl = `${canonicalBase()}/${DEMO_SLUG}${demoPlan ? `/${encodeURIComponent(demoPlan.linkSlug ?? demoPlan.id)}` : ''}`;
     head = `<title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />
   <meta property="og:type" content="website" />
@@ -51,8 +55,8 @@ export default guard(async (req, res) => {
   <meta property="og:image:alt" content="${esc(title)}" />
   <meta property="og:site_name" content="${esc(config.platform)}" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:url" content="${esc(`${canonicalBase()}/${DEMO_SLUG}`)}" />
-  <link rel="canonical" href="${esc(`${canonicalBase()}/${DEMO_SLUG}`)}" />
+  <meta property="og:url" content="${esc(demoUrl)}" />
+  <link rel="canonical" href="${esc(demoUrl)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@duesdiscord" />
   <meta name="twitter:title" content="${esc(title)}" />

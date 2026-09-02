@@ -1053,6 +1053,11 @@ test('the favicon is square, big enough for search surfaces, and at a url that d
       [],
       `${path} must not put a version query on an icon url`,
     );
+    // The superseded "multiple of 48" rule was corrected in the generator's
+    // favicon script and here, but the head comment the SEO generator stamps
+    // into 45 public pages kept quoting it as what Google requires. A
+    // policy claim the repo knows is false must not ship in served HTML.
+    assert.doesNotMatch(html, /multiples? of 48|what Google requires/, `${path} must not quote the superseded favicon rule`);
   }
 });
 
@@ -1269,10 +1274,14 @@ test('every page on the site is named in the footer — checked against the file
   // The app screens are not marketing pages and are linked from the product,
   // not the directory: a signed-out visitor has no use for /receipt.
   const APP = new Set(['/', '/dashboard', '/account', '/receipt', '/store']);
+  // An index file is its directory's bare URL — vs/index.html is /vs, which
+  // is what the canonical, the sitemap and vercel.json's rewrite all say.
+  // This map used to produce /vs/, and that is what held the homepage to the
+  // slash form while every other reference used the bare one.
   const pages = walk(PUBLIC)
     .map((f) => {
       const rel = `/${relative(PUBLIC, f)}`;
-      return rel.endsWith('/index.html') ? rel.slice(0, -'index.html'.length) : rel.slice(0, -'.html'.length);
+      return rel.endsWith('/index.html') ? rel.slice(0, -'/index.html'.length) || '/' : rel.slice(0, -'.html'.length);
     })
     .filter((p) => !APP.has(p));
 
@@ -3160,6 +3169,29 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
   assert.match(llms.body, /0% of sales/);
   assert.match(sm.body, /\/guides\/how-to-monetize-a-discord-server<\/loc>/);
   assert.match(sm.body, /\/alternatives\/subscord-alternatives<\/loc>/);
+  // The platform's own demo store is indexable, linked from the homepage and
+  // /help, and has a hand-written head — it is not tenant content, so it is
+  // the one store URL the sitemap lists.
+  assert.match(sm.body, /https:\/\/dues\.gg\/demo<\/loc>/, 'the hosted demo is in the sitemap');
+  // Every title in the sitemap fits Google's ~60-character display width and
+  // is unique. Seven ran to 77 characters and the clipped tail was the part
+  // that told the pages apart — the fee calculator lost "vs Dues", the
+  // comparison index lost "monetization" — and the platforms listicle fell
+  // out of its "Best X Alternatives" template as "Best Discord monetization
+  // platform Alternatives for Discord". Titles are generated, so the check
+  // reads the served pages rather than the generator.
+  const decode = (t) => t.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+  const seenTitles = new Map();
+  for (const loc of [...sm.body.matchAll(/<loc>https:\/\/dues\.gg([^<]*)<\/loc>/g)].map((m) => m[1] || '/')) {
+    const { status, body } = await get(loc);
+    assert.equal(status, 200, `${loc} is in the sitemap and must serve`);
+    const title = decode((body.match(/<title>([^<]*)<\/title>/) || [])[1] || '');
+    assert.ok(title, `${loc} has a <title>`);
+    assert.ok(title.length <= 60, `${loc} title is ${title.length} chars, over the ~60 Google shows: "${title}"`);
+    assert.ok(!seenTitles.has(title), `${loc} shares its title with ${seenTitles.get(title)}`);
+    seenTitles.set(title, loc);
+  }
+  assert.equal(seenTitles.get('Best Discord Monetization Platforms (2026)'), '/alternatives/best-discord-monetization-platforms', 'the platforms listicle carries its hand-written title');
   // Reach paths resolve to pages, never to a store.
   assert.equal((await fetch(`${appUrl}/api/plans?store=vs`)).status, 404);
   assert.equal((await fetch(`${appUrl}/api/plans?store=guides`)).status, 404);
@@ -3179,6 +3211,32 @@ test('SEO reach pages serve: /vs, /tools, /use-cases, sitemap and robots', async
     assert.ok(home.body.includes(`href="${href}"`), `the homepage links ${href}`);
   }
   assert.match(home.body, /href="\/vs\/subscord"/, 'the homepage links the Subscord comparison');
+  // One URL per index page. The sitemap, the canonicals and the breadcrumbs
+  // all say /vs; the footer used to say /vs/ from 46 pages, so every index
+  // was linked under two URLs, and /use-cases under neither.
+  for (const [p, body] of [['/', home.body], ['/pricing', (await get('/pricing')).body], ['/vs/subscord', sub.body], ['/help', (await get('/help')).body]]) {
+    const slashed = [...body.matchAll(/href="(\/(?:vs|tools|guides|use-cases|alternatives)\/)"/g)].map((m) => m[1]);
+    assert.deepEqual(slashed, [], `${p} links an index page with a trailing slash`);
+  }
+  for (const idx of ['/vs', '/tools', '/guides', '/use-cases', '/alternatives']) {
+    assert.ok(sub.body.includes(`href="${idx}"`), `the generated footer links ${idx}`);
+    assert.ok(home.body.includes(`href="${idx}"`), `the homepage links ${idx}`);
+  }
+
+  // /terms and /privacy carry the site header and the grid footer like every
+  // other page. They used to have a logo-only header — a visitor landing from
+  // a search result had no link into the site — and a flex footer, where the
+  // preferred-sources pill theme.js appends (grid-column:1/-1) had no row of
+  // its own and landed hard-right beside the legal links.
+  for (const legal of ['/terms', '/privacy']) {
+    const { status, body } = await get(legal);
+    assert.equal(status, 200);
+    const navLinks = [...body.matchAll(/<a class="nav-link" href="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(navLinks, ['/discover', '/pricing', '/vs', '/tools'], `${legal} carries the site nav`);
+    assert.match(body, /<footer class="site-footer cols seo-footer">/, `${legal} uses the grid footer`);
+    assert.match(body, /<p class="footer-disclaimer">/, `${legal} footer has the row the preferred-sources pill is inserted before`);
+    assert.match(body, /<a href="\/terms">Terms<\/a><a href="\/privacy">Privacy<\/a>/, `${legal} footer links both legal pages`);
+  }
 
 
   // The homepage's "Invite Dues" button: a stable hop to Discord's
@@ -3542,7 +3600,15 @@ test('discover: opt-in directory of live stores, real numbers only', async () =>
   // The page itself serves, and the platform paths cannot be claimed as slugs.
   const page = await fetch(`${appUrl}/discover`);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /Find your next community/);
+  const discoverHtml = await page.text();
+  assert.match(discoverHtml, /Find your next community/);
+  // It is the first link in every footer and the one page in the sitemap that
+  // shipped with no image card: Discord and Slack unfurled it as bare text and
+  // X, with no twitter:card at all, as a plain link. The same block every
+  // other page carries.
+  assert.match(discoverHtml, /property="og:url" content="https:\/\/dues\.gg\/discover"/, '/discover names its own og:url');
+  assert.match(discoverHtml, /property="og:image" content="https:\/\/dues\.gg\/og-card\.jpg/, '/discover unfurls with the site card');
+  assert.match(discoverHtml, /name="twitter:card" content="summary_large_image"/, '/discover gets the large X card like every other page');
   assert.equal((await fetch(`${appUrl}/api/plans?store=discover`)).status, 404);
 
   // Opting out delists immediately.
@@ -4221,6 +4287,12 @@ test('the hosted demo store: fixed storefront at /demo, discount preview works, 
   );
   const demoProd = await (await fetch(`${appUrl}/demo/vip-access`)).text();
   assert.match(demoProd, /VIP Access — Dues Membership/, 'demo product links carry product previews');
+  // ...and canonicalise to themselves, the way a real store's product page
+  // does. The demo branch hardcoded /demo, which told Google to index the
+  // store instead of the product page it was on.
+  assert.match(demoProd, /<link rel="canonical" href="[^"]*\/demo\/vip-access"/, 'a demo product page is its own canonical');
+  assert.match(demoProd, /property="og:url" content="[^"]*\/demo\/vip-access"/, 'a demo product page shares as itself');
+  assert.match(page, /<link rel="canonical" href="[^"]*\/demo"/, 'the demo store itself still canonicalises to /demo');
   // /store/<slug> is the same overall URL, everywhere.
   const red = await fetch(`${appUrl}/store/demo`, { redirect: 'manual' });
   assert.equal(red.status, 308);
