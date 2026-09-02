@@ -1049,7 +1049,7 @@ function hasSection(tab) {
 // and the score is whatever /api/plans counted — the client never computes an
 // average from the page it happens to be showing, because that would drift
 // from the truth the moment the list is paginated.
-const reviewState = { loaded: false, loading: false, cursor: null, more: false, rows: [], canWrite: false, mine: null };
+const reviewState = { loaded: false, loading: false, cursor: null, more: false, rows: [], canWrite: false, writeBlock: null, mine: null };
 
 const starRow = (n, cls = '') =>
   `<span class="shop-stars ${cls}" role="img" aria-label="${n} out of 5">` +
@@ -1093,6 +1093,9 @@ async function loadReviews(force = false) {
     reviewState.cursor = data.cursor ?? null;
     reviewState.more = Boolean(data.more);
     reviewState.mine = reviewState.rows.find((x) => x.mine) ?? null;
+    // Whether THIS viewer may post, decided by the same gate the write hits.
+    reviewState.canWrite = Boolean(data.canWrite);
+    reviewState.writeBlock = data.writeBlock ?? null;
     reviewState.loaded = true;
   } catch {
     // A storefront that cannot reach the review feed still sells products.
@@ -1164,6 +1167,19 @@ function renderMyReview() {
     $('#rv-del').onclick = async () => {
       await postReview({ action: 'withdraw' });
     };
+    return;
+  }
+  // No review yet and the server says this viewer cannot write one: a buyer
+  // inside the cooling window or someone who never bought gets the reason in
+  // the server's own words; the seller (who cannot rate their own store) and
+  // anyone else get nothing rather than a form that 403s.
+  if (!mine && !reviewState.canWrite) {
+    const why = {
+      notbuyer: 'Only people who bought from this store can review it.',
+      cooling: 'Reviews open three days after your purchase — give it a proper go first.',
+    }[reviewState.writeBlock];
+    box.hidden = !why;
+    if (why) box.innerHTML = `<p class="shop-rvform-note">${esc(why)}</p>`;
     return;
   }
   const pick = Number(box.dataset.pick ?? mine?.rating ?? 0);

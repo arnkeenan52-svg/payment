@@ -4002,6 +4002,7 @@ test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch,
   const list = async (cookie) =>
     (await (await fetch(`${appUrl}/api/reviews?store=vip-signals`, { headers: cookie ? { cookie } : {} })).json());
   const publicStore = async (slug) => (await (await fetch(`${appUrl}/api/plans?store=${slug}`)).json()).store;
+  const gate = (d) => ({ canWrite: d.canWrite, writeBlock: d.writeBlock });
   const storeCall = (body) =>
     fetch(`${appUrl}/api/admin/store`, {
       method: 'POST',
@@ -4020,15 +4021,22 @@ test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch,
   assert.equal(stranger.status, 403, 'a non-customer cannot review');
   assert.match((await stranger.json()).error, /bought from this store/);
   assert.equal(await rowCount(), 0, 'and nothing was written');
+  // The same verdict is reported up front on GET, so the storefront offers the
+  // composer only to someone whose post will land — and can say why to the rest.
+  assert.deepEqual(gate(await list(null)), { canWrite: false, writeBlock: 'signin' });
+  assert.deepEqual(gate(await list(u14Cookie)), { canWrite: false, writeBlock: 'notbuyer' }, 'a non-customer is told the composer is not for them');
+  assert.deepEqual(gate(await list(u7Cookie)), { canWrite: false, writeBlock: 'owner' }, 'the seller is offered no composer for their own store');
 
   // A brand-new purchase is still inside the cooling window.
   await tq('INSERT INTO subscriptions (store_id, discord_id, plan_id, provider, provider_ref, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [storeId, U8, 'vip-access', 'stripe', 'sub_review_e2e', 'active', Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000)]);
   assert.equal((await post(u8Cookie, { store: 'vip-signals', rating: 5 })).status, 403, 'reviews open after a cooling period');
+  assert.deepEqual(gate(await list(u8Cookie)), { canWrite: false, writeBlock: 'cooling' }, 'inside the window the composer is withheld, with the reason');
 
   // Age that purchase past the window and the same buyer may speak.
   const old = Math.floor(Date.now() / 1000) - 10 * 24 * 60 * 60;
   await tq('UPDATE subscriptions SET created_at = ? WHERE provider_ref = ?', [old, 'sub_review_e2e']);
+  assert.deepEqual(gate(await list(u8Cookie)), { canWrite: true, writeBlock: null }, 'past the window the buyer is offered the composer');
   assert.equal((await post(u8Cookie, { store: 'vip-signals', rating: 9 })).status, 400, 'a rating outside 1-5 is not a rating');
   const wrote = await post(u8Cookie, { store: 'vip-signals', rating: 2, body: 'Signals were fine, pace was not for me.' });
   assert.equal(wrote.status, 200);
@@ -4066,6 +4074,7 @@ test('store reviews: bought-only, seller cannot subtract, all-or-nothing switch,
   assert.equal(pub.reviews.on, true);
   assert.equal(pub.reviews.count, 1);
   assert.equal(pub.reviews.average, 4);
+  assert.equal((await list(u14Cookie)).writeBlock, 'notbuyer', 'the switch changes what is shown, never who may write');
 
   // THE CENTRAL RULE: there is no request a seller can make that removes,
   // hides or reorders ONE review. Every shape of the attempt is refused.
