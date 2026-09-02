@@ -1768,7 +1768,16 @@ test('public/ is the marketing site, not a tool shed: no operator scripts are se
   const shebanged = publicFiles().filter((rel) => fs.readFileSync(path.join(ROOT, 'public', rel)).subarray(0, 2).toString() === '#!');
   assert.deepEqual(shebanged, [], `executable scripts under public/: ${shebanged.join(', ')}`);
   // The URL itself is gone, and nothing on the site links it back into being.
-  assert.equal((await fetch(`${appUrl}/setup-community.mjs`)).status, 404, '/setup-community.mjs must not be served');
+  // One retry: this is an idempotent GET, and under a loaded machine undici
+  // has answered a healthy server with "fetch failed" once. A flaky ship gate
+  // is worse than a slow one.
+  const notServed = async () => {
+    for (let i = 0; ; i += 1) {
+      try { return (await fetch(`${appUrl}/setup-community.mjs`)).status; }
+      catch (err) { if (i) throw err; await new Promise((r) => setTimeout(r, 250)); }
+    }
+  };
+  assert.equal(await notServed(), 404, '/setup-community.mjs must not be served');
   const linking = publicFiles((f) => f.endsWith('.html')).filter((rel) => fs.readFileSync(path.join(ROOT, 'public', rel), 'utf8').includes('setup-community'));
   assert.deepEqual(linking, [], `pages still pointing at the withdrawn operator script: ${linking.join(', ')}`);
   // It still ships where it is actually run from — a clone, not the website.
