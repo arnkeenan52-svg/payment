@@ -18,7 +18,7 @@ export default guard(async function handler(req, res) {
     sendText(res, 405, 'method not allowed');
     return;
   }
-  const detail = cronAuthorized(req) || ownerAuthorized(req);
+  const detail = cronAuthorized(req) || await ownerAuthorized(req);
   const fresh = detail && new URL(req.url, 'http://localhost').searchParams.get('fresh') === '1';
   if (fresh || !cache || Date.now() - cache.at > ttlMs()) {
     cache = { at: Date.now(), report: await runDoctor() };

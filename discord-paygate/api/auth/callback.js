@@ -1,7 +1,7 @@
 import { sendText, redirect, parseCookies, cookieHeader, guard } from '../../src/lib/http.js';
 import { exchangeOAuthCode, fetchOAuthUser } from '../../src/lib/discord.js';
 import { createSessionCookie, cookieAttrs } from '../../src/lib/session.js';
-import { upsertUser } from '../../src/db.js';
+import { upsertUser, sessionGeneration } from '../../src/db.js';
 import { reconcileEverywhere } from '../../src/services/entitlements.js';
 import { STATE_COOKIE, PLAN_COOKIE, STORE_COOKIE } from './login.js';
 
@@ -54,7 +54,7 @@ export default guard(async function handler(req, res) {
   const base = storeSlug && storeSlug !== 'store' ? `/${encodeURIComponent(storeSlug)}` : '/dashboard';
   redirect(res, plan ? `${base}?plan=${encodeURIComponent(plan)}` : base, {
     'set-cookie': [
-      createSessionCookie(me.id),
+      createSessionCookie(me.id, await sessionGeneration(me.id)),
       cookieHeader(STATE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
       cookieHeader(PLAN_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),
       cookieHeader(STORE_COOKIE, '', { maxAge: 0, ...cookieAttrs() }),

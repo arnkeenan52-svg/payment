@@ -13,8 +13,8 @@ export default guard(async function handler(req, res) {
     sendText(res, 405, 'method not allowed');
     return;
   }
-  const uid = sessionUserId(req);
-  if (!uid && !ownerAuthorized(req)) {
+  const uid = await sessionUserId(req);
+  if (!uid && !await ownerAuthorized(req)) {
     sendJson(res, 401, { error: 'sign in first' });
     return;
   }
@@ -24,7 +24,7 @@ export default guard(async function handler(req, res) {
     sendJson(res, 404, { error: 'unknown store' });
     return;
   }
-  if (!(ownerAuthorized(req) || (store.ownerDiscordId && store.ownerDiscordId === uid))) {
+  if (!(await ownerAuthorized(req) || (store.ownerDiscordId && store.ownerDiscordId === uid))) {
     sendJson(res, 403, { error: 'not your store' });
     return;
   }

@@ -5,7 +5,7 @@ import { getUser, subscriptionsForMember, isEntitled, storesByOwner, storesFollo
 import { storeById, planOf } from '../src/services/stores.js';
 
 export default guard(async function handler(req, res) {
-  const uid = sessionUserId(req);
+  const uid = await sessionUserId(req);
   if (!uid) {
     sendJson(res, 200, { loggedIn: false });
     return;

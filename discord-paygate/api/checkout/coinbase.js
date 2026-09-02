@@ -14,7 +14,7 @@ export default guard(async function handler(req, res) {
     sendJson(res, 501, { error: 'crypto payments are not enabled' });
     return;
   }
-  const uid = sessionUserId(req);
+  const uid = await sessionUserId(req);
   if (!uid) {
     sendJson(res, 401, { error: 'log in with Discord first' });
     return;

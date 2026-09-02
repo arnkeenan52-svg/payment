@@ -1,6 +1,6 @@
 import { config } from '../src/config.js';
 import { sendJson, sendText, readJsonBody, guard } from '../src/lib/http.js';
-import { sessionUserId } from '../src/lib/session.js';
+import { sessionUserId, createSessionCookie, revokeAllSessions } from '../src/lib/session.js';
 import { ownerAuthorized } from '../src/lib/authz.js';
 import * as db from '../src/db.js';
 import { sealSecret } from '../src/lib/secretbox.js';
@@ -51,7 +51,7 @@ async function ownedStore(uid, storeId, req) {
   if (!row) return null;
   // The platform operator can act on any store — same bypass the sibling
   // admin endpoints grant, so the Platform admin view is fully functional.
-  if (row.owner_discord_id !== uid && !(req && ownerAuthorized(req))) return null;
+  if (row.owner_discord_id !== uid && !(req && await ownerAuthorized(req))) return null;
   return row;
 }
 
@@ -63,7 +63,7 @@ export default guard(async function handler(req, res) {
     sendText(res, 405, 'method not allowed');
     return;
   }
-  const uid = sessionUserId(req);
+  const uid = await sessionUserId(req);
   if (!uid) {
     sendJson(res, 401, { error: 'sign in with Discord first' });
     return;
@@ -112,6 +112,9 @@ export default guard(async function handler(req, res) {
       }
       if (existingStore) {
         await db.updateStore(existingStore.id, { stripeSecretEnc: sealSecret(stripeKey) });
+        // A key re-entered on an existing store revokes every other session
+        // (see api/admin/store.js); the caller's own cookie is re-issued.
+        res.setHeader('set-cookie', createSessionCookie(uid, await revokeAllSessions(uid)));
         try {
           const base = await canonicalWebhookUrl();
           const url = base.replace(/\/webhooks\/stripe$/, `/webhooks/stripe/${existingStore.id}`);

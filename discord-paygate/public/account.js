@@ -118,12 +118,34 @@ async function load() {
     return;
   }
 
+  // "Sign out" only clears this browser. This one ends every session the
+  // account has anywhere — the thing to reach for after a lost laptop.
+  const securityCard = `
+    <section class="panel sub-card">
+      <h2>Signed-in devices</h2>
+      <p class="note-help">Signs this account out of every browser and device it is logged in on, including this one.</p>
+      <button class="btn-ghost btn-danger" id="logout-all">Log out everywhere</button>
+      <p class="note-help" id="logout-all-note" role="status"></p>
+    </section>`;
+  const wireLogoutAll = () => {
+    const btn = $('#logout-all');
+    btn.onclick = async () => {
+      btn.disabled = true;
+      const res = await fetch('/api/auth/logout-all', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).catch(() => null);
+      if (res?.ok) { window.location.href = '/'; return; }
+      btn.disabled = false;
+      $('#logout-all-note').textContent = 'That did not work — try again.';
+    };
+  };
+
   const subs = me.subscriptions ?? [];
   if (!subs.length) {
     el.innerHTML = `
       <section class="panel sub-card">
         <p class="note-help">No membership on this account yet. Buy through a server's store link and it will appear here.</p>
-      </section>`;
+      </section>
+      ${securityCard}`;
+    wireLogoutAll();
     return;
   }
 
@@ -134,8 +156,10 @@ async function load() {
       <p class="note-help">If your Discord role ever goes missing, one click puts everything back the way it should be.</p>
       <button class="btn-pill" id="resync">Re-sync my access</button>
       <p class="note-help" id="resync-note"></p>
-    </section>`;
+    </section>
+    ${securityCard}`;
   $('#resync').onclick = resync;
+  wireLogoutAll();
   el.querySelectorAll('[data-cancel]').forEach((b) => { b.onclick = () => cancelSub(b); });
 }
 

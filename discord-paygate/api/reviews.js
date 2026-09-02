@@ -64,7 +64,7 @@ async function resolveStore(slug) {
 
 export default guard(async function handler(req, res) {
   const url = new URL(req.url, 'http://localhost');
-  const uid = sessionUserId(req);
+  const uid = await sessionUserId(req);
 
   if (req.method === 'GET') {
     const store = await resolveStore(String(url.searchParams.get('store') ?? '').toLowerCase());

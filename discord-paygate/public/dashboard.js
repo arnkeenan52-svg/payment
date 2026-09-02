@@ -2232,6 +2232,12 @@ function sectionSettings(store, isPlatformOwner) {
           nothing to configure. Settings is for decisions, and a panel that
           only announces a behaviour is furniture. Buyers still get their
           confirmation email — see src/services/receipts. */ ''}
+    ${setCard({
+      title: 'Signed-in devices',
+      sub: 'Sign out only clears this browser. This ends every session your account has, on every device — including this one.',
+      body: `<p class="field-err" id="err-logout-all" role="alert"></p>`,
+      foot: `<button class="btn-ghost" id="logout-all">Log out everywhere</button>`,
+    })}
     ${
       !store.isDefault
         ? setCard({
@@ -2594,6 +2600,19 @@ async function viewStore(slug) {
     wireCurrency(store, slug);
     wireCryptoWallet(store, slug);
     wireReceiptSettings(store, slug);
+    const logoutAll = $('#logout-all');
+    if (logoutAll)
+      logoutAll.onclick = async () => {
+        logoutAll.disabled = true;
+        fieldErr('logout-all', '');
+        try {
+          await api('/api/auth/logout-all', {});
+          window.location.href = '/';
+        } catch (err) {
+          logoutAll.disabled = false;
+          fieldErr('logout-all', err.message);
+        }
+      };
   }
 }
 

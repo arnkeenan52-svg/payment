@@ -6,7 +6,7 @@ import { TIERS, tierById, billingFor, memberUsage, createBillingCheckout, cancel
 // The signed-in owner's Dues plan: read it, upgrade it (Stripe Checkout on
 // Dues's own account), or cancel it. Buyer payments never touch this.
 export default guard(async function handler(req, res) {
-  const uid = sessionUserId(req);
+  const uid = await sessionUserId(req);
   if (!uid) {
     sendJson(res, 401, { error: 'sign in first' });
     return;

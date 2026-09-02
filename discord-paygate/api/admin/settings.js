@@ -10,8 +10,8 @@ import { resendApiKey, receiptFrom } from '../../src/lib/email.js';
 // the From address. Stored sealed in the database so no redeploy is needed;
 // values are never echoed back — only their presence.
 export default guard(async function handler(req, res) {
-  if (!(ownerAuthorized(req) || cronAuthorized(req))) {
-    sendJson(res, sessionUserId(req) ? 403 : 401, { error: 'owner only' });
+  if (!(await ownerAuthorized(req) || cronAuthorized(req))) {
+    sendJson(res, await sessionUserId(req) ? 403 : 401, { error: 'owner only' });
     return;
   }
   if (req.method === 'GET') {

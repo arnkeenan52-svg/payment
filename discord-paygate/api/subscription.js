@@ -16,7 +16,7 @@ import { stripeFetch, subscriptionPeriodEnd } from '../src/lib/stripe.js';
 
 export default guard(async function handler(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' });
-  const uid = sessionUserId(req);
+  const uid = await sessionUserId(req);
   if (!uid) return sendJson(res, 401, { error: 'Sign in with Discord first.' });
 
   const body = await readJsonBody(req).catch(() => ({}));

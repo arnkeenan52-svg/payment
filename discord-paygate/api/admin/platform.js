@@ -15,8 +15,8 @@ import { everyStore, defaultStore, plansOf } from '../../src/services/stores.js'
 import { tierById, tierStillPaid } from '../../src/services/billing.js';
 
 export default guard(async function handler(req, res) {
-  if (!sessionUserId(req)) return sendJson(res, 401, { error: 'sign in first' });
-  if (!ownerAuthorized(req)) return sendJson(res, 403, { error: 'platform owner only' });
+  if (!await sessionUserId(req)) return sendJson(res, 401, { error: 'sign in first' });
+  if (!await ownerAuthorized(req)) return sendJson(res, 403, { error: 'platform owner only' });
 
   const stores = await everyStore();
   const def = defaultStore();
