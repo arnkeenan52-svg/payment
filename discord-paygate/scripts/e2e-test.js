@@ -6303,16 +6303,17 @@ test('crypto: money that lands for a product that cannot be delivered is never a
   await finish(g);
   await undelivered(g, /no longer in this store/, pings0);
 
-  // 3. One seat, two invoices. Another buyer's OPEN invoice is a reservation
-  //    at checkout, not a sale at settlement: the first to pay is granted…
+  // 3. One seat, two invoices. An open invoice reserves its seat at checkout,
+  //    so the second invoice can only exist if the cap arrived after it: the
+  //    seller limits the product to one seat while both are open. The first
+  //    to pay is granted…
   const seat = await product('Last Seat');
-  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: 1 })).status, 200);
   const first = await npCheckout(seat.planKey);
-  await tq('UPDATE checkout_attempts SET created_at = created_at - 3600 WHERE session_id = ?', [first.order.orderId]);
   const LATE = '532200000000000032';
   discord.members.set(LATE, new Set());
   const lateCookie = await signInAs('code_late_seat', LATE, 'late_seat');
   const second = await npCheckout(seat.planKey, lateCookie);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: 1 })).status, 200);
   pings0 = discord.channelPosts.length;
   await finish(first);
   await waitFor('the first seat to land', async () => (await subRow('nowpayments', first.payment.payment_id)) !== null);
