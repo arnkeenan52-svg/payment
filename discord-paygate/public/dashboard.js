@@ -296,8 +296,24 @@ async function viewAdmin() {
   const t = d.totals;
   const conv = t.checkoutsStarted ? `${Math.round((t.checkoutsCompleted / t.checkoutsStarted) * 100)}%` : '—';
 
+  // Two different places a store can be opened from, and both belong to its
+  // identity, so both live in the first cell rather than in a column of their
+  // own: the NAME opens that seller's dashboard (this view's whole purpose),
+  // and the line under it opens the public storefront their buyers see, in a
+  // new tab. It is the only route from here into a seller's live page — the
+  // table prints slugs, and a slug you have to retype into the address bar is
+  // not a link. A draft store has no public page, so it says so rather than
+  // handing over one that lands on a setup screen.
+  //
+  // A second line rather than an eighth column, because the desktop table is
+  // already as wide as its panel: one more column and the whole thing starts
+  // scrolling sideways, which costs every other row to gain this one.
   const storeRow = (st) => `<tr>
-      <td><a class="admin-store-link" href="#/store/${esc(st.slug)}">${esc(st.name)}</a><span class="dim"> /${esc(st.slug)}</span></td>
+      <td><a class="admin-store-link" href="#/store/${esc(st.slug)}">${esc(st.name)}</a><span class="dim"> /${esc(st.slug)}</span>${
+        st.status === 'live'
+          ? `<a class="admin-live-link" href="${esc(`${location.origin}/${st.slug}`)}" target="_blank" rel="noopener noreferrer">${I.external} Open live page</a>`
+          : '<span class="admin-live-none dim">Not live yet</span>'
+      }</td>
       <td data-th="Owner">${st.ownerUsername ? `@${esc(st.ownerUsername)}<span class="dim"> ${esc(st.ownerDiscordId ?? '')}</span>` : esc(st.ownerDiscordId ?? '')}</td>
       <td data-th="Status">${st.status === 'live' ? '<span class="chip chip-good">Live</span>' : '<span class="chip chip-off">Draft</span>'}</td>
       <td data-th="Plan">${esc(st.ownerTier)}</td>

@@ -3993,6 +3993,37 @@ test('platform admin endpoint: owner-only bird\'s-eye of users, stores and total
   // ('Tradeleaks Pro'), so assert by guild rather than by slug.
   assert.ok(d.stores.some((st) => String(st.guildId) === '900000000000000001'), 'the built-in guild\'s store is listed too');
 
+  // Every listed store is reachable from the row, in BOTH senses: the name
+  // opens that seller's dashboard, and the line under it opens the storefront
+  // their buyers actually see. The second one is the only route from here into
+  // a seller's public page — the platform view prints slugs, and a slug you
+  // have to retype into the address bar is not a link. A draft store has no
+  // public page, so it says so rather than offering one.
+  {
+    const src = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
+    const row = src.slice(src.indexOf('const storeRow = (st) =>'), src.indexOf('const userRow = (u) ='));
+    assert.match(row, /href="#\/store\/\$\{esc\(st\.slug\)\}"/, 'the name still opens the seller dashboard');
+    assert.match(row, /st\.status === 'live'/, 'only a live store is offered as a link');
+    assert.match(row, /\$\{location\.origin\}\/\$\{st\.slug\}/, 'and it points at the public storefront, not the dashboard');
+    assert.match(row, /target="_blank" rel="noopener noreferrer"/, 'opened in a new tab, without handing the opener over');
+    assert.match(row, /Not live yet/, 'a draft store says why there is nothing to open');
+    // It rides in the FIRST cell, not in a column of its own: the desktop
+    // table already fills its panel, and an eighth column made the whole
+    // thing scroll sideways — every row paying for this one.
+    const header = src.slice(src.indexOf('<th>Store</th>'), src.indexOf('</tr></thead><tbody>${d.stores'));
+    assert.equal(header.split('<th').length - 1, 7, 'the platform Stores table stays seven columns wide');
+    assert.ok(row.indexOf('admin-live-link') < row.indexOf('data-th="Owner"'),
+      "the live link sits inside the store's own cell");
+    // The phone card hides the owner's 19-digit Discord id, and that rule is
+    // written as a column position — so it has to name the column Owner is
+    // actually in, or it silently starts hiding some other cell.
+    const ownerCol = header.split('<th').findIndex((h) => h.includes('>Owner<'));
+    assert.equal(ownerCol, 2, 'Owner is the second column of the platform Stores table');
+    const css = fs.readFileSync(new URL('../public/dash.css', import.meta.url), 'utf8');
+    assert.match(css, new RegExp(`t-stores td:nth-child\\(${ownerCol}\\) \\.dim`),
+      'the id-hiding rule names the column Owner actually sits in');
+  }
+
   // Users carry role flags the owner can filter on.
   const seller = d.users.find((u) => u.discordId === '507700000000000007');
   assert.ok(seller?.seller, 'a store owner is flagged as a seller');

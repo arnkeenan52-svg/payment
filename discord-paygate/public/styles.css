@@ -2835,6 +2835,22 @@ html.menu-open, html.menu-open body { overflow: hidden; }
 .ck-sub { font-size: 12px; font-weight: 600; color: var(--dim); letter-spacing: 0; margin-left: 4px; }
 .admin-store-link { color: inherit; font-weight: 650; text-decoration: none; }
 .admin-store-link:hover { text-decoration: underline; }
+/* The second destination in the same cell: the seller's public storefront, in
+   a new tab. It sits on its own line under the name — an action, not more of
+   the row's data — so it carries the accent and the external-link mark, and it
+   is sized for a thumb: this table is read on a phone, where the row becomes a
+   card and this is one of the two things on it worth pressing. Its line never
+   outruns the name above it, so the column does not grow. */
+.admin-live-link {
+  display: flex; align-items: center; gap: 6px;
+  width: fit-content; min-height: 30px; margin-top: 2px;
+  font-size: 0.86em; font-weight: 600;
+  color: var(--accent); text-decoration: none;
+}
+.admin-live-link:hover { text-decoration: underline; }
+.admin-live-link svg { flex: none; }
+.admin-live-none { display: block; margin-top: 2px; font-size: 0.86em; font-weight: 400; }
+@media (max-width: 760px) { .admin-live-link { min-height: 44px; } }
 /* picker: the owner's door into the admin page */
 .admin-link {
   display: flex; align-items: center; gap: 12px; padding: 13px 16px; text-decoration: none;
