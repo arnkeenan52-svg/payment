@@ -1274,7 +1274,12 @@ function sectionOverview(data, store, slug) {
   const topDelta = (name, v) => {
     const prev = byPlanPrev.get(name) ?? 0;
     const d = pct(v, prev);
-    return d === null ? '' : `<span class="delta ${d >= 0 ? 'up' : 'down'}"><span aria-hidden="true">${d >= 0 ? '▲' : '▼'}</span>${Math.abs(d) >= 100 ? Math.round(Math.abs(d)) : Math.abs(d).toFixed(0)}%</span>`;
+    if (d === null) return '';
+    const n = Math.abs(d) >= 100 ? Math.round(Math.abs(d)) : Math.abs(d).toFixed(0);
+    // Same rule as deltaChip: a product whose revenue matched the previous
+    // window read a green ▲0% here while the Revenue card beside it said flat.
+    if (Number(n) === 0) return '<span class="delta flat">0%</span>';
+    return `<span class="delta ${d > 0 ? 'up' : 'down'}"><span aria-hidden="true">${d > 0 ? '▲' : '▼'}</span>${n}%</span>`;
   };
 
   const recent = data.payments.slice(0, 6);
