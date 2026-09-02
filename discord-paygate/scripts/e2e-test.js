@@ -6292,11 +6292,12 @@ test('crypto: money that lands for a product that cannot be delivered is never a
   await finish(a);
   await undelivered(a, /not for sale/, pings0);
 
-  // 2. Deleted while the invoice was open — the delete waits for open
-  //    checkouts, but an invoice outlives that window and still pays.
+  // 2. Deleted after the provider closed the invoice — the delete waits for
+  //    OPEN checkouts (an invoice holds the product for its whole life), but
+  //    coins sent to a closed invoice can still be credited, and then pay.
   const ghost = await product('Ghost');
   const g = await npCheckout(ghost.planKey);
-  await tq('UPDATE checkout_attempts SET created_at = created_at - 3600 WHERE session_id = ?', [g.order.orderId]);
+  await tq('UPDATE checkout_attempts SET created_at = created_at - 7200, expires_at = created_at - 3600 WHERE session_id = ?', [g.order.orderId]);
   assert.equal((await post('/api/onboard', { step: 'product-delete', storeId, planKey: ghost.planKey })).status, 200);
   pings0 = discord.channelPosts.length;
   await finish(g);
