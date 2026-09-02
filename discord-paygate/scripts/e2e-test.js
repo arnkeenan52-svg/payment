@@ -6422,6 +6422,50 @@ test('crypto: buyer-facing copy never promises a renewal or a cancellation the r
     assert.doesNotMatch(text, /renews <|will renew|auto-renew(?!s\b)/i, `${provider}: nothing will charge again, so it must not say Renews`);
     assert.match(text, /ends <1800000000>/i, `${provider}: the buyer is told the date the role goes away`);
   }
+  // A membership the owner granted by hand was never bought. It ends like a
+  // crypto term, but calling it a payment and telling the member to buy again
+  // invoices them for a gift — so "one-time payment"/"buy again" is reserved
+  // for the rails that really took money, and anything else stays neutral.
+  for (const provider of ['manual', undefined]) {
+    const text = expiry({ ...base, provider }, fmt);
+    assert.match(text, /ends <1800000000>/i, `${String(provider)}: the member is still told when access ends`);
+    assert.doesNotMatch(text, /payment|buy again|renews </i, `${String(provider)}: a comped membership was not paid for`);
+  }
+});
+
+test('crypto: the two coin pickers survive answers the deposit list does not describe', async () => {
+  // Both pickers are browser code this suite does not run, so the two pure
+  // decisions behind them are lifted out of the files and executed as written.
+
+  // Seller side. /merchant/coins is the DEPOSIT list; payouts are gated by
+  // payout/validate-address instead, and the suite above proves a store can
+  // legitimately be saved on LTC while LTC is absent from that list. A
+  // <select> cannot hold a value it has no option for, so a picker built from
+  // the deposit list alone would open on "Choose a coin…", show generic copy
+  // for an address that is in fact valid, and refuse to save until the seller
+  // moved their payouts to another network.
+  const dashSrc = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
+  const payoutCoinsSrc = dashSrc.match(/function payoutCoins\(coins, current\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(payoutCoinsSrc, 'dashboard.js must still decide the payout options in one place');
+  const payoutCoins = new Function(`${payoutCoinsSrc}\n return payoutCoins;`)();
+  const deposit = ['sol', 'usdtsol', 'btc', 'eth', 'xmr'];
+  assert.ok(payoutCoins(deposit, 'ltc').includes('ltc'), 'the chain on file is always offered — otherwise the card cannot round-trip it');
+  assert.equal(payoutCoins(deposit, 'ltc')[0], 'ltc', 'and it is the one already selected, so Save works untouched');
+  assert.deepEqual(payoutCoins(deposit, 'sol'), deposit, 'a chain already in the list is not duplicated');
+  assert.deepEqual(payoutCoins(deposit, ''), deposit, 'a store with no chain yet just gets the starting set');
+
+  // Buyer side. `ready:false` and an empty list are the same fact — nothing
+  // here can be paid with — and remembering either parks an empty grid under
+  // a live Crypto tile for the life of the page, even after the seller
+  // finishes their setup a minute later. null is "ask again".
+  const appSrc = fs.readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  const fromAnswerSrc = appSrc.match(/const coinsFromAnswer = \(data\) => \{[\s\S]*?\n\};/)?.[0];
+  assert.ok(fromAnswerSrc, 'app.js must still decide what to keep from a ?coins=1 answer in one place');
+  const coinsFromAnswer = new Function(`${fromAnswerSrc}\n return coinsFromAnswer;`)();
+  assert.equal(coinsFromAnswer({ ready: false, coins: [] }), null, 'a not-ready rail is never cached as "no coins"');
+  assert.equal(coinsFromAnswer({ ready: true, coins: [] }), null, 'nor is a ready answer with nothing in it');
+  assert.equal(coinsFromAnswer({}), null);
+  assert.deepEqual(coinsFromAnswer({ ready: true, coins: ['sol', 'btc'] }), ['sol', 'btc'], 'a real list is kept as it arrived');
 });
 
 test('crypto: an IPN the runtime already parsed is still verified, not answered with a blanket 400', async () => {

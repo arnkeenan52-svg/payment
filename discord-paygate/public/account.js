@@ -30,10 +30,16 @@ function subCard(sub) {
       : sub.entitled
         // Only a card membership renews. A crypto purchase is a fixed term:
         // nothing charges again, no reminder precedes the end, and the role
-        // is removed when the date passes — say that, not "Renews".
-        ? sub.provider === 'stripe'
-          ? `Renews ${fmtDate(sub.graceUntil ?? sub.currentPeriodEnd)}`
-          : `Access ends ${fmtDate(sub.currentPeriodEnd)} — a one-time payment, nothing renews. Buy again after that date to continue.`
+        // is removed when the date passes — say that, not "Renews". Naming
+        // the crypto rails explicitly matters: a membership the owner granted
+        // by hand (provider "manual") was never paid for, so telling that
+        // member they made "a one-time payment" and should "buy again" is
+        // both untrue and a nudge to pay for something they were given.
+        ? sub.provider === 'nowpayments' || sub.provider === 'coinbase'
+          ? `Access ends ${fmtDate(sub.currentPeriodEnd)} — a one-time payment, nothing renews. Buy again after that date to continue.`
+          : sub.provider === 'stripe'
+            ? `Renews ${fmtDate(sub.graceUntil ?? sub.currentPeriodEnd)}`
+            : `Access ends ${fmtDate(sub.currentPeriodEnd)} — nothing renews.`
         : `Ended ${sub.currentPeriodEnd ? fmtDate(sub.currentPeriodEnd) : ''}`;
   const roles = sub.roleNames?.length ? `<div class="kv"><span>Discord role</span><span>${esc(sub.roleNames.map((r) => `@${String(r ?? '').replace(/^@+/, '')}`).join(', '))}</span></div>` : '';
   // Cancelling is the buyer's own to do. Hiding it behind "email the owner"

@@ -400,6 +400,16 @@ const COIN_LABEL = {
 };
 const coinLabel = (t) => COIN_LABEL[t] ?? t.toUpperCase();
 
+// What the browser is allowed to keep from a ?coins=1 answer. `ready:false`
+// and an empty list say the same thing — there is nothing here to pay with —
+// and neither is worth remembering: a half-configured store that finishes its
+// setup a minute later would still show an empty grid to a page that was
+// already open. null means "ask again on the next open".
+const coinsFromAnswer = (data) => {
+  const list = data && data.ready !== false && Array.isArray(data.coins) ? data.coins : [];
+  return list.length ? list : null;
+};
+
 async function renderCoinPicker() {
   const box = $('#coinpick');
   if (!box) return;
@@ -414,24 +424,29 @@ async function renderCoinPicker() {
     msg.textContent = 'Loading coins…';
     state.coins = [];
     let failed = false;
+    let empty = false;
     try {
       const res = await fetch(`/api/checkout/crypto?coins=1&store=${encodeURIComponent(STORE_SLUG)}`);
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
-      state.coins = Array.isArray(data.coins) ? data.coins : [];
+      state.coins = coinsFromAnswer(data);
+      // A 200 that carries nothing payable is as useless as no answer at all.
+      empty = state.coins === null;
     } catch {
       // A transient failure must not leave the picker empty for the life of
       // the page: forget the answer so the next open asks again.
       state.coins = null;
       failed = true;
     }
-    if (failed) {
+    if (failed || empty) {
       grid.innerHTML = '';
       msg.textContent = '';
       const retry = document.createElement('button');
       retry.type = 'button';
       retry.className = 'btn-ghost';
-      retry.textContent = 'Could not load coins — try again';
+      retry.textContent = failed
+        ? 'Could not load coins — try again'
+        : 'No coins available right now — try again';
       retry.onclick = () => render();
       msg.append(retry);
       return;
