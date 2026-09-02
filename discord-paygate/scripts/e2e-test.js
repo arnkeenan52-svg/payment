@@ -196,6 +196,12 @@ async function discordHandler(req, res) {
       json(res, 429, { message: 'You are being rate limited.', retry_after: 0.05, global: false });
       return;
     }
+    if (discord.failRoleRemovalsWith && req.method === 'DELETE') {
+      // A lost removal: Discord down, or the paid role dragged above the bot.
+      discord.roleCalls.push({ method: req.method, uid, roleId, failed: discord.failRoleRemovalsWith });
+      json(res, discord.failRoleRemovalsWith, { message: 'mock: role removal exploded' });
+      return;
+    }
     discord.roleCalls.push({ method: req.method, uid, roleId });
     if (!discord.members.has(uid)) {
       json(res, 404, { message: 'Unknown Member' });
@@ -4563,6 +4569,50 @@ test('a sealed Stripe key that no longer opens: no Stripe call on any path, and 
   } finally {
     app2.child.kill();
   }
+});
+
+test('a revoke whose Discord call fails is retried by the sweep and by the button', async () => {
+  // Revoke writes 'canceled' and then calls Discord. When that call failed —
+  // a 5xx, or the paid role dragged above the bot — the member kept the
+  // role, nothing ever revisited a canceled row, and the button answered 404
+  // from then on because the row was already canceled. The sweep now
+  // revisits revoked rows for a week, and the button reconciles even when
+  // there is nothing live left to cancel.
+  const loginAs = async (code) => {
+    const login = await fetch(`${appUrl}/auth/login`, { redirect: 'manual' });
+    const st = new URL(login.headers.get('location')).searchParams.get('state');
+    const sc = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state='));
+    const cb = await fetch(`${appUrl}/auth/callback?code=${code}&state=${st}`, { redirect: 'manual', headers: { cookie: sc.split(';')[0] } });
+    return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  };
+  const u7Cookie = await loginAs('code_u7');
+  const call = (body) =>
+    fetch(`${appUrl}/api/admin/member`, { method: 'POST', headers: { 'content-type': 'application/json', cookie: u7Cookie }, body: JSON.stringify({ store: 'vip-signals', ...body }) });
+  const plans = (await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json()).plans;
+  const plan = plans.find((p) => !p.variantOf && !p.requiredRoleName);
+  const UID = '517700000000000017';
+  discord.members.set(UID, new Set());
+  const granted = await call({ action: 'grant', discordId: UID, planId: plan.id });
+  assert.equal(granted.status, 200, await granted.text());
+  assert.ok(memberRoles(UID).has(R2_VIP), 'the grant delivered the role');
+  discord.failRoleRemovalsWith = 503;
+  try {
+    const first = await call({ action: 'revoke', discordId: UID });
+    assert.equal(first.status, 500, 'the lost Discord call surfaces as a failure');
+    assert.ok(memberRoles(UID).has(R2_VIP), 'the role was NOT taken back — that is the lost call');
+  } finally {
+    discord.failRoleRemovalsWith = null;
+  }
+  // The sweep revisits the revoked row and takes the role back.
+  assert.equal((await hitCron()).status, 200);
+  assert.ok(!memberRoles(UID).has(R2_VIP), 'the next sweep takes the role back');
+  // And the button can be clicked again although nothing is live any more.
+  discord.members.get(UID).add(R2_VIP);
+  const again = await call({ action: 'revoke', discordId: UID });
+  assert.equal(again.status, 200, await again.text());
+  assert.ok(!memberRoles(UID).has(R2_VIP), 'a retry of the button reconciles');
+  // A member who never had a row here is still a 404.
+  assert.equal((await call({ action: 'revoke', discordId: '518800000000000018' })).status, 404);
 });
 
 test('crypto: waiting and partially_paid show progress and grant nothing', async () => {

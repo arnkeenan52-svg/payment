@@ -1127,15 +1127,17 @@ export async function allSubscriptionsWithUsers(storeIds = null) {
 
 // (store_id, discord_id) pairs — reconciliation is per store, per member.
 export async function membersWithLiveSubscriptions(at = now()) {
-  // Live rows, PLUS anyone whose row expired within the last week. The sweep
-  // flips a lapsed row to 'expired' and only then reconciles the member; if
-  // that reconcile fails — Discord down for a minute — the role was never
-  // taken back, and nothing ever looked at an 'expired' row again. One lost
-  // call was free access forever. A week of revisits makes it an hour's delay.
+  // Live rows, PLUS anyone whose row expired OR was revoked within the last
+  // week. The sweep flips a lapsed row to 'expired' and only then reconciles
+  // the member; the Revoke button, a refund and a chargeback write 'canceled'
+  // and then reconcile. If that reconcile fails — Discord down for a minute,
+  // the paid role dragged above the bot — the role was never taken back, and
+  // nothing ever looked at the row again. One lost call was free access
+  // forever. A week of revisits makes it an hour's delay, on both paths.
   const { rows } = await q(
     `SELECT DISTINCT store_id, discord_id FROM subscriptions
      WHERE status IN ('active', 'past_due')
-        OR (status = 'expired' AND updated_at >= ?)`,
+        OR (status IN ('expired', 'canceled') AND updated_at >= ?)`,
     [at - 7 * 86400],
   );
   return rows.map((r) => ({ storeId: r.store_id === null ? null : Number(r.store_id), discordId: r.discord_id }));
