@@ -6410,7 +6410,7 @@ test('crypto: money that lands for a product that cannot be delivered is never a
   //    to pay is granted…
   const seat = await product('Last Seat');
   const first = await npCheckout(seat.planKey);
-  const LATE = '532200000000000032';
+  const LATE = '532300000000000034'; // its own id: 5322…32 is the kicked-bot scenario's KB, whose live sub would re-grant the role on login
   discord.members.set(LATE, new Set());
   const lateCookie = await signInAs('code_late_seat', LATE, 'late_seat');
   const second = await npCheckout(seat.planKey, lateCookie);
