@@ -7224,7 +7224,7 @@ test('crypto: an invoice the provider expired keeps looking for money, and a dep
   const clockSrc = appSrc.match(/const cryptoClockText = \(left\) => \{[\s\S]*?\n\};/)?.[0];
   assert.ok(clockSrc, 'app.js must still decide the countdown wording in one place');
   const clockText = new Function(`${clockSrc}\n return cryptoClockText;`)();
-  assert.match(clockText(600), /^expires in 00:10:00$/i, 'the countdown names what is running out');
+  assert.match(clockText(600), /^expires in 10:00$/i, 'the countdown names what is running out, in the minutes the window really has');
   assert.doesNotMatch(clockText(600), /rate|quote/i, 'what expires is the payment, not a rate quote that outlives it');
   const note = appSrc.match(/const CRYPTO_EXPIRED_NOTE =\n?\s*'([^']*)';/)?.[1];
   assert.ok(note, 'app.js must still say what a closed window means in one place');

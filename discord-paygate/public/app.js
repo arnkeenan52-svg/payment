@@ -681,10 +681,13 @@ function wireCopy(sel, value) {
 // both the wrong field and the wrong story: what runs out here is the payment.
 // Say which window it is, in the words a buyer would use.
 const cryptoClockText = (left) => {
-  const hh = String(Math.floor(left / 3600)).padStart(2, '0');
-  const mm = String(Math.floor((left % 3600) / 60)).padStart(2, '0');
+  if (left <= 0) return 'Expired';
+  const hh = Math.floor(left / 3600);
+  const mm = Math.floor((left % 3600) / 60);
   const ss = String(left % 60).padStart(2, '0');
-  return left > 0 ? `Expires in ${hh}:${mm}:${ss}` : 'Expired';
+  // No leading hour on a window measured in minutes: "Expires in 9:58" fits
+  // beside the status line on a phone, "00:09:58" pushes it onto its own row.
+  return `Expires in ${hh ? `${hh}:${String(mm).padStart(2, '0')}` : mm}:${ss}`;
 };
 // And when it runs out. Not "cancelled" and not "failed": the address is still
 // watched for a week, so a buyer who already sent it is told to sit tight
