@@ -1120,6 +1120,37 @@ test('the pricing page prints TIERS — every price, yearly price and cap, by na
   }
 });
 
+test('the pricing FAQ is published as FAQPage structured data, word for word', async () => {
+  // The seven <details> are the most substantive Q&A on the site; the
+  // FAQPage block is what lets a search engine show them. It is a second
+  // copy of the same text, so the test reads BOTH from the file and requires
+  // them equal — an edit to one without the other fails here.
+  const pricing = fs.readFileSync(new URL('../public/pricing.html', import.meta.url), 'utf8');
+  const decode = (t) => t.replace(/&rsquo;/g, '’').replace(/&mdash;/g, '—').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  const list = pricing.match(/<div class="faq-list">([\s\S]*?)<\/div>\s*<div class="faq-cta">/)?.[1] ?? '';
+  const shown = [...list.matchAll(/<summary>([\s\S]*?)<\/summary>\s*<p>([\s\S]*?)<\/p>/g)]
+    .map((m) => ({ q: decode(m[1]), a: decode(m[2]) }));
+  assert.ok(shown.length >= 5, 'the pricing page keeps a real FAQ');
+  const blocks = [...pricing.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
+  const faq = blocks.find((b) => b['@type'] === 'FAQPage');
+  assert.ok(faq, 'the pricing page must ship a FAQPage block');
+  assert.deepEqual(
+    faq.mainEntity.map((e) => ({ q: e.name, a: e.acceptedAnswer.text })),
+    shown,
+    'FAQPage must mirror the visible FAQ, question for question',
+  );
+  for (const e of faq.mainEntity) {
+    assert.equal(e['@type'], 'Question');
+    assert.equal(e.acceptedAnswer['@type'], 'Answer');
+    assert.doesNotMatch(e.name + e.acceptedAnswer.text, /[<&]/, 'structured data carries text, not markup or entities');
+  }
+
+  // The FAQ title shares one clamp with the fees title (.fees-title,.faq-title).
+  // A leftover homepage `.faq h2` rule out-ranked it and made the two sibling
+  // titles differ by 8-20px at every width; the page must not grow one back.
+  assert.doesNotMatch(pricing, /\.faq h2\{|\.faq\{padding-block/, 'no homepage .faq rules overriding .faq-title on the pricing page');
+});
+
 test('every page on the site is named in the footer — checked against the filesystem', async () => {
   // A page nothing links to is a page nobody finds. The old version of this
   // test listed the twelve comparisons by hand and accepted an INDEX link for
