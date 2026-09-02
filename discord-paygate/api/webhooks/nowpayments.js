@@ -88,7 +88,11 @@ export default guard(async function handler(req, res) {
   // /payment is a separate read path that can lag the emitter — or the
   // payment has ended for good. Same for work another invocation holds: it
   // may have died, and a retry in a few minutes finds out either way.
-  const settled = outcome === 'granted' || outcome === 'ignored' || outcome === 'dead';
+  // 'undelivered' is settled too: the money landed, the order is closed and
+  // the seller has been told. A retry would find the same closed order, so
+  // asking for one is only noise on a delivery there is nothing left to do
+  // about.
+  const settled = outcome === 'granted' || outcome === 'undelivered' || outcome === 'ignored' || outcome === 'dead';
   if (outcome === 'in-progress' || (GRANTS_ACCESS.has(status) && !settled)) {
     console.warn(`[webhooks] nowpayments ${paymentId}: delivery says ${status}, re-read says ${outcome} — asking the provider to retry`);
     sendText(res, 503, 'not settled yet');

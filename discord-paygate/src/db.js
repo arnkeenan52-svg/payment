@@ -93,7 +93,7 @@ const ddl = (dialect) => {
     discount_code TEXT,
     provider_ref  TEXT,                 -- crypto: the NOWPayments payment id
     expires_at    ${int},               -- when the provider stops taking money for it; NULL = the card-form TTL
-    status        TEXT NOT NULL,        -- 'started' | 'completed' | 'expired' (crypto: the provider closed the invoice unpaid)
+    status        TEXT NOT NULL,        -- 'started' | 'completed' | 'expired' (crypto: the provider closed the invoice unpaid) | 'undelivered' (crypto: the money landed and could not be delivered)
     created_at    ${int} NOT NULL,
     completed_at  ${int},
     UNIQUE (session_id)
@@ -711,6 +711,23 @@ export async function markCheckoutCompleted(sessionId, at = now()) {
 // every hour for a week, and releases the seat and discount use it held.
 export async function markCheckoutExpired(sessionId) {
   await q("UPDATE checkout_attempts SET status = 'expired' WHERE session_id = ? AND status = 'started'", [sessionId]);
+}
+
+// Crypto money that landed and could not be delivered. Not 'completed' — the
+// buyer got nothing — and not 'expired' either, which means the invoice was
+// never paid. It is the terminal answer for an order the seller has been
+// told about: the cron stops asking, a later delivery has nothing left to
+// announce, and the seat and discount use it held go back.
+// Answers whether THIS call closed it — the once-only signal the seller's
+// alert hangs off, the same way markCheckoutCompleted gates the sale ping.
+// completed_at stays NULL: it is what every surface reads as "and then they
+// paid for it", and nobody got what they paid for here.
+export async function markCheckoutUndelivered(sessionId) {
+  const { changes } = await q(
+    "UPDATE checkout_attempts SET status = 'undelivered' WHERE session_id = ? AND status = 'started'",
+    [sessionId],
+  );
+  return Number(changes ?? 0) > 0;
 }
 
 // Crypto orders a payment was created for that nobody ever closed: what the

@@ -6534,7 +6534,7 @@ test('crypto: money that lands for a product that cannot be delivered is never a
   };
   const undelivered = async ({ order, payment }, why, pings0, cookie = npBuyerCookie) => {
     assert.equal(await subRow('nowpayments', payment.payment_id), null, 'nothing may be granted');
-    assert.equal(await npAttemptStatus(order.orderId), 'started', '"completed" means the buyer got what they paid for');
+    assert.equal(await npAttemptStatus(order.orderId), 'undelivered', '"completed" means the buyer got what they paid for; this order is closed, not open');
     assert.equal(discord.channelPosts.length, pings0 + 1, 'exactly one post: the alert, never a sale ping');
     const embed = discord.channelPosts.at(-1).body.embeds[0];
     assert.match(embed.title, /nothing was delivered/i);
@@ -6592,6 +6592,41 @@ test('crypto: money that lands for a product that cannot be delivered is never a
   await undelivered(second, /sold out/, pings0, lateCookie);
   assert.ok(!memberRoles(LATE).has(R2_VIP), 'the role is the product, and it was not for sale');
   assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: seat.planKey, purchaseLimit: null })).status, 200);
+
+  // 4. And the answer is given ONCE. Left open, this order was re-settled by
+  //    every IPN replay past the claim window and by every hourly cron for
+  //    the whole seven-day backfill window: the same red embed to the seller
+  //    each time (~168 of them), counted as a `recovered` sale each time, and
+  //    — the expensive part — granted the moment the block happened to clear,
+  //    which is after the seller has read "refund them from your wallet" and
+  //    done it. Closing the order is what stops all three.
+  pings0 = discord.channelPosts.length;
+  await tq("UPDATE webhook_events SET received_at = received_at - 900 WHERE event_id = ?", [`nowpayments:${a.payment.payment_id}:finished`]);
+  const replay = await deliverNow({ payment_id: a.payment.payment_id, payment_status: 'finished', order_id: a.order.orderId });
+  assert.deepEqual([replay.status, replay.body], [200, 'ok'], 'the money is settled and the order closed — nothing for the provider to retry');
+  assert.equal(discord.channelPosts.length, pings0, 'no second alert for the same undelivered payment');
+  await tq('UPDATE checkout_attempts SET created_at = created_at - 7200 WHERE session_id = ?', [a.order.orderId]);
+  for (const pass of [1, 2]) {
+    await tq('UPDATE webhook_events SET received_at = received_at - 3600 WHERE event_id = ?', [`nowpayments:${a.payment.payment_id}:finished`]);
+    const cron = JSON.parse((await hitCron()).body);
+    assert.equal(cron.cryptoBackfill?.recovered, 0, `pass ${pass}: an undelivered order is not a recovered sale`);
+    assert.equal(discord.channelPosts.length, pings0, `pass ${pass}: the cron re-alerts nobody`);
+  }
+  // The seller fixes the cause. The money still does not deliver itself —
+  // they were told to refund it, and undoing that is their call, from
+  // Members, not something an hourly job decides for them.
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: dark.planKey, active: true })).status, 200);
+  await tq('UPDATE webhook_events SET received_at = received_at - 3600 WHERE event_id = ?', [`nowpayments:${a.payment.payment_id}:finished`]);
+  assert.equal(JSON.parse((await hitCron()).body).cryptoBackfill?.recovered, 0, 'a re-enabled product does not resurrect a refunded sale');
+  // Nor does a replayed IPN, which is the other way in: NOWPayments' delivery
+  // carries no timestamp, so a captured one can arrive at any point.
+  await tq('UPDATE webhook_events SET received_at = received_at - 3600 WHERE event_id = ?', [`nowpayments:${a.payment.payment_id}:finished`]);
+  const late = await deliverNow({ payment_id: a.payment.payment_id, payment_status: 'finished', order_id: a.order.orderId });
+  assert.deepEqual([late.status, late.body], [200, 'ok']);
+  assert.equal(await subRow('nowpayments', a.payment.payment_id), null);
+  assert.equal(await npAttemptStatus(a.order.orderId), 'undelivered');
+  assert.equal(discord.channelPosts.length, pings0);
+  assert.equal((await post('/api/onboard', { step: 'product-update', storeId, planKey: dark.planKey, active: false })).status, 200);
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════
