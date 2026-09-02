@@ -1619,19 +1619,20 @@ test('the first screen earns its height: a capped well, a grounded claim field, 
   const index = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
   const css = index.slice(index.indexOf('<style>'), index.indexOf('</style>'));
 
-  // 1 · THE WELL. Above the phone breakpoint the hero is capped, which lets the
-  // top of the role band sit inside the fold — a floor under the hero, and a
-  // better reason to scroll than a marker in an empty half ever was.
+  // 1 · THE WELL. One screen on every width, and NO desktop ceiling over it.
+  // A clamp(620px,86svh,820px) cap lived here for a while; it stranded the
+  // hero's foot 250px above the bottom of a tall window, with the next
+  // section's eyebrow showing underneath the small print. The row is the
+  // hero's last flex child, so the height of the hero IS where those links
+  // land.
   //
-  // There is no chevron rule to pin beside this one. The scroll hint was
-  // deleted with the empty sky it pointed into, element and all, and the
-  // homepage scenario asserts the string is gone from the page — so a rule
-  // switching it off would be a rule about nothing, and the two pins would
-  // contradict each other. The cap is the whole change here.
-  const wide = css.match(/@media \(min-width:601px\)\{([\s\S]*?)\n\}/);
-  assert.ok(wide, 'the desktop-and-up hero block is where it was written');
-  assert.match(wide[1], /\.hero\{min-height:clamp\(620px,86svh,820px\)/,
-    'the first screen is capped, so a tall window shows more page rather than more sky');
+  // There is no chevron rule to pin beside this one either. The scroll hint
+  // was deleted with the empty sky it pointed into, element and all, and the
+  // homepage scenario asserts the string is gone from the page.
+  assert.match(css, /\.hero\{\n[^}]*min-height:100svh/,
+    'the hero is one screen tall');
+  assert.doesNotMatch(css, /\.hero\{min-height:clamp\(/,
+    'and carries no desktop ceiling that would lift its foot off the bottom');
   // the phone keeps the full-screen hero the footer reveal is built on
   assert.match(css, /\.hero\{min-height:100vh;min-height:100lvh\}/,
     'the phone hero still owns the whole screen — the blind depends on it');

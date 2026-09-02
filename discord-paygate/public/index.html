@@ -353,16 +353,20 @@ html[data-theme="light"] .theme-btn .i-moon{display:block}
   padding-top:calc(64px + env(safe-area-inset-top,0px));
   display:flex;flex-direction:column;min-height:100svh;
 }
-/* 100svh is right on a phone — the first screen is the whole screen there,
-   and the reveal below depends on it. On a desktop it produced a 752px well
-   around 256px of content: two thirds empty sky, with nothing but the fold
-   itself to say the page continued. 86svh keeps the sky full-bleed (the slab
-   below is unaffected) while letting the role band's top edge sit inside the
-   fold — a floor under the hero, and a better invitation to scroll than any
-   marker in an empty half. */
-@media (min-width:601px){
-  .hero{min-height:clamp(620px,86svh,820px)}   /* and a ceiling, so a tall window shows more page rather than more sky */
-}
+/* The first screen is ONE SCREEN, on every width — the base 100svh, with no
+   desktop ceiling over it.
+   There was one for a while: clamp(620px, 86svh, 820px), added when the hero
+   held 256px of content in a 752px well and the argument was that a shorter
+   hero shows more page instead of more sky. What it also did was strand the
+   hero's foot — Pricing, Privacy, Terms and the two social marks — 250px above
+   the bottom of a 1076px window, floating in the middle of the sky with the
+   next section's eyebrow appearing underneath it. A footer that is not at the
+   foot of anything reads as debris.
+   The row is the hero's last flex child and .hero-core takes the slack, so at
+   100svh the copy still sits at optical centre and the links land on the
+   bottom edge, which is the one place a page's small print belongs. The role
+   band that used to be the floor here is gone, so nothing else was holding the
+   fold together either. */
 /* the sky: a sticky viewport-filling slab INSIDE the sheet, so the clouds are
    clipped to the sheet and lift away with it — the fixed footer underneath is
    revealed like a window blind. CSS photo fallback behind the shader canvas. */
