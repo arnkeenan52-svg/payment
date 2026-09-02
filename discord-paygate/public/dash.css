@@ -704,3 +704,16 @@ body.app .app-main {
 @media (max-width: 420px) {
   body.app .admin-stats { grid-template-columns: 1fr; }
 }
+
+/* The one instruction in the setup that has to happen in Discord rather than
+   here. It reads as a note among notes otherwise, and it is the difference
+   between a working store and a picker full of greyed-out roles. */
+body.app .wiz-note {
+  margin-top: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: 10px;
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--accent);
+  background: var(--well);
+}
+body.app .wiz-note strong { color: var(--d-a12); }

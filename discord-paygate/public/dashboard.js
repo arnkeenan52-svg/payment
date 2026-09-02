@@ -507,6 +507,21 @@ function renderSetupStep(g, step) {
     wizShell(g, 1, `
       <h2>${I.bot} Invite the Dues bot</h2>
       <p class="note-help">The bot delivers roles to buyers. Invite it to <strong>${esc(g.name)}</strong>, then hit Continue — this page also advances by itself the moment the bot joins.</p>
+      <!-- Said HERE, at the invite, and not only where it is enforced. Discord
+           lets a bot hand out a role only if that role sits below the bot's own
+           highest role, and the invite link cannot set that — it is a drag in
+           Server Settings that only the seller can do. Left to the role picker
+           to explain, it reads as "half my roles are broken"; said at the
+           invite, it is one step of the setup. -->
+      <p class="note-help wiz-note">
+        <strong>One thing to do in Discord after inviting:</strong> open
+        <em>Server Settings &#8594; Roles</em> and drag the <strong>Dues</strong> role
+        <strong>above</strong> every role you plan to sell. Discord only lets a bot
+        give out roles that sit <em>below</em> its own, and it needs Manage Roles,
+        which the invite link already asks for. A role above the bot cannot be
+        delivered &#8212; the picker greys those out rather than selling something
+        that would not arrive.
+      </p>
       <div class="wiz-actions">
         <a class="btn-secondary" id="invite-link" href="${esc(state.botInvite)}&guild_id=${esc(g.id)}" target="_blank" rel="noopener">Invite the bot ${I.external}</a>
         <button class="btn-pill" id="recheck">Continue ${I.arrow}</button>

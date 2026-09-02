@@ -1323,6 +1323,19 @@ test('the look is free: every background and an imported URL, on every plan', as
   assert.equal(billing.themeIfPaid, undefined, 'the old name would be a lie');
 
   // The picker must not lock anything, and the two catalogues must agree.
+  // THE ONE SETUP STEP THAT HAPPENS IN DISCORD, NOT HERE. Discord only lets a
+  // bot hand out roles below its own, and the invite link cannot set that — it
+  // is a drag in Server Settings. Said at the invite, it is a step; left to the
+  // role picker, it reads as half the seller's roles being broken.
+  {
+    const src = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
+    const step1 = src.slice(src.indexOf('Invite the Dues bot'), src.indexOf('id="recheck"'));
+    assert.match(step1, /Server Settings/, 'the invite step names where the seller has to go');
+    assert.match(step1, /drag the <strong>Dues<\/strong> role\s*<strong>above<\/strong>/,
+      'and says which way to drag it');
+    assert.match(step1, /Manage Roles/, 'and names the permission the invite asks for');
+  }
+
   const dash = fs.readFileSync(new URL('../public/dashboard.js', import.meta.url), 'utf8');
   const catalogue = dash.match(/const BG_CATALOG = \[[\s\S]*?\n\];/)[0];
   const ids = [...catalogue.matchAll(/\{ id: '([a-z0-9-]+)'/g)].map((m) => m[1]).sort();
@@ -1543,7 +1556,7 @@ test('the landing runs on one type scale, one vertical rhythm and one grid', () 
   }
 
   // ONE uppercase label: one size, one weight, one tracking
-  for (const s of ['.marq-cap', '.pay-cap', '.sec-eyebrow', '.save-rows-cap', '.save-cap']) {
+  for (const s of ['.pay-cap', '.sec-eyebrow', '.save-rows-cap', '.save-cap']) {
     assert.match(last(s, 'font') || '', /600 var\(--t-micro\)/, `${s} takes the one micro-label step`);
     assert.equal(last(s, 'letter-spacing'), '.1em', `${s} takes the one micro-label tracking`);
   }
@@ -1559,7 +1572,7 @@ test('the landing runs on one type scale, one vertical rhythm and one grid', () 
   // TWO section boundaries, and no third. Every section's block padding is
   // written in the rhythm tokens, so the gap between any two of them is either
   // 2x--sec-y (a new movement) or 2x--sec-y-tight (inside the fee argument).
-  for (const s of ['.rolemarq', '.save', '.why', '.pay', '.how', '.voices', '.comm', '.faq']) {
+  for (const s of ['.save', '.why', '.pay', '.how', '.voices', '.comm', '.faq']) {
     const pad = last(s, 'padding-block');
     assert.ok(pad, `${s} sets its own block rhythm`);
     assert.doesNotMatch(pad, /\d+px/, `${s} spends the rhythm tokens, not a hand-picked px value (${pad})`);
@@ -1636,16 +1649,12 @@ test('the first screen earns its height: a capped well, a grounded claim field, 
   assert.doesNotMatch(index, /<span class="mc-compat"> &#183;/,
     'and is no longer chained onto the free-tier note by a middot');
 
-  // 4 · THE ROLE BAND. A ground with a hairline top and bottom on both faces,
-  // and chips that stopped shouting: no solid card colour, no drop shadow.
-  assert.match(css, /html:not\(\[data-theme="light"\]\) \.rolemarq\{background:rgba\(13,20,32,\.42\);border-block:1px solid/,
-    'the night role band stands on a ground, not on bare sky');
-  assert.match(css, /html\[data-theme="light"\] \.rolemarq\{background:rgba\(255,255,255,\.44\);border-block:1px solid/,
-    'the day role band stands on a ground');
-  const pill = css.match(/\n\.pill\{([^}]*)\}/);
-  assert.ok(pill, '.pill still has a rule');
-  assert.doesNotMatch(pill[1], /var\(--cream\)/, 'the chips are no longer a solid card colour');
-  assert.doesNotMatch(pill[1], /box-shadow/, 'and carry no drop shadow floating on the sky');
+  // The fourth thing this scenario used to pin was the role band under the
+  // hero — its ground, its hairlines, its quieted chips. The band is gone: the
+  // owner asked that the page not open by listing what other people sell, so
+  // the calculator now follows the hero directly. Nothing replaced it, which is
+  // why there is nothing here to assert; the homepage scenario checks that no
+  // rule for it survived.
 });
 
 test('one nav: every page in the site shows the same header links, in the same order', () => {
@@ -5639,9 +5648,16 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
     assert.ok(sizes.length, `${sel} declares a size`);
     assert.ok(sizes.every((n) => n >= 12), `${sel} must not go under 12px (got ${sizes})`);
   }
+  // .marq-cap is pricing.html's alone now — the landing's role marquee was
+  // removed, and a floor check that demands a selector the page no longer has
+  // is a check about the wrong thing.
+  const FLOORS = {
+    'index.html': [/\.tog-save\{\s*font-size:([\d.]+)px/, /\.kicker\{\s*display:block;font:600 ([\d.]+)px/, /\.footer \.fcol b\{[^}]*font-size:([\d.]+)px/],
+    'pricing.html': [/\.tog-save\{\s*font-size:([\d.]+)px/, /\.marq-cap\{\s*text-align:center;font-size:([\d.]+)px/, /\.kicker\{\s*display:block;font:600 ([\d.]+)px/, /\.footer \.fcol b\{[^}]*font-size:([\d.]+)px/],
+  };
   for (const file of ['index.html', 'pricing.html']) {
     const html = page(file);
-    for (const re of [/\.tog-save\{\s*font-size:([\d.]+)px/, /\.marq-cap\{\s*text-align:center;font-size:([\d.]+)px/, /\.kicker\{\s*display:block;font:600 ([\d.]+)px/, /\.footer \.fcol b\{[^}]*font-size:([\d.]+)px/]) {
+    for (const re of FLOORS[file]) {
       const m = html.match(re);
       assert.ok(m, `${file}: ${re} must still match`);
       assert.ok(Number(m[1]) >= 12, `${file}: ${re} is ${m[1]}px, under the 12px floor`);
@@ -5752,11 +5768,34 @@ test('the homepage fold is copy and one field, and the calculator follows it', a
     assert.ok(!fs.existsSync(path.join(ROOT, 'public', file)), `${file} is deleted, not merely unreferenced`);
   }
 
+  // THE PAYMENT STRIP CARRIES BOTH RAILS, DIVIDED. Card money settles to the
+  // seller's own Stripe account and crypto settles to a wallet they nominate:
+  // two destinations, so the marks may not read as one undivided row.
+  assert.match(home, /<hr class="pay-split" \/>/, 'a drawn rule divides the two rails');
+  const cardsAt = home.indexOf('>Cards and wallets<');
+  const splitAt = home.indexOf('class="pay-split"');
+  const cryptoAt = home.indexOf('>Crypto<');
+  assert.ok(cardsAt > 0 && splitAt > cardsAt && cryptoAt > splitAt,
+    'cards, then the rule, then crypto — in that order');
+  for (const coin of ['BTC', 'ETH', 'USDT', 'USDC', 'SOL', 'LTC', 'DOGE']) {
+    assert.match(home, new RegExp(`class="pay-chip pm-${coin.toLowerCase()}"[^>]*>.*?${coin}`),
+      `the crypto row carries ${coin}`);
+  }
+  // The chip's ground is #fff on BOTH faces, so a night-face override would be
+  // lightening a colour against white. The first version did exactly that.
+  assert.doesNotMatch(home, /data-theme="light"\]\) \.pm-(btc|eth|usdt|usdc|sol|ltc|doge)/,
+    'no night-face variant for a mark that always sits on white');
+
+  // THE ROLE MARQUEE IS GONE, and nothing of it is left in the stylesheet.
+  for (const gone of ['rolemarq', 'marq-track', 'marq-cap', 'keyframes marq']) {
+    assert.ok(!home.includes(gone), `no ${gone} left behind`);
+  }
+
   // THE ORDER BELOW THE HERO. The calculator is the first thing the page asks
   // the visitor about — what they charge, and what a rival's cut of it costs
   // them — so it comes before the explanation of how any of it works. The
-  // role band stays part of the hero band above it.
-  const order = ['class="rolemarq"', 'class="save wrap" id="save"', 'class="how wrap" id="how"'];
+  // payment marks close it, which is the last thing a buyer meets.
+  const order = ['class="save wrap" id="save"', 'class="how wrap" id="how"', 'class="pay"'];
   let cursor = 0;
   for (const mark of order) {
     const at = home.indexOf(mark, cursor);

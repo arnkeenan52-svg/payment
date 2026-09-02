@@ -543,20 +543,12 @@ html:not([data-theme="light"]) .hero-core::before{
 html[data-theme="light"] .chip-film-embed{border-color:rgba(15,22,38,.12)}
 
 /* ============ role marquee strip ============ */
-.rolemarq{padding:96px 0 12px;overflow:hidden}
-.marq-cap{
-  text-align:center;font-size:12px;font-weight:500;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--micro);margin-bottom:20px;
-}
 /* Against the bare sky the two rows read as chips someone scattered under the
    hero: nothing said where the first screen ended and the argument began, and
    on the day face solid-white pills were the brightest object on the page —
    louder than the headline above them. The strip gets a ground of its own and
    a hairline top and bottom, so it is a shelf between the sky and the page
    rather than a decoration floating on it. */
-html:not([data-theme="light"]) .rolemarq{background:rgba(13,20,32,.42);border-block:1px solid rgba(255,255,255,.10)}
-html[data-theme="light"] .rolemarq{background:rgba(255,255,255,.44);border-block:1px solid rgba(15,22,38,.09)}
-.rolemarq .marq:last-child{margin-bottom:0}
 
 /* ============ how it works · ugc.foundable four-step ============ */
 .steps{
@@ -775,24 +767,6 @@ html[data-theme="light"] .steps{
 .bcard .bullets{margin:16px 0 0;gap:10px}
 
 /* marquees */
-.marq{
-  overflow:hidden;margin-bottom:12px;
-  /* the fade is a fixed distance, not a percentage: at 10% it ate a chip and a
-     half at each end of a 1440 band and only 39px of a 390 one — the opposite
-     of what each width needs. */
-  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 48px,#000 calc(100% - 48px),transparent 100%);
-  mask-image:linear-gradient(to right,transparent 0,#000 48px,#000 calc(100% - 48px),transparent 100%);
-}
-.marq-track{display:flex;gap:10px;width:max-content;animation:marq-l 30s linear infinite}
-.marq-rev .marq-track{animation:marq-r 35s linear infinite}
-.marq-slow .marq-track{animation:marq-l 40s linear infinite}
-@keyframes marq-l{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@keyframes marq-r{from{transform:translateX(-50%)}to{transform:translateX(0)}}
-.pill{
-  background:rgba(13,20,32,.62);border:1px solid rgba(255,255,255,.12);border-radius:999px;
-  padding:8px 16px;font-size:13.5px;white-space:nowrap;color:var(--sec);
-}
-html[data-theme="light"] .pill{background:rgba(255,255,255,.70);border-color:rgba(15,22,38,.10);color:var(--sec)}
 
 /* the live appearance toy */
 .applayout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:stretch}
@@ -1277,7 +1251,6 @@ input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4
   .film-frame video{aspect-ratio:4/3;border-radius:6px}
   .card-sale{left:8px;bottom:-14px}
   .card-paid{display:none}
-  .rolemarq{padding-top:44px}
   .bento{padding-block:64px 72px}
   .bento-head{margin-bottom:36px}
   .bento-grid{gap:12px}
@@ -2011,6 +1984,10 @@ html[data-theme="light"] .save-dues .sv-cost{color:#177245}
 @media (min-width:640px){
   .pay-chips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;width:min(100%,900px);max-width:900px}
   .pay-chip{min-width:0}
+  /* seven coins, one row — the same seven cells as the row above it, so the
+     two groups line up column for column rather than each finding its own
+     rhythm. */
+  .pay-chips.pay-crypto{width:min(100%,900px)}
 }
 .pay-chip{
   display:inline-flex;align-items:center;justify-content:center;gap:4px;
@@ -2307,6 +2284,30 @@ html:not([data-theme="light"]) .comm-checks svg{color:#3ddc84}
 .pay-cap::before{background:linear-gradient(90deg,transparent,var(--hair))}
 .pay-cap::after{background:linear-gradient(90deg,var(--hair),transparent)}
 .pay-note{font-size:12.5px;line-height:18px;color:var(--micro);text-align:center;margin-top:-2px}
+/* The division between the two rails. A real rule rather than more whitespace:
+   the two groups sit in the same strip, in the same chip shape, and only a
+   drawn line says they settle in two different places. */
+.pay-split{
+  width:min(100%,760px);height:0;margin:26px 0 4px;
+  border:0;border-top:1px solid var(--hair);
+}
+/* The coin marks are TYPOGRAPHIC — the currency glyphs (&#8383; &#926; &#8366; &#321;
+   &#272;), not redrawn brand logos. Each takes its own colour, which is what
+   makes a row of tickers scannable, and every one of them is measured against
+   the chip's ground rather than picked by eye. */
+.pay-crypto .cmark{font-style:normal;margin-right:5px;font-size:1.08em;line-height:1}
+.pm-btc b{color:#a2560a}
+.pm-eth b{color:#4a5a86}
+.pm-usdt b{color:#0a7263}
+.pm-usdc b{color:#1668c4}
+.pm-sol b{color:#7b52c9}
+.pm-ltc b{color:#41668c}
+.pm-doge b{color:#8a6c0d}
+/* No night-face variants here, deliberately: the chip's ground is #fff on BOTH
+   faces (like every other mark in this strip), so a colour lightened for a dark
+   page would be lightened against white. The first version of this did exactly
+   that and four of the seven tickers went to about 2:1. One colour per coin,
+   chosen against white. */
 /* The day face left the strip bare on the open sky while the night face framed
    it as a panel, so under three carded steps it read as a row of logos that had
    drifted loose below the band rather than as the close of step three. Same
@@ -2371,10 +2372,8 @@ html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;pa
      rides a little higher via the bottom padding. */
   .hero{min-height:100vh;min-height:100lvh}
   .hero-core{padding:44px 16px 64px}
-  .rolemarq{padding-top:40px;transition:opacity .45s ease}
   /* clean first paint: whatever Safari's floating bar exposes, the marquee
      stays invisible until the visitor actually starts scrolling */
-  html[data-at-top] .rolemarq{opacity:0}
   /* ── the phone footer's vertical rhythm, in ONE place and in svh ─────────
      This used to be two groups of fixed px inside the same media query, the
      second silently overriding the first, so a compaction pass could land on
@@ -2486,7 +2485,6 @@ html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;pa
 }
 
 /* ── the vertical rhythm ── */
-.rolemarq{padding-block:var(--sec-y)}
 .save{padding-block:var(--sec-y) var(--sec-y-tight)}
 .why{padding-block:var(--sec-y-tight)}
 .pay{padding-block:var(--sec-y-tight) var(--sec-y)}
@@ -2535,7 +2533,7 @@ html[data-theme="light"] .pay{width:min(880px,100% - 32px);margin:0 auto 40px;pa
    "FAQ", "MONTHLY PLATFORM COST" and "ESTIMATED ANNUAL SAVING" finally read as
    the same kind of thing. Colour is left alone — every one of these was tuned
    against the sky for contrast, and none of them changes size class. */
-.marq-cap,.pay-cap,.sec-eyebrow,.save-rows-cap,.save-cap{
+.pay-cap,.sec-eyebrow,.save-rows-cap,.save-cap{
   font:600 var(--t-micro)/1.45 var(--sans);letter-spacing:.1em;text-transform:uppercase;
 }
 .sec-eyebrow{margin-bottom:10px}
@@ -2644,18 +2642,6 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
 
 <main>
 
-<!-- 4 · role marquee -->
-<section class="rolemarq" aria-label="Roles communities sell with Dues">
-  <p class="marq-cap">What communities sell with Dues</p>
-  <div class="marq"><div class="marq-track">
-    <span class="pill">@VIP</span><span class="pill">@Signals</span><span class="pill">@Founder</span><span class="pill">@Inner Circle</span><span class="pill">@Premium</span><span class="pill">@Early</span><span class="pill">@Trader</span><span class="pill">@Backstage</span><span class="pill">@Coaching</span><span class="pill">@Members</span><span class="pill">@Alumni</span><span class="pill">@Supporter</span><span class="pill">@VIP</span><span class="pill">@Signals</span><span class="pill">@Founder</span><span class="pill">@Inner Circle</span><span class="pill">@Premium</span><span class="pill">@Early</span>
-    <span class="pill">@VIP</span><span class="pill">@Signals</span><span class="pill">@Founder</span><span class="pill">@Inner Circle</span><span class="pill">@Premium</span><span class="pill">@Early</span><span class="pill">@Trader</span><span class="pill">@Backstage</span><span class="pill">@Coaching</span><span class="pill">@Members</span><span class="pill">@Alumni</span><span class="pill">@Supporter</span><span class="pill">@VIP</span><span class="pill">@Signals</span><span class="pill">@Founder</span><span class="pill">@Inner Circle</span><span class="pill">@Premium</span><span class="pill">@Early</span>
-  </div></div>
-  <div class="marq marq-rev"><div class="marq-track">
-    <span class="pill">@Trader</span><span class="pill">@Members</span><span class="pill">@Alumni</span><span class="pill">@Backstage</span><span class="pill">@Signals</span><span class="pill">@VIP</span><span class="pill">@Coaching</span><span class="pill">@Supporter</span><span class="pill">@Premium</span><span class="pill">@Founder</span><span class="pill">@Early</span><span class="pill">@Inner Circle</span><span class="pill">@Trader</span><span class="pill">@Members</span><span class="pill">@Alumni</span><span class="pill">@Backstage</span><span class="pill">@Signals</span><span class="pill">@VIP</span>
-    <span class="pill">@Trader</span><span class="pill">@Members</span><span class="pill">@Alumni</span><span class="pill">@Backstage</span><span class="pill">@Signals</span><span class="pill">@VIP</span><span class="pill">@Coaching</span><span class="pill">@Supporter</span><span class="pill">@Premium</span><span class="pill">@Founder</span><span class="pill">@Early</span><span class="pill">@Inner Circle</span><span class="pill">@Trader</span><span class="pill">@Members</span><span class="pill">@Alumni</span><span class="pill">@Backstage</span><span class="pill">@Signals</span><span class="pill">@VIP</span>
-  </div></div>
-</section>
 
 
 <!-- 5 · how it works — the mechanism, before any arithmetic -->
@@ -2761,8 +2747,8 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
        at checkout. It used to be a section of its own, floating between two
        fee arguments where nobody had asked the question yet. -->
   <div class="pay">
-    <p class="pay-cap">Buyers can pay with</p>
-    <div class="pay-chips" aria-label="Supported payment methods">
+    <p class="pay-cap">Cards and wallets</p>
+    <div class="pay-chips" aria-label="Cards and wallets">
       <span class="pay-chip" aria-label="Visa"><b class="pm-visa">VISA</b></span>
       <span class="pay-chip" aria-label="Mastercard"><svg viewBox="0 0 38 24" aria-hidden="true"><circle cx="15" cy="12" r="9" fill="#EB001B"/><circle cx="23" cy="12" r="9" fill="#F79E1B"/><path d="M19 4.8a9 9 0 0 1 0 14.4 9 9 0 0 1 0-14.4z" fill="#FF5F00"/></svg></span>
       <span class="pay-chip pm-amexchip" aria-label="American Express"><b>AMEX</b></span>
@@ -2779,6 +2765,24 @@ html:not([data-theme="light"]) .mid-note{width:fit-content;max-width:min(52ch,10
       <span class="pay-chip pay-xtra pm-afterpaychip" aria-label="Afterpay"><b>afterpay</b></span>
     </div>
     <p class="pay-note">Cards, wallets and local methods &#8212; every one settles to your own Stripe account.</p>
+
+    <!-- The second rail, kept visibly separate. Card money settles to the
+         seller's own Stripe account and crypto settles to their own wallet:
+         two different rails with two different destinations, so a single
+         undivided row of marks would say they are one thing. The rule and the
+         caption are the division; the note under it names the destination. -->
+    <hr class="pay-split" />
+    <p class="pay-cap">Crypto</p>
+    <div class="pay-chips pay-crypto" aria-label="Supported coins">
+      <span class="pay-chip pm-btc" aria-label="Bitcoin"><b><i class="cmark">&#8383;</i>BTC</b></span>
+      <span class="pay-chip pm-eth" aria-label="Ethereum"><b><i class="cmark">&#926;</i>ETH</b></span>
+      <span class="pay-chip pm-usdt" aria-label="Tether"><b><i class="cmark">&#8366;</i>USDT</b></span>
+      <span class="pay-chip pm-usdc" aria-label="USD Coin"><b><i class="cmark">$</i>USDC</b></span>
+      <span class="pay-chip pm-sol" aria-label="Solana"><b>SOL</b></span>
+      <span class="pay-chip pm-ltc" aria-label="Litecoin"><b><i class="cmark">&#321;</i>LTC</b></span>
+      <span class="pay-chip pm-doge" aria-label="Dogecoin"><b><i class="cmark">&#272;</i>DOGE</b></span>
+    </div>
+    <p class="pay-note">Paid on the chain the buyer picks, settled straight to the wallet you nominate.</p>
   </div>
 </section>
 
