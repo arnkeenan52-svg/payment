@@ -3588,11 +3588,12 @@ body[data-material='solid'].has-bg .shop-col {
   .shop-col { border-inline: 0; min-height: 0; }
 }
 @media (max-width: 560px) {
-  /* The viewport edge is the only rail on a phone, so the desktop inset is
-     spent on nothing — 16px back, and every block that reads the token
-     follows it, including the avatar and the tab bar. */
-  .shop { --shop-gutter: 16px; }
   .shop-avatar { width: 80px; height: 80px; bottom: -40px; outline-width: 4px; }
+  /* The viewport edge is the only rail on a phone, so the desktop inset is
+     spent on nothing — 16px back, and every block that reads the token follows
+     it, including the avatar above and the tab bar below. (The avatar leads
+     this block because the suite anchors the phone pass on it.) */
+  .shop { --shop-gutter: 16px; }
   .shop-head { padding: 54px var(--shop-gutter) 30px; }
   .shop-name { font-size: 24px; }
   .shop-titlebar { flex-direction: column; align-items: stretch; gap: 12px; }

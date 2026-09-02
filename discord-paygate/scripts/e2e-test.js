@@ -1140,7 +1140,11 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   // say whether 1500 is $1,500.00 or ¥1,500, and the storefront formats from it.
   // `durationDays` rides beside them for the same reason: the crypto rail has
   // no renewal to point at, so the pay screen has to name the term itself.
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'durationDays', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'variantOf']);
+  // `roles` rides beside `roleNames` and does not replace it: the names are
+  // what the seller stored and what every older reader expects, the roles are
+  // what the guild says those ids ARE right now — live name, live colour — so
+  // the storefront can draw a role as a role instead of as two grey letters.
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'durationDays', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'roles', 'variantOf']);
   assert.equal(plans[0].currency, 'usd', 'a store that never picked a currency prices in USD, exactly as before');
 });
 
@@ -5658,7 +5662,7 @@ test('storefront chrome: hidden wins, touch targets reach 44, phone text floors 
   // aria-hidden product mock-ups on the marketing pages (.vz-*, .dc-app,
   // .browser-url, .appcard, the chart tick labels) — those are a DRAWING of an
   // interface, not text to read, and scaling their type breaks the drawing.
-  for (const sel of ['.shop-rolechip', '.alt-ours', '.footer-head', '.calc-note', '.calc-bar-sub', '.footer-disclaimer',
+  for (const sel of ['.shop-rolechip', '.rolechip', '.shop-rolelead', '.alt-ours', '.footer-head', '.calc-note', '.calc-bar-sub', '.footer-disclaimer',
     '.chip', '.order-card .label', '.kicker', '.shop-rv-you', '.shop-share-tip', '.coin span', '.cpay-coin']) {
     const sizes = rules(sel).flatMap(px);
     assert.ok(sizes.length, `${sel} declares a size`);
