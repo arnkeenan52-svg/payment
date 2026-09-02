@@ -48,6 +48,49 @@ const fmtPrice = (amount, cur = PAGE_CURRENCY) => {
 // Product names and usernames are other people's text — escape everything
 // that rides into innerHTML, no exceptions.
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// ── Discord roles ────────────────────────────────────────────────────────────
+// A role is a NAME and a COLOUR. The page draws it as a chip carrying both —
+// never as an initial-avatar, which is the shape this interface uses for a
+// PERSON and says nothing whatever about a role.
+//
+// `plan.roles` is what /api/plans resolved from the guild itself. `roleNames`
+// is the older field and still the fallback: a browser can be running this
+// script against a response cached before the colour existed, and a colourless
+// chip is the correct answer for a role whose colour we do not hold — Discord
+// itself has no colour for a role left on the default.
+const rolesOf = (plan) => {
+  const live = Array.isArray(plan?.roles) ? plan.roles.filter((r) => r && r.name) : [];
+  if (live.length) return live.map((r) => ({ name: String(r.name), color: hexColor(r.color) }));
+  return (plan?.roleNames ?? [])
+    .map((n) => String(n ?? '').replace(/^@+/, '').trim())
+    .filter(Boolean)
+    .map((name) => ({ name, color: null }));
+};
+// Only a literal 3- or 6-digit hex reaches a style attribute. The colour comes
+// from Discord, but it arrives through a JSON body, and a custom property is
+// still a place where a crafted string could carry something that is not a
+// colour into the page.
+const hexColor = (c) => (typeof c === 'string' && /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(c.trim()) ? c.trim() : null);
+// The chip. The dot is the role's colour; the neutral dot is what a role with
+// no colour set actually looks like in Discord's own member list.
+const roleChip = (role) =>
+  `<span class="rolechip${role.color ? '' : ' plain'}"${role.color ? ` style="--rc:${esc(role.color)}"` : ''}>` +
+  `<i class="rolechip-dot" aria-hidden="true"></i>${esc(roleLabel(role.name))}</span>`;
+// Every distinct role sold anywhere in this store, in catalogue order.
+const storeRoles = () => {
+  const seen = new Set();
+  const out = [];
+  for (const plan of state.plans.filter((p) => !p.variantOf)) {
+    for (const role of rolesOf(plan)) {
+      const key = role.name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(role);
+    }
+  }
+  return out;
+};
+
 // Sign out is a POST: the session cookie rides on cross-site GETs, so a
 // GET link could be fired by any third-party page (see api/auth/logout.js).
 const signOut = () => {
@@ -239,14 +282,16 @@ function renderBrand() {
   $('#plan-name').textContent = parentOf(plan).name;
   renderTagline($('#plan-desc'), plan.description, plan.descriptionHighlight);
   $('#price').textContent = fmtPrice(plan.priceUsd, plan.currency);
-  // Roles the buyer receives, as blurple chips — Discord's own concept in
-  // Discord's own color.
+  // Roles the buyer receives, each as a chip in ITS OWN colour — the colour
+  // the guild gave it, which is how a member sees that role everywhere else.
+  // These used to be uniformly blurple, which made two different roles look
+  // like the same thing twice.
   const rolesBox = $('#roles-box');
   const chips = $('#roles-chips');
   if (rolesBox && chips) {
-    const names = plan.roleNames ?? [];
-    if (names.length) {
-      chips.innerHTML = names.map((n) => `<span class="chip">${esc(roleLabel(n))}</span>`).join('');
+    const roles = rolesOf(plan);
+    if (roles.length) {
+      chips.innerHTML = roles.map(roleChip).join('');
       rolesBox.hidden = false;
     } else rolesBox.hidden = true;
   }
@@ -1458,8 +1503,9 @@ function renderRating() {
 // "12.4K" is only honest because the real number is still what was counted.
 const fmtCount = (n) => (n < 10000 ? String(n) : `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`);
 
+// The crowd icon that used to sit beside "2 roles" is gone with it: a role is
+// not a group of people, and the glyph was arguing the opposite.
 const SHOP_ICONS = {
-  people: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 20v-2a4 4 0 0 0-3-3.87"/></svg>',
   discord: '<svg width="16" height="12" viewBox="0 0 127 96" fill="currentColor" aria-hidden="true"><path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg>',
 };
 const LINK_ICONS = {
@@ -1491,12 +1537,26 @@ function productCard(plan) {
   // has to read as one string, not a number with a footnote.
   const per = cheapest.lifetime ? ' lifetime' : ` / ${esc(cheapest.interval ?? 'month')}`;
   const now = Math.floor(Date.now() / 1000);
-  const roleCount = Array.isArray(plan.roleNames) ? plan.roleNames.length : 0;
+  // What this card says about the roles it grants. One role is named, in its
+  // own colour — that is the whole point of the line, and "1 role" beside a
+  // little crowd icon told a buyer nothing at all. Several roles keep their
+  // colours as dots and let the count carry the words, because two full names
+  // do not fit in a footer strip beside a price.
+  const roles = rolesOf(plan);
+  const dots = roles
+    .slice(0, 3)
+    .map((r) => `<i class="prod-dot${r.color ? '' : ' plain'}"${r.color ? ` style="--rc:${esc(r.color)}"` : ''} aria-hidden="true"></i>`)
+    .join('');
+  const roleMeta =
+    roles.length === 1
+      ? `${dots}<span class="prod-rolename">${esc(roleLabel(roles[0].name))}</span>`
+      : roles.length > 1
+        ? `${dots}${roles.length} roles`
+        : '';
   const meta =
     group.length > 1 ? `${group.length} options`
     : plan.expiresAt && plan.expiresAt > now ? 'Limited'
-    : roleCount ? `${SHOP_ICONS.people}${roleCount} role${roleCount > 1 ? 's' : ''}`
-    : '';
+    : roleMeta;
   const ph = `<span class="prod-ph" aria-hidden="true">${esc((plan.name || '?').slice(0, 1).toUpperCase())}</span>`;
   // referrerpolicy: a product photo can be a link the seller pasted to a host
   // we know nothing about. Same rule as the banner and the imported
@@ -1557,13 +1617,17 @@ function renderShop() {
   }
   $('#shop-name').textContent = name;
 
-  // The reference puts a star rating here. We have no reviews and will not
-  // invent them, so the slot carries the true equivalent: which server this is.
+  // The Discord server the roles land in. It belongs in the metadata row (see
+  // below) where the reference puts a location — it is the same kind of fact,
+  // "where this is" — and it only appears when it is not just the store's own
+  // name a second time.
   const sub = $('#shop-sub');
   const serverName = state.server?.name ?? '';
   const showSub = Boolean(serverName) && serverName !== name;
-  sub.innerHTML = showSub ? `${SHOP_ICONS.discord}<span>${esc(serverName)}</span>` : '';
-  sub.hidden = !showSub;
+  if (sub) {
+    sub.innerHTML = showSub ? `${SHOP_ICONS.discord}<span>${esc(serverName)}</span>` : '';
+    sub.hidden = !showSub;
+  }
 
   const desc = (state.store?.description ?? '').trim();
   const descEl = $('#shop-desc');
@@ -1589,8 +1653,10 @@ function renderShop() {
     .map((k) => `<a class="shop-mlink" href="${esc(state.store.links[k])}" target="_blank" rel="noopener noreferrer" aria-label="${esc(k === 'x' ? 'X (Twitter)' : k)}">${LINK_ICONS[k]}</a>`)
     .join('');
   const metaline = $('#shop-metaline');
-  metaline.innerHTML = linkHtml ? `<span class="shop-mgroup">${linkHtml}</span>` : '';
-  metaline.hidden = !linkHtml; // an empty flex row still eats its margin
+  if (metaline) {
+    metaline.innerHTML = linkHtml ? `<span class="shop-mgroup">${linkHtml}</span>` : '';
+    metaline.hidden = !linkHtml; // an empty flex row still eats its margin
+  }
 
   // Counts are whatever the server counted. Followers stay hidden below ten:
   // "1 follower" reads worse than no number, and hiding is not lying.
@@ -1603,33 +1669,51 @@ function renderShop() {
   joined.innerHTML = bits.join('');
   joined.hidden = bits.length === 0;
 
-  // Where the reference stacks member faces, we stack the roles a buyer
-  // actually receives — real data in the same visual idiom.
+  // The reference stacks the faces of people who joined. We do not hold those
+  // faces and will not draw invented ones, so this slot carries the thing a
+  // buyer is actually here for: the roles this store sells, each in the colour
+  // the guild gave it.
+  //
+  // "can unlock", not "includes": this is every role across the whole
+  // catalogue, and buying one product does not hand over all of them.
   const roleLine = $('#shop-roleline');
-  const roles = [...new Set(state.plans.filter((p) => !p.variantOf).flatMap((p) => p.roleNames ?? []))].filter(Boolean);
-  if (roles.length) {
-    const chips = roles.slice(0, 3)
-      .map((r) => `<span class="shop-rolechip">${esc(String(r).replace(/^@/, '').slice(0, 2).toUpperCase())}</span>`)
-      .join('');
-    const shown = roles.slice(0, 2).map((r) => esc(String(r).startsWith('@') ? r : `@${r}`)).join(', ');
-    const rest = roles.length - Math.min(2, roles.length);
-    roleLine.innerHTML =
-      `<span class="shop-rolestack" aria-hidden="true">${chips}</span>` +
-      `<span>Includes <b>${shown}</b>${rest > 0 ? ` and ${rest} more role${rest > 1 ? 's' : ''}` : ''}</span>`;
-    roleLine.hidden = false;
-  } else roleLine.hidden = true;
+  const shopRoles = storeRoles();
+  if (roleLine) {
+    if (shopRoles.length) {
+      const shown = shopRoles.slice(0, 4);
+      const rest = shopRoles.length - shown.length;
+      roleLine.innerHTML =
+        `<span class="shop-rolelead">Roles you can unlock</span>` +
+        `<span class="shop-rolechips">${shown.map(roleChip).join('')}` +
+        `${rest > 0 ? `<span class="rolechip more">+${rest}</span>` : ''}</span>`;
+      roleLine.hidden = false;
+    } else roleLine.hidden = true;
+  }
 
   // About: plain text, escaped, split into paragraphs.
   const about = (state.store?.about ?? '').trim();
   if (about) $('#shop-about').innerHTML = about.split(/\n+/).map((line) => `<p>${esc(line.trim())}</p>`).join('');
 
-  // Who is behind the store — the seller's own claim, rendered as written.
+  // Who is behind the store — the seller's own claim, rendered as written and
+  // never checked by us. The reference puts a face beside the name; we have no
+  // photograph of this person, so it is their initials. Initials ARE the right
+  // stand-in for a person, which is exactly why they were the wrong one for a
+  // role.
   const creator = (state.store?.creatorName ?? '').trim();
   const creatorEl = $('#shop-creator');
   if (creatorEl) {
+    const face = $('#shop-creator-face');
+    if (face) face.textContent = creator ? initialsOf(creator) : '';
     $('#shop-creator-name').textContent = creator;
     creatorEl.hidden = !creator;
   }
+
+  // One metadata row, as the reference has it, instead of three thin lines
+  // stacked. The wrapper is optional on purpose: a browser holding a cached
+  // copy of the previous store.html has no #shop-meta, and its three children
+  // still render exactly as they did — one under another.
+  const metaRow = $('#shop-meta');
+  if (metaRow) metaRow.hidden = !(showSub || linkHtml || creator);
 
   // The team, also the seller's claim. No presence dots: Discord does not tell
   // us who is online, and a permanently-green dot is a made-up status.
@@ -1658,6 +1742,13 @@ function renderShop() {
   // that section, and when only Products is left the whole bar goes with it,
   // because a single tab is a switch with one position. The Products pane
   // shows either way: setTab runs below regardless of the bar being on screen.
+  //
+  // The reference leads with a Home tab and we deliberately do not. On that
+  // page Home is where the identity lives; here the identity is ALREADY on
+  // screen — banner, name, rating, description, links, roles, all of it above
+  // this bar — so a Home tab would be a control that shows you what you just
+  // scrolled past, and it would push a Dues store's actual subject, the
+  // products, behind a click. Products leads, and it is the default.
   const tabs = $('#shop-tabs');
   const aboutTab = $('#shop-tab-about');
   const reviewsTab = $('#shop-tab-reviews');
@@ -1666,6 +1757,26 @@ function renderShop() {
   if (aboutTab) aboutTab.hidden = !hasAboutPane;
   if (reviewsTab) reviewsTab.hidden = !hasReviews;
   renderRating();
+
+  // How much identity this store actually gave us. A brand-new store has a
+  // name and a product and nothing else, and that is the COMMON case, not the
+  // degenerate one — so it gets its own measurements rather than the full
+  // layout with the content cut out of it. Everything below the name closes
+  // up, the products come to meet the heading, and what is left reads as a
+  // deliberately spare page instead of a populated one with holes in it.
+  const shopEl = $('#shop');
+  if (shopEl) {
+    const bare =
+      !desc &&
+      !showSub &&
+      !linkHtml &&
+      !creator &&
+      bits.length === 0 &&
+      shopRoles.length === 0 &&
+      $('#shop-rating')?.hidden !== false;
+    shopEl.dataset.bare = bare ? 'on' : 'off';
+  }
+
   if (tabs) {
     const extra = (hasAboutPane ? 1 : 0) + (hasReviews ? 1 : 0);
     tabs.hidden = extra === 0;
@@ -1681,6 +1792,9 @@ function renderShop() {
   const products = state.plans.filter((p) => !p.variantOf);
   $('#shop-empty').hidden = products.length > 0;
   const grid = $('#shop-grid');
+  // The stylesheet gives a lone product the whole column rather than half a
+  // row — read from here so it does not rest on :has().
+  grid.dataset.count = String(products.length);
   grid.innerHTML = '';
   for (const plan of products) grid.append(productCard(plan));
 
