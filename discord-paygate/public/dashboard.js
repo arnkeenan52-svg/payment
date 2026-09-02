@@ -1224,12 +1224,23 @@ const SECTIONS = [
 // black first paint instead of a navy flash while /api/admin/payments loads.
 // Only viewStore writes it, from the stored preference — a Customize preview
 // never lands here, so an abandoned preview cannot outlive the page.
+// One key per store beside it. The face is a per-STORE preference, so a
+// single browser-wide key held whichever store was opened last: a seller
+// running one black and one navy store got the wrong first paint on every
+// cold load of the other one, in alternation — the flash this key exists to
+// stop, moved rather than removed. The head script reads the per-store key
+// for #/store/<slug> and falls back to the bare key for the store-less views
+// (picker, setup, admin), which have no face of their own.
 const DARK_FACE_KEY = 'dues-dash-face';
+const darkFaceKey = (slug) => `${DARK_FACE_KEY}:${slug}`;
 function savedDarkFace() {
   try { return localStorage.getItem(DARK_FACE_KEY) === 'black' ? 'black' : 'navy'; } catch { return 'navy'; }
 }
-function rememberDarkFace(face) {
-  try { localStorage.setItem(DARK_FACE_KEY, face); } catch { /* private mode: the flash returns, nothing else */ }
+function rememberDarkFace(face, slug = null) {
+  try {
+    localStorage.setItem(DARK_FACE_KEY, face);
+    if (slug) localStorage.setItem(darkFaceKey(slug), face);
+  } catch { /* private mode: the flash returns, nothing else */ }
 }
 function applyDarkFace(face) {
   const root = document.documentElement;
@@ -1304,16 +1315,11 @@ function sectionOverview(data, store, slug) {
   const allTime = allEnts ? (allEnts.length ? allEnts.map(([c, v]) => usd(v, c)).join(' + ') : usd(0)) : usd(data.totals.allTimeUsd, data.totals.currency ?? undefined);
   const top = [...byPlan.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   const topMax = Math.max(...top.map(([, v]) => v), 1);
-  const topDelta = (name, v) => {
-    const prev = byPlanPrev.get(name) ?? 0;
-    const d = pct(v, prev);
-    if (d === null) return '';
-    const n = Math.abs(d) >= 100 ? Math.round(Math.abs(d)) : Math.abs(d).toFixed(0);
-    // Same rule as deltaChip: a product whose revenue matched the previous
-    // window read a green ▲0% here while the Revenue card beside it said flat.
-    if (Number(n) === 0) return '<span class="delta flat">0%</span>';
-    return `<span class="delta ${d > 0 ? 'up' : 'down'}"><span aria-hidden="true">${d > 0 ? '▲' : '▼'}</span>${n}%</span>`;
-  };
+  // The Revenue card sits beside this list, and a second copy of the rule is
+  // a second rounding: deltaChip keeps a decimal below 10%, this one did not,
+  // so the same +0.4% read a green ▲0.4% up there and a flat 0% down here —
+  // the two chips disagreeing about DIRECTION on one number. One formatter.
+  const topDelta = (name, v) => deltaChip(pct(v, byPlanPrev.get(name) ?? 0));
 
   const recent = data.payments.slice(0, 6);
   const seg = RANGES.map(
@@ -2338,7 +2344,7 @@ async function viewStore(slug) {
   // is also what discards an unsaved preview the moment you navigate.
   const darkFace = dashPrefs.darkStyle === 'black' ? 'black' : 'navy';
   applyDarkFace(darkFace);
-  rememberDarkFace(darkFace);
+  rememberDarkFace(darkFace, store.slug);
   if (dashPrefs.defaultRange && state.rangePicked !== store.slug && RANGES.some(([k]) => k === dashPrefs.defaultRange)) {
     state.range = dashPrefs.defaultRange;
   }

@@ -1275,13 +1275,22 @@ test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black
   // no change is not growth: 0% is flat in both, never a green ▲0%.
   const deltaChip = lift('deltaChip', /function deltaChip\(delta\) \{[\s\S]*?\n\}/)();
   const pct = (cur, prev) => (prev <= 0 ? null : ((cur - prev) / prev) * 100);
-  const prev = new Map([['VIP', 200], ['Up', 100], ['Down', 100]]);
-  const topDelta = lift('topDelta', /const topDelta = \(name, v\) => \{[\s\S]*?\n  \};/, 'byPlanPrev', 'pct')(prev, pct);
+  const prev = new Map([['VIP', 200], ['Up', 100], ['Down', 100], ['Nudge', 100]]);
+  const topDelta = lift('topDelta', /const topDelta = \(name, v\) => \{[\s\S]*?\n  \};|const topDelta = \(name, v\) => [^\n]*;/, 'byPlanPrev', 'pct', 'deltaChip')(prev, pct, deltaChip);
   assert.equal(topDelta('VIP', 200), '<span class="delta flat">0%</span>');
   assert.equal(deltaChip(0), '<span class="delta flat">0%</span>');
   assert.match(topDelta('Up', 150), /class="delta up".*▲.*50%/);
   assert.match(topDelta('Down', 50), /class="delta down".*▼.*50%/);
   assert.equal(topDelta('New', 50), '', 'nothing to compare against says nothing');
+  // …and they must agree ROUNDING too, not just the flat rule. A second copy
+  // of the formatter kept whole percents here while the card beside it kept a
+  // decimal below 10%, so $1,000 -> $1,004 read ▲0.4% on the Revenue card and
+  // a flat 0% on the very same product: two chips, one number, opposite
+  // stories about whether it grew.
+  for (const v of [100.4, 99.6, 100.6, 104, 150, 250, 100]) {
+    assert.equal(topDelta('Nudge', v), deltaChip(pct(v, 100)), `Top Products and the Revenue card must print ${v} vs 100 identically`);
+  }
+  assert.match(topDelta('Nudge', 100.4), /class="delta up".*0\.4%/, 'a +0.4% product is growth, not flat');
 
   // The black face: stamped before first paint from the key dashboard.js
   // remembers the SAVED face under, and re-applied by route() for the views
@@ -1291,7 +1300,36 @@ test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black
   const html = fs.readFileSync(new URL('../public/dashboard.html', import.meta.url), 'utf8');
   const key = dash.match(/const DARK_FACE_KEY = '([a-z-]+)'/)?.[1];
   assert.ok(key, 'dashboard.js names the face key');
-  assert.ok(html.includes(`localStorage.getItem('${key}') === 'black'`), 'the head script reads the same key');
+  // The face is a per-STORE preference. Under one browser-wide key it was
+  // whichever store was opened last, so a seller running one black and one
+  // navy store got the wrong first paint on every cold load of the other —
+  // the flash the key exists to stop, moved rather than removed. The head
+  // script is lifted out and RUN, against a fake localStorage: a rewrite is
+  // fine, reading the wrong store's face is not.
+  const headSrc = html.match(/<script>(try \{[^<]*dues-dash-face[^<]*)<\/script>/)?.[1];
+  assert.ok(headSrc, 'dashboard.html still stamps the face before first paint');
+  const firstPaint = (saved, hash) => {
+    const root = { dataset: {} };
+    new Function('localStorage', 'location', 'document', headSrc)(
+      { getItem: (k) => (k in saved ? saved[k] : null) },
+      { hash },
+      { documentElement: root },
+    );
+    return root.dataset.dark ?? 'navy';
+  };
+  // Two stores, two faces, and the bare key left on whichever was opened last.
+  const twoStores = { [key]: 'black', [`${key}:ink`]: 'black', [`${key}:sky`]: 'navy' };
+  assert.equal(firstPaint(twoStores, '#/store/sky'), 'navy', 'the navy store paints navy even when the black one was opened last');
+  assert.equal(firstPaint(twoStores, '#/store/ink'), 'black', 'and the black store still paints black');
+  // A store never opened here, and the store-less views, fall back to the
+  // last saved face — the behaviour the single key always had.
+  assert.equal(firstPaint(twoStores, '#/store/brand-new'), 'black', 'an unseen store falls back to the last saved face');
+  assert.equal(firstPaint(twoStores, '#/'), 'black', 'so does the picker');
+  assert.equal(firstPaint({ [`${key}:sky`]: 'navy' }, '#/'), 'navy', 'and nothing saved is navy, never a crash');
+  // dashboard.js must WRITE the per-store key, or the head script reads a key
+  // that is never set and the fallback quietly becomes the only path.
+  assert.match(dash, /rememberDarkFace\(darkFace, store\.slug\)/, 'viewStore remembers the face under the store it belongs to');
+  assert.match(dash, /localStorage\.setItem\(darkFaceKey\(slug\), face\)/, 'rememberDarkFace writes the per-store key');
   const routeSrc = dash.match(/async function route\(\) \{[\s\S]*?\n\}/)[0];
   const at = (needle) => { const i = routeSrc.indexOf(needle); assert.ok(i >= 0, `route() must contain ${needle}`); return i; };
   assert.ok(at('applyDarkFace(savedDarkFace())') < at('viewSetup(') && at('applyDarkFace(savedDarkFace())') < at('viewAdmin()') && at('applyDarkFace(savedDarkFace())') < at('viewPicker()'),
