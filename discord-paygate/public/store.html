@@ -27,14 +27,14 @@
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="/styles.css?v=199" />
+  <link rel="stylesheet" href="/styles.css?v=200" />
 </head>
 <body>
   <i class="ui-tint" aria-hidden="true"></i>
   <i class="ui-tint-b" aria-hidden="true"></i>
   <header class="top">
     <div class="top-left">
-      <a href="/"><img class="platform-mark" src="/dues.png?v=199" alt="Dues" height="20" /></a>
+      <a href="/"><img class="platform-mark" src="/dues.png?v=200" alt="Dues" height="20" /></a>
     </div>
     <div id="account" class="account"></div>
   </header>
@@ -174,7 +174,7 @@
       <p class="label" id="options-label">Your order</p>
       <div id="options"></div>
 
-      <p class="label">Payment method</p>
+      <p class="label" id="methods-label">Payment method</p>
       <div class="methods" id="methods"></div>
 
       <section class="pay-panel" id="pay-panel">
@@ -238,6 +238,11 @@
             <span id="cryptopay-status-text" role="status">Waiting for your payment&#8230;</span>
             <b class="cpay-clock" id="cryptopay-clock" hidden></b>
           </div>
+          <!-- The exit. This screen has no pay button by design and the method
+               tiles are hidden while an order is open, so it is the only
+               control on it that goes anywhere. -->
+          <button type="button" class="cpay-cancel" id="cryptopay-cancel">Cancel and pay another way</button>
+          <p class="cpay-cancel-note">A payment you have already sent still counts &#8212; it is credited when the network confirms it.</p>
         </div>
         <p class="redirect-note" id="redirect-note"></p>
         <div class="trust-row" id="trust-row"></div>
@@ -249,10 +254,10 @@
 
   <footer>
     <span class="powered-label">Checkout powered by:</span>
-    <img class="powered-mark" src="/dues.png?v=199" alt="Dues" height="18" />
+    <img class="powered-mark" src="/dues.png?v=200" alt="Dues" height="18" />
     <a class="powered-community" href="/api/community" rel="noopener">Join the Dues community</a>
   </footer>
 
-  <script src="/app.js?v=199"></script>
+  <script src="/app.js?v=200"></script>
 </body>
 </html>

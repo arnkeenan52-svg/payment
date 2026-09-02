@@ -133,7 +133,12 @@ function renderAccount() {
   }
   const entitled = (me.subscriptions ?? []).filter((s) => s.entitled);
   const badge = entitled.length ? `<span class="badge">${entitled.map((s) => esc(s.planName)).join(' · ')}</span>` : '';
-  const links = `<a class="nav-link" href="/account">Account</a>${me.isOwner || me.seller ? '<a class="nav-link" href="/dashboard">Dashboard</a>' : ''}`;
+  // A seller looking at their own storefront gets the dashboard for THIS
+  // store, not the picker: they arrive here from that dashboard (often in a
+  // fresh tab, where the browser's back button is dead), and "/dashboard"
+  // dropped them at the list of servers to start choosing again.
+  const dash = me.owns?.includes(STORE_SLUG) ? `/dashboard#/store/${encodeURIComponent(STORE_SLUG)}/overview` : '/dashboard';
+  const links = `<a class="nav-link" href="/account">Account</a>${me.isOwner || me.seller ? `<a class="nav-link" href="${dash}">Dashboard</a>` : ''}`;
   el.innerHTML = `${badge}${links}<span>@${esc(me.username ?? me.discordId)}</span><button class="btn-ghost" id="logout">Sign out</button>`;
   $('#logout').onclick = signOut;
 }
@@ -320,7 +325,19 @@ function renderOptions() {
 
 function renderMethods() {
   const box = $('#methods');
+  const label = $('#methods-label');
   box.innerHTML = '';
+  // While a crypto payment is live, its address is the only thing on this page
+  // that can be paid. Switching the tile could not change that, and it left
+  // the card panel showing over a still-open crypto order with no pay button
+  // under either of them — a screen with nothing on it to press.
+  if (state.cryptoOrder) {
+    box.hidden = true;
+    if (label) label.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  if (label) label.hidden = false;
   const methods = [];
   if (state.capabilities.crypto) methods.push({ id: 'coinbase', html: `${ICON_CRYPTO}<span>Crypto</span>` });
   // The NOWPayments rail. Offered only when the platform has credentials AND
@@ -647,6 +664,25 @@ function renderCryptoPay() {
 
   wireCopy('#cryptopay-copy', () => o.payAddress);
   wireCopy('#cryptopay-copy-amount', () => String(o.payAmount));
+  // The only exit from this screen. There is deliberately no pay button here
+  // (a second invoice would split the payment across two addresses) and the
+  // method tiles are gone, so without this the buyer who picked the wrong
+  // coin — or who read the expiry line telling them to start again — had
+  // nothing to press at all. Dropping the order is a local act: the address
+  // stays valid and the signed webhook still decides the grant, which is why
+  // the note under the button can promise a sent payment is still credited.
+  const cancel = $('#cryptopay-cancel');
+  if (cancel && !cancel.dataset.wired) {
+    cancel.dataset.wired = '1';
+    cancel.addEventListener('click', () => {
+      if (cryptoPoll) clearInterval(cryptoPoll);
+      cryptoPoll = null;
+      stopCryptoClock();
+      state.cryptoOrder = null;
+      render();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  }
   startCryptoClock(o.expiresAt);
 }
 
@@ -1052,7 +1088,23 @@ function render() {
   // page is a full-bleed framed column and has to shed that shaping.
   document.body.classList.toggle('shop-view', state.view === 'shop');
   const back = $('#back-to-shop');
-  if (back) back.hidden = !(multi && state.view === 'checkout');
+  if (back) {
+    // The way out of an order card, and there is one for every store.
+    //
+    // A multi-product store goes back to its grid. A ONE-product store lost
+    // this link (finding #96) because "All products" led to a page holding
+    // the same single card — but that page is NOT this page: it carries the
+    // store's banner, description, Join button, reviews and About, none of
+    // which the order card shows. main() routes a one-product store straight
+    // into the checkout, so without the link that store page was unreachable
+    // and the checkout was a dead end for anyone who arrived in a tab with no
+    // history — the dashboard's "View store", a QR code, a link from Discord.
+    // The link stays; it just names where it goes instead of promising a
+    // product list that isn't there.
+    back.hidden = !(STORE_SLUG && state.view === 'checkout');
+    const storeName = String(state.brand ?? state.server?.name ?? '').trim();
+    back.textContent = multi ? '← All products' : `← ${storeName || 'Store page'}`;
+  }
   if (state.view === 'shop') {
     renderShop();
     return;

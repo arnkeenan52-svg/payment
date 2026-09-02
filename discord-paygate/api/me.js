@@ -54,13 +54,20 @@ export default guard(async function handler(req, res) {
       createdAt: Number(s.created_at),
     });
   }
+  const owned = await storesByOwner(uid);
   sendJson(res, 200, {
     loggedIn: true,
     discordId: uid,
     username: user?.username ?? null,
     isOwner: Boolean(config.ownerDiscordId) && uid === config.ownerDiscordId,
     // Runs at least one store — gates the Dashboard nav link for sellers.
-    seller: (await storesByOwner(uid)).length > 0,
+    seller: owned.length > 0,
+    // The slugs this caller owns. A seller standing on their OWN storefront
+    // had no route back to the dashboard for THAT store — the nav link went
+    // to the store picker — so the storefront needs to know which store the
+    // person looking at it runs. Caller-scoped, like `following`: it says
+    // nothing about anyone else.
+    owns: owned.map((s) => s.slug),
     // The slugs THIS caller follows, so a store page can render its own
     // button in the right state. Caller-scoped: the public payload carries
     // follower counts, never who they are.
