@@ -151,6 +151,13 @@ export async function createPayment({ plan, store, amount, payCurrency, orderId 
     // is deliberately an exception rather than a fallback.
     throw new Error('nowpayments: refusing to create a payment with no payout address — funds would settle into the platform balance');
   }
+  const payoutChain = String(store?.cryptoChain ?? '').trim().toLowerCase();
+  if (!payoutChain) {
+    // The chain is part of the same guarantee. An address without a chain
+    // is not "pay them in whatever the buyer chose": that sends BTC to a
+    // Solana address, which is the one outcome worse than custody.
+    throw new Error('nowpayments: refusing to create a payment with a payout address but no payout chain');
+  }
   const currency = normalizeCurrency(plan.currency);
   const body = {
     price_amount: Number(amount ?? plan.priceUsd),
@@ -162,7 +169,7 @@ export async function createPayment({ plan, store, amount, payCurrency, orderId 
     // The coin the SELLER is paid in, which is a property of their wallet —
     // not of whatever the buyer chose to send. A seller with a Solana wallet
     // is paid in SOL whether the buyer paid in BTC or USDT.
-    payout_currency: String(store.cryptoChain || payCurrency).toLowerCase(),
+    payout_currency: payoutChain,
     order_id: orderId,
     order_description: `${plan.name} — ${store?.name ?? config.brand}`,
     ipn_callback_url: ipnCallbackUrl(),

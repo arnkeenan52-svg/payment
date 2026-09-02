@@ -4457,6 +4457,33 @@ test('crypto: checkout creates a payment carrying the payout address and its own
   npOrder = order;
 });
 
+test('crypto: a payout address with no chain refuses to create a payment rather than paying out in the buyer\'s coin', async () => {
+  // The only writer sets wallet and chain together, but the columns are
+  // independent: a migration or a support edit can leave the chain empty.
+  // That must never become "pay the seller in whatever the buyer sent" —
+  // BTC to a Solana address is the one outcome worse than custody.
+  await tq('UPDATE stores SET crypto_chain = NULL WHERE slug = ?', ['vip-signals']);
+  const before = nowpayments.created.length;
+  try {
+    const plans = await (await fetch(`${appUrl}/api/plans?store=vip-signals`)).json();
+    const res = await fetch(`${appUrl}/api/checkout/crypto`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: npBuyerCookie },
+      body: JSON.stringify({ store: 'vip-signals', planId: plans.plans[0].id, payCurrency: 'btc' }),
+    });
+    assert.equal(res.status, 409, await res.clone().text());
+    assert.equal(nowpayments.created.length, before, 'the provider must not have been asked');
+    const { createPayment } = await import('../src/lib/nowpayments.js');
+    await assert.rejects(
+      createPayment({ plan: plans.plans[0], store: { cryptoWallet: SOL_WALLET, cryptoChain: '' }, amount: 10, payCurrency: 'btc', orderId: 'np_x' }),
+      /no payout chain/,
+      'the library refuses on its own, whatever the caller checked',
+    );
+  } finally {
+    await tq('UPDATE stores SET crypto_chain = ? WHERE slug = ?', ['sol', 'vip-signals']);
+  }
+});
+
 test('crypto: the pay QR decodes back to the exact payment address', async () => {
   // A QR is the one control on this page nobody proofreads. If it encodes
   // anything but the address, a scan sends the money somewhere unrecoverable
