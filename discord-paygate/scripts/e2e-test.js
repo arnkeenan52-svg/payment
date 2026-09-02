@@ -1079,6 +1079,63 @@ test('the free look: colours on every plan, wallpapers on a paid one', async () 
     `every paid plan must advertise all ${total} backgrounds`);
 });
 
+test('landing polish holds: one gutter, centred community CTA, Cash App logotype, comments that match the code', () => {
+  // Each of these was a real regression on the landing page and every one is
+  // invisible to the HTTP-level scenarios, so they are pinned at the source.
+  const index = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  const pricing = fs.readFileSync(new URL('../public/pricing.html', import.meta.url), 'utf8');
+  const css = index.slice(index.indexOf('<style>'), index.indexOf('</style>'));
+
+  // ONE desktop gutter. .wrap declares it; five sections used to override it
+  // with a padding SHORTHAND, which silently reset padding-inline, so their
+  // cards sat 24px further out than the sticky logo above and the FAQ below.
+  const wrapPad = css.match(/^\.wrap\{[^}]*padding-inline:(\d+px)/m)?.[1];
+  assert.ok(wrapPad, '.wrap must declare the page gutter as padding-inline');
+  for (const sec of ['save', 'how', 'why', 'voices', 'comm']) {
+    const rule = css.match(new RegExp(`^\\.${sec}\\{([^}]*)\\}`, 'm'));
+    assert.ok(rule, `.${sec} still has a top-level rule`);
+    assert.doesNotMatch(rule[1], /(^|;)\s*padding(-inline|-left|-right)?\s*:/,
+      `.${sec} must not reset .wrap's ${wrapPad} gutter — use padding-block`);
+  }
+
+  // The community card centres everything; its one CTA is inside a flex row
+  // with no justify-content, so it pinned to flex-start under centred copy.
+  assert.match(css, /^\.comm-cta-row\{[^}]*justify-content:center/m, 'the community CTA row centres its button');
+  // The right-aligned note beside "What sellers say." orphaned its last word.
+  assert.match(css, /^\.mid-note\{[^}]*text-wrap:balance/m, '.mid-note balances its two lines');
+
+  // Cash App is the only white-on-brand-green logotype in the strip. Its size
+  // was set on a lone class, which .pay-chip b (0,1,1) outranks, so the rule
+  // never applied and the least legible chip was also the smallest.
+  const base = parseFloat(css.match(/^\.pay-chip b\{[^}]*font-size:([\d.]+)px/m)[1]);
+  const cash = css.match(/^\.pm-cashchip b\{([^}]*)\}/m);
+  assert.ok(cash, 'the Cash App logotype is styled through .pm-cashchip b, which can win');
+  assert.ok(parseFloat(cash[1].match(/font-size:([\d.]+)px/)[1]) >= base, 'Cash App is at least as large as the other chips');
+  assert.match(cash[1], /white-space:nowrap/, 'the two-word logotype never breaks across lines');
+  assert.doesNotMatch(css, /^\.pm-cash-ink\{/m, 'no dead lone-class rule for the Cash App text');
+
+  // Comment / code agreement in the two copies of the theme-color and footer
+  // scripts. The comment above tintWant() must name the token the code reads
+  // (--foot-edge, the painted edge; --foot-end is the nominal stop that leaves
+  // a seam), and the stale "svh, NOT lvh" paragraph — which told the next
+  // person to undo the guard two lines below it — must stay deleted.
+  for (const [name, html] of [['index', index], ['pricing', pricing]]) {
+    const at = html.indexOf('var tintWant');
+    assert.ok(at > 0, `${name}: tintWant present`);
+    const above = html.slice(at - 900, at);
+    const body = html.slice(at, at + 400);
+    assert.match(body, /'--foot-edge'/, `${name}: tintWant reads --foot-edge`);
+    assert.match(above, /--foot-edge is the colour/, `${name}: the comment names the token the code reads`);
+    assert.doesNotMatch(above, /--foot-end is the colour/, `${name}: the comment must not name the nominal stop as the answer`);
+    assert.doesNotMatch(html, /svh, NOT lvh/, `${name}: the stale svh-vs-lvh comment is gone`);
+    assert.match(html, /h > largeVh\(\) - 8/, `${name}: the fit guard measures against lvh`);
+  }
+  // The two copies of the viewport-probe block must not drift apart.
+  const probe = (s) => s.slice(s.indexOf('// the LARGE viewport height'), s.indexOf('var largeVh = function'));
+  assert.ok(probe(index).length > 200, 'index carries the viewport probe block');
+  assert.equal(probe(index), probe(pricing), 'index and pricing share one viewport-probe block, comments included');
+});
+
 test('every page on the site is named in the footer — checked against the filesystem', async () => {
   // A page nothing links to is a page nobody finds. The old version of this
   // test listed the twelve comparisons by hand and accepted an INDEX link for
