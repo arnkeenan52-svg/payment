@@ -16,8 +16,8 @@ export default guard(async function handler(req, res) {
     sendText(res, 405, 'method not allowed');
     return;
   }
-  const uid = sessionUserId(req);
-  const platformAdmin = ownerAuthorized(req) || cronAuthorized(req);
+  const uid = await sessionUserId(req);
+  const platformAdmin = await ownerAuthorized(req) || cronAuthorized(req);
   if (!platformAdmin && !uid) {
     sendJson(res, 401, { error: 'sign in first' });
     return;

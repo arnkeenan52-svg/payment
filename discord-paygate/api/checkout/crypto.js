@@ -65,7 +65,7 @@ export default guard(async function handler(req, res) {
         sendJson(res, 400, { error: 'bad request' });
         return;
       }
-      const uid = sessionUserId(req);
+      const uid = await sessionUserId(req);
       const attempt = await db.getCheckoutAttempt(order);
       // Someone else's order is not "not found by accident" — an order id is
       // guessable enough to be worth refusing on identity, not on existence.
@@ -127,7 +127,7 @@ export default guard(async function handler(req, res) {
     return;
   }
 
-  const uid = sessionUserId(req);
+  const uid = await sessionUserId(req);
   if (!uid) {
     sendJson(res, 401, { error: 'log in with Discord first' });
     return;

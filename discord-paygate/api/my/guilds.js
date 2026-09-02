@@ -12,7 +12,7 @@ const MANAGE_GUILD = 1n << 5n;
 // (owner, Administrator or Manage Server), with whether the Dues bot is
 // already inside and whether a store already exists for it.
 export default guard(async function handler(req, res) {
-  const uid = sessionUserId(req);
+  const uid = await sessionUserId(req);
   if (!uid) {
     sendJson(res, 401, { error: 'sign in first' });
     return;

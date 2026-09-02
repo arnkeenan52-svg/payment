@@ -851,6 +851,17 @@ async function spawnApp(env) {
   return { child, log, url: `http://127.0.0.1:${port}` };
 }
 
+// A session cookie is checked against the account row of the deployment that
+// reads it, so a scenario that spawns an app on its OWN database (SQLite
+// mode) signs in there instead of carrying the phase-1 cookie across.
+async function signInOn(base, code) {
+  const login = await fetch(`${base}/auth/login`, { redirect: 'manual' });
+  const state = new URL(login.headers.get('location')).searchParams.get('state');
+  const stateCookie = login.headers.getSetCookie().find((c) => c.startsWith('tl_oauth_state=')).split(';')[0];
+  const cb = await fetch(`${base}/auth/callback?code=${code}&state=${state}`, { redirect: 'manual', headers: { cookie: stateCookie } });
+  return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+}
+
 const baseEnv = (mocks) => ({
   ENV_PATH: '/nonexistent/.env', // a developer's real .env must never leak in
   PLANS_PATH,
@@ -2346,7 +2357,7 @@ test('a plan with stale roleIds grants by role NAME, and the doctor goes green',
     // entirely — the doctor must go fully green, with no stale-id complaint.
     const pick = await fetch(`${app2.url}/api/admin/plan-role`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', cookie: u1Cookie },
+      headers: { 'content-type': 'application/json', cookie: await signInOn(app2.url, 'code_u1') },
       body: JSON.stringify({ planId: 'named', roleId: R_NEW }),
     });
     assert.equal(pick.status, 200, await pick.text());
@@ -2388,7 +2399,7 @@ test('a stale stripePriceId resolves by amount; checkout works and the doctor wa
   const before = stripe.checkoutSessions.length;
   const res = await fetch(`${app3.url}/api/checkout/stripe`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', cookie: u1Cookie }, // same SESSION_SECRET across apps
+    headers: { 'content-type': 'application/json', cookie: await signInOn(app3.url, 'code_u1') },
     body: JSON.stringify({ planId: 'ghost' }),
   });
   assert.equal(res.status, 200, await res.text());
@@ -3724,7 +3735,7 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
     });
     return cb.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
   };
-  const u7Cookie = await loginAs('code_u7');
+  let u7Cookie = await loginAs('code_u7'); // re-issued below when the Stripe key is rotated
   const u9Cookie = await loginAs('code_u9b'); // existing member (manual grant)
   const u10Cookie = await loginAs('code_u10'); // signed in, never purchased
   const call = (cookie, path, body) =>
@@ -3988,7 +3999,16 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   const storeCall = (body) => call(u7Cookie, '/api/admin/store', { store: 'vip-signals', ...body });
   assert.equal((await storeCall({ stripeKey: 'sk_test_wrong' })).status, 400, 'key rotation validates with Stripe first');
   assert.equal((await storeCall({ stripeKey: 'pk_live_publishable' })).status, 400, 'a publishable key is refused on shape alone');
-  assert.equal((await storeCall({ stripeKey: OWNER2_KEY })).status, 200);
+  const rotated = await storeCall({ stripeKey: OWNER2_KEY });
+  assert.equal(rotated.status, 200);
+  // Re-entering the key is what a seller does when they suspect a compromise:
+  // every session of the account dies with it, and the browser doing the
+  // rotating is re-issued in the same reply so it is not thrown out.
+  const preRotation = u7Cookie;
+  u7Cookie = rotated.headers.getSetCookie().find((c) => c.startsWith('tl_session=')).split(';')[0];
+  assert.notEqual(u7Cookie, preRotation, 'the rotating browser gets a fresh cookie');
+  assert.equal((await (await fetch(`${appUrl}/api/me`, { headers: { cookie: preRotation } })).json()).loggedIn, false, 'the pre-rotation cookie is dead everywhere');
+  assert.equal((await fetch(`${appUrl}/api/admin/payments?store=vip-signals`, { headers: { cookie: preRotation } })).status, 401, 'a revoked cookie fails closed on admin reads');
   assert.equal((await storeCall({ name: 'VIP Signals Pro', description: 'The alpha desk.', bannerUrl: 'https://cdn.e2e.test/banner.png' })).status, 200);
   // Store-page extras: about, social links and the member-count badge.
   assert.equal((await storeCall({ links: { x: 'http://insecure.example' } })).status, 400, 'links must be https');
@@ -6431,6 +6451,61 @@ test('crypto: money that lands for a product that cannot be delivered is never a
 });
 
 // ═══ runner ═══════════════════════════════════════════════════════════════════
+
+// ── session revocation ────────────────────────────────────────────────────────
+// A stateless 7-day cookie has no off switch by itself: a stolen laptop stays
+// signed in until it expires and "Sign out" only clears one browser. Every
+// cookie now carries the account's session generation; "Log out everywhere"
+// bumps it and anything issued before is refused. Cookies minted before
+// generations existed carry none and must keep working until they expire —
+// a deploy must not sign everyone out.
+test('session revocation: log out everywhere kills every cookie, a fresh login works, legacy cookies survive', async () => {
+  const UID = '516000000000000016';
+  const meWith = async (cookie) => (await (await fetch(`${appUrl}/api/me`, { headers: { cookie } })).json()).loggedIn;
+  const logoutAll = (headers, body = '{}') => fetch(`${appUrl}/api/auth/logout-all`, { method: 'POST', headers, body });
+  // The same shape as src/lib/session.js, so the suite can mint a cookie of
+  // any vintage: no generation at all, or a deliberately stale one.
+  const mint = (payload) => {
+    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const mac = crypto.createHmac('sha256', 'e2e-session-secret-0123456789-abcdef').update(body).digest('base64url');
+    return `tl_session=${body}.${mac}`;
+  };
+  const exp = nowSec() + 3600;
+
+  const laptop = await signInAs('code_u16', UID, 'revoker');
+  const phone = await signInAs('code_u16', UID, 'revoker');
+  assert.equal(await meWith(laptop), true);
+  assert.equal(await meWith(phone), true);
+  const issued = JSON.parse(Buffer.from(laptop.split('=')[1].split('.')[0], 'base64url').toString('utf8'));
+  assert.equal(typeof issued.gen, 'number', 'a login cookie carries the session generation');
+
+  // CSRF shape: a same-origin JSON POST from a signed-in browser, nothing else.
+  assert.equal((await fetch(`${appUrl}/api/auth/logout-all`, { headers: { cookie: laptop } })).status, 405, 'GET never revokes');
+  assert.equal((await logoutAll({ cookie: laptop, 'content-type': 'application/x-www-form-urlencoded' }, 'x=1')).status, 415, 'a cross-site form post is refused');
+  assert.equal((await logoutAll({ 'content-type': 'application/json' })).status, 401, 'no session, nothing to revoke');
+  assert.equal(await meWith(laptop), true, 'refused calls revoke nothing');
+
+  const out = await logoutAll({ cookie: phone, 'content-type': 'application/json' });
+  assert.equal(out.status, 200);
+  assert.ok(out.headers.getSetCookie().some((c) => /^tl_session=;/.test(c) && /Max-Age=0/.test(c)), 'the revoking browser is signed out in the reply');
+  assert.equal(await meWith(laptop), false, 'the other device is signed out');
+  assert.equal(await meWith(phone), false, 'the revoking device is signed out');
+  assert.equal((await fetch(`${appUrl}/api/my/guilds`, { headers: { cookie: laptop } })).status, 401, 'a revoked cookie fails closed');
+  assert.equal((await logoutAll({ cookie: laptop, 'content-type': 'application/json' })).status, 401, 'a revoked cookie cannot revoke again');
+
+  const again = await signInAs('code_u16', UID, 'revoker');
+  assert.equal(await meWith(again), true, 'a fresh login is issued under the new generation');
+  assert.equal(await meWith(laptop), false, 'the fresh login does not resurrect the old cookie');
+  const reissued = JSON.parse(Buffer.from(again.split('=')[1].split('.')[0], 'base64url').toString('utf8'));
+  assert.ok(reissued.gen > issued.gen, 'the generation moved forward');
+
+  // Legacy cookie: same user, valid signature, no generation field.
+  assert.equal(await meWith(mint({ uid: UID, exp })), true, 'a pre-generation cookie stays valid until it expires');
+  assert.equal(await meWith(mint({ uid: UID, exp, gen: issued.gen })), false, 'a stale generation is refused even with a valid signature');
+  assert.equal(await meWith(mint({ uid: UID, exp, gen: reissued.gen })), true, 'the current generation is accepted');
+  assert.equal(await meWith(mint({ uid: UID, exp, gen: String(reissued.gen) })), false, 'a generation that is not a number fails closed');
+  assert.equal(await meWith(mint({ uid: '516000000000000099', exp, gen: 0 })), false, 'a generation cookie for an account that never signed in fails closed');
+});
 
 async function main() {
   await initTestDb();

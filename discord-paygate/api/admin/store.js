@@ -1,6 +1,6 @@
 import { sendJson, sendText, readJsonBody, guard } from '../../src/lib/http.js';
 import { ownerAuthorized } from '../../src/lib/authz.js';
-import { sessionUserId } from '../../src/lib/session.js';
+import { sessionUserId, createSessionCookie, revokeAllSessions } from '../../src/lib/session.js';
 import * as db from '../../src/db.js';
 import { adminStoreBySlug, isReservedSlug } from '../../src/services/stores.js';
 import { sealSecret } from '../../src/lib/secretbox.js';
@@ -37,8 +37,8 @@ export default guard(async function handler(req, res) {
     sendText(res, 405, 'method not allowed');
     return;
   }
-  const uid = sessionUserId(req);
-  if (!uid && !ownerAuthorized(req)) {
+  const uid = await sessionUserId(req);
+  if (!uid && !await ownerAuthorized(req)) {
     sendJson(res, 401, { error: 'sign in first' });
     return;
   }
@@ -48,7 +48,7 @@ export default guard(async function handler(req, res) {
     sendJson(res, 404, { error: 'unknown store' });
     return;
   }
-  if (!(ownerAuthorized(req) || (store.ownerDiscordId && store.ownerDiscordId === uid))) {
+  if (!(await ownerAuthorized(req) || (store.ownerDiscordId && store.ownerDiscordId === uid))) {
     sendJson(res, 403, { error: 'not your store' });
     return;
   }
@@ -494,6 +494,16 @@ export default guard(async function handler(req, res) {
     }
   }
   const row = await db.updateStore(store.id, fields);
+  // Re-entering the key is what someone does when they suspect a compromise:
+  // every session of the account the key belongs to dies with it. When the
+  // owner is the one rotating, their own cookie is re-issued so they are not
+  // thrown out of the page they are on; the platform operator rotating on a
+  // seller's behalf keeps their own sessions and ends the seller's.
+  if (fields.stripeSecretEnc) {
+    const target = store.ownerDiscordId || uid;
+    const gen = await revokeAllSessions(target);
+    if (target === uid) res.setHeader('set-cookie', createSessionCookie(uid, gen));
+  }
   if (bannerUpload === null) await db.deleteStoreMedia(store.id, 'banner');
   else if (bannerUpload) await db.setStoreMedia(store.id, 'banner', bannerUpload.mime, bannerUpload.data);
   // The upload itself never rides a response — only what it IS, so the form

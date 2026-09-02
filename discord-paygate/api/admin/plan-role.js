@@ -16,8 +16,8 @@ export default guard(async function handler(req, res) {
     sendText(res, 405, 'method not allowed');
     return;
   }
-  if (!(cronAuthorized(req) || ownerAuthorized(req))) {
-    sendText(res, sessionUserId(req) ? 403 : 401, 'owner only');
+  if (!(cronAuthorized(req) || await ownerAuthorized(req))) {
+    sendText(res, await sessionUserId(req) ? 403 : 401, 'owner only');
     return;
   }
 

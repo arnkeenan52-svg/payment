@@ -19,6 +19,7 @@ const ddl = (dialect) => {
     username      TEXT,
     access_token  TEXT,
     refresh_token TEXT,
+    session_gen   ${int} NOT NULL DEFAULT 0,  -- bumped to revoke every session cookie at once
     created_at    ${int} NOT NULL,
     updated_at    ${int} NOT NULL
   );
@@ -382,6 +383,9 @@ function db() {
       // age out on created_at; a crypto invoice stays payable for as long as
       // the provider says, which can be hours, so the row carries that date.
       await driver.exec(`ALTER TABLE checkout_attempts ADD COLUMN expires_at ${intType}`).catch(onlyDuplicateColumn);
+      // Session revocation: the cookie carries the generation it was issued
+      // under and is refused once the row has moved past it (src/lib/session.js).
+      await driver.exec(`ALTER TABLE users ADD COLUMN session_gen ${intType} NOT NULL DEFAULT 0`).catch(onlyDuplicateColumn);
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -429,6 +433,20 @@ export async function getUser(discordId) {
   const row = rows[0];
   if (!row) return null;
   return { ...row, access_token: openToken(row.access_token), refresh_token: openToken(row.refresh_token) };
+}
+
+// The generation every live session cookie for this user must carry; null
+// when there is no such user (a cookie for a deleted row must not pass).
+export async function sessionGeneration(discordId) {
+  const { rows } = await q('SELECT session_gen FROM users WHERE discord_id = ?', [discordId]);
+  return rows[0] ? Number(rows[0].session_gen ?? 0) : null;
+}
+
+// "Log out everywhere": every cookie issued under the old generation is dead
+// from here on. Returns the new generation so the caller can be re-issued.
+export async function bumpSessionGeneration(discordId) {
+  await q('UPDATE users SET session_gen = session_gen + 1 WHERE discord_id = ?', [discordId]);
+  return sessionGeneration(discordId);
 }
 
 // Every Discord account that has ever signed in, WITHOUT the OAuth token

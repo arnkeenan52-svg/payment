@@ -11,8 +11,8 @@ import { canCustomise } from '../../src/services/billing.js';
 // Amounts come from each store's plan catalog (what checkout charges);
 // refunds made in the Stripe dashboard are not tracked here.
 export default guard(async function handler(req, res) {
-  const uid = sessionUserId(req);
-  const platformAdmin = ownerAuthorized(req) || cronAuthorized(req);
+  const uid = await sessionUserId(req);
+  const platformAdmin = await ownerAuthorized(req) || cronAuthorized(req);
   if (!platformAdmin && !uid) {
     sendJson(res, 401, { error: 'sign in first' });
     return;
