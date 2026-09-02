@@ -48,7 +48,7 @@ const R2_VIP = '2200000000000000101';      // grantable role in G2
 const R2_BOT = '2200000000000000999';      // the bot's role in G2
 const OWNER2_KEY = 'rk_test_owner2';       // second owner's own Stripe key — restricted, the kind Stripe recommends
 const RESEND_KEY = 're_e2e_1234567890';
-const COMMUNITY_INVITE = 'https://discord.gg/e2e-community'; // one setting, two surfaces (site hop + receipt footer)
+const COMMUNITY_INVITE = 'https://discord.gg/e2e-community'; // one setting; these are its request-time readers (site hop + receipt footer)
 const R_BOT = '1200000000000000999';
 const R_ADMIN = '1200000000000000555';   // above the bot — must be flagged unusable
 const R_NEW = '1200000000000000200';     // below the bot — pickable
@@ -1725,6 +1725,44 @@ test('the community invite is one setting: the site hop and the receipt read the
   }).stdout.trim();
   assert.equal(probe({ DISCORD_COMMUNITY_INVITE: 'https://discord.gg/old-name' }), 'https://discord.gg/old-name');
   assert.equal(probe({ COMMUNITY_INVITE: 'https://discord.gg/new-name', DISCORD_COMMUNITY_INVITE: 'https://discord.gg/old-name' }), 'https://discord.gg/new-name', 'the documented name wins when both are set');
+});
+
+// Walks public/ once, for the three checks below that ask questions of the
+// shipped site rather than of a running handler.
+function publicFiles(filter = () => true) {
+  const PUBLIC = path.join(ROOT, 'public');
+  const walk = (dir, out = []) => {
+    for (const name of fs.readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (fs.statSync(full).isDirectory()) walk(full, out);
+      else if (filter(full)) out.push(full);
+    }
+    return out;
+  };
+  return walk(PUBLIC).map((f) => path.relative(PUBLIC, f)).sort();
+}
+
+test('public/ is the marketing site, not a tool shed: no operator scripts are served from it', async () => {
+  // public/setup-community.mjs was a byte copy of scripts/setup-community.mjs,
+  // put there so an operator could `curl -O https://dues.gg/setup-community.mjs`
+  // (commit 72d9fd0, "one-line download"). It is not a credential, but it is an
+  // operator tool — it documents where the bot token is looked up and how the
+  // community server is laid out — and it had already drifted a commit behind
+  // the real one, so the published copy built a slightly different server.
+  // public/ is served verbatim by Vercel: only browser assets belong in it.
+  const BROWSER_ASSET = /\.(html|js|css|json|txt|xml|webmanifest|svg|png|jpe?g|gif|webp|avif|ico|mp4|webm|woff2?)$/i;
+  const strays = publicFiles().filter((rel) => !BROWSER_ASSET.test(rel));
+  assert.deepEqual(strays, [], `served at dues.gg/… and not a browser asset: ${strays.join(', ')}`);
+  // Extension-blind backstop: an executable script announces itself with a
+  // shebang, and no browser asset ever starts with one.
+  const shebanged = publicFiles().filter((rel) => fs.readFileSync(path.join(ROOT, 'public', rel)).subarray(0, 2).toString() === '#!');
+  assert.deepEqual(shebanged, [], `executable scripts under public/: ${shebanged.join(', ')}`);
+  // The URL itself is gone, and nothing on the site links it back into being.
+  assert.equal((await fetch(`${appUrl}/setup-community.mjs`)).status, 404, '/setup-community.mjs must not be served');
+  const linking = publicFiles((f) => f.endsWith('.html')).filter((rel) => fs.readFileSync(path.join(ROOT, 'public', rel), 'utf8').includes('setup-community'));
+  assert.deepEqual(linking, [], `pages still pointing at the withdrawn operator script: ${linking.join(', ')}`);
+  // It still ships where it is actually run from — a clone, not the website.
+  assert.ok(fs.existsSync(path.join(ROOT, 'scripts', 'setup-community.mjs')), 'the operator script itself must stay in scripts/');
 });
 
 test('cron endpoint rejects a missing or wrong secret (timingSafeEqual guard)', async () => {

@@ -12,6 +12,13 @@
 //
 // Safe to re-run: existing roles and channels are matched by name and left
 // alone, so a crash or rate-limit hiccup just means running it again.
+//
+// Repository-only, deliberately. A copy of this file was once published at
+// dues.gg/setup-community.mjs so an operator could `curl -O` it; that put an
+// operator tool — how the bot token is looked up, what the server layout is —
+// on the public marketing site, and the published copy silently fell behind
+// this one. Get it from a clone of the repo instead; the e2e suite pins that
+// public/ carries no operator scripts.
 
 import { readFileSync } from 'node:fs';
 import { stdin, stdout, argv, env, exit } from 'node:process';
