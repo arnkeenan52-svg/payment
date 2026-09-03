@@ -148,38 +148,45 @@ export function validateTheme(input) {
   return Object.keys(out).length ? out : null;
 }
 
-// A PRODUCT's own background. A store has one look; a product may swap the
-// wallpaper inside it, and nothing else — not the colours, not the corners,
-// not the type. So this validates exactly the two background tokens, and it
-// does it by handing them to validateTheme above rather than re-deciding
-// anything: the catalogue lives there and validateBgUrl below is still the
-// only gate an imported URL passes through. Keys other than the two are
-// dropped, and a value that means "no background" comes back null, which is
-// what clears the column.
-export function validatePlanBg(input) {
+// A PRODUCT's OWN LOOK — its overrides of the store's theme.
+//
+// It began as a wallpaper and only a wallpaper, which is why the column that
+// holds it is still called `bg`; the name is historical and the shape is not.
+// A product may now override any theme token the store itself can set — its
+// colours, its corners, its type, its material, its wallpaper — because a
+// seller with a Starter tier and a Lifetime tier wants them to LOOK different,
+// and "one look for the store and every product in it" made the store page and
+// every product page the same page in different words.
+//
+// Nothing is re-decided here: the object is handed to validateTheme above, so
+// the token whitelist, the preset catalogue and validateBgUrl are all still
+// the only gates. Keys outside the set are dropped, and a value that means
+// "no override" comes back null, which is what clears the column.
+export function validatePlanLook(input) {
   if (input === null || input === undefined) return null;
-  if (typeof input !== 'object' || Array.isArray(input)) throw new Error('a product background must be an object');
-  return validateTheme({ bgPreset: input.bgPreset, bgUrl: input.bgUrl });
+  if (typeof input !== 'object' || Array.isArray(input)) throw new Error('a product look must be an object');
+  return validateTheme(input);
 }
 
-// The inheritance rule, in one place, so every surface agrees on it: a
-// product wears the STORE's whole look and replaces only the wallpaper with
-// its own. A product carrying no background of its own gets the store's
-// theme back untouched — that is the whole of "inherits", and it is why
-// nothing here invents a value when `bg` is empty.
+// The inheritance rule, in one place, so every surface agrees on it: a product
+// wears the STORE's look and replaces only the parts it sets for itself. A
+// product carrying no look of its own gets the store's theme back untouched —
+// that is the whole of "inherits", and it is why nothing here invents a value.
 //
-// Both of the store's background keys are cleared before the product's one
-// is applied. bgLayer gives an imported URL priority over a preset, so a
-// store with an imported image and a product with a chosen preset would
-// otherwise render the store's image on the product's page.
-export function themeWithBg(theme, bg) {
-  const has = bg && (bg.bgPreset || bg.bgUrl);
-  if (!has) return theme ?? null;
+// The one rule that is not a plain merge: if the product sets EITHER background
+// key, both of the store's are cleared before the product's is applied. bgLayer
+// gives an imported URL priority over a preset, so a store with an imported
+// image and a product with a chosen preset would otherwise render the store's
+// image on the product's page.
+export function themeWithLook(theme, look) {
+  const keys = look ? Object.keys(look).filter((k) => look[k] !== null && look[k] !== undefined && look[k] !== '') : [];
+  if (!keys.length) return theme ?? null;
   const out = { ...(theme ?? {}) };
-  delete out.bgPreset;
-  delete out.bgUrl;
-  if (bg.bgPreset) out.bgPreset = bg.bgPreset;
-  if (bg.bgUrl) out.bgUrl = bg.bgUrl;
+  if (look.bgPreset || look.bgUrl) {
+    delete out.bgPreset;
+    delete out.bgUrl;
+  }
+  for (const k of keys) out[k] = look[k];
   return out;
 }
 

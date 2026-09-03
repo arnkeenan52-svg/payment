@@ -227,6 +227,21 @@ export async function getGuildChannels(guildId) {
     .map((c) => ({ id: c.id, name: c.name }));
 }
 
+// A fresh invite to a channel, for the platform admin panel's "Discord server"
+// link (api/admin/guild-invite.js). Short-lived and single-use by default: it
+// exists so an operator can look at a seller's server while helping them, not
+// so a link in a dashboard becomes a standing key to somebody's community.
+// Throws on refusal — the caller tries the next channel, because a bot can be
+// in a guild and still lack Create Instant Invite on any one of them.
+export async function createChannelInvite(channelId, { maxAgeSeconds = 3600, maxUses = 1 } = {}) {
+  const res = await discordFetch(`/channels/${channelId}/invites`, {
+    method: 'POST',
+    body: { max_age: maxAgeSeconds, max_uses: maxUses, temporary: false, unique: true },
+  });
+  await expect(res, [200, 201], `create invite in channel ${channelId}`);
+  return res.json();
+}
+
 // Best effort, like DMs: a sale ping that cannot be posted must never fail
 // the payment that triggered it.
 export async function postChannelMessage(channelId, payload) {

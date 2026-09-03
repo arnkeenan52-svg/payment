@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 import { getSubscription, subscriptionPeriodEnd, invoiceSubscriptionId, stripeFetch } from '../lib/stripe.js';
-import { getSubscriptionByRef, setSubscriptionStatus, markCheckoutCompleted, getCheckoutAttempt } from '../db.js';
+import { getSubscriptionByRef, setSubscriptionStatus, markCheckoutCompleted, getCheckoutAttempt, claimEvent } from '../db.js';
 import { grant, markPastDue, cancel, reconcile } from './entitlements.js';
 import { storeById, defaultStore, planOf } from './stores.js';
 import { sendReceiptEmail } from '../lib/email.js';
@@ -106,6 +106,27 @@ export async function processStripeEvent(event, routeStore = null) {
       // ¥1500 sale reports 1500, which /100 would record and announce as ¥15.
       const paidCurrency = normalizeCurrency(obj.currency ?? store?.currency);
       const paidUsd = typeof obj.amount_total === 'number' ? fromMinor(obj.amount_total, paidCurrency) : null;
+      // ONE SALE, ONE PING — and the claim is what makes it one.
+      //
+      // The guard above ("session already completed") is a check-then-act, and
+      // two deliveries that arrive at the same instant both read the attempt
+      // before either marks it: both pass, both grant (idempotent, so no harm)
+      // and both PING. Which is exactly what a seller sees — two "New
+      // Subscriber!" embeds for one sale.
+      //
+      // Two deliveries at once is the normal case, not a rare one: a store
+      // registered on its own endpoint while a platform-level endpoint is
+      // still live gets every event twice, on two different scopes, and the
+      // webhook claim is deliberately per-scope so each store can decide for
+      // itself whether an event is its own.
+      //
+      // So the side effects take their own claim, keyed on the SESSION rather
+      // than the event or the endpoint. It is the same atomic
+      // insert-or-lose that guards the webhook itself, and it is not released
+      // on failure: a ping that half-posted must not be retried into a second
+      // embed, and the money has already landed either way.
+      const claimSideEffects = async () => claimEvent('stripe-sale', obj.id ?? `${discordId}:${planId}`);
+
       // Sale ping to the owner's chosen channel (best-effort): every order
       // posts an embed the moment the grant lands.
       const notifySale = async ({ orphan = false } = {}) => {
@@ -168,13 +189,18 @@ export async function processStripeEvent(event, routeStore = null) {
         // grant() answers null, without throwing, for a plan the store no
         // longer has: money taken, nothing delivered. Not a 500 — a retry
         // cannot bring the product back — but never silent either.
+        // The grant is idempotent and runs on every delivery; the SIDE
+        // EFFECTS run for whichever delivery wins the claim, once.
+        const mine = await claimSideEffects();
         if (landed) {
-          await countDiscount();
-          await emailReceipt();
-          await notifySale();
+          if (mine) {
+            await countDiscount();
+            await emailReceipt();
+            await notifySale();
+          }
         } else {
           console.error(`[webhooks] stripe ${event.id}: ${discordId} paid for "${planId}", which store ${store?.slug ?? 'default'} no longer has — seller alerted`);
-          await notifySale({ orphan: true });
+          if (mine) await notifySale({ orphan: true });
         }
       } else {
         // One-time payment (lifetime plans; grant() maps lifetime → NULL
@@ -190,13 +216,16 @@ export async function processStripeEvent(event, routeStore = null) {
           currency: paidCurrency,
         });
         if (obj.id) await markCheckoutCompleted(obj.id).catch(() => {});
+        const mine = await claimSideEffects();
         if (landed) {
-          await countDiscount();
-          await emailReceipt();
-          await notifySale();
+          if (mine) {
+            await countDiscount();
+            await emailReceipt();
+            await notifySale();
+          }
         } else {
           console.error(`[webhooks] stripe ${event.id}: ${discordId} paid for "${planId}", which store ${store?.slug ?? 'default'} no longer has — seller alerted`);
-          await notifySale({ orphan: true });
+          if (mine) await notifySale({ orphan: true });
         }
       }
       return;

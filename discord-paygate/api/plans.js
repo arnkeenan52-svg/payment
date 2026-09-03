@@ -6,7 +6,7 @@ import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.
 import { DEMO_SLUG, demoPlansPayload } from '../src/services/demo-store.js';
 import { countLiveMembers, countStoreFollowers, reviewSummary } from '../src/db.js';
 import { storeTheme } from '../src/services/billing.js';
-import { validateTheme, bgLayer, themeWithBg } from '../src/lib/theme.js';
+import { validateTheme, themeCss, bgLayer, themeWithLook } from '../src/lib/theme.js';
 
 // The server's own identity fronts every checkout: name and icon come from
 // the live guild lookup via the bot (animated icons surface as .gif).
@@ -141,7 +141,7 @@ export default guard(async function handler(req, res) {
   const bgViewOf = (plan) => {
     if (!plan.bg) return null;
     try {
-      const layer = bgLayer(validateTheme(themeWithBg(theme, plan.bg)), { still: true });
+      const layer = bgLayer(validateTheme(themeWithLook(theme, plan.bg)), { still: true });
       return layer ? { id: layer.id, material: layer.material, inner: layer.inner, lightTone: layer.lightTone } : null;
     } catch {
       return null; // an unusable stored background inherits the store's
@@ -225,7 +225,7 @@ export default guard(async function handler(req, res) {
       variantOf: p.variantOf ?? null,
       // The product's OWN wallpaper, already rendered to the same layer the
       // page would carry, or null when it wears the store's. The storefront
-      // must not invent one — see src/lib/theme.js themeWithBg.
+      // must not invent one — see src/lib/theme.js themeWithLook.
       bgView: bgViewOf(p),
       // Buyer-facing hints: "offer ends …" and "for @X members only". The
       // checkout endpoint enforces both — these just explain the page.

@@ -580,6 +580,14 @@ body.app .ck-lab { font-size: var(--fs-1); line-height: var(--lh-1); color: var(
    different ones. margin-inline rather than a new wrapper, so every one of the
    ten `.set-card > …` selectors in styles.css still matches. */
 body.app .set-head { padding: var(--s-5) var(--s-5) 0; }
+/* Same inversion as styles.css: every child takes the inset, the full-bleed
+   ones opt out. See the note there for what the old allowlist cost. */
+body.app .set-card > * { margin-inline: var(--s-5); }
+body.app .set-card > .set-head,
+body.app .set-card > .set-foot,
+body.app .set-card > table,
+body.app .set-card > .tbl-wrap,
+body.app .set-card > .tbl-scroll { margin-inline: 0; }
 body.app .set-card > .field,
 body.app .set-card > .share-row,
 body.app .set-card > .field-err,

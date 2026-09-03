@@ -1197,7 +1197,12 @@ test('storefront serves the tenant-generic checkout, plans API exposes capabilit
   // what the seller stored and what every older reader expects, the roles are
   // what the guild says those ids ARE right now — live name, live colour — so
   // the storefront can draw a role as a role instead of as two grey letters.
-  assert.deepEqual(Object.keys(plans[0]).sort(), ['currency', 'description', 'descriptionHighlight', 'durationDays', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'roles', 'variantOf']);
+  // `bgView` is this product's OWN LOOK, already rendered to the layer the
+  // page would carry, or null when it wears the store's. It is built on the
+  // server by the same bgLayer() that writes the server-rendered page, so a
+  // product card and the product's own link cannot drift — there is no second
+  // copy of that decision in the browser (api/plans.js, src/lib/theme.js).
+  assert.deepEqual(Object.keys(plans[0]).sort(), ['bgView', 'currency', 'description', 'descriptionHighlight', 'durationDays', 'expiresAt', 'id', 'imageUrl', 'interval', 'lifetime', 'linkSlug', 'mediaKind', 'name', 'priceUsd', 'requiredRoleName', 'roleNames', 'roles', 'variantOf']);
   assert.equal(plans[0].currency, 'usd', 'a store that never picked a currency prices in USD, exactly as before');
 });
 
@@ -1941,7 +1946,24 @@ test('dashboard: MRR is a monthly rate, a flat product reads flat, and the black
 
   // Saving the storefront or dashboard appearance re-renders to a screen that
   // looks exactly like the one before the click; each says it landed.
-  assert.match(dash, /theme: read\(\) \}\);\n\s+state\.data = null;\n\s+await viewStore\(slug\);\n\s+flashSaved\('#th-note'\)/, 'Save appearance confirms into #th-note');
+  // Two assertions rather than one shape-matched block: the save handler
+  // BRANCHES now (a product's own look, or the store's whole theme), so a
+  // regex spanning from `theme: read()` to `flashSaved` was pinning the brace
+  // layout between them rather than the behaviour on either side of it.
+  assert.match(dash, /theme: read\(\) \}\);/, 'Save appearance posts the store theme');
+  assert.match(dash, /await viewStore\(slug\);\s*\n\s*flashSaved\('#th-note'\)/,
+    'and confirms into #th-note after the re-render');
+
+  // PER-PRODUCT LOOKS. A product may override any theme token, and the save
+  // sends only what actually differs from the store — sending the full set
+  // would work and would be wrong, because the product would silently stop
+  // following the store for every token somebody had never touched.
+  assert.match(dash, /String\(v\) !== String\(storeLook\[k\] \?\? ''\)/,
+    'a product stores only the tokens that differ from its store');
+  assert.match(dash, /bg: Object\.keys\(look\)\.length \? look : null/,
+    'and a product that overrides nothing is stored as null, which is what inherits');
+  assert.doesNotMatch(dash, /th-store-only/,
+    'no appearance block is store-only any more — every one of them is per-target');
   assert.match(dash, /dashboardPrefs: prefsBody \}\);\n\s+state\.data = null;\n\s+await viewStore\(slug\);\n\s+flashSaved\('#dc-ok'\)/, 'Customize save confirms into #dc-ok');
   assert.match(dash, /id="dc-ok" role="status"/, 'and the slot exists in the Customize foot');
   // The 320px billing card: the interval toggle wraps rather than slicing the
@@ -5314,6 +5336,39 @@ test('products managed in-site: edit/toggle/limit/success-url/lazy price/discoun
   assert.match(salePost.body.embeds[0].title, /New Subscriber/, 'every order posts to the sales channel');
   assert.match(salePost.body.embeds[0].description, /just subscribed to \*\*VIP Access\*\*/, 'the ping names the product');
   assert.match(salePost.body.embeds[0].description, /Payment received: \*\*\$47\.99\*\*/, 'the ping carries the discounted charge, not the list price');
+  // ONE SALE, ONE PING — even when Stripe delivers the same session twice.
+  //
+  // A store registered on its own endpoint while a platform-level endpoint is
+  // still live gets every event on BOTH, and the webhook claim is per-endpoint
+  // on purpose, so both deliveries run. The "already completed" guard is a
+  // check-then-act and two deliveries at the same instant both read the
+  // attempt before either marks it — which is how a seller ended up with two
+  // "New Subscriber!" embeds for one sale. Delivered concurrently here,
+  // because delivering them in sequence is the case that already worked.
+  const pingsBefore = discord.channelPosts.length;
+  const dupe = {
+    id: 'evt_disc_1_again',
+    type: 'checkout.session.completed',
+    data: { object: { id: 'cs_disc_dupe', mode: 'payment', payment_status: 'paid', amount_total: 4799, client_reference_id: '509900000000000009', customer_details: { email: 'buyer9@e2e.test' }, metadata: { plan_id: vip.planKey, discord_id: '509900000000000009', store_id: String(storeId) } } },
+  };
+  // The tenant endpoint verifies against the STORE's own secret — signing it
+  // with the platform's is a 400 and would have this test proving nothing.
+  const dupeStore = { ...dupe, id: 'evt_disc_1_again_store' };
+  // Every endpoint the mock auto-registers hands back the same secret, which
+  // is what the app stored for this store when it registered.
+  const dupeStorePayload = JSON.stringify(dupeStore);
+  const both = await Promise.all([
+    deliverStripe(dupe, { path: '/webhooks/stripe' }),
+    deliverStripe(dupeStore, {
+      path: `/webhooks/stripe/${storeId}`,
+      header: signStripe(dupeStorePayload, nowSec(), AUTO_ENDPOINT_SECRET),
+    }),
+  ]);
+  assert.deepEqual(both.map((r) => r.status), [200, 200], `both endpoints must accept the delivery: ${JSON.stringify(both)}`);
+  await waitFor('the duplicate delivery settles', async () => discord.channelPosts.length >= pingsBefore + 1);
+  assert.equal(discord.channelPosts.length, pingsBefore + 1,
+    'one session pings once, however many endpoints Stripe delivers it to');
+
   // The emailed receipt shows the same real amount.
   const discReceipt = resend.emails.at(-1);
   assert.ok(discReceipt, 'a discounted order still sends a receipt');

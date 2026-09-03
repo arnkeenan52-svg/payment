@@ -9,7 +9,7 @@ import { guard, sendText } from '../src/lib/http.js';
 import { config } from '../src/config.js';
 import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.js';
 import { DEMO_SLUG, DEMO_NAME, DEMO_THEME, demoPlans } from '../src/services/demo-store.js';
-import { validateTheme, themeCss, bgLayer, themeWithBg } from '../src/lib/theme.js';
+import { validateTheme, themeCss, bgLayer, themeWithLook } from '../src/lib/theme.js';
 import { storeTheme } from '../src/services/billing.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -78,11 +78,11 @@ export default guard(async (req, res) => {
       // every plan — a storefront is a shop window, not an upsell.
       //
       // On a PRODUCT link the look is the store's with one substitution: the
-      // product's own wallpaper, when it set one. themeWithBg owns that rule
+      // product's own look, for whatever it overrides. themeWithLook owns that
       // (src/lib/theme.js) so the server, the storefront script and the
       // dashboard preview cannot disagree about what a product inherits.
       try {
-        const theme = validateTheme(themeWithBg(await storeTheme(store), linkedPlan?.bg ?? null));
+        const theme = validateTheme(themeWithLook(await storeTheme(store), linkedPlan?.bg ?? null));
         if (theme) {
           themeStyle = `\n  <style id="store-theme">${themeCss(theme)}</style>`;
           bg = bgLayer(theme);

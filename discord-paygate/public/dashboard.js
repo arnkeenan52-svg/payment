@@ -320,7 +320,7 @@ async function viewAdmin() {
           // page is the platform owner's, and the question it answers is
           // "which server is this store actually selling into".
           st.guildId
-            ? `<a class="admin-live-link" href="https://discord.com/channels/${esc(String(st.guildId))}" target="_blank" rel="noopener noreferrer">${I.external} Discord server</a>`
+            ? `<button type="button" class="admin-live-link admin-invite" data-invite-slug="${esc(st.slug)}">${I.external} Discord server</button>`
             : ''
         }</span></td>
       <td data-th="Owner">${st.ownerUsername ? `@${esc(st.ownerUsername)}<span class="dim"> ${esc(st.ownerDiscordId ?? '')}</span>` : esc(st.ownerDiscordId ?? '')}</td>
@@ -395,6 +395,38 @@ async function viewAdmin() {
   };
   $('#au-search').addEventListener('input', apply);
   $('#au-filter').addEventListener('change', apply);
+
+  // "Discord server" MINTS an invite rather than linking a channels URL.
+  // https://discord.com/channels/<guildId> only resolves for somebody already
+  // in that guild, so for the platform operator — who is not in a seller's
+  // private server — it opened a dead screen. The bot is in there and holds
+  // Create Instant Invite, so it makes a real one-use, one-hour invite and
+  // that is what opens.
+  //
+  // The tab is opened BEFORE the await and pointed afterwards: a window.open
+  // that happens after a network round trip has lost the user gesture and is
+  // blocked as a popup in every browser.
+  document.querySelectorAll('.admin-invite').forEach((btn) => {
+    btn.onclick = async () => {
+      const slug = btn.dataset.inviteSlug;
+      const tab = window.open('', '_blank', 'noopener');
+      const was = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Opening…';
+      try {
+        const { url } = await api('/api/admin/guild-invite', { store: slug });
+        if (tab) tab.location.href = url;
+        else window.location.href = url; // popup blocked: go there in this tab
+      } catch (err) {
+        tab?.close();
+        btn.textContent = err.message || 'Could not open that server';
+        setTimeout(() => { btn.textContent = was; btn.disabled = false; }, 4000);
+        return;
+      }
+      btn.textContent = was;
+      btn.disabled = false;
+    };
+  });
 }
 
 async function viewPicker() {
@@ -2007,11 +2039,11 @@ function appearanceBody(store, products) {
   return `
   <div class="th-layout">
     <div class="th-controls">
-      ${/* What this picker is pointed at. A store has one look; each product
-            may carry its own BACKGROUND inside it, and nothing else — the
-            colours, corners, type and material are the store's, so those
-            blocks step aside while a product is selected rather than
-            pretending to be per-product. */ ''}
+      ${/* What this picker is pointed at. A store has a look; each product may
+            override ANY of it — colours, corners, type, material, background.
+            Only what a seller actually changes is stored on the product (see
+            the save handler's diff against the store), so a product goes on
+            following the store for everything it never touched. */ ''}
       <div class="th-block th-target-block">
         <span class="th-block-lab">Customising</span>
         <select id="th-target" class="store-switch" aria-label="What this picker changes">
@@ -2020,8 +2052,8 @@ function appearanceBody(store, products) {
         </select>
         <p class="field-help th-block-help">${
           prods.length
-            ? 'Colours, corners, type and material belong to the store. Each product can carry its own background.'
-            : 'Add a product and it can carry a background of its own; until then this is the store’s look.'
+            ? 'Everything below is per product: colours, corners, type, material and background. A product only keeps what you actually change — the rest follows the store.'
+            : 'Add a product and it can carry a whole look of its own; until then this is the store’s.'
         }</p>
       </div>
       ${/* "Store theme", not "Theme". These tiles and the dashboard's own
@@ -2031,7 +2063,7 @@ function appearanceBody(store, products) {
             of a CHECKOUT, they are named for the buyer, and the dashboard's
             faces are a row of small ground chips under "Theme" in Dashboard
             -> Appearance. */ ''}
-      <div class="th-block th-store-only">
+      <div class="th-block">
         <span class="th-block-lab">Store theme</span>
         <p class="field-help th-block-help">What buyers see on your store page. Your own dashboard's light/dark is a separate setting, in Dashboard &rarr; Appearance.</p>
         <div class="th-tiles" role="group" aria-label="Store theme presets">${THEME_PRESETS.map(tile).join('')}</div>
@@ -2063,7 +2095,7 @@ function appearanceBody(store, products) {
           </div>
         </details>
       </div>
-      <div class="th-block th-store-only">
+      <div class="th-block">
         <span class="th-block-lab">Material</span>
         <div class="th-seg" id="th-material-seg" role="group" aria-label="Card material" data-value="${esc(t.material ?? 'glass')}">
           <button type="button" class="th-seg-btn${(t.material ?? 'glass') === 'glass' ? ' active' : ''}" data-material="glass">Glass</button>
@@ -2072,17 +2104,17 @@ function appearanceBody(store, products) {
         </div>
         <p class="note-help bgp-mat-note">Material shapes the cards over a background — glassy blur or solid panels. Corners at 0 make the store square.</p>
       </div>
-      <div class="th-block th-store-only">
+      <div class="th-block">
         <span class="th-block-lab">Colors <span class="th-badge-warn" id="th-contrast" hidden>Low contrast</span></span>
         <div class="th-swatches">
           ${sw('bg', 'Background')}${sw('panel', 'Cards')}${sw('text', 'Text')}${sw('accent', 'Accent')}${sw('pay', 'Pay')}
         </div>
       </div>
-      <div class="th-block th-store-only">
+      <div class="th-block">
         <span class="th-block-lab">Corners</span>
         <div class="th-range"><input type="range" id="th-radius" min="0" max="24" step="1" value="${t.radius}" aria-label="Corner radius" /><code id="th-radius-out">${t.radius}px</code></div>
       </div>
-      <div class="th-block th-store-only">
+      <div class="th-block">
         <span class="th-block-lab">Type</span>
         <div class="th-seg" id="th-font-seg" role="group" aria-label="Storefront typeface" data-value="${esc(t.font)}">
           ${seg('default', 'Grotesk', '')}${seg('system', 'System', THEME_FONT_STACKS.system)}${seg('serif', 'Serif', THEME_FONT_STACKS.serif)}${seg('mono', 'Mono', THEME_FONT_STACKS.mono)}
@@ -3364,6 +3396,36 @@ function wireAppearance(store, slug, products) {
     bgUrl: ($('#th-bgurl')?.value ?? '').trim(),
     material: $('#th-material-seg')?.dataset.value ?? 'glass',
   });
+  // "a, b and c" — an Oxford-less English list, because "the accent, the
+  // corners, the type" reads as an unfinished sentence in a UI note.
+  const listOf = (xs) => (xs.length < 2 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
+
+  // The inverse of read(): put a whole token set INTO the controls. Switching
+  // target has to move every control, not just the two background fields, now
+  // that a product can override any of them.
+  const writeControls = (t) => {
+    for (const key of ['bg', 'panel', 'text', 'accent', 'pay']) {
+      const el = $(`#th-${key}`);
+      if (el && t[key]) el.value = t[key];
+      const hex = $(`#th-${key}-hex`);
+      if (hex && t[key]) hex.textContent = t[key];
+    }
+    const rad = $('#th-radius');
+    if (rad && Number.isFinite(Number(t.radius))) rad.value = String(t.radius);
+    const fontSeg = $('#th-font-seg');
+    if (fontSeg) {
+      fontSeg.dataset.value = t.font ?? 'default';
+      document.querySelectorAll('#th-font-seg .th-seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.font === (t.font ?? 'default')));
+    }
+    const matSeg = $('#th-material-seg');
+    if (matSeg) {
+      matSeg.dataset.value = t.material ?? 'glass';
+      document.querySelectorAll('#th-material-seg .th-seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.material === (t.material ?? 'glass')));
+    }
+    draftBg = t.bgPreset ?? '';
+    if ($('#th-bgurl')) $('#th-bgurl').value = t.bgUrl ?? '';
+  };
+
   // The background the picker currently has selected ('' = none). Seeded from
   // the saved theme; clicks update it.
   let draftBg = store.theme?.bgPreset ?? '';
@@ -3376,11 +3438,18 @@ function wireAppearance(store, slug, products) {
   const prods = (products ?? []).filter((p) => !p.variantOf);
   const prodOf = (key) => prods.find((p) => p.planKey === key) ?? null;
   // Remembered across the re-render a save triggers: a seller who just gave
-  // one product a background is still customising that product afterwards.
+  // one product a look of its own is still customising that product after.
   let target = state.thTarget?.slug === slug && prods.some((p) => p.planKey === state.thTarget.key) ? state.thTarget.key : '';
-  const drafts = new Map([['', { bgPreset: draftBg, bgUrl: store.theme?.bgUrl ?? '' }]]);
-  for (const p of prods) drafts.set(p.planKey, { bgPreset: p.bg?.bgPreset ?? '', bgUrl: p.bg?.bgUrl ?? '' });
-  const stashDraft = () => drafts.set(target, { bgPreset: draftBg, bgUrl: ($('#th-bgurl')?.value ?? '').trim() });
+  // THE STORE'S LOOK, filled out. Every control needs a value to show, and a
+  // product's own look is a PARTIAL — only what the seller changed — so the
+  // controls are seeded from the store's look with the product's overrides on
+  // top. That is exactly what the buyer sees, which is what the picker should
+  // be showing.
+  const storeLook = { ...THEME_DEFAULTS, ...(store.theme ?? {}) };
+  const effective = (own) => ({ ...storeLook, ...(own ?? {}) });
+  const drafts = new Map([['', { ...storeLook }]]);
+  for (const p of prods) drafts.set(p.planKey, effective(p.bg));
+  const stashDraft = () => drafts.set(target, read());
   const savedBgOf = (key) =>
     key === '' ? (store.theme?.bgPreset || store.theme?.bgUrl ? { bgPreset: store.theme?.bgPreset ?? '', bgUrl: store.theme?.bgUrl ?? '' } : null)
     : (prodOf(key)?.bg ?? null);
@@ -3482,20 +3551,19 @@ function wireAppearance(store, slug, products) {
     syncTarget();
   };
 
-  // What the panel shows for the thing being customised. A product only owns
-  // its background, so the store's blocks stand down while one is selected —
-  // and a product with no background of its own is described as INHERITING
-  // the store's, by name, rather than shown an empty picker that reads as a
-  // broken control.
+  // What the panel shows for the thing being customised. Every control is
+  // live for a product now, so nothing stands down — what changes is what the
+  // panel SAYS: a product is never "unset", it is INHERITING, and the note
+  // names exactly which parts it has taken over so the seller can tell an
+  // override from a value that merely matches the store today.
   function syncTarget() {
     const p = prodOf(target);
     const sel = $('#th-target');
     if (sel && sel.value !== target) sel.value = target;
-    document.querySelectorAll('.th-store-only').forEach((el) => { el.hidden = Boolean(p); });
     const saveBtn = $('#th-save');
     if (saveBtn && !saveBtn.disabled) saveBtn.textContent = p ? `Save ${p.name}` : 'Save appearance';
     const resetBtn = $('#th-reset');
-    if (resetBtn && !resetBtn.disabled) resetBtn.textContent = p ? 'Use the store\u2019s background' : 'Reset to default';
+    if (resetBtn && !resetBtn.disabled) resetBtn.textContent = p ? 'Use the store\u2019s look' : 'Reset to default';
     const note = $('#th-inherit');
     if (!note) return;
     if (!p) {
@@ -3503,16 +3571,19 @@ function wireAppearance(store, slug, products) {
       note.textContent = '';
       return;
     }
-    const own = draftBg || ($('#th-bgurl')?.value ?? '').trim();
-    const storeBg = store.theme?.bgUrl
-      ? 'an image you imported'
-      : (BG_CATALOG.find((b) => b.id === store.theme?.bgPreset)?.label ?? null);
+    // Named in the seller's words, not the token's: "accent" is a token,
+    // "the button colour" is what they were looking at when they changed it.
+    const LOOK_LABEL = {
+      bg: 'the page colour', panel: 'the card colour', text: 'the text colour',
+      accent: 'the accent', pay: 'the button colour', radius: 'the corners',
+      font: 'the type', material: 'the material', bgPreset: 'the background',
+      bgUrl: 'the background',
+    };
+    const owned = [...new Set(Object.keys(p.bg ?? {}).map((k) => LOOK_LABEL[k]).filter(Boolean))];
     note.hidden = false;
-    note.textContent = own
-      ? `${p.name} has a background of its own. \u201cUse the store\u2019s background\u201d puts it back on the store\u2019s.`
-      : storeBg
-        ? `${p.name} has no background of its own, so it wears the store\u2019s \u2014 ${storeBg}. Pick one below to give it its own.`
-        : `${p.name} has no background of its own, so it wears the store\u2019s, which is the plain Dues ground. Pick one below to give it its own.`;
+    note.textContent = owned.length
+      ? `${p.name} has its own ${listOf(owned)}. Everything else follows the store. \u201cUse the store\u2019s look\u201d hands it all back.`
+      : `${p.name} follows the store for everything. Change anything below and this product keeps that one thing \u2014 the rest goes on following the store.`;
   }
 
   // Point the picker at something else: stash the edits in flight, load that
@@ -3522,9 +3593,8 @@ function wireAppearance(store, slug, products) {
     stashDraft();
     target = next;
     state.thTarget = { slug, key: target };
-    const d = drafts.get(target) ?? { bgPreset: '', bgUrl: '' };
-    draftBg = d.bgPreset;
-    if ($('#th-bgurl')) $('#th-bgurl').value = d.bgUrl;
+    const d = drafts.get(target) ?? { ...storeLook };
+    writeControls(d);
     const p = prodOf(target);
     const seg = p ? `/${encodeURIComponent(p.linkSlug ?? p.planKey)}` : '';
     const bar = $('#th-frame-url');
@@ -3663,21 +3733,21 @@ function wireAppearance(store, slug, products) {
       paint();
     };
   });
-  // Land on the remembered target with ITS background in the fields.
+  // Land on the remembered target with ITS whole look in the controls.
   if (target) {
-    const d = drafts.get(target) ?? { bgPreset: '', bgUrl: '' };
-    draftBg = d.bgPreset;
-    if ($('#th-bgurl')) $('#th-bgurl').value = d.bgUrl;
+    writeControls(drafts.get(target) ?? { ...storeLook });
     const p = prodOf(target);
     const bar = $('#th-frame-url');
     if (bar && p) bar.textContent = `${location.host}/${store.slug}/${p.linkSlug ?? p.planKey}`;
   }
   paint();
 
-  // Save writes to whatever the picker is pointed at: the store's theme, or
-  // one product's background. A product only ever sends the two background
-  // tokens — its colours, corners and type are the store's and are not this
-  // form's to send.
+  // Save writes to whatever the picker is pointed at: the store's whole theme,
+  // or ONE PRODUCT'S OVERRIDES — and for a product it sends only the tokens
+  // that actually differ from the store's. Sending the full set would work and
+  // would be wrong: the product would stop following the store for every
+  // token, so changing the store's accent later would move every product
+  // except the ones somebody had opened this picker on.
   $('#th-save').onclick = async () => {
     const btn = $('#th-save');
     const p = prodOf(target);
@@ -3686,10 +3756,17 @@ function wireAppearance(store, slug, products) {
     btn.textContent = 'Saving…';
     try {
       if (p) {
-        const bg = { bgPreset: draftBg, bgUrl: ($('#th-bgurl')?.value ?? '').trim() };
+        const mine = read();
+        const look = {};
+        for (const [k, v] of Object.entries(mine)) {
+          // An empty background field is "none", which is what the store's
+          // absence of one already means — so it is never an override.
+          if (v === '' || v === null || v === undefined) continue;
+          if (String(v) !== String(storeLook[k] ?? '')) look[k] = v;
+        }
         await api('/api/onboard', {
           step: 'product-update', storeId: store.id, planKey: p.planKey,
-          bg: bg.bgPreset || bg.bgUrl ? bg : null,
+          bg: Object.keys(look).length ? look : null,
         });
         state.products = null;
       } else {
@@ -3709,7 +3786,7 @@ function wireAppearance(store, slug, products) {
   $('#th-reset').onclick = async () => {
     const p = prodOf(target);
     if (p) {
-      if (!confirm(`Put ${p.name} back on the store’s background?`)) return;
+      if (!confirm(`Put ${p.name} back on the store’s look?`)) return;
       try {
         await api('/api/onboard', { step: 'product-update', storeId: store.id, planKey: p.planKey, bg: null });
         state.products = null;
