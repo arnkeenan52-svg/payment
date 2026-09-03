@@ -75,10 +75,74 @@ export async function onPaidPlan(ownerDiscordId) {
 // their plan is priced on. The owner is never one of them: sellers buy their
 // own role to check the checkout works, and that test must not spend a seat
 // on the plan they are being billed for.
+// ONE BUSINESS, ONE COUNT.
+//
+// A plan is per Discord account, and for a while that was the whole rule — so
+// the way round it was a second Discord account owning a second server, with
+// half the members moved across. Two free tiers, one seller. Discord cannot
+// tell us those two accounts are the same person, and guessing from an IP or a
+// name would be both unreliable and unfair to the two co-founders who really
+// do run a server each.
+//
+// The money can tell us. Every store settles to the seller's own Stripe
+// account, and Dues holds the key, so it knows the acct_ id behind each store.
+// Stores sharing one Stripe account are one business, and they are metered as
+// one. Splitting now costs a second Stripe account — a second business, with
+// its own bank details and its own verification — which is a real thing to
+// have to build rather than a second Discord signup.
+//
+// A store with no key of its own (the built-in default store) groups with
+// nothing: there is no acct_ id to group on, and it is the platform's own.
+export async function billingGroupStores(ownerDiscordId) {
+  const own = await storesOwnedBy(ownerDiscordId);
+  const accounts = [...new Set(own.map((s) => s.stripeAccountId).filter(Boolean))];
+  if (!accounts.length) return own;
+  const shared = await db.storesByStripeAccounts(accounts);
+  const byId = new Map();
+  for (const s of [...own, ...shared]) byId.set(s.id ?? `default:${s.slug}`, s);
+  return [...byId.values()];
+}
+
+// Every Discord account that owns a store in this billing group. Their tiers
+// pool: one upgrade covers the group, so grouping never charges one business
+// twice for the same members.
+export async function billingGroupOwners(ownerDiscordId) {
+  const stores = await billingGroupStores(ownerDiscordId);
+  const owners = new Set([String(ownerDiscordId)]);
+  for (const s of stores) if (s.ownerDiscordId) owners.add(String(s.ownerDiscordId));
+  return [...owners];
+}
+
+// Distinct chargeable members across every store in this owner's billing
+// group — the number their plan is priced on. Two things are counted: people
+// with a live membership, and people holding a role the store sells with no
+// membership behind it (see src/services/comp-audit.js). One person who is
+// both is one member.
+//
+// No seller in the group is ever one of them: sellers buy their own role to
+// check the checkout works, and hold their own roles in their own servers.
+// Neither may spend a seat on the plan being billed for it.
 export async function memberUsage(ownerDiscordId) {
-  const stores = await storesOwnedBy(ownerDiscordId);
+  const stores = await billingGroupStores(ownerDiscordId);
   if (!stores.length) return 0;
-  return db.countLiveMembers(stores.map((s) => s.id ?? null), { except: [ownerDiscordId] });
+  const owners = new Set([String(ownerDiscordId)]);
+  for (const s of stores) if (s.ownerDiscordId) owners.add(String(s.ownerDiscordId));
+  return db.countChargeableMembers(stores.map((s) => s.id ?? null), { except: [...owners] });
+}
+
+// The group's ceiling: the most generous tier anybody in it holds. A group
+// that has bought one Max plan is a Max-plan group, so the second account does
+// not have to buy a second one — grouping closes the dodge without inventing a
+// second bill for one business.
+export async function groupMemberLimit(ownerDiscordId) {
+  const owners = await billingGroupOwners(ownerDiscordId);
+  let best = 0;
+  for (const owner of owners) {
+    const { tier, exempt } = await billingFor(owner);
+    if (exempt || tier.maxMembers === null) return null; // null = unlimited
+    best = Math.max(best, tier.maxMembers ?? 0);
+  }
+  return best;
 }
 
 // Checkout gate: does creating a NEW membership in this store exceed the
@@ -92,8 +156,11 @@ export async function memberLimitBlocks(store, buyerDiscordId) {
   // refused by it either — otherwise a seller sitting on their limit cannot
   // check their own checkout still works.
   if (buyerDiscordId && String(buyerDiscordId) === String(owner)) return false;
-  const { tier, exempt } = await billingFor(owner);
-  if (exempt || tier.maxMembers === null) return false;
+  const { exempt } = await billingFor(owner);
+  if (exempt) return false;
+  // The GROUP's ceiling, not this owner's own tier — see groupMemberLimit.
+  const limit = await groupMemberLimit(owner);
+  if (limit === null) return false;
   if (buyerDiscordId) {
     const own = (await db.subscriptionsForMember(buyerDiscordId)).filter((s) => {
       const sid = s.store_id === null || s.store_id === undefined ? null : Number(s.store_id);
@@ -101,7 +168,7 @@ export async function memberLimitBlocks(store, buyerDiscordId) {
     });
     if (own.length) return false;
   }
-  return (await memberUsage(owner)) >= tier.maxMembers;
+  return (await memberUsage(owner)) >= limit;
 }
 
 // ── self-provisioned recurring prices on the platform account ────────────────

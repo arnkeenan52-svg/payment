@@ -13,6 +13,6 @@ export default guard(async (req, res) => {
   }
   redirect(
     res,
-    `https://discord.com/oauth2/authorize?client_id=${config.discord.clientId}&scope=bot&permissions=268454945`,
+    `https://discord.com/oauth2/authorize?client_id=${config.discord.clientId}&scope=bot&permissions=268455073`,
   );
 });

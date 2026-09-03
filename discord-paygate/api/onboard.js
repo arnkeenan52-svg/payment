@@ -112,7 +112,14 @@ export default guard(async function handler(req, res) {
         return sendJson(res, 400, { error: 'Stripe rejected that key. Create one under Stripe → Developers → API keys — a restricted key needs the permissions listed above.' });
       }
       if (existingStore) {
-        await db.updateStore(existingStore.id, { stripeSecretEnc: sealSecret(stripeKey) });
+        // stripeAccountId is which BUSINESS this store is — it groups stores
+        // that settle to one Stripe account into one plan, whoever owns the
+        // Discord accounts (src/services/billing.js). The /v1/account call
+        // above already fetched it to validate the key.
+        await db.updateStore(existingStore.id, {
+          stripeSecretEnc: sealSecret(stripeKey),
+          stripeAccountId: account?.id ? String(account.id) : null,
+        });
         // A key re-entered on an existing store revokes every other session
         // (see api/admin/store.js); the caller's own cookie is re-issued.
         res.setHeader('set-cookie', createSessionCookie(uid, await revokeAllSessions(uid)));
@@ -144,6 +151,8 @@ export default guard(async function handler(req, res) {
         stripeSecretEnc: sealSecret(stripeKey),
         status: 'draft',
       });
+      // Which business this new store is — see the update path above.
+      await db.updateStore(row.id, { stripeAccountId: account?.id ? String(account.id) : null }).catch(() => {});
 
       // Register this store's own webhook endpoint on THEIR Stripe account;
       // its signing secret verifies every delivery for this store.

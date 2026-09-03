@@ -38,6 +38,18 @@ async function rolePlanFor(store) {
 // global ledger of everything ever grantable. Role ids are globally unique
 // snowflakes, so ledger entries from other guilds can never match a role a
 // member actually holds in this one.
+// The roles this store SELLS, right now — the plan mapping only, without the
+// cross-store managed-role ledger managedFor folds in. The comp audit asks
+// this: a role another server sells is not this seller's to answer for, and
+// including the ledger would have every store recording comps for every other
+// store's role ids.
+export async function soldRoleIdsFor(store) {
+  const { map } = await rolePlanFor(store);
+  const ids = new Set();
+  for (const { roleIds } of map.values()) for (const id of roleIds) ids.add(String(id));
+  return ids;
+}
+
 async function managedFor(store, roleMap) {
   if (!store || store.isDefault) return effectiveManagedRoleIds(roleMap);
   const managed = new Set();

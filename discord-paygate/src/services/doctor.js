@@ -283,7 +283,7 @@ export async function runDoctor() {
       const mRes = await dFetch(`/guilds/${config.discord.guildId}/members/${bot.id}`);
       if (mRes.status === 404) {
         add('discord:bot-in-guild', 'Bot is a member of the guild', 'fail', `bot ${bot.username} is not in guild ${config.discord.guildId}`,
-          `Invite it: https://discord.com/oauth2/authorize?client_id=${config.discord.clientId || '<APP_ID>'}&scope=bot&permissions=268454945 — open that URL, pick the server, authorize.`);
+          `Invite it: https://discord.com/oauth2/authorize?client_id=${config.discord.clientId || '<APP_ID>'}&scope=bot&permissions=268455073 — open that URL, pick the server, authorize.`);
       } else if (!mRes.ok) {
         add('discord:bot-in-guild', 'Bot is a member of the guild', 'fail', `Discord answered ${mRes.status}`);
       } else {

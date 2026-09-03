@@ -94,6 +94,71 @@ export function botNotInGuildError(guildId) {
   return err;
 }
 
+// WHO THE BOT IS, asked rather than assumed.
+//
+// The comp audit has to tell "a human handed this role over" from "Dues
+// granted it", and the only thing separating them on an audit entry is the
+// actor id. For a real application the bot user's id and the application id
+// are the same number, so config.discord.clientId is usually right — but
+// "usually right" is how a comp audit starts counting every paying member
+// twice. Discord will say, so ask it, once per process.
+let botUserIdCache;
+export async function botUserId() {
+  if (botUserIdCache !== undefined) return botUserIdCache;
+  try {
+    const res = await discordFetch('/users/@me');
+    if (res.ok) {
+      const me = await res.json();
+      if (me?.id) {
+        botUserIdCache = String(me.id);
+        return botUserIdCache;
+      }
+    }
+  } catch {
+    /* fall through to the application id */
+  }
+  // Not cached as a miss: a transient failure should not pin the fallback for
+  // the life of the process when the next call could get the real answer.
+  return config.discord.clientId ? String(config.discord.clientId) : null;
+}
+
+// ── audit log ─────────────────────────────────────────────────────────────────
+
+// MEMBER_ROLE_UPDATE. Discord's action_type for "somebody's roles changed";
+// the entry carries target_id (who), user_id (who did it) and a changes array
+// whose $add / $remove values are arrays of {id, name} roles.
+export const AUDIT_MEMBER_ROLE_UPDATE = 25;
+
+// Role changes in a guild since `after`, newest-first, capped at one page.
+//
+// This is how Dues sees a role handed out BY HAND. The alternative — listing
+// the guild's members and diffing — needs the privileged GUILD_MEMBERS intent,
+// which Discord approves per application and gates behind bot verification
+// past 100 servers. The audit log needs only View Audit Log, an ordinary
+// permission in the invite, and it says more: not just that somebody holds a
+// role, but who gave it to them and when. Entries live 45 days, which is why
+// the cursor is stored and read forward rather than rebuilt.
+//
+// Returns { entries, blocked }. `blocked` is Discord refusing the log —
+// the bot was invited without the permission — and is a state to show the
+// seller, not an error to retry into.
+export async function guildRoleAuditLog(guildId, { after = null, limit = 100 } = {}) {
+  const params = new URLSearchParams({
+    action_type: String(AUDIT_MEMBER_ROLE_UPDATE),
+    limit: String(Math.min(Math.max(limit, 1), 100)),
+  });
+  if (after) params.set('after', String(after));
+  const res = await discordFetch(`/guilds/${guildId}/audit-logs?${params.toString()}`);
+  if (res.status === 403) return { entries: [], blocked: true };
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`discord: audit log for ${guildId} failed with ${res.status}: ${detail.slice(0, 200)}`);
+  }
+  const body = await res.json().catch(() => ({}));
+  const entries = Array.isArray(body.audit_log_entries) ? body.audit_log_entries : [];
+  return { entries, blocked: false };
+}
+
 // A 404 here means one of two very different things. Unknown Member (10007)
 // is the buyer not being in the server — null, and the caller may pull them
 // in. Unknown Guild (10004), like 403 Missing Access (50001), is the BOT not

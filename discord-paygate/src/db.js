@@ -74,6 +74,19 @@ const ddl = (dialect) => {
     crypto_wallet    TEXT,               -- seller's own payout address (never Dues')
     crypto_chain     TEXT,               -- which network that address is on
     category         TEXT,               -- one of the fixed discover categories
+    -- WHICH BUSINESS THIS STORE IS. The Stripe account the store's money
+    -- settles to, read from /v1/account when the key is saved. Two stores on
+    -- two Discord accounts but one Stripe account are one seller, and the
+    -- plan meters them together (src/services/billing.js). Not a secret: an
+    -- acct_ id identifies, it does not authorise.
+    stripe_account_id TEXT,
+    -- Where the comp audit has read this server's audit log up to: the id of
+    -- the newest entry already processed. NULL means never read.
+    audit_cursor     TEXT,
+    -- Set when Discord refuses the audit log (the bot was invited without
+    -- View Audit Log). Surfaced to the seller rather than retried silently.
+    audit_blocked    ${int} NOT NULL DEFAULT 0,
+    audit_checked_at ${int} NOT NULL DEFAULT 0,   -- rotation: least recently read first
     status           TEXT NOT NULL DEFAULT 'draft',
     created_at       ${int} NOT NULL,
     updated_at       ${int} NOT NULL
@@ -230,6 +243,31 @@ const ddl = (dialect) => {
     role_id     TEXT PRIMARY KEY,
     recorded_at ${int} NOT NULL
   );
+
+  -- ROLES HANDED OUT BY HAND. A seller can add a role they sell to somebody
+  -- in their own Discord, with no checkout and no Dues record — and before
+  -- this table that member was invisible: not in subscriptions, so not in the
+  -- member count, so not on the plan. Selling access that way, or handing it
+  -- back after cancelling a payment, was a way to carry members a plan is not
+  -- paying for.
+  --
+  -- It is read from the guild's AUDIT LOG (action type 25, MEMBER_ROLE_UPDATE)
+  -- rather than the member list, so it needs the ordinary View Audit Log
+  -- permission and NOT the privileged GUILD_MEMBERS intent. Entries whose
+  -- actor is the Dues bot are our own grants and are never recorded here.
+  --
+  -- A row is not an accusation. Comping a moderator is normal and legitimate;
+  -- what the row does is make the person COUNT, and show the seller who they
+  -- are so they can take a role back if they did not mean to give it.
+  CREATE TABLE IF NOT EXISTS comped_grants (
+    store_id    ${int} NOT NULL,
+    discord_id  TEXT NOT NULL,
+    role_id     TEXT NOT NULL,
+    granted_by  TEXT,                    -- the Discord id that added the role
+    granted_at  ${int} NOT NULL,
+    UNIQUE (store_id, discord_id, role_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_comped_store ON comped_grants (store_id);
 
   -- The Dues plan a store owner is on (platform billing). One row per
   -- owner: their paid tier covers every store they run. status active or
@@ -465,6 +503,16 @@ function db() {
       // unrecoverable.
       await driver.exec('ALTER TABLE stores ADD COLUMN crypto_wallet TEXT').catch(onlyDuplicateColumn);
       await driver.exec('ALTER TABLE stores ADD COLUMN crypto_chain TEXT').catch(onlyDuplicateColumn);
+      // WHICH BUSINESS A STORE IS. Read from /v1/account when the seller's
+      // Stripe key is saved, and backfilled by the cron for keys saved before
+      // this column existed. Two Discord accounts settling to one Stripe
+      // account are one seller, and the plan meters them as one.
+      await driver.exec('ALTER TABLE stores ADD COLUMN stripe_account_id TEXT').catch(onlyDuplicateColumn);
+      // Where the comp audit has read this guild's audit log up to, and
+      // whether Discord is refusing it (bot invited without View Audit Log).
+      await driver.exec('ALTER TABLE stores ADD COLUMN audit_cursor TEXT').catch(onlyDuplicateColumn);
+      await driver.exec(`ALTER TABLE stores ADD COLUMN audit_blocked ${intType} NOT NULL DEFAULT 0`).catch(onlyDuplicateColumn);
+      await driver.exec(`ALTER TABLE stores ADD COLUMN audit_checked_at ${intType} NOT NULL DEFAULT 0`).catch(onlyDuplicateColumn);
       // The provider's own id for an attempt. Stripe puts its cs_… id straight
       // in session_id; a crypto attempt is keyed by an order id we mint
       // ourselves, so the payment id it maps to needs somewhere to live —
@@ -996,6 +1044,131 @@ export async function storesByOwner(ownerDiscordId) {
   return rows.map(storeRow);
 }
 
+// Every store settling to one of these Stripe accounts, whoever owns it.
+// This is the whole of "two Discord accounts, one business": a seller can
+// make a second Discord account and a second server, but the money still has
+// to land somewhere, and an acct_ id is the somewhere. Empty list in, empty
+// list out — a store with no key of its own is not grouped with anything.
+// Stores due a pass of the comp audit, least recently read first, so a budget
+// that runs out mid-list resumes where it stopped instead of starving the
+// tail — the same rotation formerMembersToAudit uses on members.
+export async function storesToCompAudit(limit = 8) {
+  const { rows } = await q(
+    'SELECT * FROM stores WHERE guild_id IS NOT NULL ORDER BY audit_checked_at ASC, id ASC LIMIT ?',
+    [limit],
+  );
+  return rows.map(storeRow);
+}
+
+export async function storesByStripeAccounts(accountIds) {
+  const ids = [...new Set((accountIds ?? []).filter(Boolean).map(String))];
+  if (!ids.length) return [];
+  const { rows } = await q(
+    `SELECT * FROM stores WHERE stripe_account_id IN (${ids.map(() => '?').join(', ')}) ORDER BY id`,
+    ids,
+  );
+  return rows.map(storeRow);
+}
+
+// Stores whose key was saved before stripe_account_id existed, so the cron
+// can fill it in once. A store with no key of its own has nothing to read.
+export async function storesMissingStripeAccountId(limit = 25) {
+  const { rows } = await q(
+    'SELECT * FROM stores WHERE stripe_account_id IS NULL AND stripe_secret_enc IS NOT NULL ORDER BY id LIMIT ?',
+    [limit],
+  );
+  return rows.map(storeRow);
+}
+
+// ── comped role holders ───────────────────────────────────────────────────────
+// See the comped_grants DDL. Written only by the comp audit, from the guild's
+// audit log, and only for roles the store actually sells.
+
+export async function recordCompedGrant({ storeId, discordId, roleId, grantedBy, at = now() }) {
+  await q(
+    `INSERT INTO comped_grants (store_id, discord_id, role_id, granted_by, granted_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT (store_id, discord_id, role_id) DO NOTHING`,
+    [storeId, String(discordId), String(roleId), grantedBy === null || grantedBy === undefined ? null : String(grantedBy), at],
+  );
+}
+
+// The role came off — by the seller's hand, by the reconciler, or by anyone
+// else. The row goes; it described a role that is no longer held.
+export async function clearCompedGrant({ storeId, discordId, roleId }) {
+  await q(
+    'DELETE FROM comped_grants WHERE store_id = ? AND discord_id = ? AND role_id = ?',
+    [storeId, String(discordId), String(roleId)],
+  );
+}
+
+// Everything recorded for a store, newest first — what the seller is shown so
+// the number on their plan card has names behind it.
+export async function compedGrantsForStore(storeId) {
+  const { rows } = await q(
+    'SELECT discord_id, role_id, granted_by, granted_at FROM comped_grants WHERE store_id = ? ORDER BY granted_at DESC',
+    [storeId],
+  );
+  return rows.map((r) => ({
+    discordId: String(r.discord_id),
+    roleId: String(r.role_id),
+    grantedBy: r.granted_by === null || r.granted_by === undefined ? null : String(r.granted_by),
+    grantedAt: Number(r.granted_at),
+  }));
+}
+
+// A role id that stopped being sold leaves rows behind that no longer mean
+// anything. Called after the comp audit re-reads a store's managed set.
+export async function pruneCompedGrants(storeId, keepRoleIds) {
+  const keep = [...new Set((keepRoleIds ?? []).map(String))];
+  if (!keep.length) {
+    await q('DELETE FROM comped_grants WHERE store_id = ?', [storeId]);
+    return;
+  }
+  await q(
+    `DELETE FROM comped_grants WHERE store_id = ? AND role_id NOT IN (${keep.map(() => '?').join(', ')})`,
+    [storeId, ...keep],
+  );
+}
+
+// THE NUMBER A PLAN IS PRICED ON. Distinct people across these stores who
+// either hold a live membership or hold a role the store sells with no
+// membership behind it — one set, unioned, so somebody who is both is one
+// person. `except` is the seller themselves: testing your own checkout, or
+// holding your own role, must never spend a seat on the plan billing you.
+export async function countChargeableMembers(storeIds, { except = [] } = {}) {
+  const parts = [];
+  const params = [];
+  const concrete = storeIds.filter((x) => x !== null && x !== undefined);
+  if (storeIds.includes(null)) parts.push('store_id IS NULL');
+  if (concrete.length) {
+    parts.push(`store_id IN (${concrete.map(() => '?').join(', ')})`);
+    params.push(...concrete);
+  }
+  if (!parts.length) return 0;
+  const scope = `(${parts.join(' OR ')})`;
+  const skip = [...new Set((Array.isArray(except) ? except : [except]).filter(Boolean).map(String))];
+  const notMe = skip.length ? ` AND discord_id NOT IN (${skip.map(() => '?').join(', ')})` : '';
+  const at = now();
+  // The same isEntitled() predicate countLiveMembers prices on — the two must
+  // never disagree about who is live, or a member could be billed by one and
+  // not the other.
+  const live = "((status = 'active' AND (current_period_end IS NULL OR current_period_end > ?))"
+    + " OR (status = 'past_due' AND grace_until IS NOT NULL AND grace_until > ?))";
+  // comped_grants has no store_id IS NULL case — the built-in default store is
+  // the platform's own and is never metered — but the scope clause is shared,
+  // so a NULL-scoped call simply matches nothing on that side.
+  const { rows } = await q(
+    `SELECT COUNT(*) AS n FROM (
+       SELECT discord_id FROM subscriptions WHERE ${scope} AND ${live}${notMe}
+       UNION
+       SELECT discord_id FROM comped_grants WHERE ${scope}${notMe}
+     ) AS chargeable`,
+    [...params, at, at, ...skip, ...params, ...skip],
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
 export async function allStores() {
   const { rows } = await q('SELECT * FROM stores ORDER BY id', []);
   return rows.map(storeRow);
@@ -1009,6 +1182,10 @@ export async function updateStore(id, fields) {
     slug: 'slug',
     status: 'status',
     stripeSecretEnc: 'stripe_secret_enc',
+    stripeAccountId: 'stripe_account_id',
+    auditCursor: 'audit_cursor',
+    auditBlocked: 'audit_blocked',
+    auditCheckedAt: 'audit_checked_at',
     stripeWebhookSecret: 'stripe_webhook_secret',
     notifyChannelId: 'notify_channel_id',
     theme: 'theme',

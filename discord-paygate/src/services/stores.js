@@ -100,6 +100,15 @@ function hydrate(row) {
     teamHeading: row.team_heading ?? null,
     status: row.status,
     createdAt: row.created_at ? Number(row.created_at) : null,
+    // Which BUSINESS this store is: the Stripe account its money settles to.
+    // Stores sharing one are grouped into one plan (src/services/billing.js).
+    // Not a secret — an acct_ id identifies, it does not authorise.
+    stripeAccountId: row.stripe_account_id ?? null,
+    // Comp-audit bookkeeping: how far through this guild's audit log the audit
+    // has read, and whether Discord is refusing it because the bot was invited
+    // without View Audit Log (src/services/comp-audit.js).
+    auditCursor: row.audit_cursor ?? null,
+    auditBlocked: Boolean(Number(row.audit_blocked ?? 0)),
     isDefault: false,
   };
 }
@@ -151,6 +160,13 @@ export async function adminStoreBySlug(slug) {
   const managed = hydrate(await db.getStoreBySlug(slug));
   if (managed) return managed;
   return slug === defaultSlug() ? defaultStore() : null;
+}
+
+// Stores due a comp-audit pass, HYDRATED. The db query returns raw rows, and
+// every field the audit reads — guildId, ownerDiscordId, auditCursor — is
+// snake_case there; going through hydrate is what makes them exist at all.
+export async function storesToCompAudit(limit) {
+  return (await db.storesToCompAudit(limit)).map(hydrate);
 }
 
 export async function storeById(id) {

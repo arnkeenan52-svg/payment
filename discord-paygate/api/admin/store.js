@@ -266,12 +266,20 @@ export default guard(async function handler(req, res) {
     if (!isStripeKey(key)) {
       return sendJson(res, 400, { error: 'That does not look like a Stripe API key. Restricted keys (rk_live_…) and secret keys (sk_live_…) both work.' });
     }
+    let account;
     try {
-      await stripeFetch('/v1/account', { key });
+      account = await stripeFetch('/v1/account', { key });
     } catch {
       return sendJson(res, 400, { error: 'Stripe rejected that key. Create one under Stripe → Developers → API keys — a restricted key needs write on Checkout Sessions, Products, Prices, Coupons, Webhook Endpoints and Subscriptions.' });
     }
     fields.stripeSecretEnc = sealSecret(key);
+    // WHICH BUSINESS THIS STORE IS. The call above already had to happen to
+    // validate the key; its answer carries the acct_ id, and that is what
+    // groups two Discord accounts settling to one Stripe account into one
+    // plan (src/services/billing.js billingGroupStores). An acct_ id
+    // identifies, it does not authorise — it is not a secret and is not
+    // sealed. Cleared rather than left stale if Stripe ever omits it.
+    fields.stripeAccountId = account?.id ? String(account.id) : null;
   }
   // Discover listing is strictly opt-in — a paid community's store is not a
   // public storefront unless its owner says so.

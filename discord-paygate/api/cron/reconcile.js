@@ -5,6 +5,7 @@ import { sweepExpirations } from '../../src/services/entitlements.js';
 import { healStoreWebhooks } from '../../src/services/webhook-heal.js';
 import { refreshBrandAssets } from '../../src/services/brand-refresh.js';
 import { backfillMissedSales, backfillMissedCryptoSales } from '../../src/services/backfill.js';
+import { auditComps, backfillStripeAccounts } from '../../src/services/comp-audit.js';
 import { purgeWebhookEvents } from '../../src/db.js';
 
 // Webhook idempotency claims outlive any provider's retries by this much and
@@ -52,6 +53,13 @@ export default guard(async function handler(req, res) {
   // Crypto sales whose IPN never arrived: ask the provider about every open
   // order, process what finished.
   const cryptoBackfill = await attempt('crypto backfill', backfillMissedCryptoSales);
+  // ROLES HANDED OUT BY HAND. Reads each guild's audit log forward from its
+  // cursor and records people holding a role the store sells with no
+  // membership behind it, so the plan meters them (src/services/comp-audit.js).
+  const comps = await attempt('comp audit', auditComps);
+  // Which BUSINESS each store is, for stores whose Stripe key was saved before
+  // the column existed. Finds nothing once every store is stamped.
+  const stripeAccounts = await attempt('stripe account backfill', backfillStripeAccounts);
   // Claims no retry can ever match again, off the table every webhook inserts into.
   const claimsPurged = await attempt('claim purge', () => purgeWebhookEvents(Math.floor(Date.now() / 1000) - CLAIM_RETENTION));
   sendJson(res, 200, {
@@ -61,6 +69,8 @@ export default guard(async function handler(req, res) {
     ...(brand ? { brand } : {}),
     ...(backfill ? { backfill } : {}),
     ...(cryptoBackfill ? { cryptoBackfill } : {}),
+    ...(comps ? { comps } : {}),
+    ...(stripeAccounts ? { stripeAccounts } : {}),
     ...(claimsPurged === null ? {} : { claimsPurged }),
     ...(failures.length ? { failures } : {}),
   });
