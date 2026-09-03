@@ -298,6 +298,8 @@ export async function plansOf(store) {
     expiresAt: p.expiresAt ?? null,
     requiredRoleId: p.requiredRoleId ?? null,
     requiredRoleName: p.requiredRoleName ?? null,
+    // This product's own wallpaper, or null when it wears the store's.
+    bg: p.bg ?? null,
     createdAt: p.createdAt,
   }));
   // A variant is one PRICE OPTION of its parent product: price, billing and
@@ -321,6 +323,9 @@ export async function plansOf(store) {
     v.expiresAt = parent.expiresAt;
     v.requiredRoleId = parent.requiredRoleId;
     v.requiredRoleName = parent.requiredRoleName;
+    // A price option shares its product's PAGE, so it shares the background
+    // that page wears. There is no option-level wallpaper to set.
+    v.bg = parent.bg ?? null;
   }
   return plans;
 }

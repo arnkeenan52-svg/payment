@@ -133,6 +133,7 @@ const ddl = (dialect) => {
     purchase_limit  ${int},
     success_url     TEXT,
     image_data      TEXT,
+    bg              TEXT,                    -- JSON: this product's OWN background ({bgPreset} or {bgUrl}); NULL = wears the store's
     created_at      ${int} NOT NULL,
     UNIQUE (store_id, plan_key)
   );
@@ -532,6 +533,12 @@ function db() {
       // Session revocation: the cookie carries the generation it was issued
       // under and is refused once the row has moved past it (src/lib/session.js).
       await driver.exec(`ALTER TABLE users ADD COLUMN session_gen ${intType} NOT NULL DEFAULT 0`).catch(onlyDuplicateColumn);
+      // A product's OWN background: the same two tokens the store's look
+      // carries ({"bgPreset":…} or {"bgUrl":…}), same storage idiom as
+      // stores.theme. NULL is the answer for every existing row and means
+      // "wears the store's" — so this migration changes nothing that was
+      // already on screen.
+      await driver.exec('ALTER TABLE store_plans ADD COLUMN bg TEXT').catch(onlyDuplicateColumn);
       return driver;
     })().catch((err) => {
       driverPromise = null; // a failed init must not poison every later request
@@ -1456,6 +1463,9 @@ const planRow = (r) =>
         successUrl: r.success_url ?? null,
         linkSlug: r.link_slug ?? null,
         variantOf: r.variant_of ?? null,
+        // This product's own background, or null when it wears the store's.
+        // A row written before the column existed parses as null, not a crash.
+        bg: r.bg ? JSON.parse(r.bg) : null,
         expiresAt: r.expires_at === null || r.expires_at === undefined ? null : Number(r.expires_at),
         requiredRoleId: r.required_role_id ?? null,
         requiredRoleName: r.required_role_name ?? null,
@@ -1496,6 +1506,7 @@ export async function updateStorePlan(storeId, planKey, fields) {
     expiresAt: 'expires_at',
     requiredRoleId: 'required_role_id',
     requiredRoleName: 'required_role_name',
+    bg: 'bg',
   };
   const sets = [];
   const params = [];

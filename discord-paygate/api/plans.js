@@ -6,6 +6,7 @@ import { storeBySlug, sellablePlansOf, bannerFor } from '../src/services/stores.
 import { DEMO_SLUG, demoPlansPayload } from '../src/services/demo-store.js';
 import { countLiveMembers, countStoreFollowers, reviewSummary } from '../src/db.js';
 import { storeTheme } from '../src/services/billing.js';
+import { validateTheme, bgLayer, themeWithBg } from '../src/lib/theme.js';
 
 // The server's own identity fronts every checkout: name and icon come from
 // the live guild lookup via the bot (animated icons surface as .gif).
@@ -129,6 +130,23 @@ export default guard(async function handler(req, res) {
   // The seller's half of the crypto rail. Same predicate the checkout guards
   // with, so the page and the payment agree on whether the rail exists.
   const cryptoPayout = Boolean(String(store.cryptoWallet ?? '').trim() && String(store.cryptoChain ?? '').trim());
+  // One product, one wallpaper. The layer is BUILT HERE, by the same
+  // bgLayer() that writes the server-rendered page, so the card and the
+  // checkout the storefront swaps in cannot drift from what a product's own
+  // link renders — there is no second copy of this logic in the browser.
+  // A product with no background of its own gets null and wears the store's,
+  // which is already on the page. `still` because /sky.js only drives the
+  // canvases present when it loaded.
+  const theme = await storeTheme(store);
+  const bgViewOf = (plan) => {
+    if (!plan.bg) return null;
+    try {
+      const layer = bgLayer(validateTheme(themeWithBg(theme, plan.bg)), { still: true });
+      return layer ? { id: layer.id, material: layer.material, inner: layer.inner, lightTone: layer.lightTone } : null;
+    } catch {
+      return null; // an unusable stored background inherits the store's
+    }
+  };
   sendJson(res, 200, {
     brand: store.isDefault ? config.brand : store.name,
     platform: { name: config.platform },
@@ -136,7 +154,7 @@ export default guard(async function handler(req, res) {
       slug: store.slug, status: store.status, description: store.description ?? null,
       // Ready to use as-is: an uploaded banner is served from /api/img under
       // the store's CURRENT link, a pasted one passes through.
-      bannerUrl: banner.url, bannerKind: banner.kind, theme: await storeTheme(store),
+      bannerUrl: banner.url, bannerKind: banner.kind, theme,
       about: store.about ?? null, links: store.links ?? null,
       // Live members, only when the owner switched the badge on — the count
       // is the same real number the dashboard bills on, seller excluded from
@@ -205,6 +223,10 @@ export default guard(async function handler(req, res) {
       descriptionHighlight: p.descriptionHighlight ?? null,
       linkSlug: p.linkSlug ?? null,
       variantOf: p.variantOf ?? null,
+      // The product's OWN wallpaper, already rendered to the same layer the
+      // page would carry, or null when it wears the store's. The storefront
+      // must not invent one — see src/lib/theme.js themeWithBg.
+      bgView: bgViewOf(p),
       // Buyer-facing hints: "offer ends …" and "for @X members only". The
       // checkout endpoint enforces both — these just explain the page.
       expiresAt: p.expiresAt ?? null,

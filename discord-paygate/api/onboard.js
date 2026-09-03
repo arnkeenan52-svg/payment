@@ -9,6 +9,7 @@ import { getUserGuilds, getGuild, getGuildRoles, getBotUser, getGuildMember, get
 import { CHECKOUT_TTL_SECONDS, stripeFetch, createWebhookEndpoint, canonicalWebhookUrl, invalidatePriceCache, isStripeKey, stripeKeyMode } from '../src/lib/stripe.js';
 import { managedStoreByGuild, storeBySlug, slugify, isReservedSlug, plansOf, rebaseImageUrl } from '../src/services/stores.js';
 import { parseUploadDataUrl, UPLOAD_BODY_LIMIT } from '../src/lib/upload.js';
+import { validatePlanBg } from '../src/lib/theme.js';
 import { validateAmount, roundAmount, toMinor, formatAmount, minCharge, maxCharge, normalize as normalizeCurrency } from '../src/lib/currency.js';
 
 const ADMINISTRATOR = 1n << 3n;
@@ -553,6 +554,23 @@ export default guard(async function handler(req, res) {
           fields.requiredRoleId = role.id;
           fields.requiredRoleName = `@${role.name}`;
         }
+      }
+      // This product's OWN background — a preset id or an imported URL, and
+      // nothing else about a look. Validated by the same code the store's
+      // background goes through (validatePlanBg delegates to validateTheme),
+      // so there is one catalogue and one URL gate for both. null clears it
+      // and the product goes back to wearing the store's.
+      if (body.bg !== undefined) {
+        if (existing.variantOf) {
+          return sendJson(res, 400, { error: 'Options share their product\u2019s page \u2014 set the background on the product itself.' });
+        }
+        let bg;
+        try {
+          bg = validatePlanBg(body.bg);
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message });
+        }
+        fields.bg = bg ? JSON.stringify(bg) : null;
       }
       if (body.priceUsd !== undefined) {
         const currency = normalizeCurrency(existing.currency);
