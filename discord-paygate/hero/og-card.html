@@ -1,0 +1,239 @@
+<meta charset="utf-8" />
+<title>Dues — link preview card</title>
+<!--
+  THE LINK PREVIEW CARD. Rendered by scripts/build-og.mjs at 1200x630 with
+  deviceScaleFactor 2 — the 2400x1260 the og:image meta tags declare.
+
+  WHAT THE OLD CARD GOT WRONG. All three are easy to walk back into.
+
+  1. It said ripleybot.com, twice: in the mocked browser's URL bar and in the
+     pill at the bottom left. The domain moved to dues.gg and the card did not.
+
+  2. It was a screenshot of the whole dashboard and the dashboard ran off the
+     right edge — "MRR $944.37" lost its panel, "Top Products" lost its numbers,
+     every row of "Recent Sales" was cut through the middle. A card whose right
+     third is sliced words reads as broken, not as busy.
+
+  3. It was designed at full size and is seen at thumbnail size. Slack, Discord
+     and iMessage render a link preview between roughly 360 and 500px wide. At
+     400px, eight stat panels and two tables are grey mush.
+
+  WHAT THIS ONE IS BUILT ON. Three things borrowed from systems that solve the
+  same problem — a near-black canvas with a single blue:
+
+  - Accent discipline (Linear): the accent belongs on the mark and on a few
+    intentional moments, never decoratively. The first draft of this card had
+    three blue blooms washing across the canvas; they are down to one, behind
+    the product artefact, where it is doing a job — lighting the object.
+  - Display tracking (Linear -0.0375em at 80px, Vercel -0.05em at 48px): a bold
+    grotesque at display size needs real negative tracking or it reads loose.
+    -0.042em here.
+  - A surface ladder rather than ad-hoc greys (Linear canvas/surface-1..4 +
+    hairline): every panel on this card sits on a named step.
+-->
+<style>
+  /* The site ships these as woff2. Declared explicitly rather than relying on
+     fontconfig having the TTF cuts installed — the renderer is Chromium, and
+     this is the path that cannot silently fall back to a system face. */
+  @font-face {
+    font-family: 'Dues Grotesk'; font-style: normal; font-weight: 700; font-display: block;
+    src: url('../public/spacegrotesk-latin.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Dues Sans'; font-style: normal; font-weight: 400; font-display: block;
+    src: url('../public/dmsans-latin.woff2') format('woff2');
+  }
+
+  :root {
+    /* The dark cut's palette. The hero film on the homepage is black, white and
+       Discord's #5865F2, and the card someone sees before they ever reach the
+       page should be the same object. */
+    --canvas:    #08080A;
+    --surface-1: #0F0F12;
+    --surface-2: #16161A;
+    --surface-3: #1D1D22;
+    --hairline:  #24242B;
+    --hairline-strong: #33333C;
+    --ink:   #FFFFFF;
+    --mute:  #A2A2AB;
+    --subtle:#6E6E79;
+    --blurple: #5865F2;
+    --blurple-lo: #8B96F8;
+    --grotesk: 'Dues Grotesk', 'Space Grotesk', system-ui, sans-serif;
+    --sans: 'Dues Sans', 'DM Sans', system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    font-family: var(--sans); color: var(--ink); background: var(--canvas);
+    -webkit-font-smoothing: antialiased; position: relative;
+  }
+
+  /* The only atmosphere on the card, and it is behind the product artefact
+     rather than across the canvas — a light source for the object, not a
+     wash. A dead-flat near-black would band under PNG's palette anyway. */
+  #bloom {
+    position: absolute; right: -60px; top: 96px; width: 620px; height: 440px;
+    background: radial-gradient(closest-side, rgba(88,101,242,0.30), rgba(88,101,242,0));
+    filter: blur(10px);
+  }
+  #grain { position: absolute; inset: 0; opacity: 0.045; mix-blend-mode: overlay; }
+
+  .pad { position: absolute; inset: 0; padding: 58px 64px; display: flex; gap: 44px; }
+
+  /* ── left ────────────────────────────────────────────────────────────── */
+  .col { width: 610px; display: flex; flex-direction: column; }
+
+  .brand { display: flex; align-items: center; gap: 15px; }
+  .brand img { height: 40px; display: block; }
+  .brand span {
+    font-family: var(--grotesk); font-weight: 700; font-size: 38px; letter-spacing: -0.02em;
+  }
+
+  h1 {
+    margin-top: 52px;
+    font-family: var(--grotesk); font-weight: 700; font-size: 61px; line-height: 1.04;
+    letter-spacing: -0.042em;
+  }
+  /* The one intentional accent in the type. "Keep every dollar" is the whole
+     argument the product makes, so it is the line that carries the blue —
+     and it is the only line that does. */
+  h1 em { font-style: normal; color: var(--blurple-lo); display: block; }
+
+  .chip {
+    margin-top: 34px; align-self: flex-start;
+    display: inline-flex; align-items: baseline; gap: 11px;
+    padding: 12px 24px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--hairline-strong);
+    font-family: var(--grotesk); font-weight: 700; font-size: 23px; letter-spacing: -0.015em;
+    color: var(--mute);
+  }
+  .chip b { color: var(--ink); font-size: 26px; }
+
+  .foot { margin-top: auto; display: flex; align-items: center; gap: 16px; }
+  .foot .url {
+    font-family: var(--grotesk); font-weight: 700; font-size: 27px; letter-spacing: -0.02em;
+  }
+  .foot .sep { width: 4px; height: 4px; border-radius: 50%; background: var(--subtle); flex: none; }
+  .foot .say { font-size: 21px; color: var(--mute); }
+
+  /* ── right: the moment the product exists for ────────────────────────── */
+  /* Not a dashboard. A dashboard has forty numbers on it and none of them
+     survive being shown 400px wide. One Discord message — the alert a seller
+     actually gets — is recognisable at any size and is the whole product in
+     one object. The payout line is ATTACHED to it rather than floating beside
+     it, so the two read as one card and the eye gets one target, not two. */
+  .stage { flex: 1; display: flex; align-items: center; }
+  .card {
+    width: 100%; background: var(--surface-1);
+    border: 1px solid var(--hairline); border-radius: 18px; overflow: hidden;
+    box-shadow: 0 40px 80px -24px rgba(0,0,0,0.8);
+    transform: rotate(-1.6deg);
+  }
+  .msg { padding: 22px 24px; display: flex; gap: 14px; }
+  .av {
+    width: 46px; height: 46px; border-radius: 50%; background: var(--blurple);
+    display: grid; place-items: center; flex: none; overflow: hidden;
+  }
+  .av img { width: 72%; height: 72%; object-fit: contain; display: block; }
+  .body { flex: 1; min-width: 0; }
+  .who { display: flex; align-items: baseline; gap: 9px; }
+  .who b { font-family: var(--grotesk); font-weight: 700; font-size: 19px; color: var(--ink); }
+  .who .bot {
+    background: var(--blurple); color: #fff; font-size: 11px; font-weight: 700;
+    padding: 3px 7px; border-radius: 4px; letter-spacing: 0.03em;
+    position: relative; top: -2px;
+  }
+  .who u { text-decoration: none; color: var(--subtle); font-size: 13px; }
+  .embed {
+    margin-top: 11px; border-left: 4px solid var(--blurple);
+    background: var(--surface-3); border-radius: 5px; padding: 15px 18px;
+  }
+  .embed .t { font-family: var(--grotesk); font-weight: 700; font-size: 19px; }
+  .embed .d { font-size: 16px; color: var(--mute); margin-top: 8px; }
+  .embed .r {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 13px;
+    padding: 5px 12px; border-radius: 6px; font-size: 14px; font-weight: 700;
+    background: rgba(88,101,242,0.20); color: #A4ADFA;
+  }
+  .embed .r i { width: 8px; height: 8px; border-radius: 50%; background: var(--blurple-lo); display: block; }
+
+  /* The thing a dashboard would need eight panels to say. */
+  .payout {
+    border-top: 1px solid var(--hairline);
+    background: var(--surface-2);
+    padding: 17px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .payout .k { font-size: 16px; color: var(--mute); }
+  .payout .v { font-family: var(--grotesk); font-weight: 700; font-size: 25px; letter-spacing: -0.02em; }
+  .payout .v s { text-decoration: none; color: var(--subtle); font-size: 15px; font-weight: 400; }
+</style>
+
+<div id="bloom"></div>
+<svg id="grain" xmlns="http://www.w3.org/2000/svg">
+  <filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/></filter>
+  <rect width="100%" height="100%" filter="url(#n)"/>
+</svg>
+
+<div class="pad">
+  <div class="col">
+    <div class="brand">
+      <img src="../assets/dues-glyph.png" alt="" />
+      <span>Dues</span>
+    </div>
+
+    <h1>Sell Discord access.<em>Keep every dollar.</em></h1>
+
+    <div class="chip"><b>0%</b> platform fee</div>
+
+    <div class="foot">
+      <span class="url">dues.gg</span>
+      <span class="sep"></span>
+      <span class="say">Paid into your own Stripe</span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <div class="msg">
+        <div class="av"><img src="../assets/dues-glyph.png" alt="" /></div>
+        <div class="body">
+          <div class="who"><b>Dues</b><span class="bot">BOT</span><u>Today at 18:12</u></div>
+          <div class="embed">
+            <div class="t">New Subscriber!</div>
+            <div class="d">@nova just bought VIP Access · $49.99</div>
+            <div class="r"><i></i>@VIP granted</div>
+          </div>
+        </div>
+      </div>
+      <div class="payout">
+        <span class="k">Lands in your Stripe</span>
+        <span class="v">$49.99 <s>of $49.99</s></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // The renderer waits on this, exactly as the film's does: a card shot before
+  // the woff2 and the mark have decoded looks almost right, which is the kind
+  // of error nobody catches until it is the image on every shared link.
+  Promise.all([
+    document.fonts ? document.fonts.ready : Promise.resolve(),
+    ...[...document.images].map((im) => (im.complete
+      ? Promise.resolve()
+      : new Promise((r) => { im.onload = r; im.onerror = r; }))),
+  ]).then(() => {
+    // Report the headline's real measured width so the renderer can fail loudly
+    // if a font change ever pushes it past its column instead of silently
+    // wrapping to a ragged third line.
+    const h = document.querySelector('h1');
+    const lines = [...h.childNodes].filter((n) => n.nodeType === 3 || n.tagName === 'EM');
+    window.__fit = {
+      col: document.querySelector('.col').clientWidth,
+      h1: Math.ceil(h.getBoundingClientRect().width),
+      lineCount: Math.round(h.getBoundingClientRect().height / (61 * 1.04)),
+    };
+    window.__ready = true;
+  });
+</script>

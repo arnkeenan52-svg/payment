@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Order Confirmed — Dues</title>
+  <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="stylesheet" href="/styles.css?v=210" />
+  <script src="/theme.js?v=210"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/dues.png?v=210" alt="Dues" height="20" /></a>
+    </div>
+    <div class="top-right">
+      <div id="account" class="account"></div>
+      <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
+  </header>
+
+  <main class="checkout">
+    <noscript><p class="callout">This receipt needs JavaScript enabled — turn it on for this site and reload.</p></noscript>
+    <div class="brand">
+      <div class="check-ring pending" id="check-ring" role="status" aria-live="polite">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12.5l5.5 5.5L20 6.5" />
+        </svg>
+      </div>
+      <h1 id="r-heading">Payment received</h1>
+      <p class="tagline" id="r-sub">Finishing up your order…</p>
+    </div>
+
+    <section class="panel" id="r-details">
+      <p class="label">Order details</p>
+      <div class="order-row"><span class="k">Server</span><span class="v" id="r-server">—</span></div>
+      <div class="order-row"><span class="k">Product</span><span class="v" id="r-product">—</span></div>
+      <div class="order-row"><span class="k">Option</span><span class="v" id="r-option">—</span></div>
+      <div class="order-row total"><span class="k">Total</span><span class="v" id="r-total">—</span></div>
+    </section>
+
+    <div class="callout pending" id="r-callout">Hold tight — we're assigning your role now. This usually takes a few seconds.</div>
+
+    <a class="btn-blurple" id="open-discord" href="https://discord.com" rel="noopener">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.9A19 19 0 0 0 15.6 3.4l-.22.44a17 17 0 0 1 4.2 2.06 15.6 15.6 0 0 0-13.16 0 17 17 0 0 1 4.2-2.06L10.4 3.4A19 19 0 0 0 5.7 4.9C3 8.9 2.26 12.8 2.63 16.64a19.2 19.2 0 0 0 5.8 2.96l.46-.63a12.4 12.4 0 0 1-2.06-1l.5-.38a13.7 13.7 0 0 0 11.34 0l.5.38c-.65.4-1.35.73-2.06 1l.46.63a19.2 19.2 0 0 0 5.8-2.96c.44-4.45-.75-8.3-2.97-11.74ZM9.35 14.3c-1.11 0-2.02-1.02-2.02-2.27s.89-2.28 2.02-2.28 2.04 1.03 2.02 2.28c0 1.25-.9 2.27-2.02 2.27Zm5.3 0c-1.11 0-2.02-1.02-2.02-2.27s.89-2.28 2.02-2.28 2.04 1.03 2.02 2.28c0 1.25-.89 2.27-2.02 2.27Z"/></svg>
+      <span id="open-discord-label">Open Discord</span>
+    </a>
+    <a class="btn-secondary" id="back-store" href="/">Back to the store</a>
+  </main>
+
+  <footer>
+    <span class="powered-label">Checkout powered by:</span>
+    <img class="powered-mark" src="/dues.png?v=210" alt="Dues" height="18" />
+    <a class="powered-community" href="/api/community" rel="noopener">Join the Dues community</a>
+  </footer>
+
+  <script src="/receipt.js?v=210"></script>
+</body>
+</html>

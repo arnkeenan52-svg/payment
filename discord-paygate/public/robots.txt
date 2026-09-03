@@ -1,0 +1,41 @@
+User-agent: *
+Allow: /
+Allow: /api/plans
+Allow: /api/img
+Allow: /api/discover
+Disallow: /api/
+Disallow: /dashboard$
+Disallow: /dashboard/
+Disallow: /dashboard?
+Disallow: /account$
+Disallow: /account/
+Disallow: /account?
+Disallow: /receipt$
+Disallow: /receipt/
+Disallow: /receipt?
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://dues.gg/sitemap.xml

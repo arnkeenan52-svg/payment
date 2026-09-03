@@ -1,0 +1,17 @@
+{
+  "name": "dues-hero",
+  "private": true,
+  "version": "1.0.0",
+  "description": "The Dues hero film, authored in Remotion.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render HeroFilm ../public/hero-tour.mp4 --codec=h264 --crf=17"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.517",
+    "remotion": "4.0.517",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "main": "src/index.ts"
+}

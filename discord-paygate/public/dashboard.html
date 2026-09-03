@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#131b2d" />
+  <title>Dashboard — Dues</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="stylesheet" href="/styles.css?v=210" />
+  <style>
+    /* Navy night retheme — colors only. Remaps the old "Dues black" monochrome
+       tokens from styles.css onto the brand's navy system (the landing page's
+       night :root). Scoped to the dark face; html[data-theme="light"] keeps the
+       stylesheet's own light values untouched. */
+    html:not([data-theme='light']) {
+      --bg: #101827;                       /* page ground */
+      --panel: #182338;                    /* raised panels / cards */
+      --panel-hover: #1e2b45;
+      --edge: rgba(148, 163, 190, 0.16);   /* hairline borders */
+      --edge-selected: #5865f2;            /* selection rings: blurple */
+      --ink: #f2f5fa;                      /* primary text */
+      --dim: #b7c1d4;                      /* secondary text */
+      --accent: #5865f2;                   /* blurple replaces the white action color */
+      --accent-hot: #4752e8;
+      --accent-ink: #ffffff;
+      --well: #131b2d;                     /* deeper insets */
+      --raised: #1c2740;
+      --hairline: rgba(148, 163, 190, 0.10);
+      --hairline-2: rgba(148, 163, 190, 0.14);
+      --edge-hot: rgba(148, 163, 190, 0.32);
+      --active-fill: #223050;
+      --faint: #94a0b5;                    /* muted */
+      --solid: #5865f2;                    /* white primary fills -> blurple */
+      --solid-ink: #ffffff;
+      --good: #3ddc84;                     /* positive money green */
+      --money: #3ddc84;
+    }
+    html:not([data-theme='light']) ::selection { background: rgba(88, 101, 242, 0.45); color: #f2f5fa; }
+
+    /* Light face: a white ground. It was the day sky — a #70a3e6 → #eaf2fb
+       gradient running down the page with a blue-tinted palette on top of it.
+       The fade was decoration the app did not need, and it made every grey in
+       the interface faintly blue. So: white page, white panels separated by
+       their border, and neutral greys underneath. The night face below is
+       deliberately untouched. */
+    html[data-theme='light'] {
+      --bg: #ffffff;
+      --panel: #ffffff;
+      --panel-hover: #f6f7f9;
+      --edge: #e3e5ea;
+      --edge-selected: #5865f2;
+      --ink: #0f1626;
+      --dim: #57606f;
+      --accent: #5865f2;
+      --accent-hot: #4752e8;
+      --accent-ink: #ffffff;
+      --well: #f4f5f7;
+      --raised: #fafbfc;
+      --hairline: #ececf0;
+      --hairline-2: #e3e5ea;
+      --edge-hot: #c3c7d0;
+      /* the chosen chip of a segmented control: white lifted off the grey well */
+      --active-fill: #ffffff;
+      --faint: #949aa6;
+      --solid: #5865f2;
+      --solid-ink: #ffffff;
+      --good: #177245;
+      --money: #177245;
+    }
+    html[data-theme='light'] body { background: #ffffff; }
+    /* the strip that paints the iOS status bar matches the page ground */
+    html[data-theme='light'] { --ui-tint: #ffffff; }
+    html:not([data-theme='light']) { --ui-tint: #131b2d; }
+    /* night ground matches the night homepage sky: #131b2d melting into navy */
+    html:not([data-theme='light']) body { background: linear-gradient(180deg, #131b2d 0%, #101827 420px) fixed; }
+    html[data-theme='light'] ::selection { background: rgba(88, 101, 242, 0.25); color: #0f1626; }
+
+    /* primary action pill: the mono grey fill becomes the brand blurple,
+       matching the landing's sign-in pill (body.home .account .btn-pill) */
+    html:not([data-theme='light']) .btn-pill { background: var(--blurple); border-color: transparent; color: #ffffff; }
+    html:not([data-theme='light']) .btn-pill:hover { background: #4752e8; filter: none; }
+    /* literal monochrome / off-palette colors in styles.css, remapped */
+    html:not([data-theme='light']) .pay-btn:hover:not(:disabled) { background: #4752e8; }
+    html:not([data-theme='light']) .btn-blurple:hover { background: #4752e8; }
+    html:not([data-theme='light']) .dcx-btn.press { background: #4752e8; }
+    html:not([data-theme='light']) .error-actions .dismiss:hover { background: var(--active-fill); }
+    /* Tokens, not literal navy: these were the night rules that named
+       #131b2d/#101827 directly, so on the black face the revenue tooltip
+       still painted navy on #0a0a0b. */
+    html:not([data-theme='light']) .chart-tip { background: color-mix(in srgb, var(--well) 92%, transparent); }
+    html:not([data-theme='light']) .top-bar span { background: linear-gradient(90deg, rgba(61, 220, 132, 0.42), rgba(61, 220, 132, 0.82)); }
+    /* Six overrides stood here: the store-theme tiles' rings and the preview's
+       window chrome, re-stated for the night faces because styles.css painted
+       them in literal monochrome — #fff rings, #0c0c0c windows — which only
+       ever suited a black product, and left the LIGHT face wearing a white
+       ring on a white card and a black hole where the preview goes. Those
+       rules name tokens now, so all three faces are right from one place and
+       the overrides said nothing. */
+    /* focus rings: blurple (the blurple pay/primary buttons keep their legible pale ring) */
+    html:not([data-theme='light']) .btn-fill:focus-visible,
+    html:not([data-theme='light']) .btn-secondary:focus-visible,
+    html:not([data-theme='light']) .powered-community:focus-visible,
+    html:not([data-theme='light']) .field textarea:focus-visible,
+    html:not([data-theme='light']) .th-swatch input[type='color']:focus-visible,
+    html:not([data-theme='light']) .th-seg-btn:focus-visible,
+    html:not([data-theme='light']) .th-dev-btn:focus-visible { outline-color: #5865f2; }
+    html:not([data-theme='light']) .th-range input,
+    html:not([data-theme='light']) .disc-toggle input { accent-color: #5865f2; }
+
+    /* ── the design system's ramps ─────────────────────────────────────────
+       Sizes, spacing, radii and control heights, taken as a SYSTEM from the
+       reference pack. No colour here and no theme: these are the same numbers
+       on both faces, which is the whole point of a ramp.
+
+       The tracking matters as much as the sizes — copying 14px without
+       -0.005625em gives you the size and not the typeface's rhythm — so it
+       rides along with every step.
+
+       Nothing above this line is edited. This block ships after the <link> to
+       styles.css, which is the only reason the flat-white light face wins over
+       that stylesheet's blue day-sky palette. Nothing may re-open that. */
+    :root {
+      --fs-0: 10px; --lh-0: 12px; --ls-0:  0.00625em;
+      --fs-1: 12px; --lh-1: 16px; --ls-1:  0.000625em;
+      --fs-2: 14px; --lh-2: 20px; --ls-2: -0.005625em;
+      --fs-3: 16px; --lh-3: 24px; --ls-3: -0.01125em;
+      --fs-4: 18px; --lh-4: 26px; --ls-4: -0.01625em;
+      --fs-5: 20px; --lh-5: 28px; --ls-5: -0.020625em;
+      --fs-6: 24px; --lh-6: 30px; --ls-6: -0.029375em;
+      --fs-8: 32px; --lh-8: 38px; --ls-8: -0.043125em;
+      --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600;
+
+      --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 24px;
+      --s-6: 32px; --s-7: 40px; --s-8: 48px; --s-9: 64px;
+
+      --r-1: 3px; --r-2: 4px; --r-3: 6px; --r-4: 8px; --r-5: 12px; --r-6: 16px;
+      /* control radius is height / 3.4, which is what keeps a 32px button and
+         a 32px input reading as the same family rather than as near-misses */
+      --rc-1: 6px; --rc-2: 8px; --rc-3: 10px; --rc-4: 14px;
+      --h-1: 24px; --h-2: 32px; --h-3: 40px; --h-4: 48px;
+
+      --d-header: 57px; --d-rail: 240px;
+    }
+
+    /* ── night: the pack's anatomy on Dues' own navy ───────────────────────
+       An achromatic alpha ramp over the navy ground, so every surface is the
+       SAME hue as the page and only its lightness moves. Alpha rather than
+       solid hexes because these sit over a gradient. */
+    html:not([data-theme='light']) {
+      --d-fill:    rgba(255, 255, 255, 0.045);
+      --d-hover:   rgba(255, 255, 255, 0.070);
+      --d-press:   rgba(255, 255, 255, 0.095);
+      --d-stroke:  rgba(255, 255, 255, 0.106);
+      --d-stroke-strong: rgba(255, 255, 255, 0.170);
+      --d-a9:  rgba(255, 255, 255, 0.48);
+      --d-a11: rgba(255, 255, 255, 0.72);
+      --d-a12: rgba(255, 255, 255, 0.94);
+      --d-muted: rgba(255, 255, 255, 0.56);
+      --d-seg-thumb: rgba(255, 255, 255, 0.10);
+      --d-table-border: rgba(255, 255, 255, 0.08);
+
+      /* Blurple is a FILL, never text: #5865f2 measures 4.61:1 on white and
+         only 3.41:1 on the #182338 panel, so a label in it fails on the face
+         it would most often appear on. Accent TEXT is step 11 instead, which
+         reads 7.35:1 on the navy ground. */
+      --acc-9:  #5865f2;
+      --acc-10: #4752c4;
+      --acc-11: #97a0f7;
+      --acc-contrast: #ffffff;
+      --acc-surface: rgba(88, 101, 242, 0.16);
+
+      --ok-9: #177245; --ok-11: #4ade80; --ok-surface: rgba(23, 114, 69, 0.20);
+      --bad-9: #b91c1c; --bad-11: #f87171; --bad-surface: rgba(185, 28, 28, 0.20);
+      --warn-9: #8a5a00; --warn-11: #fbbf24; --warn-surface: rgba(138, 90, 0, 0.22);
+
+      /* elevation, six levels, each already carrying our 1px border as its
+         ring layer — see the note on rings vs borders below */
+      --el-1: 0 1px 2px rgba(0, 0, 0, 0.28);
+      --el-2: 0 2px 4px rgba(0, 0, 0, 0.26);
+      --el-3: 0 6px 16px rgba(0, 0, 0, 0.34);
+      --el-4: 0 12px 32px rgba(0, 0, 0, 0.40);
+    }
+
+    /* ── black: the third face ─────────────────────────────────────────────
+       Asked for alongside white and navy, and it is a GROUND swap, not a new
+       component palette: the --d-* ramp above is achromatic white-alpha, so it
+       sits on near-black exactly as it sits on navy — only the hue underneath
+       changes. That is the whole reason this is nine tokens and not a third
+       copy of the system.
+
+       Set as data-dark on <html> rather than a third data-theme value, because
+       data-theme is site-wide (it drives the day/night SKY on the marketing
+       pages) and this is a dashboard-only skin. dashboard.html is the only
+       document that ever writes the attribute, so nothing else can match.
+
+       It layers on TOP of night — the selector requires :not([data-theme='light'])
+       — so choosing black and then hitting the sun still gives a white
+       dashboard, which is what the toggle promises.
+
+       Not pure #000: on OLED a true black next to a #141416 panel makes the
+       panel edge bloom, and every hairline has to fight the void. #0a0a0b
+       keeps the panels readable as surfaces. */
+    html[data-dark='black']:not([data-theme='light']) {
+      --bg: #0a0a0b;
+      --panel: #141416;
+      --panel-hover: #1b1b1e;
+      --well: #0f0f11;
+      --raised: #18181b;
+      --active-fill: #202024;
+      --edge: rgba(255, 255, 255, 0.10);
+      --edge-hot: rgba(255, 255, 255, 0.22);
+      --hairline: rgba(255, 255, 255, 0.06);
+      --hairline-2: rgba(255, 255, 255, 0.09);
+      --ink: #f4f4f5;
+      --dim: #a1a1aa;
+      --faint: #71717a;
+
+      /* The iOS status-bar strip. Without this it keeps the navy value from
+         the rule above — which matches ANY non-light theme — and an iPhone
+         shows a navy band above a black dashboard. Specificity carries it:
+         (0,2,1) here beats the (0,1,1) night rule regardless of order. */
+      --ui-tint: #0a0a0b;
+    }
+
+    /* The page ground itself. The night rule paints body with a HARD-CODED
+       navy gradient rather than var(--bg), and it matches any theme that is
+       not 'light' — so re-tokening --bg turned every panel black and left the
+       ground behind them navy. Half a theme, and only visible on the parts of
+       the screen a card does not cover: the header, the rail, the gutters.
+       (0,2,2) beats the night rule's (0,1,2). */
+    html[data-dark='black']:not([data-theme='light']) body {
+      background: #0a0a0b;
+
+      /* The elevation ladder is shadow on a ground that is already almost
+         black, so the navy values read as nothing. Deeper, and one step of
+         separation lives in the panel fill instead. */
+      --el-1: 0 1px 2px rgba(0, 0, 0, 0.55);
+      --el-2: 0 2px 4px rgba(0, 0, 0, 0.55);
+      --el-3: 0 6px 16px rgba(0, 0, 0, 0.60);
+      --el-4: 0 12px 32px rgba(0, 0, 0, 0.68);
+    }
+
+    /* ── day: the same roles, on the flat white face ──────────────────────
+       Black alphas over white. Step 10 DARKENS on both faces, which is a
+       deliberate break from the usual dark-hovers-lighter rule: the naive
+       lighter derivation (#6d7ee2) measures 3.66:1 against white and fails,
+       while #4752c4 — Discord's own documented hover blurple — reads 6.42:1,
+       better than rest. */
+    html[data-theme='light'] {
+      --d-fill:    rgba(16, 24, 39, 0.035);
+      --d-hover:   rgba(16, 24, 39, 0.055);
+      --d-press:   rgba(16, 24, 39, 0.080);
+      --d-stroke:  #e3e5ea;
+      --d-stroke-strong: #cdd1d9;
+      /* 0.62, not the 0.52 this started at. Step 9 is TEXT here — the
+         inactive tab in a segmented control and the flat delta chip — and at
+         0.52 it measured 3.55:1 on the #f7f7f7 track and 3.60:1 on white,
+         both under the 4.5:1 floor, while the night face's own step 9 clears
+         it on every dark ground. The light half was simply undercooked. */
+      --d-a9:  rgba(16, 24, 39, 0.62);
+      --d-a11: rgba(16, 24, 39, 0.72);
+      --d-a12: rgba(16, 24, 39, 0.94);
+      --d-muted: #57606f;
+      --d-seg-thumb: #ffffff;
+      --d-table-border: #eceef2;
+
+      --acc-9:  #5865f2;
+      --acc-10: #4752c4;
+      --acc-11: #4853c6;
+      --acc-contrast: #ffffff;
+      --acc-surface: rgba(88, 101, 242, 0.10);
+
+      --ok-9: #177245; --ok-11: #146c43; --ok-surface: rgba(23, 114, 69, 0.10);
+      --bad-9: #b91c1c; --bad-11: #b91c1c; --bad-surface: rgba(185, 28, 28, 0.09);
+      --warn-9: #8a5a00; --warn-11: #8a5a00; --warn-surface: rgba(138, 90, 0, 0.11);
+
+      --el-1: 0 1px 2px rgba(16, 24, 39, 0.06);
+      --el-2: 0 1px 3px rgba(16, 24, 39, 0.07);
+      --el-3: 0 6px 16px rgba(16, 24, 39, 0.10);
+      --el-4: 0 12px 32px rgba(16, 24, 39, 0.14);
+    }
+  </style>
+  <!-- The dashboard's own stylesheet. Linked here and nowhere else; every rule
+       inside is prefixed body.app so it cannot reach the 52 pages that share
+       /styles.css. It declares none of --bg/--panel/--well/--edge/--ink/--dim/
+       --accent/--ui-tint, so it cannot re-open the day-sky palette either. -->
+  <link rel="stylesheet" href="/dash.css?v=210" />
+  <script src="/theme.js?v=210"></script>
+  <!-- The face, before first paint. All THREE of them: light, navy and black
+       are one setting (dashboardPrefs — see the note above applyFace in
+       dashboard.js), and dashboard.js re-derives it from the store's saved
+       preference once /api/admin/payments answers. Without this line a seller
+       who chose black watched navy become black on every load, and a seller
+       who chose light watched the whole dashboard go from night to day.
+
+       The face belongs to the STORE, so the route's slug picks the key: one
+       browser-wide key held whichever store was opened last and gave the
+       seller's other store the wrong first paint on every cold load. The bare
+       key stays the fallback — for a store never opened here, and for the
+       picker/setup/admin views, which have no store.
+
+       It CLEARS as well as sets. theme.js runs above this line and stamps
+       data-theme='light' when the visit's session theme is light — carried in
+       from the marketing pages — and the dashboard's own saved face has to win
+       over that or the picker says navy while the screen is white. Nothing
+       saved means navy: the dashboard's default face, not the site's. -->
+  <script>try { var dfM = location.hash.match(/^#\/store\/([^/?]+)/); var dfF = (dfM && localStorage.getItem('dues-dash-face:' + dfM[1])) || localStorage.getItem('dues-dash-face'); var dfR = document.documentElement; if (dfF === 'light') dfR.dataset.theme = 'light'; else { delete dfR.dataset.theme; if (dfF === 'black') dfR.dataset.dark = 'black'; } } catch (e) { /* private mode */ }</script>
+</head>
+<body class="app">
+<i class="ui-tint" aria-hidden="true"></i>
+  <header class="top">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/dues.png?v=210" alt="Dues" height="20" /></a>
+    </div>
+    <div class="top-right">
+      <div id="account" class="account"></div>
+      <!-- data-face-toggle, and deliberately NOT the attribute theme.js binds:
+           on the dashboard this button is a shortcut for the saved FACE
+           (dashboard.js binds it and persists the choice), and letting theme.js
+           bind it as well would toggle the theme twice on one click — straight
+           back to where it started. -->
+      <button class="theme-btn" data-face-toggle aria-label="Switch to the light dashboard"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <noscript><p class="callout">The dashboard needs JavaScript enabled — turn it on for this site and reload.</p></noscript>
+    <div id="content"></div>
+  </main>
+
+  <script src="/dashboard.js?v=210"></script>
+</body>
+</html>

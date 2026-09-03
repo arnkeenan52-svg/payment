@@ -1,0 +1,37 @@
+{
+  "name": "tradeleaks-paygate",
+  "version": "1.0.0",
+  "description": "Tradeleaks Discord paygate: Stripe + Coinbase Commerce checkout, hardened webhooks, idempotent role reconciliation.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/dev-server.js",
+    "test": "node scripts/e2e-test.js && node scripts/test-store-slug-collision.mjs",
+    "test:slug": "node scripts/test-store-slug-collision.mjs",
+    "migrate": "node scripts/migrate.js",
+    "doctor": "node scripts/doctor.js",
+    "doctor:welcome": "node scripts/welcome-doctor.mjs",
+    "presence": "node scripts/presence.js",
+    "test:presence": "node scripts/presence-test.js",
+    "post": "node scripts/post-message.mjs",
+    "test:post": "node scripts/post-test.js",
+    "og": "node scripts/build-og-card.mjs",
+    "test:dash": "node scripts/verify-dash.mjs --check",
+    "test:escape": "node scripts/verify-store-escape.mjs",
+    "test:footer": "node scripts/verify-phone-footer.mjs",
+    "baseline:dash": "node scripts/verify-dash.mjs"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "pg": "^8.23.0",
+    "qrcode-generator": "^2.0.4",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "jsqr": "^1.4.0",
+    "playwright": "^1.62.1",
+    "pngjs": "^7.0.0"
+  }
+}

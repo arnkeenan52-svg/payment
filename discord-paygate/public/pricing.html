@@ -1,0 +1,2725 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#131b2d" />
+  <script>
+  (function(){
+    var d = document.documentElement, t = null;
+    try{ t = sessionStorage.getItem('ripley-theme'); }catch(e){}
+    if(t !== 'dark'){
+      d.setAttribute('data-theme','light');
+      var m = document.querySelector('meta[name="theme-color"]');
+      if(m){ m.setAttribute('content','#70a3e6'); }
+    }
+  })();
+  </script>
+  <title>Pricing — Dues</title>
+  <meta name="description" content="Dues pricing: 0% platform fee on every plan. Free for your first 10 paying members, then flat monthly plans — Pro $14.99, Max $44.99, Unlimited $134.99. Yearly gets 2 months free." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Dues" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="Pricing — Dues" />
+  <meta property="og:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=210" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:url" content="https://dues.gg/pricing" />
+  <link rel="canonical" href="https://dues.gg/pricing" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@duesdiscord" />
+  <meta name="twitter:title" content="Pricing — Dues" />
+  <meta name="twitter:description" content="0% platform fees. Payments land in your own Stripe account. Roles delivered in seconds." />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=210" />
+  <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Dues","url":"https://dues.gg","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Discord monetization platform: sell paid roles and memberships with Stripe checkout, 0% platform fees, and payments direct to your own Stripe account.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free up to 10 paying members; flat plans from $14.99/month. 0% of sales."}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What counts as a paying member?","acceptedAnswer":{"@type":"Answer","text":"One person with active access, counted once across every store you run. Someone who buys three products from you is still one member, and anyone whose access has ended stops counting straight away."}},{"@type":"Question","name":"What happens if I pass my plan’s limit?","acceptedAnswer":{"@type":"Answer","text":"Nobody loses anything. Every existing member keeps the access they paid for — only brand-new signups pause, and they start again the moment you upgrade."}},{"@type":"Question","name":"Does Dues take a cut of my sales?","acceptedAnswer":{"@type":"Answer","text":"0% on every plan, including Free. Card payments settle into your own Stripe account and crypto forwards to your own wallet, so there is nothing for us to take a cut of — the money never passes through Dues."}},{"@type":"Question","name":"Then what do I actually pay?","acceptedAnswer":{"@type":"Answer","text":"Your plan, and the processing fees you would pay anyway. Stripe charges its own card rate directly to your account. On crypto the processor’s fee is added to the buyer’s total at checkout, and the network’s transfer fee comes out of the payout."}},{"@type":"Question","name":"Do I need Stripe to open a store?","acceptedAnswer":{"@type":"Answer","text":"Yes — connecting your Stripe account is how a store goes live, because that is where card payments land. Crypto is an extra method you can switch on afterwards from Settings."}},{"@type":"Question","name":"Can I change or cancel my plan?","acceptedAnswer":{"@type":"Answer","text":"Any time, from your dashboard. Cancelling ends the paid plan straight away rather than at the end of the period, so do it on the day you would have renewed. Your store, products, members and look stay exactly where they are — every colour, every background and your own imported image included. A plan buys member capacity, so cancelling changes what your store can hold, never how it looks."}},{"@type":"Question","name":"Is yearly really two months free?","acceptedAnswer":{"@type":"Answer","text":"Yes. A yearly plan is ten times the monthly price, so you pay for ten months and get twelve."}}]}</script>
+
+<style>
+/* ============ fonts ============ */
+@font-face{
+  font-family:'DM Sans';
+  src:url('/dmsans-latin.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:block;
+}
+@font-face{
+  font-family:'DM Sans';
+  src:url('/dmsans-500-latin.woff2') format('woff2');
+  font-weight:500;font-style:normal;font-display:block;
+}
+@font-face{
+  font-family:'Space Grotesk';
+  src:url('/spacegrotesk-latin.woff2') format('woff2');
+  font-weight:300 700;font-style:normal;font-display:block;
+}
+@font-face{
+  font-family:'Plus Jakarta Sans';
+  src:url('/jakarta-latin.woff2?v=210') format('woff2');
+  font-weight:200 800;font-style:normal;font-display:block;
+}
+/* Arial re-scaled to Jakarta's metrics: zero layout shift if the woff2 is slow */
+@font-face{
+  font-family:'Plus Jakarta Sans Fallback';src:local('Arial');
+  ascent-override:98.88%;descent-override:21.15%;line-gap-override:0%;size-adjust:104.98%;
+}
+
+/* ============ tokens & reset ============ */
+:root{
+  --paper:#101827;
+  --cream:#182338;
+  --slab:#141d30;
+  --hair:rgba(255,255,255,.09);
+  --ink:#f6f8fd;
+  --sec:#c9d2e0;
+  --micro:#b4c1d4;
+  --accent:#5865f2;
+  --blue:#7ea2ff;
+  --money:#4ade80;
+  --gold:#f0c46a;
+  --glass:rgba(255,255,255,.06);
+  --glass-brd:rgba(255,255,255,.10);
+  --glass-hi:rgba(255,255,255,.06);
+  --glass-shadow:0 24px 60px -24px rgba(4,8,18,.55);
+  --cta-bg:#5865f2;
+  --cta-bg-hover:#4854e8;
+  --cta-ink:#fff;
+  --scrim:13,20,32;
+  --sky-fallback:#131b2d;
+  --ui-tint:#131b2d;
+  --foot-end:#2a4f93;
+  /* And what that edge actually LOOKS like, which is not the same number:
+     .footer::after lays rgba(17,25,40,.18) over the base of the gradient, so
+     the pixel at the very bottom is the stop composited with that shade. The
+     ground, the tint band and the theme-color meta all have to match the
+     PIXEL — matching the nominal stop leaves a step of up to 19 RGB exactly
+     where the seam would show.
+       night  #2a4f93 x .82 + #111928 x .18 = #264580
+       day    #2f63bf x .82 + #111928 x .18 = #2a56a4 */
+  --foot-edge:#264580;
+  --r-glass:22px;
+  --shadow:0 2px 10px rgba(4,8,18,.45);
+  --r-slab:16px;
+  --r-card:12px;
+  --r-btn:8px;
+  --serif:'Space Grotesk',Arial,sans-serif;
+  --sans:'DM Sans',-apple-system,'Segoe UI',Arial,sans-serif;
+  --grotesk:'Space Grotesk',Arial,sans-serif;
+  --jakarta:'Plus Jakarta Sans','Plus Jakarta Sans Fallback',Arial,sans-serif;
+  --glyph:url('data:image/png;base64,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');
+}
+/* ---- day face (foundable.com): html[data-theme="light"] ---- */
+html[data-theme="light"]{
+  --paper:#f4f7fd;
+  --cream:#ffffff;
+  --slab:#ffffff;
+  --hair:rgba(15,22,38,.10);
+  --ink:#0f1626;
+  --sec:#2b3550;
+  --micro:#3c4763;
+  --blue:#5865f2;
+  --money:#15803d;
+  --gold:#a16207;
+  --glass:rgba(255,255,255,.55);
+  --glass-brd:rgba(255,255,255,.75);
+  --glass-hi:rgba(255,255,255,.65);
+  --glass-shadow:0 24px 60px -28px rgba(31,51,86,.28);
+  --cta-bg:#0f1626;
+  --cta-bg-hover:#1c2740;
+  --cta-ink:#fff;
+  --scrim:244,247,253;
+  --sky-fallback:#70a3e6;
+  --ui-tint:#70a3e6;
+  --foot-end:#2f63bf;
+  --foot-edge:#2a56a4;
+  --shadow:0 2px 10px rgba(31,51,86,.12);
+}
+/* theme-invariant guard: the approved blurple pricing slab keeps its light pill in both themes */
+.crescendo .btn-ink,.final .btn-ink{background:#f5f5f4;color:#101010}
+.crescendo .btn-ink:hover,.final .btn-ink:hover{background:#fff}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:auto} /* kit rule: smooth scroll fights the sheet-and-footer reveal */
+html{background:#131b2d}
+html[data-theme="light"]{background:#70a3e6}
+
+/* ── iOS status-bar tint ─────────────────────────────────────────────────
+   Safari 26 stopped reading <meta name="theme-color">. It paints the status
+   bar from the background-color of a FIXED element pinned within a few px of
+   the viewport edge, falling back to <body>. Our header is fixed at top:0
+   with no background-color of its own, so Safari had nothing stable to read
+   and the strip kept whatever it sampled at load — which is why it never
+   followed the day/night toggle. This 4px band is the sample point: full
+   width, pinned to the top, painted behind every layer so it is never seen,
+   and coloured by a token that flips with data-theme. Only WebKit reads it,
+   so it stays out of the render tree everywhere else. ──────────────────── */
+.ui-tint,.ui-tint-b{
+  position:fixed;left:0;width:100%;height:4px;
+  z-index:-2147483647;pointer-events:none;display:none;
+}
+.ui-tint{top:0;background-color:var(--ui-tint)}
+/* THE BOTTOM EDGE, which had no sample point at all. Safari tints the strip
+   behind its toolbar the same way it tints the status bar, and at the bottom of
+   this page the only fixed box on that edge is .footer — whose colour lives
+   entirely in a background-IMAGE gradient, so its background-color reads
+   transparent and the sample falls straight through to the page ground. That
+   fall-through is the dark navy band under a blue footer. This band is the
+   answer for the sampling engines; .footer also carries a solid
+   background-color now, and the theme-color meta follows the scroll, so all
+   three signals say the same thing whichever one a given iOS reads. */
+.ui-tint-b{bottom:0;background-color:var(--ui-tint-b,var(--ui-tint))}
+@supports (-webkit-touch-callout:none){ .ui-tint,.ui-tint-b{display:block} }
+/* Which colour the bottom edge reports, in one place. The sky until the footer
+   owns the screen, the footer's own end colour once it does — and the same
+   state drives the page ground and the theme-color meta, so the three cannot
+   disagree. data-footer-near, not data-blind: the reveal is an animation and it
+   is allowed to switch itself off on a small handset, but the colour under the
+   footer is not optional. Gating the ground on the animation is what made a
+   disarmed phone paint a navy band under a blue footer. */
+html{--ui-tint-b:var(--ui-tint)}
+html[data-footer-near]{--ui-tint-b:var(--foot-edge)}
+html[data-footer-near]{background:var(--foot-edge)}
+
+body{
+  font-family:var(--sans);
+  font-size:16px;line-height:24px;
+  color:var(--ink);
+  background:transparent;
+  -webkit-font-smoothing:antialiased;
+  transition:background-color .45s ease,color .45s ease;
+  font-synthesis-weight:none;
+}
+img,svg,video{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+h1,h2,.serif{font-family:var(--serif);font-weight:400;letter-spacing:normal;font-synthesis:none}
+h3{font-weight:500}
+::selection{background:rgba(88,101,242,.22)}
+
+.wrap{max-width:1496px;margin-inline:auto;padding-inline:48px}
+.slab{
+  width:min(1400px,100% - 96px);
+  margin-inline:auto;
+  border-radius:var(--r-slab);
+  background:var(--slab);
+  position:relative;
+  overflow:hidden;
+}
+.glyph{
+  display:inline-block;
+  background:var(--ink);
+  -webkit-mask:var(--glyph) no-repeat center / contain;
+  mask:var(--glyph) no-repeat center / contain;
+}
+.section-mark{width:16px;height:16px;margin:0 auto 20px}
+
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  height:52px;padding:0 28px;border-radius:999px;
+  font-size:15px;font-weight:500;letter-spacing:.01em;line-height:1;
+  transition:background-color .2s ease,color .2s ease,opacity .2s ease;
+  white-space:nowrap;
+}
+.btn-ink{background:var(--cta-bg);color:var(--cta-ink)}
+.btn-ink:hover{background:var(--cta-bg-hover)}
+.btn-primary{background:var(--cta-bg);color:var(--cta-ink)}
+.btn-primary:hover{background:var(--cta-bg-hover)}
+.btn-primary:active{transform:scale(.98)}
+.btn-white{background:var(--glass);color:var(--ink);border:1px solid var(--glass-brd)}
+.btn-white:hover{border-color:var(--blue)}
+.btn-glass{background:var(--glass);color:var(--ink);border:1px solid var(--glass-brd);box-shadow:inset 0 1px 0 var(--glass-hi)}
+.btn-glass:hover{border-color:var(--blue)}
+@supports ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))){
+  .btn-glass,.btn-white{backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2)}
+}
+.btn{transition:background-color .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform 160ms cubic-bezier(.23,1,.32,1)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:#4854e8}
+.btn-outline{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.btn-outline:hover{background:rgba(255,255,255,.07)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.demo-link{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.microcopy{font-size:13px;line-height:20px;color:var(--micro);margin-top:14px}
+
+/* glyph bullets */
+.bullets{list-style:none;display:grid;gap:14px;margin:28px 0 32px}
+.bullets li{
+  position:relative;padding-left:26px;
+  font-size:14px;line-height:24px;color:var(--sec);
+}
+.bullets li::before{
+  content:"";position:absolute;left:0;top:6px;width:12px;height:12px;
+  background:var(--ink);
+  -webkit-mask:var(--glyph) no-repeat center / contain;
+  mask:var(--glyph) no-repeat center / contain;
+}
+
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity 1s cubic-bezier(.16,1,.3,1),transform 1s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+.reveal-scale{transform:translateY(40px) scale(.95)}
+.reveal-scale.in{transform:none}
+
+/* ============ announcement bar ============ */
+.announce{
+  min-height:37px;background:var(--accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:14px;padding:6px 16px;text-align:center;
+}
+.announce .glyph{background:#fff;width:11px;height:11px;flex:none}
+
+/* ============ nav ============ */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:60;
+  height:calc(64px + env(safe-area-inset-top,0px));
+  padding-top:env(safe-area-inset-top,0px);
+  transition:opacity .18s cubic-bezier(.16,1,.3,1),visibility 0s;
+}
+/* visibility, not opacity alone. Seven controls faded to nothing with
+   pointer-events:none are still in the tab order and still announced, so a
+   keyboard visitor at the foot of the page tabs into a header they cannot see
+   and cannot click, with the focus ring nowhere on screen. visibility takes
+   them out of both, and delaying it by the length of the fade keeps the fade. */
+html[data-footer-revealed] .nav{
+  opacity:0;pointer-events:none;visibility:hidden;
+  transition:opacity .18s cubic-bezier(.16,1,.3,1),visibility 0s .18s;
+}
+.nav::before{
+  content:"";position:absolute;inset:0 0 -28px 0;pointer-events:none;
+  /* The ramp used to be down to .88 by 62% and gone by 100% — but 100% is 28px
+     BELOW the bar, so the bottom third of the bar itself was barely tinted and
+     page text read straight through it into the wordmark and the toggle. Hold
+     the scrim across the whole 64px band and fade only in the overhang. */
+  background:linear-gradient(to bottom,rgba(var(--scrim),.97) 0%,rgba(var(--scrim),.95) 70%,rgba(var(--scrim),0) 100%);
+  opacity:0;transition:opacity .25s ease;
+}
+.nav.scrolled::before{opacity:1}
+.nav-inner{height:64px;display:flex;align-items:center;gap:36px;position:relative}
+.logo{display:flex;align-items:center;gap:9px}
+.logo .glyph{width:21px;height:21px}
+.logo span{font-family:var(--grotesk);font-weight:700;font-size:21px;letter-spacing:-.01em}
+.nav-links{display:flex;gap:28px;font-size:15px;font-weight:500;color:var(--sec)}
+.nav-links a{transition:color .2s ease}
+.nav-links a:hover{color:var(--ink)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.nav-login{font-size:14.5px;font-weight:500;color:var(--ink);opacity:.85;transition:opacity .2s ease;padding:10px 0;margin:-10px 0}  /* 24px of text, a 44px hit box */
+.nav-login:hover{opacity:1}
+.theme-btn{
+  width:44px;height:44px;border-radius:50%;flex:none;   /* 44px: the minimum a thumb can hit */
+  display:flex;align-items:center;justify-content:center;color:var(--ink);
+  background:var(--glass);border:1px solid var(--glass-brd);
+  transition:transform 160ms cubic-bezier(.23,1,.32,1),border-color .2s ease;
+}
+.theme-btn:hover{border-color:var(--blue)}
+.theme-btn:active{transform:scale(.94)}
+.theme-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.theme-btn svg{width:17px;height:17px}
+.theme-btn .i-moon{display:none}
+html[data-theme="light"] .theme-btn .i-sun{display:none}
+html[data-theme="light"] .theme-btn .i-moon{display:block}
+@supports ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))){
+  .theme-btn{backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2)}
+}
+.nav-right .btn{height:40px;padding:0 20px;font-size:14px}
+
+/* ============ hero ============ */
+.hero{
+  position:relative;overflow:hidden;
+  padding-top:64px;
+  display:flex;flex-direction:column;min-height:100svh;
+}
+/* the sky: a sticky viewport-filling slab INSIDE the sheet, so the clouds are
+   clipped to the sheet and lift away with it — the fixed footer underneath is
+   revealed like a window blind. CSS photo fallback behind the shader canvas. */
+.hero-sky{
+  position:sticky;top:0;z-index:-1;overflow:hidden;pointer-events:none;
+  height:calc(100vh + 150px);margin-bottom:calc(-100vh - 150px);
+  height:var(--skyH,calc(100vh + 150px));margin-bottom:var(--skyM,calc(-100vh - 150px));
+  background:var(--sky-fallback) url('/sky-night.jpg') center/cover no-repeat;
+}
+html[data-theme="light"] .hero-sky{
+  background:var(--sky-fallback) url('/sky-day.jpg') center/cover no-repeat;
+}
+.hero-sky canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero-fade{
+  position:absolute;left:0;right:0;bottom:0;height:140px;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(var(--scrim),0),var(--paper));
+}
+.hero-core{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;position:relative;padding:72px 24px 40px;
+}
+.hero h1{
+  font-size:clamp(50px,4.8vw,68px);line-height:1.06;
+}
+.hero h1 .h1-key{display:block;color:var(--blue)}
+.hero-sub{
+  margin-top:22px;max-width:600px;
+  font-size:18px;line-height:28px;color:var(--sec);
+}
+html:not([data-theme="light"]) .hero-sub{color:#c6d0e2}
+.inline-mark{font-weight:500;color:var(--ink);white-space:nowrap}
+.inline-mark svg{display:inline-block;width:18px;height:18px;vertical-align:-3.5px;margin-right:3px}
+.mark-s{
+  width:17px;height:17px;border-radius:4.5px;background:#635bff;
+  color:#fff;font-size:11.5px;font-weight:500;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+  vertical-align:-3px;margin-right:3px;
+}
+
+/* glass capture bar (foundable 9f819305 anatomy) */
+.capture{
+  margin-top:36px;width:min(620px,100%);
+  display:flex;align-items:center;gap:10px;
+  padding:6px 6px 6px 22px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+  transition:border-color .2s ease;
+}
+.capture:focus-within{border-color:var(--blue)}
+.capture-prefix{font-size:16px;font-weight:500;color:var(--micro);flex:none}
+.capture input{
+  flex:1;min-width:0;height:52px;background:none;border:0;outline:none;
+  font:inherit;font-size:16px;color:var(--ink);
+}
+.capture input::placeholder{color:var(--micro);opacity:.85}
+.capture .btn{flex:none}
+.hero .microcopy{margin-top:16px;font-size:13.5px;color:var(--sec)}
+.discord-inline{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;vertical-align:-1px}
+.discord-inline svg{width:17px;height:13px;display:inline-block}
+.discord-inline b{font-weight:700;letter-spacing:-.01em}
+.stripe-wordmark{
+  display:inline-block;height:15px;width:auto;
+  vertical-align:-3px;margin-left:3px;color:var(--ink);opacity:.85;
+}
+
+/* the film: glass browser frame floating on the live sky */
+.hero-stage{position:relative;padding:76px 24px 110px}
+.film{position:relative;width:min(1060px,94%);margin-inline:auto}
+.film-frame{
+  position:relative;z-index:1;border-radius:20px;padding:8px;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+}
+.film-frame video{
+  width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;
+  background:url('/hero-poster.webp?v=210') center/cover;
+}
+.browser-bar{
+  position:relative;height:34px;
+  display:flex;align-items:center;justify-content:center;
+}
+.win-dots{position:absolute;left:12px;display:flex;gap:5px}
+.win-dots i{width:8px;height:8px;border-radius:50%;background:rgba(127,140,170,.45)}
+.browser-url{
+  font-size:11px;color:var(--micro);
+  border:1px solid var(--glass-brd);border-radius:999px;padding:3px 16px;line-height:1.4;
+}
+/* dark product chrome preserved inside .browser screenshot frames (both themes) */
+.browser .browser-bar{background:#161616;border-bottom:1px solid #232323}
+.browser .browser-url{background:#101010;border-color:#232323}
+.browser .win-dots i{background:#2b2b2b}
+
+/* floating glass corner cards (5dd547db grammar: green disc + green money) */
+.sky-card{
+  position:absolute;z-index:3;display:flex;align-items:center;gap:10px;
+  padding:12px 16px;border-radius:16px;white-space:nowrap;
+  background:var(--glass);border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+  font-size:13px;font-weight:500;color:var(--ink);text-align:left;
+}
+.sky-card .ok{
+  width:22px;height:22px;flex:none;border-radius:50%;
+  background:rgba(74,222,128,.16);color:var(--money);
+  display:flex;align-items:center;justify-content:center;
+}
+.sky-card .ok svg{width:11px;height:11px;stroke:currentColor;stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+html:not([data-theme="light"]) .sky-card{background:rgba(13,20,32,.6)}
+.sky-card b{font-weight:700;color:var(--money)}
+.sky-card small{display:block;font-size:11.5px;font-weight:400;color:var(--micro);margin-top:1px}
+.card-sale{left:-18px;bottom:-20px}
+.card-paid{right:-16px;bottom:-20px}
+@supports ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))){
+  .capture,.film-frame,.sky-card{backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2)}
+}
+.chip-film-embed{
+  top:-30px;right:-34px;width:min(320px,64%);z-index:3;
+  transform:rotate(1.6deg);
+}
+html[data-theme="light"] .chip-film-embed{border-color:rgba(15,22,38,.12)}
+
+/* ============ role marquee strip ============ */
+.rolemarq{padding:60px 0 0;overflow:hidden}
+.marq-cap{
+  text-align:center;font-size:12px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--micro);margin-bottom:20px;
+}
+
+/* ============ how it works · ugc.foundable four-step ============ */
+.steps{
+  /* night (default, attribute absent) — ugc.foundable navy glass */
+  --hiw-blue:#7ea2ff;
+  --hiw-ink:#fff;
+  --hiw-body:#aebacc;
+  --hiw-micro:#8fa0b8;
+  --hiw-green:#4ade80;
+  --hiw-green-dim:rgba(74,222,128,.15);
+  --hiw-glass:rgba(255,255,255,.05);
+  --hiw-glass-2:rgba(255,255,255,.06);
+  --hiw-line:rgba(255,255,255,.09);
+  --hiw-field:rgba(9,14,24,.45);
+  --hiw-track:rgba(255,255,255,.12);
+  --hiw-role-bg:rgba(88,101,242,.28);
+  --hiw-role-ink:#c9cdfb;
+  --hiw-shadow:0 24px 60px -30px rgba(0,0,0,.55);
+  padding-block:72px 116px;
+}
+html[data-theme="light"] .steps{
+  /* day — foundable light glass on the pale ground */
+  --hiw-blue:#5865f2;
+  --hiw-ink:#0f1626;
+  --hiw-body:#4c5a72;
+  --hiw-micro:#69788f;
+  --hiw-green:#15803d;
+  --hiw-green-dim:rgba(21,128,61,.13);
+  --hiw-glass:rgba(255,255,255,.55);
+  --hiw-glass-2:rgba(255,255,255,.72);
+  --hiw-line:rgba(15,22,38,.09);
+  --hiw-field:rgba(255,255,255,.85);
+  --hiw-track:rgba(15,22,38,.12);
+  --hiw-role-bg:rgba(88,101,242,.12);
+  --hiw-role-ink:#4854e8;
+  --hiw-shadow:0 24px 50px -32px rgba(31,52,88,.28);
+}
+.hiw-inner{max-width:1200px;margin-inline:auto}
+.hiw-eyebrow{font-size:16px;line-height:1.4;color:var(--hiw-blue)}
+.steps h2{
+  margin-top:14px;max-width:15ch;
+  font-family:var(--grotesk);font-weight:700;letter-spacing:-.02em;
+  font-size:clamp(34px,4.5vw,54px);line-height:1.08;color:var(--hiw-ink);
+}
+.hiw-grid{
+  display:grid;grid-template-columns:1fr;
+  gap:76px;margin-top:56px;
+}
+.hiw-inner{max-width:780px;margin-inline:auto}
+.hiw-step{display:flex;flex-direction:column;min-width:0}
+.hiw-n{font-family:var(--grotesk);font-size:18px;color:var(--hiw-blue)}
+.hiw-step h3{
+  margin-top:10px;font-family:var(--grotesk);font-weight:700;
+  font-size:28px;line-height:34px;letter-spacing:-.01em;color:var(--hiw-ink);
+}
+.hiw-body{margin:10px 0 28px;font-size:16px;line-height:26px;color:var(--hiw-body);max-width:52ch}
+.hiw-panel{
+  margin-top:auto;
+  background:var(--hiw-glass);border:1px solid var(--hiw-line);
+  border-radius:24px;box-shadow:var(--hiw-shadow);
+  padding:clamp(18px,2.6vw,34px);
+}
+/* inner glass card (steps 1 & 2) */
+.hiw-card{
+  background:var(--hiw-glass-2);border:1px solid var(--hiw-line);
+  border-radius:18px;padding:22px;max-width:440px;margin-inline:auto;
+}
+.hiw-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hiw-card-title{font-size:16.5px;font-weight:500;color:var(--hiw-ink)}
+.hiw-live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--hiw-micro)}
+.hiw-live i{width:7px;height:7px;border-radius:50%;background:var(--hiw-green);font-style:normal;flex:none}
+.hiw-progress{display:flex;gap:6px;margin-top:14px}
+.hiw-progress i{height:3px;border-radius:999px;flex:1;background:var(--hiw-track);font-style:normal}
+.hiw-progress i.on{background:linear-gradient(90deg,#5f7cf9,var(--hiw-blue))}
+.hiw-label{
+  font-size:11px;font-weight:500;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--hiw-micro);margin:18px 0 7px;
+}
+.hiw-field{
+  display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;
+  background:var(--hiw-field);border:1px solid var(--hiw-line);border-radius:12px;
+  font-size:14.5px;color:var(--hiw-ink);
+}
+.hiw-field em{font-style:normal;font-size:12.5px;color:var(--hiw-micro)}
+.hiw-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hiw-2col .hiw-label{margin-top:18px}
+.hiw-role{
+  background:var(--hiw-role-bg);color:var(--hiw-role-ink);
+  border-radius:5px;padding:1px 7px;font-weight:500;font-size:14px;
+}
+.hiw-row{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;
+  background:var(--hiw-field);border:1px solid var(--hiw-line);border-radius:12px;
+}
+.hiw-tile{
+  width:38px;height:38px;border-radius:10px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.hiw-tile-d{background:rgba(88,101,242,.18)}
+.hiw-tile-d svg{width:19px;height:15px;fill:#7d86f5}
+.hiw-tile-s{background:#635bff;color:#fff;font-size:16px;font-weight:500}
+.hiw-row-main{display:flex;flex-direction:column;min-width:0;font-size:14.5px;font-weight:500;color:var(--hiw-ink)}
+.hiw-row-main em{font-style:normal;font-size:12.5px;font-weight:400;color:var(--hiw-micro)}
+.hiw-row-ok{margin-left:auto;color:var(--hiw-green);flex:none;display:flex}
+.hiw-submit{
+  margin-top:20px;height:46px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--accent);color:#fff;font-size:15px;font-weight:500;
+}
+.hiw-cardmicro{margin-top:14px;text-align:center;font-size:13px;line-height:19px;color:var(--hiw-micro)}
+/* step 3 · share */
+.hiw-linkpill{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  max-width:440px;margin-inline:auto;min-width:0;
+  background:var(--hiw-field);border:1px solid var(--hiw-line);border-radius:999px;
+  padding:12px 20px;
+}
+.hiw-linkurl{
+  font-family:var(--grotesk);font-size:15.5px;color:var(--hiw-micro);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.hiw-linkurl b{font-weight:500;color:var(--hiw-blue)}
+.hiw-cardmicro .demo-link{color:var(--hiw-blue)}
+.hiw-storecard{margin-top:16px}
+.hiw-store-head{display:flex;align-items:center;gap:12px}
+.hiw-store-head .hiw-live{margin-left:auto;flex:none}
+.hiw-storecard .hiw-row + .hiw-row{margin-top:8px}
+.hiw-buy{margin-left:auto;flex:none;font-family:var(--grotesk);font-weight:700;font-size:16px;letter-spacing:-.01em;color:var(--hiw-ink)}
+.hiw-buy em{font-style:normal;font-weight:400;font-family:var(--sans);font-size:12.5px;color:var(--hiw-micro)}
+/* step 4 · simulated timeline */
+.hiw-simlabel{
+  font-size:11.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--hiw-micro);margin-bottom:16px;
+}
+.hiw-timeline{list-style:none;display:grid;gap:12px;margin:0;padding:0}
+.hiw-ev{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:start;
+  background:var(--hiw-glass-2);border:1px solid var(--hiw-line);
+  border-radius:16px;padding:15px 16px;
+}
+.hiw-ev-icon{
+  width:34px;height:34px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.hiw-ev-check{background:var(--hiw-green-dim);color:var(--hiw-green)}
+.hiw-ev-card{border-radius:10px;background:var(--accent);color:#fff}
+.hiw-ev-title{display:block;font-size:15px;font-weight:500;line-height:21px;color:var(--hiw-ink)}
+.hiw-money{font-weight:500;color:var(--hiw-green)}
+.hiw-ev-sub{display:block;margin-top:3px;font-size:13px;line-height:19px;color:var(--hiw-micro)}
+.hiw-ev-time{font-size:13px;color:var(--hiw-micro);padding-top:2px}
+
+/* ============ feature splits ============ */
+.split{margin-block:80px}
+.split-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:72px;align-items:center;
+  padding:88px 80px;
+}
+.split h2{font-size:48px;line-height:56px}
+.split-body{margin-top:20px;font-size:16px;line-height:25px;color:var(--sec);max-width:46ch}
+.split .microcopy{margin-top:12px}
+
+/* discord chips (hero float + bento embed) */
+.chip-card{
+  position:absolute;background:var(--cream);border-radius:14px;
+  padding:8px;box-shadow:0 18px 40px -16px rgba(0,0,0,.6);
+  border:1px solid #2a2a2a;
+}
+.dcord{background:#313338;border-radius:9px;padding:14px 16px 16px;font-size:14px;line-height:20px}
+.dcord-sm{padding:10px 12px 11px;font-size:12.5px;line-height:17px}
+.dcord-sm .dc-embed{margin-top:0;padding:9px 12px 10px}
+.dcord-sm .dc-embed-title{font-size:13px}
+.dcord-sm .dc-embed-desc{margin-top:3px}
+.dc-cont{margin-top:10px;padding-left:50px}
+.dc-msg{display:flex;gap:12px}
+.dc-avatar{
+  width:38px;height:38px;border-radius:50%;background:var(--accent);flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.dc-avatar .glyph{width:17px;height:17px;background:#fdfcfa}
+.dc-head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.dc-name{color:#f2f3f5;font-weight:500;font-size:14.5px}
+.dc-app{
+  background:var(--accent);color:#fdfcfa;font-size:9.5px;font-weight:500;
+  border-radius:4px;padding:1.5px 5px;letter-spacing:.02em;position:relative;top:-1.5px;
+}
+.dc-time{color:#949ba4;font-size:11.5px}
+.dc-text{color:#dbdee1;margin-top:3px}
+.dc-mention{color:#c9cdfb;background:rgba(88,101,242,.3);border-radius:3px;padding:0 2px;font-weight:500}
+.dc-embed{
+  margin-top:8px;background:#2b2d31;border-left:4px solid var(--accent);
+  border-radius:4px;padding:11px 14px 12px;max-width:340px;
+}
+.dc-embed-title{color:#f2f3f5;font-weight:500;font-size:14.5px}
+.dc-embed-desc{color:#dbdee1;margin-top:5px}
+.dc-embed-field{color:#dbdee1;margin-top:9px}
+.dc-embed-field b{color:#f2f3f5;font-weight:500}
+
+/* ============ bento ============ */
+.bento{padding-block:96px 104px}
+.bento-head{text-align:center;margin-bottom:52px}
+.bento-head h2{font-size:clamp(34px,3.4vw,44px);line-height:1.15}
+.bento-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.bcard{
+  grid-column:span 3;min-width:0;
+  background:var(--slab);border:1px solid #232323;border-radius:16px;
+  padding:24px;display:flex;flex-direction:column;
+  transition:border-color .2s ease,transform .2s ease;
+}
+.bcard:hover{border-color:#2f2f2f;transform:translateY(-2px)}
+.bcard-lg{grid-column:span 6;padding:28px}
+.blabel{font-size:11px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--micro)}
+.bcard h3{font-size:20px;line-height:26px;margin-top:10px}
+.bcard-lg h3{font-size:24px;line-height:30px}
+.bbody{margin-top:8px;font-size:14px;line-height:21px;color:var(--sec);max-width:56ch}
+.bwidget{margin-top:auto;padding-top:22px}
+.bcard .bullets{margin:16px 0 0;gap:10px}
+
+/* marquees */
+.marq{
+  overflow:hidden;margin-bottom:12px;
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 10%,#000 90%,transparent);
+  mask-image:linear-gradient(to right,transparent,#000 10%,#000 90%,transparent);
+}
+.marq-track{display:flex;gap:10px;width:max-content;animation:marq-l 30s linear infinite}
+.marq-rev .marq-track{animation:marq-r 35s linear infinite}
+.marq-slow .marq-track{animation:marq-l 40s linear infinite}
+@keyframes marq-l{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes marq-r{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+.pill{
+  background:var(--cream);border:1px solid var(--hair);border-radius:999px;
+  padding:8px 16px;font-size:13.5px;white-space:nowrap;color:var(--ink);
+  box-shadow:var(--shadow);
+}
+
+/* the live appearance toy */
+.applayout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:stretch}
+.appctrl{display:grid;gap:15px;align-content:start}
+.panel-label{font-size:11px;font-weight:500;letter-spacing:.11em;text-transform:uppercase;color:var(--micro);margin-bottom:7px}
+.theme-tiles{display:flex;gap:8px}
+.ttile{
+  flex:1;height:42px;border-radius:8px;border:1px solid #2a2a2a;
+  background:var(--tb,#0a0a0a);position:relative;overflow:hidden;
+  transition:border-color .15s ease;
+}
+.ttile::before{content:"";position:absolute;inset:9px 9px auto;height:8px;border-radius:3px;background:var(--tp,#101010)}
+.ttile::after{content:"";position:absolute;inset:auto 9px 8px;height:8px;border-radius:3px;background:var(--ta,#5865f2)}
+.ttile.on{border-color:#fff}
+.ttile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dots{display:flex;gap:9px;align-items:center}
+.dot{width:22px;height:22px;border-radius:50%;position:relative;padding:0;flex:none}
+.dot.on{box-shadow:0 0 0 2px var(--slab),0 0 0 3.5px #fff}
+.dot:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.appr{display:flex;align-items:center;gap:12px}
+.appr input[type=range]{flex:1;min-width:0}
+.appr-val{
+  font-size:12px;color:var(--sec);border:1px solid #2a2a2a;border-radius:999px;
+  padding:2px 10px;min-width:48px;text-align:center;flex:none;
+  font-variant-numeric:tabular-nums;
+}
+.typeseg{display:flex;gap:8px}
+.typeseg button{
+  flex:1;text-align:center;border:1px solid #2a2a2a;border-radius:8px;
+  padding:8px 0;font-size:13px;color:var(--sec);
+  transition:background-color .15s ease,color .15s ease,border-color .15s ease;
+}
+.typeseg .on{background:var(--ink);color:#101010;border-color:var(--ink)}
+.typeseg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.typeseg .t-serif{font-family:ui-serif,Georgia,serif}
+.typeseg .t-mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px}
+.appview{
+  border-radius:12px;border:1px solid #2a2a2a;
+  background:var(--pv-bg,#0a0a0a);
+  display:flex;align-items:center;justify-content:center;padding:18px 16px;
+  transition:background-color .2s ease;
+}
+.appcard{
+  width:min(232px,100%);border-radius:var(--pv-r,16px);
+  background:var(--pv-panel,#101010);color:var(--pv-text,#f5f5f4);
+  border:1px solid rgba(128,128,128,.3);
+  padding:14px;font-family:var(--pv-font,var(--grotesk));
+  display:grid;gap:9px;transition:border-radius .15s ease,background-color .2s ease,color .2s ease;
+}
+.appcard .ac-name{font-weight:700;font-size:13.5px;letter-spacing:-.01em}
+.appcard .ac-role{
+  width:max-content;font-size:10px;border:1px solid currentColor;
+  border-radius:999px;padding:1px 8px;opacity:.72;
+}
+.appcard .ac-line{height:7px;border-radius:3px;background:currentColor;opacity:.16}
+.appcard .ac-line.short{width:62%}
+.appcard .ac-pay{
+  margin-top:4px;height:32px;border-radius:calc(var(--pv-r,16px) * .5);
+  background:var(--pv-pay,#5865f2);color:var(--pv-payink,#fff);
+  font-weight:700;font-size:12px;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;
+  transition:border-radius .15s ease,background-color .2s ease;
+}
+
+/* payout pill */
+.payout{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.payout-pill{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--cream);border:1px solid #2a2a2a;border-radius:999px;
+  padding:10px 18px;font-size:14.5px;font-weight:500;
+}
+.payout-pill .mark-s{margin-right:0}
+.paid-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:12.5px;color:#22c55e;border:1px solid rgba(34,197,94,.32);
+  background:rgba(34,197,94,.08);border-radius:999px;padding:5px 12px;
+}
+.paid-chip i{width:6px;height:6px;border-radius:50%;background:#22c55e;font-style:normal}
+
+/* price option rows (checkout echo) */
+.opts{display:grid;gap:8px}
+.opt{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  border:1px solid #2a2a2a;border-radius:8px;padding:11px 14px;
+  font-size:13.5px;color:var(--sec);
+}
+.opt em{font-style:normal;color:var(--micro);font-size:12.5px;margin-left:4px}
+.opt b{font-family:var(--grotesk);font-weight:700;font-size:15px;color:var(--ink);letter-spacing:-.01em}
+.opt.on{border-color:#fff;box-shadow:0 0 0 1px #fff;background:rgba(255,255,255,.04);color:var(--ink)}
+
+/* discount mock */
+.disc{display:grid;gap:10px}
+.disc-row{display:flex;gap:8px}
+.disc-code{
+  flex:1;display:flex;align-items:center;min-width:0;
+  padding:0 14px;height:40px;
+  border:1px solid #2a2a2a;border-radius:8px;background:var(--cream);
+  font-size:13px;font-weight:500;letter-spacing:.06em;color:var(--ink);
+}
+.disc-code i{width:1.5px;height:14px;background:var(--sec);margin-left:3px;font-style:normal;animation:caret 1.1s step-end infinite}
+@keyframes caret{50%{opacity:0}}
+.disc-apply{
+  height:40px;padding:0 16px;border:1px solid #3d3d3d;border-radius:8px;
+  background:#161616;font-size:13px;font-weight:500;color:var(--ink);
+  display:flex;align-items:center;flex:none;
+}
+.disc-msg{font-size:12.5px;color:#22c55e}
+
+/* mrr chart */
+.mrr{position:relative;padding-top:26px}
+.mrr-stat{
+  position:absolute;top:0;left:10px;z-index:2;
+  background:var(--cream);border:1px solid #2a2a2a;border-radius:10px;
+  padding:10px 14px;
+}
+.mrr-stat b{display:block;font-size:18px;font-weight:700;letter-spacing:-.01em;font-family:var(--grotesk)}
+.mrr-stat span{font-size:11.5px;color:var(--micro)}
+.mrr svg{width:100%;height:auto}
+.mrr .line{
+  stroke:var(--accent);stroke-width:2.5;fill:none;stroke-linecap:round;
+  stroke-dasharray:1;stroke-dashoffset:1;
+  transition:stroke-dashoffset 2.4s cubic-bezier(.4,0,.2,1);
+}
+.mrr .area{fill:var(--accent);opacity:0;transition:opacity .8s ease 1.7s}
+.mrr .dash{stroke:#222;stroke-width:1;stroke-dasharray:4 5}
+.mrr .marker{opacity:0;transition:opacity .5s ease 2.2s}
+.mrr.drawn .line{stroke-dashoffset:0}
+.mrr.drawn .area{opacity:.12}
+.mrr.drawn .marker{opacity:1}
+
+/* ============ discover ============ */
+.discover{padding:16px 0 100px}
+.discover-head{text-align:center}
+.discover-head h2{font-size:36px;line-height:44px}
+.cats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+.cat{
+  background:var(--cream);border:1px solid var(--hair);border-radius:999px;
+  padding:7px 16px;font-size:13px;color:var(--sec);
+}
+.stores{
+  display:flex;gap:16px;margin-top:44px;overflow-x:auto;
+  scroll-snap-type:x mandatory;padding:8px 8%;
+  scrollbar-width:none;cursor:grab;
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 7%,#000 93%,transparent);
+  mask-image:linear-gradient(to right,transparent,#000 7%,#000 93%,transparent);
+}
+.stores::-webkit-scrollbar{display:none}
+.stores.dragging{cursor:grabbing;scroll-snap-type:none}
+.store{
+  flex:none;width:256px;scroll-snap-align:center;
+  background:var(--cream);border:1px solid #232323;border-radius:var(--r-card);
+  padding:0;overflow:hidden;display:block;
+  transition:border-color .2s ease,transform .2s ease;
+}
+.store:hover{border-color:#2f2f2f;transform:translateY(-2px)}
+.store-banner{height:58px}
+.store-body{padding:0 20px 20px}
+.store-tile{
+  width:44px;height:44px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  margin:-22px 0 14px;position:relative;
+  font-size:17px;font-weight:500;
+  box-shadow:0 0 0 4px var(--cream);background-color:var(--cream);
+}
+.store-tile .glyph{width:18px;height:18px}
+.store-name{font-size:16px;font-weight:500}
+.store-cat{
+  display:inline-block;margin-top:8px;font-size:11.5px;color:var(--sec);
+  border:1px solid var(--hair);border-radius:999px;padding:2.5px 10px;
+}
+.store-members{margin-top:12px;font-size:13px;color:var(--micro)}
+.store-price{margin-top:3px;font-size:15px;font-weight:500}
+.discover-link{
+  display:block;width:max-content;margin:36px auto 0;
+  font-size:15px;font-weight:500;
+  border-bottom:1px solid transparent;transition:border-color .2s ease;
+}
+.discover-link:hover{border-color:var(--ink)}
+
+/* storefront split browser frames */
+.ui-stage{position:relative;min-height:540px}
+.browser{
+  background:var(--cream);border:1px solid #232323;border-radius:var(--r-card);
+  overflow:hidden;box-shadow:0 18px 40px -16px rgba(0,0,0,.55);
+}
+.browser .browser-bar{height:32px}
+.browser .browser-url{font-size:10.5px;padding:2.5px 14px}
+.shot{overflow:hidden;position:relative}
+.shot img{max-width:none;display:block}
+.frame-store{width:min(470px,88%);position:absolute;top:0;right:-48px}
+.frame-store .shot{aspect-ratio:680/700}
+.frame-store img{width:282.35%;margin-left:-91.18%;transform:translateY(-6.48%)}
+.frame-checkout{width:min(310px,62%);position:absolute;left:0;bottom:0;z-index:2}
+.frame-checkout .shot{aspect-ratio:620/580}
+.frame-checkout img{width:309.68%;margin-left:-104.84%;transform:translateY(-12.04%)}
+.frame-wrap{position:relative}
+.float-chip{
+  position:absolute;display:flex;align-items:center;gap:8px;
+  background:var(--cream);border:1px solid #2a2a2a;border-radius:999px;
+  padding:9px 16px;font-size:13px;font-weight:500;color:var(--ink);
+  box-shadow:0 10px 26px -10px rgba(0,0,0,.6);z-index:3;white-space:nowrap;
+}
+.float-chip .glyph{width:11px;height:11px;background:var(--accent)}
+.chip-checkout{left:-14px;bottom:-16px}
+
+/* ============ calculator ============ */
+.calc-sec{padding-block:20px 100px}
+.calc-head{text-align:center;margin-bottom:48px}
+.calc-head h2{font-size:36px;line-height:44px}
+.calc-head p{margin-top:12px;font-size:15px;color:var(--micro)}
+.calc{
+  width:min(760px,100%);margin-inline:auto;
+  background:var(--slab);border-radius:16px;border:1px solid #232323;
+  padding:56px 64px 48px;
+}
+.calc-figure{font-size:76px;line-height:1;display:flex;align-items:baseline;gap:6px}
+.calc-figure small{font-family:var(--sans);font-size:15px;color:var(--micro)}
+.calc-fields{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px}
+.field label{display:block;font-size:14px;font-weight:500;margin-bottom:9px}
+.field input,.field select{
+  width:100%;height:48px;border:1px solid #2a2a2a;border-radius:8px;
+  background:var(--cream);padding:0 16px;font:inherit;font-size:15px;color:var(--ink);
+  appearance:none;-webkit-appearance:none;
+}
+.field select{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%238a8a8a' stroke-width='1.6' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 16px center;
+}
+.field input:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.calc-slider{margin-top:34px}
+.calc-slider label{display:block;font-size:14px;font-weight:500;margin-bottom:14px}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;
+  background:linear-gradient(to right,var(--accent) 22%,#2a2a2a 22%);outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;
+  background:var(--accent);border:3.5px solid var(--cream);
+  box-shadow:0 0 0 1px var(--hair);cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{
+  width:15px;height:15px;border-radius:50%;background:var(--accent);
+  border:3.5px solid var(--cream);box-shadow:0 0 0 1px var(--hair);cursor:pointer;
+}
+input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.ticks{position:relative;height:18px;margin-top:10px;font-size:12px;color:var(--micro)}
+.ticks span{position:absolute;transform:translateX(-50%)}
+.ticks span:first-child{transform:none}
+.ticks span:last-child{transform:translateX(-100%)}
+.calc-cta{text-align:center;margin-top:40px}
+
+/* ============ pricing crescendo ============ */
+.crescendo{
+  margin-block:80px;color:#fff;
+  background:linear-gradient(158deg,#14122b 6%,#3d3f9e 44%,#7d86f5 74%,#c9cdf7 102%);
+  padding:96px 64px 104px;
+  box-shadow:0 0 0 1px rgba(20,18,43,.08),0 36px 80px -44px rgba(20,18,43,.5);
+}
+.crescendo::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;
+  mix-blend-mode:overlay;
+  -webkit-mask-image:linear-gradient(180deg,#000 40%,rgba(0,0,0,.2) 100%);
+  mask-image:linear-gradient(180deg,#000 40%,rgba(0,0,0,.2) 100%);
+  background:url("data:image/png;base64,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") repeat;
+  background-size:140px 140px;
+}
+.crescendo > *{position:relative;z-index:1}
+.crescendo .section-mark{background:#fff}
+.cres-head{text-align:center}
+.cres-head h2{font-size:48px;line-height:56px}
+.cres-head p{margin-top:14px;font-size:16px;color:rgba(253,252,250,.82)}
+.cres-controls{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:36px}
+.billing-toggle{
+  display:inline-flex;background:rgba(20,18,43,.55);border-radius:999px;padding:4px;gap:2px;
+}
+.billing-toggle button{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 20px;border-radius:999px;font-size:14px;font-weight:500;
+  color:rgba(253,252,250,.72);transition:background-color .2s ease,color .2s ease;
+}
+.billing-toggle button.on{background:#f5f5f4;color:#101010}
+.billing-toggle button:focus-visible{outline:2px solid #f5f5f4;outline-offset:2px}
+.tog-save{
+  font-size:12px;font-weight:500;line-height:1;letter-spacing:.02em;
+  color:#4ade80;background:rgba(74,222,128,.14);
+  padding:4px 9px;border-radius:999px;white-space:nowrap;
+}
+.billing-toggle button.on .tog-save{color:#15803d;background:rgba(21,128,61,.12)}
+.fee-chip{
+  background:rgba(20,18,43,.55);border-radius:999px;padding:9px 18px;
+  font-size:14px;color:rgba(253,252,250,.8);
+}
+/* theme-INVARIANT plan cards: navy glass on the approved gradient, hard-coded
+   colors so day mode cannot flip them (refs 9305ecb9 / 4b59e6bf) */
+.plans{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;
+  max-width:1272px;margin-inline:auto;margin-top:56px;align-items:start;
+}
+.plan{
+  position:relative;color:#f6f8fd;
+  background:rgba(15,13,34,.86);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:20px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 22px 44px -24px rgba(10,8,26,.6);
+  padding:30px 26px 24px;
+}
+@supports ((backdrop-filter:blur(4px)) or (-webkit-backdrop-filter:blur(4px))){
+  .plan{
+    background:rgba(15,13,34,.55);
+    backdrop-filter:blur(14px) saturate(1.2);
+    -webkit-backdrop-filter:blur(14px) saturate(1.2);
+  }
+}
+.plan-pop{transform:translateY(-18px);border-color:rgba(255,255,255,.32)}
+.pop-tab{
+  position:absolute;top:0;left:50%;transform:translate(-50%,-100%);
+  background:#f5f5f4;color:#14122b;font-size:12.5px;font-weight:500;
+  padding:6px 18px 5px;border-radius:10px 10px 0 0;letter-spacing:.01em;
+}
+.plan-name{display:flex;flex-direction:column;gap:3px}
+.plan-name b{font-size:18px;font-weight:500}
+.plan-name i{font-style:normal;font-size:13px;color:rgba(238,242,252,.62)}
+.plan-price{margin-top:16px;display:flex;align-items:baseline;gap:6px}
+.plan-price .serif{font-size:42px;line-height:1;letter-spacing:-.01em}
+.plan-price small{font-size:14px;color:rgba(238,242,252,.62)}
+.plan-note{font-size:12px;color:rgba(238,242,252,.62);margin-top:6px;min-height:18px}
+.plan-note.is-deal{color:#4ade80}
+.plan .btn{
+  width:100%;margin-top:18px;border-radius:999px;
+  transition:background-color .2s ease,color .2s ease,transform 160ms cubic-bezier(.23,1,.32,1);
+}
+.plan .btn:active{transform:scale(.98)}
+.plan .btn-ink{background:#f5f5f4;color:#14122b}
+.plan .btn-ink:hover{background:#fff}
+.plan .btn-outline{background:rgba(255,255,255,.05);color:#f6f8fd;box-shadow:inset 0 0 0 1px rgba(255,255,255,.38)}
+.plan .btn-outline:hover{background:rgba(255,255,255,.12)}
+.plan-specs{list-style:none;margin-top:20px}
+.plan-specs li{
+  display:flex;justify-content:space-between;gap:12px;
+  padding:12px 2px;border-top:1px solid rgba(255,255,255,.12);
+  font-size:13.5px;
+}
+.plan-specs li span{color:rgba(238,242,252,.68)}
+.plan-specs li b{font-weight:500;text-align:right}
+.plan-foot{
+  border-top:1px solid rgba(255,255,255,.12);margin-top:2px;padding-top:16px;
+  display:flex;justify-content:center;gap:16px;align-items:center;
+}
+.plan-foot svg{height:15px;width:auto;fill:#5865f2}
+.plan-foot .foot-s{
+  width:18px;height:18px;border-radius:5px;background:#635bff;color:#fff;
+  font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;
+}
+/* The member cap is the ONLY thing a bigger plan buys, so it is the only
+   thing the card states loudly. Everything the four plans share moved into
+   the band below them. */
+.plan-cap{
+  margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.14);
+  display:flex;flex-direction:column;gap:2px;
+}
+.plan-cap b{
+  font-family:var(--jakarta);font-weight:600;font-size:34px;line-height:1;
+  letter-spacing:-.02em;color:#fff;font-variant-numeric:tabular-nums;
+}
+.plan-cap b.cap-word{font-size:24px}
+.plan-cap span{font-size:13px;color:rgba(238,242,252,.68)}
+.plan-look{margin-top:12px;font-size:12.5px;line-height:19px;color:rgba(238,242,252,.58)}
+
+/* ── in every plan ─────────────────────────────────────────────────────── */
+/* On glass, not straight on the sky. Body text here was the only copy on the
+   page sitting on the raw gradient, which runs from #cfe2f7 at the top to
+   #8fbdf0 lower down — so the same --sec token measured 5.8:1 in one place and
+   3.9:1 a few hundred pixels further down the same section. A surface makes
+   the ratio a property of the design instead of a property of scroll position. */
+.incl{
+  max-width:1272px;margin:56px auto 0;padding:34px clamp(20px,3vw,40px) 36px;
+  background:var(--glass);border:1px solid var(--glass-brd);border-radius:20px;
+  box-shadow:inset 0 1px 0 var(--glass-hi);
+}
+.incl h2{font-family:var(--jakarta);font-weight:600;font-size:22px;letter-spacing:-.01em;text-align:center;color:#f6f8fd}
+.incl-grid{
+  list-style:none;margin-top:26px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 28px;
+}
+.incl-grid li{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:21px;color:rgba(238,242,252,.82)}
+.incl-grid svg{flex:none;width:15px;height:15px;margin-top:3px;color:#4ade80}
+
+@media (max-width:1200px){
+  .plans{grid-template-columns:repeat(2,minmax(0,420px));justify-content:center;gap:24px;row-gap:40px}
+  .plan-pop{transform:none;margin-top:14px}
+}
+@media (max-width:560px){
+  .plans{grid-template-columns:minmax(0,1fr)}
+  .incl{margin-top:40px;padding-top:30px}
+}
+
+/* ── what you actually pay ─────────────────────────────────────────────── */
+.fees{padding-block:72px 8px;text-align:center}
+.fees-title,.faq-title{
+  font-family:var(--jakarta);font-weight:600;color:var(--ink);
+  font-size:clamp(28px,3.4vw,40px);line-height:1.12;letter-spacing:-.02em;
+}
+.fees-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;
+  max-width:1060px;margin:36px auto 0;text-align:left;
+}
+.fee-card{
+  background:var(--glass);border:1px solid var(--glass-brd);border-radius:18px;
+  box-shadow:inset 0 1px 0 var(--glass-hi);padding:24px 24px 26px;
+}
+.fee-card h3{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--micro)}
+.fee-figure{
+  margin-top:10px;font-family:var(--jakarta);font-weight:600;
+  font-size:30px;line-height:1.1;letter-spacing:-.02em;color:var(--ink);
+}
+.fee-card p:last-child{margin-top:12px;font-size:14px;line-height:22px;color:var(--sec)}
+.fees-note{max-width:640px;margin:26px auto 0;font-size:13.5px;line-height:22px;color:var(--micro)}
+
+/* ── questions ─────────────────────────────────────────────────────────── */
+.faq{padding-block:64px 96px;text-align:center}
+.faq-list{
+  max-width:760px;margin:32px auto 0;text-align:left;
+  background:var(--glass);border:1px solid var(--glass-brd);border-radius:20px;
+  box-shadow:inset 0 1px 0 var(--glass-hi);padding:4px clamp(18px,3vw,28px);
+}
+.faq-item + .faq-item{border-top:1px solid var(--glass-brd)}
+.faq-item summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;
+  padding:20px 2px;font-size:16px;font-weight:500;color:var(--ink);
+  /* A 44px row is the touch target; the padding above already clears it. */
+  min-height:44px;
+}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{
+  content:"";flex:none;margin-left:auto;width:11px;height:11px;
+  border-right:2px solid var(--micro);border-bottom:2px solid var(--micro);
+  transform:rotate(45deg) translate(-3px,-3px);transition:transform .2s ease;
+}
+.faq-item[open] summary::after{transform:rotate(225deg) translate(-1px,-1px)}
+.faq-item summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.faq-item p{padding:0 34px 22px 2px;font-size:15px;line-height:25px;color:var(--sec)}
+.faq-cta{margin-top:44px}
+.faq-cta .microcopy{margin-top:12px}
+@media (prefers-reduced-motion:reduce){ .faq-item summary::after{transition:none} }
+@media (max-width:860px){
+  .fees-grid{grid-template-columns:1fr;max-width:460px}
+  .fees{padding-top:56px}
+  .faq{padding-block:48px 72px}
+}
+
+/* ============ faq ============ */
+/* The section title is .faq-title, sized with .fees-title above. No .faq h2 or
+   .faq padding rule here: the homepage copies out-ranked that shared clamp and
+   the 860px padding rule, so the two sibling titles never matched. */
+.faq-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:80px;align-items:start}
+.faq-card{
+  margin-top:36px;background:var(--slab);border:1px solid #232323;border-radius:16px;
+  padding:24px;display:grid;gap:14px;justify-items:start;max-width:340px;
+}
+.faq-card .glyph{width:18px;height:18px}
+.faq-card p{font-size:14px;line-height:21px;color:var(--sec)}
+.faq-card a{
+  font-size:14px;font-weight:500;color:var(--ink);
+  border-bottom:1px solid var(--hair);transition:border-color .2s ease;
+}
+.faq-card a:hover{border-color:var(--ink)}
+.acc-item{border-bottom:1px solid var(--hair)}
+.acc-item:first-child{border-top:1px solid var(--hair)}
+.acc-q{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding:22px 2px;font-size:20px;font-weight:500;text-align:left;
+  transition:color .2s ease;
+}
+.acc-q:hover{color:var(--sec)}
+.acc-q:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.acc-icon{
+  position:relative;width:14px;height:14px;flex:none;
+  transition:transform .2s cubic-bezier(.4,0,.2,1);
+}
+.acc-icon::before{
+  content:"";position:absolute;left:2.5px;top:3.5px;width:7px;height:7px;
+  border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);
+  border-radius:1px;transform:rotate(-45deg);
+}
+.acc-item.open .acc-icon{transform:rotate(90deg)}
+.acc-a{height:0;overflow:hidden;transition:height .2s cubic-bezier(.4,0,.2,1)}
+.acc-a p{padding:0 40px 24px 2px;font-size:15px;line-height:24px;color:var(--sec)}
+
+/* ============ final cta ============ */
+.final{
+  margin-block:80px;background:var(--accent);color:#fff;
+  text-align:center;padding:104px 48px 96px;
+}
+.final-ghost{
+  position:absolute;width:640px;height:640px;left:-150px;bottom:-190px;
+  background:#fff;opacity:.08;pointer-events:none;
+}
+.final > :not(.final-ghost){position:relative;z-index:1}
+.final h2{font-size:48px;line-height:56px}
+.final p{margin-top:16px;font-size:16px;color:rgba(253,252,250,.85);max-width:52ch;margin-inline:auto}
+.final .btn{margin-top:32px}
+.final .microcopy{color:rgba(253,252,250,.66)}
+
+/* ============ footer ============ */
+.footer{background:var(--ink);color:var(--micro);margin-top:96px}
+.ghost-word{
+  font-family:var(--grotesk);font-weight:700;color:#2c2b33;
+  font-size:min(24vw,345px);line-height:.96;text-align:center;
+  height:.78em;overflow:hidden;user-select:none;
+}
+.footer-cols{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:40px;
+  padding:72px 0 64px;
+}
+.fcol b{display:block;font-size:14px;font-weight:500;color:var(--ink);margin-bottom:18px}
+.fcol a{display:block;font-size:14px;line-height:20px;padding:6px 0;transition:color .2s ease}
+.fcol a:hover{color:var(--ink)}
+.legal{
+  border-top:1px solid #35333c;padding:26px 0 34px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  font-size:13px;
+}
+.legal-left{display:flex;align-items:center;gap:11px}
+.legal .glyph{width:13px;height:13px;background:#6b6875}
+
+/* ============ responsive ============ */
+@media (max-width:1120px){
+  .split-grid{gap:48px;padding:64px 56px}
+  .split h2{font-size:40px;line-height:48px}
+  .frame-store{right:-56px}
+}
+@media (max-width:1020px){
+  .bcard{grid-column:span 6}
+  .bcard-lg{grid-column:span 12}
+}
+/* Nav collapses at the site's phone breakpoint (760px), not at 900. */
+@media (max-width:760px){
+  .nav-links{display:none}
+  .nav-right .btn{display:none}
+}
+@media (max-width:900px){
+  .hero-sub{display:none}
+  .hero-core{padding-top:64px}
+  .hero-stage{padding:56px 16px 84px}
+  .chip-film-embed{display:none}
+  .hiw-grid{grid-template-columns:1fr;gap:64px}
+  .split-grid{grid-template-columns:1fr;gap:52px;padding:48px 32px}
+  .ui-stage{min-height:0;display:grid;gap:20px}
+  .frame-store{position:static;width:100%;right:auto}
+  .frame-checkout{position:relative;width:76%;left:auto;bottom:auto;margin-top:-64px;margin-left:0}
+  .faq-grid{grid-template-columns:1fr;gap:44px}
+  .faq-card{max-width:none}
+  .plans{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .crescendo{padding:72px 32px 80px}
+}
+@media (max-width:600px){
+  /* the phone gutter, declared once: 16px is what .slab (100% - 32px) and
+     .hero-core already sit at, so every section lines up with the hero. */
+  .wrap{padding-inline:16px}
+  .announce{font-size:13px;line-height:18px}
+  .slab{width:calc(100% - 32px)}
+  .hero-core{padding:64px 16px 0}
+  .hero-sub{font-size:16.5px;line-height:26px}
+  .hero-sky{background-image:url('/sky-night-tall.jpg')}
+  html[data-theme="light"] .hero-sky{background-image:url('/sky-day-tall.jpg')}
+  /* soft CSS moon disc — night mobile only, floats over the shader clouds */
+  .capture{flex-wrap:wrap;padding:8px;border-radius:26px}
+  .capture-prefix{padding-left:12px}
+  .capture input{height:46px}
+  .capture .btn{width:100%}
+  .hero-stage{padding:44px 0 72px}
+  .film{width:calc(100% - 24px)}
+  .film-frame{border-radius:12px}
+  .film-frame video{aspect-ratio:4/3;border-radius:6px}
+  .card-sale{left:8px;bottom:-14px}
+  .card-paid{display:none}
+  .rolemarq{padding-top:44px}
+  .bento{padding-block:64px 72px}
+  .bento-head{margin-bottom:36px}
+  .bento-grid{gap:12px}
+  .bcard{grid-column:span 12}
+  .bcard-lg{padding:22px 18px}
+  .applayout{grid-template-columns:1fr}
+  .steps{padding-block:48px 80px}
+  .steps h2{font-size:32px}
+  .hiw-grid{gap:56px;margin-top:44px}
+  .hiw-step h3{font-size:24px;line-height:30px}
+  .hiw-body{margin-bottom:22px}
+  .hiw-panel{border-radius:20px;padding:16px}
+  .hiw-card{padding:18px 16px}
+  .hiw-2col{grid-template-columns:1fr;gap:0}
+  .hiw-linkpill{padding:11px 16px}
+  .hiw-ev{gap:11px;padding:13px 13px}
+  .hiw-ev-icon{width:30px;height:30px}
+  .hiw-ev-title{font-size:14px;line-height:20px}
+  .split{margin-block:48px}
+  .split-grid{padding:36px 22px;gap:40px}
+  .split h2{font-size:33px;line-height:40px}
+  .discover-head h2,.calc-head h2{font-size:30px;line-height:38px}
+  .discover{padding:8px 0 72px}
+  .stores{padding:8px 20px}
+  .calc{padding:36px 24px 32px}
+  .calc-figure{font-size:54px}
+  .calc-fields{grid-template-columns:1fr;gap:20px;margin-top:30px}
+  .crescendo{margin-block:48px;padding:56px 20px 64px}
+  .cres-head h2{font-size:36px;line-height:44px}
+  .plans{grid-template-columns:minmax(0,420px);justify-content:center;margin-top:44px;gap:16px;row-gap:36px}
+  .plan{padding:26px 20px 22px}
+  .plan-price .serif{font-size:38px}
+  .acc-q{font-size:17px;padding:18px 2px}
+  .final{margin-block:48px;padding:64px 24px 56px}
+  .final h2{font-size:34px;line-height:42px}
+  .footer-cols{grid-template-columns:1fr;gap:36px;padding:48px 0 40px}
+  .legal{justify-content:center;text-align:center}
+  .footer{margin-top:64px}
+  .ghost-word{font-size:33vw}
+}
+
+/* ============ reduced motion ============ */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  .reveal,.reveal-scale{opacity:1;transform:none}
+  .mrr .line{stroke-dashoffset:0}
+  .mrr .area{opacity:.1}
+  .mrr .marker{opacity:1}
+}
+
+/* the display voice is the product's: Space Grotesk, bold, tight */
+h1,h2,h3,.calc-figure{font-family:var(--grotesk);font-weight:700;letter-spacing:-.02em}
+.footer{background:#060606}
+.ghost-word{color:#151515}
+/* ============ v6 glass + money system (bento / discover / split / calc / faq / footer) ============ */
+:root{
+  --gl-surface:rgba(255,255,255,.05);
+  --gl-surface-2:rgba(255,255,255,.09);
+  --gl-border:rgba(255,255,255,.09);
+  --gl-border-strong:rgba(255,255,255,.17);
+  --gl-topshine:rgba(255,255,255,.06);
+  --gl-card-solid:#1a2233;
+  --gl-ink:#f2f5fb;
+  --gl-btn-ink-text:#101827;
+  --gl-sec:#c9d2e0;
+  --gl-micro:#b4c1d4;
+  --gl-blue:#7ea2ff;
+  --gl-accent-strong:#5865f2;
+  --gl-green:#4ade80;
+  --gl-green-border:rgba(74,222,128,.38);
+  --gl-blue-border:rgba(126,162,255,.42);
+  --gl-blue-tint:rgba(126,162,255,.12);
+  --gl-gold:#f0c46a;
+  --gl-track:rgba(255,255,255,.13);
+  --gl-ghost:rgba(255,255,255,.05);
+}
+html[data-theme="light"]{
+  --gl-surface:rgba(255,255,255,.6);
+  --gl-surface-2:rgba(255,255,255,.85);
+  --gl-border:rgba(15,23,42,.09);
+  --gl-border-strong:rgba(15,23,42,.17);
+  --gl-topshine:rgba(255,255,255,.85);
+  --gl-card-solid:#ffffff;
+  --gl-ink:#0f1626;
+  --gl-btn-ink-text:#ffffff;
+  --gl-sec:#2b3550;
+  --gl-micro:#3c4763;
+  --gl-blue:#5865f2;
+  --gl-accent-strong:#5865f2;
+  --gl-green:#16a34a;
+  --gl-green-border:rgba(22,163,74,.45);
+  --gl-blue-border:rgba(88,101,242,.42);
+  --gl-blue-tint:rgba(88,101,242,.1);
+  --gl-gold:#a16207;
+  --gl-track:rgba(15,23,42,.14);
+  --gl-ghost:rgba(15,22,38,.06);
+}
+
+/* --- shared header language (ugc.foundable) --- */
+.sec-eyebrow{font:500 15.5px/1.4 var(--sans);color:var(--gl-blue);margin-bottom:14px}
+/* Text that lands directly on the day sky, with no panel under it. These
+   colours were picked against --paper (#f4f7fd) and are fine there, but the
+   sections carrying them have no background, so they resolve against
+   html[data-theme="light"]{background:#70a3e6}: the eyebrows measured 1.77:1
+   and the payment captions 1.80:1. Darkened only for the light face, only
+   where the sky is what is behind. */
+html[data-theme="light"] .sec-eyebrow{color:#1b2c57}      /* was #5865f2 — 1.77:1, now 5.2:1 */
+html[data-theme="light"] .microcopy{color:#22314f}           /* the crescendo note under Start selling sat on the sky at ~2.5:1 */
+html[data-theme="light"] .hero-sub,
+html[data-theme="light"] .hero .microcopy,
+html[data-theme="light"] .page-hero-sub{color:#22314f}     /* --sec on the bare sky measured under 3.2:1; 5.0:1 now */
+html[data-theme="light"] .pay-cap,
+html[data-theme="light"] .pay-note{color:#22314f}         /* was #67748f — 1.80:1, now 5.0:1 */
+html[data-theme="light"] .mid-note{color:#22314f}         /* was #46536e — 2.96:1, now 5.0:1 */
+h2.sec-display{
+  font-family:var(--grotesk);font-weight:700;letter-spacing:-.02em;
+  font-size:clamp(32px,4vw,52px);line-height:1.08;color:var(--gl-ink);max-width:24ch;
+}
+.t2{color:var(--gl-blue)}
+.kicker{
+  display:block;font:600 12px/1 var(--sans);letter-spacing:.16em;
+  text-transform:uppercase;color:var(--gl-micro);
+}
+
+/* --- bento re-house --- */
+.bento-head{text-align:left;margin-bottom:44px}
+.bcard{
+  background:var(--gl-surface);border:1px solid var(--gl-border);border-radius:22px;
+  box-shadow:inset 0 1px 0 var(--gl-topshine);
+}
+.bcard:hover{border-color:var(--gl-border-strong);transform:translateY(-2px)}
+.bcard h3{color:var(--gl-ink)}
+.blabel,.panel-label{color:var(--gl-micro)}
+.bbody{color:var(--gl-sec)}
+.bcard .bullets li{color:var(--gl-sec)}
+.bcard .bullets li::before{background:var(--gl-ink)}
+.ttile{border-color:var(--gl-border-strong)}
+.ttile.on{border-color:var(--gl-ink)}
+.dot.on{box-shadow:0 0 0 2px var(--gl-card-solid),0 0 0 3.5px var(--gl-ink)}
+.appr-val{border-color:var(--gl-border-strong);color:var(--gl-sec)}
+.typeseg button{border-color:var(--gl-border-strong);color:var(--gl-sec)}
+.typeseg .on{background:var(--gl-ink);color:var(--gl-btn-ink-text);border-color:var(--gl-ink)}
+.appview{border-color:var(--gl-border-strong)}          /* preview stays dark via --pv-* in BOTH themes */
+.opt{border-color:var(--gl-border-strong);color:var(--gl-sec)}
+.opt em{color:var(--gl-micro)}
+.opt b{color:var(--gl-ink)}
+.opt.on{border-color:var(--gl-ink);box-shadow:0 0 0 1px var(--gl-ink);background:var(--gl-surface-2);color:var(--gl-ink)}
+.disc-code{background:var(--gl-surface-2);border-color:var(--gl-border-strong);color:var(--gl-ink)}
+.disc-code i{background:var(--gl-sec)}
+.disc-apply{background:var(--gl-surface-2);border-color:var(--gl-border-strong);color:var(--gl-ink)}
+.disc-msg{color:var(--gl-green)}
+/* money is green: MRR line/area/marker */
+.mrr .line{stroke:var(--gl-green)}
+.mrr .area{fill:var(--gl-green)}
+.mrr .dash{stroke:var(--gl-track)}
+.mrr .marker circle:nth-child(1){fill:var(--gl-card-solid)}
+.mrr .marker circle:nth-child(2){fill:var(--gl-green)}
+.mrr-stat{background:var(--gl-card-solid);border-color:var(--gl-border-strong)}
+.mrr-stat b{color:var(--gl-ink)}
+.mrr-stat span{color:var(--gl-micro)}
+/* the two bordered stat cards (644c3ba1) */
+.stat-duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat-mini{border:1px solid var(--gl-border-strong);border-radius:16px;padding:16px 16px 14px;background:rgba(255,255,255,.02)}
+.stat-mini b{display:block;font-family:var(--grotesk);font-weight:700;font-size:30px;line-height:1;letter-spacing:-.02em}
+.stat-mini span{display:block;margin-top:7px;font-size:12.5px;line-height:17px;color:var(--gl-sec)}
+.stat-blue{border-color:var(--gl-blue-border)}
+.stat-blue b{color:var(--gl-blue)}
+.stat-green{border-color:var(--gl-green-border)}
+.stat-green b{color:var(--gl-green)}
+
+/* --- discover re-house --- */
+.discover-head{text-align:left}
+.discover-head .cats{justify-content:flex-start;margin-top:22px}
+.cat{background:var(--gl-surface);border-color:var(--gl-border);color:var(--gl-sec)}
+.store{background:var(--gl-surface);border-color:var(--gl-border);box-shadow:inset 0 1px 0 var(--gl-topshine)}
+.store:hover{border-color:var(--gl-border-strong)}
+.store-tile{box-shadow:0 0 0 4px var(--gl-card-solid);background-color:var(--gl-card-solid)}
+.store-name{color:var(--gl-ink)}
+.store-cat{color:var(--gl-sec);border-color:var(--gl-border)}
+.store-members{color:var(--gl-micro)}
+.store-price{color:var(--gl-ink)}
+.discover-link{color:var(--gl-ink)}
+
+/* --- storefront split re-house --- */
+.slab.split{background:var(--gl-surface);border:1px solid var(--gl-border);border-radius:24px;box-shadow:inset 0 1px 0 var(--gl-topshine)}
+.split .split-body{color:var(--gl-sec)}
+.split .bullets li{color:var(--gl-sec)}
+.split .bullets li::before{background:var(--gl-ink)}
+.split .microcopy,.calc-cta .microcopy{color:var(--gl-micro)}
+.split .demo-link{color:var(--gl-ink)}
+.split .btn-ink,.calc-cta .btn-ink{background:var(--gl-ink);color:var(--gl-btn-ink-text)}
+.split .btn-ink:hover,.calc-cta .btn-ink:hover{background:var(--gl-ink);opacity:.9}
+.browser{background:#14161d;border-color:rgba(255,255,255,.1)}   /* dark product chrome, both themes */
+.ui-stage .float-chip{background:var(--gl-card-solid);border-color:var(--gl-border-strong);color:var(--gl-ink)}
+
+/* --- calculator: full 18ec3632 + 9305ecb9 treatment --- */
+.calc-head{text-align:left;width:min(760px,100%);margin:0 auto 36px}
+.calc-head p{color:var(--gl-micro)}
+.calc{background:var(--gl-surface);border-color:var(--gl-border);border-radius:24px;box-shadow:inset 0 1px 0 var(--gl-topshine);padding:48px 56px 44px}
+/* night: bound the panel — a dark tint so stars/clouds don't pass through the content zone (18ec3632) */
+html:not([data-theme="light"]) .calc{background:rgba(15,22,38,.55);border-color:rgba(255,255,255,.13)}
+.calc-row-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:16px}
+.calc-row-top label{font-size:15px;font-weight:500;color:var(--gl-ink);margin:0}
+.calc-count{font-family:var(--grotesk);font-weight:700;font-size:44px;line-height:1;letter-spacing:-.02em;color:var(--gl-ink);font-variant-numeric:tabular-nums}
+#calcSubs{background:linear-gradient(to right,var(--gl-accent-strong) var(--pct,28.6%),var(--gl-track) var(--pct,28.6%))}
+#calcSubs::-webkit-slider-thumb{width:24px;height:24px;background:#fff;border:0;box-shadow:0 2px 8px rgba(0,0,0,.35),0 0 0 1px rgba(15,23,42,.12)}
+#calcSubs::-moz-range-thumb{width:18px;height:18px;background:#fff;border:0;box-shadow:0 2px 8px rgba(0,0,0,.35),0 0 0 1px rgba(15,23,42,.12)}
+.calc .ticks{color:var(--gl-micro)}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.presets button{
+  border:1px solid var(--gl-border);border-radius:999px;padding:9px 16px;
+  font-size:13.5px;font-weight:500;color:var(--gl-sec);background:var(--gl-surface);
+  transition:background-color .15s ease,color .15s ease,border-color .15s ease,transform 160ms cubic-bezier(.23,1,.32,1);
+}
+.presets button:hover{border-color:var(--gl-border-strong);color:var(--gl-ink)}
+.presets button:active{transform:scale(.97)}
+.presets button.on{border-color:var(--gl-blue-border);background:var(--gl-blue-tint);color:var(--gl-ink)}
+.presets button:focus-visible{outline:2px solid var(--gl-accent-strong);outline-offset:2px}
+.calc-fields{margin-top:32px}
+.field label{color:var(--gl-ink)}
+.field input,.field select{background-color:var(--gl-surface-2);border-color:var(--gl-border-strong);color:var(--gl-ink)}
+.calc-net{margin-top:38px}
+.net-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.net-label{font:500 15.5px/1.4 var(--sans);color:var(--gl-blue)}
+.net-chip{
+  border:1px solid var(--gl-border-strong);border-radius:999px;padding:6px 14px;
+  font:600 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gl-sec);
+}
+.calc-figure{color:var(--gl-ink)}
+.calc-figure small{color:var(--gl-micro)}
+.net-cap{margin-top:10px;font-size:14px;color:var(--gl-micro)}
+.proj{margin-top:34px;border-top:1px solid var(--gl-border);padding-top:22px}
+.proj-rows{margin-top:14px}
+.proj-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;font-size:15.5px;color:var(--gl-sec)}
+.proj-row + .proj-row{border-top:1px solid var(--gl-border)}
+.proj-row b{font-family:var(--grotesk);font-weight:700;font-size:17px;letter-spacing:-.01em;color:var(--gl-ink);font-variant-numeric:tabular-nums}
+.proj-row.gold,.proj-row.gold b{color:var(--gl-gold)}   /* THE page's only gold */
+.proj-cap{margin-top:14px;font-size:13px;line-height:19px;color:var(--gl-micro)}
+.calc-cta{margin-top:36px}
+#appRadius{background:linear-gradient(to right,var(--gl-accent-strong) var(--pct,66.7%),var(--gl-track) var(--pct,66.7%))}
+
+/* --- FAQ: separate gapped glass cards (4b59e6bf) --- */
+.faq-head{text-align:center;margin-bottom:44px}
+.faq-head .sec-display{margin-inline:auto}
+.acc{display:grid;gap:14px;max-width:820px;margin-inline:auto}
+.acc-item,.acc-item:first-child{
+  border:1px solid var(--gl-border);border-radius:22px;
+  background:var(--gl-surface);box-shadow:inset 0 1px 0 var(--gl-topshine);
+  padding:6px 26px;transition:border-color .2s ease;
+}
+.acc-item:hover{border-color:var(--gl-border-strong)}
+.acc-q{font-size:19px;color:var(--gl-ink);padding:20px 2px}
+.acc-q:hover{color:var(--gl-sec)}
+.acc-icon::before{border-color:var(--gl-ink)}
+.acc-a p{color:var(--gl-sec);padding:0 40px 22px 2px}
+.faq-card{
+  max-width:820px;margin:14px auto 0;background:var(--gl-blue-tint);
+  border:1px solid var(--gl-blue-border);border-radius:22px;padding:24px 26px;
+  display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;
+}
+.faq-card p{font-size:14.5px;line-height:21px;color:var(--gl-sec);margin:0;max-width:52ch}
+.faq-card a{font-size:14.5px;font-weight:500;color:var(--gl-ink);border-bottom:1px solid var(--gl-border-strong);transition:border-color .2s ease}
+.faq-card a:hover{border-color:var(--gl-ink)}
+
+/* --- closer + footer (df42b5c9 anatomy) --- */
+.closer{padding:120px 24px 92px;text-align:center}
+.closer h2{font-size:clamp(38px,5.2vw,60px);line-height:1.05;color:var(--gl-ink)}
+.btn-gloss{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  height:56px;padding:0 34px;border-radius:999px;margin-top:36px;
+  background:linear-gradient(180deg,#7b86ff 0%,#5865f2 45%,#4550e0 100%);
+  color:#fff;font-size:16px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(0,0,0,.18),0 12px 30px -12px rgba(88,101,242,.55);
+  transition:filter .2s ease,transform 160ms cubic-bezier(.23,1,.32,1);
+}
+.btn-gloss:hover{filter:brightness(1.07)}
+.btn-gloss:active{transform:scale(.98)}
+.btn-gloss:focus-visible{outline:2px solid var(--gl-blue);outline-offset:3px}
+.footer{background:transparent;color:var(--gl-micro);margin-top:24px;overflow:hidden}
+.footer-cols{border-top:1px solid var(--gl-border);padding:64px 0 56px}
+.fcol b{font:600 12px/1 var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--gl-micro)}
+.fcol a{color:var(--gl-sec)}
+.fcol a:hover{color:var(--gl-ink)}
+.legal{border-top:1px solid var(--gl-border);color:var(--gl-micro)}
+.legal .glyph{background:var(--gl-micro)}
+.soc-tile{
+  width:42px;height:42px;border-radius:12px;flex:none;
+  background:var(--gl-surface);border:1px solid var(--gl-border);
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color .2s ease,transform 160ms cubic-bezier(.23,1,.32,1);
+}
+.soc-tile:hover{border-color:var(--gl-border-strong)}
+.soc-tile:active{transform:scale(.96)}
+.soc-tile svg{width:20px;height:auto;fill:var(--gl-sec)}
+.soc-tile:hover svg{fill:var(--gl-ink)}
+.legal-soc{display:flex;gap:10px}
+.ghost-word{height:.55em;line-height:1;margin-top:48px;color:var(--gl-ghost)}
+
+/* --- mobile --- */
+@media (max-width:600px){
+  .calc{padding:36px 20px 32px}
+  .calc-count{font-size:34px}
+  .ticks span:nth-child(2){display:none}  /* "50" collides with "10" at 390px */
+  .presets{gap:6px}
+  .presets button{padding:8px 12px;font-size:12.5px}
+  .stat-mini b{font-size:26px}
+  .proj-row{font-size:14.5px}
+  .acc-item,.acc-item:first-child{padding:2px 18px;border-radius:18px}
+  .acc-q{font-size:17px;padding:18px 2px}
+  .faq-card{padding:20px}
+  .closer{padding:80px 20px 60px}
+  .footer-cols{padding:48px 0 40px}
+}
+/* ── hero foot: the quiet Foundable row at the bottom of the sky ── */
+.hero-foot{
+  position:relative;display:flex;align-items:center;justify-content:center;gap:26px;
+  padding:10px 24px 30px;font-size:13.5px;font-weight:500;
+}
+.hero-foot a{color:inherit;opacity:.72;transition:opacity .2s ease;display:inline-flex;align-items:center;min-height:44px;margin:-6px 0}  /* a 44px hit box that takes the 32px of row it always did */
+.hero-foot a:hover{opacity:1}
+.hf-sep{width:1px;height:14px;background:currentColor;opacity:.28}
+.hf-ic{min-width:32px;justify-content:center}   /* 32px tap target — svg alone is 17px */
+.hf-ic svg{width:17px;height:17px;fill:currentColor;display:block}
+html[data-theme="light"] .hero-foot{color:#0f1626}
+html:not([data-theme="light"]) .hero-foot{color:#f2f5fb}
+@media (max-width:600px){.hero-foot{gap:20px;padding-bottom:24px}}
+
+/* ═══════════ the theme-kit layer: sheet-and-footer reveal, pill, grain ═══════════ */
+/* grain over the whole sky — without it the gradient reads cheap */
+.sky-grain{
+  position:absolute;inset:0;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");background-size:300px 300px;
+  opacity:.1;mix-blend-mode:overlay;
+}
+/* the content sheet: rounded bottom corners + shadow; a soft lip at its base
+   so the lifting edge reads over the shared sky */
+.sheet{
+  position:relative;z-index:1;overflow:clip;
+  border-bottom-left-radius:clamp(40px,4.6vw,62px);
+  border-bottom-right-radius:clamp(40px,4.6vw,62px);
+  box-shadow:0 36px 70px -30px rgba(10,20,50,.45);
+  padding-bottom:64px;
+}
+html[data-theme="light"] .sheet{
+  box-shadow:0 36px 70px -30px rgba(20,40,90,.32);
+}
+.footer-spacer{position:relative;z-index:0;height:0;pointer-events:none}
+
+/* the footer: the kit's own solid ground — the clouds stop at the sheet's lip */
+/* background-COLOR as well as the gradient, and deliberately not the
+   `background` shorthand — the shorthand resets background-color to
+   transparent, which is what left an engine sampling this element with nothing
+   to read. The colour is --foot-edge rather than the gradient's own last stop,
+   because a sampled colour that does not match the pixel above it is a seam by
+   another name. The gradient paints over it either way; the only thing this
+   decides is what an engine reads off the element. */
+.footer{
+  position:relative;z-index:0;overflow:clip;margin-top:-40px;
+  background-color:var(--foot-edge);
+  background-image:linear-gradient(180deg,#1c2740 0%,#1f2f4d 30%,#243a64 58%,#274680 82%,var(--foot-end) 100%);
+}
+html[data-theme="light"] .footer{
+  background-color:var(--foot-edge);
+  background-image:linear-gradient(180deg,#bcd5f0 0%,#9cbeea 26%,#8eb4e6 44%,#769fe0 62%,#5f8ed9 78%,#4575cb 90%,var(--foot-end) 100%);
+}
+.footer::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;z-index:2;pointer-events:none;
+  height:clamp(120px,18vh,210px);
+  background:linear-gradient(180deg,transparent 0%,rgba(17,25,40,.08) 54%,rgba(17,25,40,.18) 100%);
+}
+/* the reveal proper — the window blind: the footer is PINNED to the viewport
+   behind the sheet, and the sheet (clouds included, clipped inside it) lifts
+   away to uncover it. Real pointers ≥640px; mobile keeps the in-flow footer. */
+@media (hover:hover) and (pointer:fine) and (min-width:640px){
+  /* min-height:100vh is NOT decoration. The footer is anchored bottom:0, so a
+     footer shorter than the viewport would leave the page ground painting
+     ABOVE it — the same band this page has been reported for, relocated to the
+     top of a desktop screen. It is the desktop equivalent of the --foot-edge
+     ground swap the phone block does, and removing it to "tidy up" a
+     full-bleed footer would bring the bug straight back. */
+  html[data-blind] .footer{position:fixed;inset:auto 0 0 0;min-height:100vh}
+  html[data-blind] .footer-spacer{height:100vh}
+  /* Gated on the blind for the same reason the phone is: a footer taller
+     than the viewport, pinned to bottom:0, hides its own title and CTA above
+     the top of the screen. When it does not fit it flows, flush under the
+     sheet's lip, and the title is a scroll away. */
+  .footer{margin-top:0}
+  /* Tighten before giving up, as the phone does: paddings first, then the
+     watermark, so the reveal survives a laptop viewport with browser chrome. */
+  html[data-foot-tight] .footer-stage{padding-top:20px}
+  html[data-foot-tight] .footer-title{margin-bottom:8px}
+  html[data-foot-tight] .footer-cta{margin-bottom:16px}
+  html[data-foot-tight] .footer .fcol{gap:7px}
+  html[data-foot-tight] .footer-watermark{margin-top:0}
+  html[data-foot-tighter] .footer-watermark{display:none}
+}
+.footer-stage{
+  position:relative;z-index:1;display:flex;flex-direction:column;box-sizing:border-box;
+  padding:clamp(24px,5vh,104px) clamp(18px,3vw,32px) 0;
+}
+@media (hover:hover) and (pointer:fine) and (min-width:640px){ .footer-stage{min-height:100vh;min-height:100lvh} }
+.footer-title{
+  margin:auto 0 clamp(10px,2vh,28px);
+  color:#fff;font-family:var(--jakarta);
+  font-size:clamp(36px,min(6.2vw,9.5vh),84px);font-weight:500;line-height:1.02;
+  letter-spacing:-.025em;text-align:center;text-wrap:balance;
+}
+.footer-cta{display:flex;justify-content:center;align-items:center;margin-bottom:clamp(16px,5vh,64px)}
+.footer-directory{
+  display:grid;grid-template-columns:1.6fr repeat(4,minmax(0,1fr));
+  gap:clamp(12px,2.4vh,24px);width:min(100%,1080px);margin:clamp(16px,4vh,64px) auto auto;
+  padding-bottom:clamp(10px,2vh,32px);
+}
+.f-identity{align-self:start}
+.f-brand{display:inline-flex;align-items:center;gap:9px;min-height:32px;color:#fff;font-family:var(--grotesk);font-size:20px;font-weight:600;letter-spacing:-.02em}
+.f-brand .glyph{width:18px;height:18px;background:#fff}
+.f-copy{margin:12px 0 0;color:rgba(255,255,255,.72);font-size:13px}
+.f-socials{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.footer .soc-tile{
+  display:inline-flex;align-items:center;justify-content:center;position:relative;
+  width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;transition:background .15s;
+}
+.footer .soc-tile::after{content:"";position:absolute;inset:-6px}  /* 32px tile, 44px hit box */
+.footer .soc-tile:hover{background:rgba(255,255,255,.26)}
+.footer .soc-tile svg{width:15px;height:15px;fill:currentColor}
+.footer .fcol{display:flex;flex-direction:column;gap:11px;min-width:0}
+/* 12px, not 10.5: the phone floor. Leading 1.1 keeps the 13px line box the
+   10.5px label had, so the footer height (and its fit budget) is unchanged. */
+.footer .fcol b{
+  margin:0 0 3px;color:rgba(255,255,255,.64);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12px;font-weight:500;line-height:1.1;letter-spacing:.08em;text-transform:uppercase;
+}
+.footer .fcol a{position:relative;display:inline-flex;align-items:center;min-height:21px;padding:0;color:rgba(255,255,255,.82);font-size:14px;line-height:1.5;transition:color .15s}
+.footer .fcol a:hover{color:#fff}
+/* A 25px hit box on a 20px row, reaching up into the gap above. Not 44: these
+   rows sit inside the footer fit budget, and the column balancer counts overflow
+   BELOW a box, so the box can only grow upward without growing the footer. */
+.footer .fcol a::after{content:"";position:absolute;inset:-5px 0 0}
+/* day footer runs on the kit's dark ink over the light ground. The title used
+   to stay white here and measured 1.91:1 against #bcd5f0 — under even the 3:1
+   large-text floor — so it takes the ink too. */
+html[data-theme="light"] .footer-title{color:#030507}
+html[data-theme="light"] .f-brand{color:#030507}
+html[data-theme="light"] .f-brand .glyph{background:#030507}
+html[data-theme="light"] .f-copy{color:rgba(3,5,7,.9)}
+html[data-theme="light"] .footer .soc-tile{background:rgba(3,5,7,.1);color:#030507}
+html[data-theme="light"] .footer .soc-tile:hover{background:rgba(3,5,7,.18)}
+html[data-theme="light"] .footer .fcol b{color:rgba(3,5,7,.8)}
+html[data-theme="light"] .footer .fcol a{color:rgba(3,5,7,.82)}
+html[data-theme="light"] .footer .fcol a:hover{color:#030507}
+/* the giant masked wordmark, bleeding off both edges */
+.footer-watermark{
+  --wm-h:calc(100vw * .184);
+  position:relative;display:block;align-self:stretch;height:var(--wm-h);
+  margin:clamp(8px,1.5vh,16px) calc(-1 * clamp(18px,3vw,32px)) calc(var(--wm-h) / -5);
+  pointer-events:none;user-select:none;
+}
+.fw-base,.fw-grad{
+  position:absolute;inset:0;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 954.8 176'%3E%3Ctext x='-6' y='172' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='236' font-weight='700' letter-spacing='2' text-anchor='start' textLength='962' lengthAdjust='spacingAndGlyphs'%3EDues%3C/text%3E%3C/svg%3E") left bottom / contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 954.8 176'%3E%3Ctext x='-6' y='172' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='236' font-weight='700' letter-spacing='2' text-anchor='start' textLength='962' lengthAdjust='spacingAndGlyphs'%3EDues%3C/text%3E%3C/svg%3E") left bottom / contain no-repeat;
+}
+.fw-base{background:rgba(255,255,255,.12)}
+.fw-grad{background:linear-gradient(180deg,rgba(255,255,255,.3) 0%,rgba(255,255,255,.06) 64%,rgba(255,255,255,.16) 100%)}
+
+/* ── the pill: solid blurple ramp — no sheen, no wet rims ── */
+.btn-primary,.btn-gloss{
+  border:1px solid rgba(64,76,196,.5);border-radius:999px;
+  background:linear-gradient(180deg,#626ff5 0%,#5865f2 55%,#4c58e0 100%);
+  box-shadow:0 6px 16px -8px rgba(40,50,160,.45);
+  color:#fff;font-weight:700;
+  transition:box-shadow .18s cubic-bezier(.16,1,.3,1),transform .18s cubic-bezier(.16,1,.3,1),filter .18s cubic-bezier(.16,1,.3,1);
+}
+.btn-primary:hover{transform:translateY(-1px);filter:brightness(1.05);box-shadow:0 10px 22px -10px rgba(40,50,160,.5)}
+.btn-gloss{display:inline-flex;justify-content:center;align-items:center;gap:12px;min-height:60px;padding:19px 38px;font-size:19px;letter-spacing:-.01em}
+.btn-gloss:hover{transform:translateY(-2px);filter:brightness(1.05);box-shadow:0 12px 26px -10px rgba(40,50,160,.5)}
+
+/* ── the kit's display face + weight inversion: Plus Jakarta Sans for the
+   big moments; headings get lighter as they grow, small text stays heavy ── */
+.hero h1{font-family:var(--jakarta);font-weight:600;letter-spacing:-.03em;word-spacing:.06em;line-height:1.06}
+.hiw-head h2,.faq-head h2,.calc-head h2,.sec-head h2,.cres-head h2{font-family:var(--jakarta);font-weight:500;letter-spacing:-.02em}
+
+@media (max-width:639px){
+  .footer-title{font-size:clamp(34px,9vw,48px)}
+  .footer-directory{grid-template-columns:1fr 1fr}
+  .f-identity{grid-column:1 / -1}
+  .footer-watermark{--wm-h:calc(100vw * .2)}
+}
+
+
+/* ── pricing page ── */
+.page-hero{padding-block:calc(148px + env(safe-area-inset-top,0px)) 6px;text-align:center}
+.page-hero h1{font-family:var(--jakarta);font-weight:600;font-size:clamp(42px,4.8vw,64px);letter-spacing:-.03em;word-spacing:.06em;line-height:1.06;color:var(--ink)}
+.page-hero .sec-eyebrow{margin-bottom:16px}
+.page-hero-sub{margin:18px auto 0;max-width:560px;font-size:17px;line-height:27px;color:var(--sec)}
+html:not([data-theme="light"]) .page-hero-sub{color:#c6d0e2}
+.crescendo{margin-top:40px}
+@media (max-width:600px){.page-hero{padding-block:calc(120px + env(safe-area-inset-top,0px)) 0}}
+
+/* ── pricing on the open sky: the dark slab dissolves, tiers ride glass ── */
+.crescendo{margin-block:28px 40px;background:none;box-shadow:none;padding:24px 0 40px;color:var(--ink)}
+.crescendo::after{display:none}
+.crescendo .section-mark{background:var(--blue)}
+.cres-head h2{color:var(--ink)}
+.cres-head p{color:var(--sec)}
+html:not([data-theme="light"]) .cres-head p{color:#c6d0e2}
+.billing-toggle{background:var(--glass);border:1px solid var(--glass-brd);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
+.billing-toggle button{color:var(--sec)}
+.billing-toggle button.on{background:#5865f2;color:#fff}
+.tog-save{background:rgba(61,220,132,.18);color:#177245}
+html:not([data-theme="light"]) .tog-save{color:#3ddc84}
+/* Night: small copy over the cloud photograph measured 1.9–3:1 wherever a
+   bright cloud sat behind it, and the plan cards ride 6% white glass over the
+   same photo. A darker card ground keeps the glass look and the ink legible;
+   the sky copy outside the cards gets a soft shadow for the same reason. */
+html:not([data-theme="light"]) .plan{background:rgba(15,13,34,.62)}
+html:not([data-theme="light"]) .microcopy,html:not([data-theme="light"]) .sec-eyebrow,html:not([data-theme="light"]) .mid-note,html:not([data-theme="light"]) .pay-cap,html:not([data-theme="light"]) .pay-note,html:not([data-theme="light"]) .fees-note,html:not([data-theme="light"]) .plan-name i,html:not([data-theme="light"]) .plan-note,html:not([data-theme="light"]) .hero-sub,html:not([data-theme="light"]) .page-hero-sub{text-shadow:0 1px 2px rgba(6,10,24,.55)}
+/* Night, the rest of it: the shadow above buys about one stop, and the cloud
+   bodies the shader paints (luminance to ~0.17) still leave this copy under
+   4.5:1 whenever one drifts behind it — the 5th percentile measured 2.3–3.7
+   on the eyebrow and the hero sub. Dimming the whole sky enough to fix that
+   is ~55% black, which is no sky at all, and a filter on the canvas dims just
+   as much and adds a compositing pass per frame on phones. So the copy that
+   sits on the open sky rides the navy glass the plan cards already use:
+   the eyebrow as a pill, the notes as plates, the hero copy on a soft
+   vignette. .62 is the plan-card value (5.2:1 for --micro over the brightest
+   cloud); the eyebrow blue is darker than the greys and needs .74; the --sec
+   hero copy clears on .5. */
+html:not([data-theme="light"]) .sec-eyebrow{display:inline-block;padding:5px 12px;border-radius:10px;background:rgba(13,20,32,.74);border:1px solid rgba(255,255,255,.1)}
+html:not([data-theme="light"]) .fees-note,html:not([data-theme="light"]) .faq-cta .microcopy{padding:9px 14px;border-radius:12px;background:rgba(13,20,32,.62);border:1px solid rgba(255,255,255,.08)}
+html:not([data-theme="light"]) .faq-cta .microcopy{width:fit-content;max-width:100%;margin-inline:auto}
+html:not([data-theme="light"]) .page-hero{position:relative}
+html:not([data-theme="light"]) .page-hero::before{
+  content:"";position:absolute;top:calc(50% + 66px);left:50%;width:1440px;height:760px;transform:translate(-50%,-50%);
+  z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(13,20,32,.5) 0,rgba(13,20,32,.5) 55%,rgba(13,20,32,0) 100%);
+}
+.fee-chip{background:var(--glass);border:1px solid var(--glass-brd);color:var(--sec)}
+.plan{
+  color:var(--ink);
+  background:var(--glass);
+  border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi);
+}
+.plan-name b{color:var(--ink)}
+.plan-name i{color:var(--micro)}
+.plan-price .serif,.plan-price small{color:var(--ink)}
+.plan-note{color:var(--micro)}
+.plan-note.is-deal{color:#177245}
+html:not([data-theme="light"]) .plan-note.is-deal{color:#3ddc84}
+.plan-specs li{border-color:var(--hair)}
+.plan-specs li span{color:var(--sec)}
+.plan-specs li b{color:var(--ink)}
+.plan-foot{color:var(--micro)}
+.plan .btn-outline{border:1px solid var(--glass-brd);color:var(--ink);background:transparent}
+.plan .btn-outline:hover{border-color:#5865f2;color:#5865f2}
+.crescendo .btn-ink{background:#5865f2;color:#fff}
+.crescendo .btn-ink:hover{background:#4752e8}
+.plan-pop{border-color:rgba(88,101,242,.55)}
+.pop-tab{background:#5865f2;color:#fff}
+/* The same re-tokening for the parts added with the compact cards. Written
+   against the dark slab's palette first, these rendered near-white on a light
+   sky: the member cap — the ONE number a plan is chosen on — was invisible in
+   day mode, and so was the whole shared-feature list. Anything inside
+   .crescendo needs its glass counterpart here or it only exists at night. */
+.plan-cap{border-color:var(--hair)}
+.plan-cap b{color:var(--ink)}
+.plan-cap span{color:color-mix(in srgb, var(--ink) 78%, transparent)}
+.plan-look{color:color-mix(in srgb, var(--ink) 70%, transparent)}
+.incl{border-color:var(--glass-brd)}
+.incl h2{color:var(--ink)}
+.incl-grid li{color:color-mix(in srgb, var(--ink) 82%, transparent)}
+.incl-grid svg{color:#177245}
+html:not([data-theme="light"]) .incl-grid svg{color:#3ddc84}
+
+/* ── phones and touch devices: the sky is a FIXED backdrop (out of flow —
+   nothing viewport-sized remains in the document, so no engine can add
+   phantom height), and the opaque footer stacks above it ── */
+@media (hover:none),(pointer:coarse),(max-width:639px){
+  .hero-sky{position:fixed;inset:0 0 -160px 0;height:auto;margin:0}
+  .footer{position:relative;z-index:2;margin-top:0}
+}
+
+/* ── phone footer blind: the desktop reveal, phantom-safe. JS turns on
+   html[data-blind] only when the footer fits the viewport; the in-flow
+   footer swaps for a spacer of the SAME px height, so the document's flow
+   height never changes. The fixed sky is clipped at the sheet's lip so the
+   pinned footer shows beneath it. ── */
+@media (hover:none),(pointer:coarse),(max-width:639px){
+  /* The same ceiling index.html carries, and for the same reason: the reveal
+     dies the moment the footer outgrows the viewport, and it dies SILENTLY.
+     Four rows per column is what a small handset can hold. Every hidden link
+     is still one tap away in the section it belongs to. This page had the
+     tightened version below but not the plain one, which is how two copies of
+     one footer end up a rule apart. */
+  .footer .fcol a.f-deep{display:none}   /* qualified: .footer .fcol a is (0,2,1) and outranks a bare .f-deep */
+  .footer .fcol a:nth-of-type(n+5){display:none}
+  /* the footer is pinned ONLY while the reveal is near. Everywhere else it
+     is an ordinary in-flow footer at the end of the document, so there is
+     simply nothing at the viewport bottom to peek through when an iOS
+     toolbar resize or a laggy fling leaves the sky clip stale — the bar
+     this used to paint mid-page cannot exist. The swap happens while the
+     footer is at least 160px below the fold (near fires before its in-flow
+     top edge could enter the viewport), so it is never visible. */
+  html[data-blind][data-footer-near] .footer{position:fixed;inset:auto 0 0 0;z-index:0;margin-top:0}
+  html[data-blind][data-footer-near] .footer-spacer{height:var(--footH,0px)}
+  /* The backstop that used to live here — the page ground taking the footer's
+     end colour — is no longer gated on the blind, and no longer written as two
+     literals. It sits with the tint tokens near the top of this sheet, keyed on
+     data-footer-near alone, so a phone the reveal cannot fit still has the
+     right colour beneath its footer. */
+  /* ── the phone footer's vertical rhythm, in ONE place and in svh ─────────
+     This used to be two groups of fixed px inside the same media query, the
+     second silently overriding the first, so a compaction pass could land on
+     the dead copy and measure no change at all. And px cannot answer the
+     question this footer has to answer, which is "do I fit a viewport whose
+     height I do not know". svh is that height — the small viewport, the one a
+     phone actually has while someone is scrolling — and it is a STATIC unit,
+     so nothing reflows when the toolbar slides away. Sized this way the footer
+     compresses itself on a short handset instead of waiting for someone to
+     notice and shave six pixels off it. */
+  .footer-stage{padding-top:clamp(14px,2.6svh,30px)}
+  .footer-title{font-size:clamp(24px,min(7.2vw,4.4svh),38px);margin-bottom:clamp(4px,1svh,10px)}
+  .footer-cta{margin-bottom:clamp(8px,1.6svh,14px)}
+  /* height, not min-height: .btn-gloss sets an explicit height:56px, which
+     min-height cannot touch — so the phone rule that has sat here shrinking
+     this button has been buying exactly zero pixels. */
+  .footer-cta .btn-gloss{height:48px;min-height:0;padding:0 26px;font-size:16px;margin-top:clamp(10px,2svh,18px)}
+  .footer-directory{margin-top:clamp(2px,.8svh,6px);gap:clamp(7px,1.2svh,10px) 16px;padding-bottom:clamp(0px,.6svh,6px)}
+  .f-copy{margin-top:6px;font-size:12.5px}
+  .f-socials{margin-top:clamp(6px,1.2svh,10px)}
+  /* .f-identity is a block, so the `gap:6px` that used to sit here did
+     nothing at all. Its children carry their own spacing. */
+  .f-identity p{margin:0;line-height:1.4}
+  /* This one grows with the viewport (2.4vh, and vh is the LARGE viewport on
+     iOS), so a taller phone spent part of the room it had just gained on eight
+     more column gaps. svh holds it still. */
+  .f-links .fcol{margin-bottom:clamp(12px,1.8svh,20px)}
+  .footer .fcol{gap:clamp(4px,.8svh,7px)}
+  .footer .fcol a{min-height:20px;font-size:13.5px;line-height:1.45}
+  .footer .fcol b{margin-bottom:1px}
+  /* The wordmark, and the band beneath it. Phones pin the footer to the
+     PHYSICAL bottom (viewport-fit=cover), so Safari's expanded toolbar covers
+     its last lvh-minus-svh pixels — about 99 on a modern iPhone, plus the
+     home-indicator inset. --foot-reserve is that band, declared once: the
+     watermark floats above it, and the fit test subtracts it rather than
+     charging the footer for space that was never meant to be looked at. That
+     subtraction is the whole reason this measured differently on a device than
+     in any emulator: env(safe-area-inset-bottom) is 34px on a notched iPhone
+     and 0 in every desktop browser, so the footer was 34px taller than every
+     check believed. */
+  html{--foot-reserve:calc(env(safe-area-inset-bottom,0px) + 62px)}
+  .footer-watermark{--wm-h:min(calc(100vw * .14),9svh);margin-top:4px;margin-bottom:var(--foot-reserve)}
+  /* Last resort: tighten, do not switch off. The reveal used to disappear the
+     moment the footer outgrew the screen, silently, which is how it has now
+     been reported broken three times. The script applies this tier and
+     re-measures before it gives up on the effect. */
+  html[data-foot-tight] .footer-title{font-size:clamp(21px,5.8vw,28px)}
+  html[data-foot-tight] .footer-watermark{display:none}
+  /* the reserve moves to the stage when the watermark that normally carries it
+     is gone, or the last row of links ends up flush against the physical
+     bottom of the screen with Safari's toolbar over it */
+  html[data-foot-tight] .footer-stage{padding-top:10px;padding-bottom:var(--foot-reserve)}
+  html[data-foot-tight] .footer .fcol a:nth-of-type(n+4){display:none}
+  html[data-foot-tight] .f-socials{margin-top:6px}
+}
+
+</style>
+</head>
+<body>
+<i class="ui-tint" aria-hidden="true"></i>
+<i class="ui-tint-b" aria-hidden="true"></i>
+
+<!-- 1 · announcement -->
+
+<!-- 2 · nav -->
+<div class="sheet">
+<div class="hero-sky" aria-hidden="true"><canvas data-dues-sky></canvas><div class="sky-grain"></div></div>
+<nav class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="/" aria-label="Dues home">
+      <span class="glyph" aria-hidden="true"></span><span>Dues</span>
+    </a>
+    <div class="nav-links">
+      <a href="/discover">Discover</a>
+      <a href="/pricing" aria-current="page">Pricing</a>
+      <a href="/vs">Compare</a>
+      <a href="/tools">Tools</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch between day and night theme">
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2.2v2.1"/><path d="M12 19.7v2.1"/><path d="M2.2 12h2.1"/><path d="M19.7 12h2.1"/><path d="M4.9 4.9l1.5 1.5"/><path d="M17.6 17.6l1.5 1.5"/><path d="M19.1 4.9l-1.5 1.5"/><path d="M6.4 17.6l-1.5 1.5"/></g></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.6 14.4A8.7 8.7 0 0 1 9.6 3.4a8.7 8.7 0 1 0 11 11Z"/></svg>
+      </button>
+      <a class="nav-login" href="/dashboard">Log in</a>
+      <a class="btn btn-primary" href="/dashboard">Start free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- pricing page head -->
+<header class="page-hero wrap">
+  <p class="sec-eyebrow">PRICING</p>
+  <h1>Flat plans. 0% fees.</h1>
+  <p class="page-hero-sub">Every plan keeps the platform fee at zero, on every sale, forever. A bigger plan buys room for more paying members and unlocks the paid storefront looks.</p>
+</header>
+
+<!-- 10 · plans -->
+<section id="pricing" class="slab crescendo reveal">
+  <div class="cres-controls">
+    <div class="billing-toggle" role="group" aria-label="Billing period">
+      <button type="button" class="on" id="togMonthly" aria-pressed="true">Monthly</button>
+      <button type="button" id="togYearly" aria-pressed="false">Yearly <span class="tog-save">2 months free</span></button>
+    </div>
+  </div>
+  <div class="plans">
+    <div class="plan">
+      <div class="plan-name"><b>Free</b><i>For new stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$0" data-yearly="$0">$0</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="free forever" data-note-yearly="free forever">free forever</div>
+      <a class="btn btn-outline" href="/dashboard">Start selling</a>
+      <div class="plan-cap"><b>10</b><span>paying members</span></div>
+      <p class="plan-look">All 44 backgrounds + your own by URL</p>
+    </div>
+    <div class="plan">
+      <div class="plan-name"><b>Pro</b><i>For growing stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$14.99" data-yearly="$149.90">$14.99</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
+      <a class="btn btn-outline" href="/dashboard">Start selling</a>
+      <div class="plan-cap"><b>50</b><span>paying members</span></div>
+      <p class="plan-look">All 44 backgrounds + your own by URL</p>
+    </div>
+    <div class="plan plan-pop">
+      <div class="pop-tab">Popular</div>
+      <div class="plan-name"><b>Max</b><i>For busy stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$44.99" data-yearly="$449.90">$44.99</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
+      <a class="btn btn-ink" href="/dashboard">Start selling</a>
+      <div class="plan-cap"><b>500</b><span>paying members</span></div>
+      <p class="plan-look">All 44 backgrounds + your own by URL</p>
+    </div>
+    <div class="plan">
+      <div class="plan-name"><b>Unlimited</b><i>For the biggest stores</i></div>
+      <div class="plan-price"><span class="serif" data-monthly="$134.99" data-yearly="$1,349.90">$134.99</span><small>/month</small></div>
+      <div class="plan-note" data-note-monthly="billed monthly" data-note-yearly="2 months free">billed monthly</div>
+      <a class="btn btn-outline" href="/dashboard">Start selling</a>
+      <div class="plan-cap"><b class="cap-word">No limit</b><span>on paying members</span></div>
+      <p class="plan-look">All 44 backgrounds + your own by URL</p>
+    </div>
+  </div>
+
+  <!-- Everything the four cards used to repeat. Thirteen of the fourteen spec
+       rows were byte-identical across all four plans, so the reader had to
+       diff four columns by eye to find the one line that changed. Said once,
+       it is a feature list; said four times, it is camouflage. -->
+  <div class="incl">
+    <h2>In every plan, including Free</h2>
+    <ul class="incl-grid">
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>0% platform fee on every sale</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Payouts to your own Stripe account</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Crypto paid to your own wallet</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Unlimited products</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Price options and limited drops</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Role-locked products</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Discount codes</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Store page, banner and links</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Creator and team profiles</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Ratings and reviews</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Instant role delivery</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Sale alerts in your Discord</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Listed in Discover</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5.5 5.5L20 6.5"/></svg><span>Emailed receipts for buyers</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 11 · what you actually pay -->
+<section class="fees wrap">
+  <h2 class="fees-title">What you actually pay</h2>
+  <div class="fees-grid">
+    <article class="fee-card">
+      <h3>Dues</h3>
+      <p class="fee-figure">0%</p>
+      <p>Nothing is deducted from a sale, on any plan. Your plan price is the whole of what Dues charges you.</p>
+    </article>
+    <article class="fee-card">
+      <h3>Card payments</h3>
+      <p class="fee-figure">Stripe&rsquo;s rate</p>
+      <p>Charged by Stripe, directly to your own Stripe account, at whatever rate you have with them. Dues adds nothing on top and never sees it.</p>
+    </article>
+    <article class="fee-card">
+      <h3>Crypto payments</h3>
+      <p class="fee-figure">Buyer covers it</p>
+      <p>The payment processor&rsquo;s fee is added to the buyer&rsquo;s total at checkout. The network&rsquo;s transfer fee comes out of the payout when it forwards to your wallet.</p>
+    </article>
+  </div>
+  <p class="fees-note">Processing fees exist on every platform &mdash; they are the card networks&rsquo; and the blockchains&rsquo;, not a platform&rsquo;s margin. What differs is the cut taken on top, and ours is zero.</p>
+</section>
+
+<!-- 12 · questions -->
+<section class="faq wrap">
+  <h2 class="faq-title">Questions</h2>
+  <div class="faq-list">
+    <details class="faq-item">
+      <summary>What counts as a paying member?</summary>
+      <p>One person with active access, counted once across every store you run. Someone who buys three products from you is still one member, and anyone whose access has ended stops counting straight away.</p>
+    </details>
+    <details class="faq-item">
+      <summary>What happens if I pass my plan&rsquo;s limit?</summary>
+      <p>Nobody loses anything. Every existing member keeps the access they paid for &mdash; only brand-new signups pause, and they start again the moment you upgrade.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Does Dues take a cut of my sales?</summary>
+      <p>0% on every plan, including Free. Card payments settle into your own Stripe account and crypto forwards to your own wallet, so there is nothing for us to take a cut of &mdash; the money never passes through Dues.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Then what do I actually pay?</summary>
+      <p>Your plan, and the processing fees you would pay anyway. Stripe charges its own card rate directly to your account. On crypto the processor&rsquo;s fee is added to the buyer&rsquo;s total at checkout, and the network&rsquo;s transfer fee comes out of the payout.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Do I need Stripe to open a store?</summary>
+      <p>Yes &mdash; connecting your Stripe account is how a store goes live, because that is where card payments land. Crypto is an extra method you can switch on afterwards from Settings.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Can I change or cancel my plan?</summary>
+      <p>Any time, from your dashboard. Cancelling ends the paid plan straight away rather than at the end of the period, so do it on the day you would have renewed. Your store, products, members and look stay exactly where they are — every colour, every background and your own imported image included. A plan buys member capacity, so cancelling changes what your store can hold, never how it looks.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Is yearly really two months free?</summary>
+      <p>Yes. A yearly plan is ten times the monthly price, so you pay for ten months and get twelve.</p>
+    </details>
+  </div>
+  <div class="faq-cta">
+    <a class="btn btn-primary" href="/dashboard">Start selling &#8594;</a>
+    <p class="microcopy">Free to start. No card needed until you pass 10 members.</p>
+  </div>
+</section>
+
+<!-- 13 · footer -->
+</div><!-- /sheet -->
+<div class="footer-spacer" aria-hidden="true"></div>
+
+<footer class="footer">
+  <div class="footer-stage">
+    <h2 class="footer-title">Open your store tonight.</h2>
+    <div class="footer-cta"><a class="btn-gloss" href="/dashboard">Start selling &#8594;</a></div>
+    <div class="footer-directory">
+      <div class="f-identity">
+        <span class="f-brand"><span class="glyph" aria-hidden="true"></span>Dues</span>
+        <p class="f-copy">&#169; 2026 Dues. All rights reserved.</p>
+        <div class="f-socials">
+          <a class="soc-tile" href="/api/community" aria-label="Join the Dues Discord"><svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg></a>
+          <a class="soc-tile" href="https://x.com/duesdiscord" rel="noopener" aria-label="Dues on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zM17.083 19.77h1.833L7.084 4.126H5.117z"/></svg></a>
+        </div>
+      </div>
+      <div class="fcol">
+        <b>Product</b>
+        <a href="/#how">Features</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/discover">Discover stores</a>
+        <a href="/api/invite">Invite Dues</a>
+      </div>
+      <div class="fcol">
+        <b>Compare</b>
+        <a href="/vs/whop">Dues vs Whop</a>
+        <a href="/vs/launchpass">Dues vs LaunchPass</a>
+        <a href="/vs/subscord">Dues vs Subscord</a>
+        <a href="/vs/patreon">Dues vs Patreon</a>
+        <a href="/vs/doorfee">Dues vs DoorFee</a>
+        <a href="/vs/xoe">Dues vs XOE</a>
+      </div>
+      <div class="fcol">
+        <b>Resources</b>
+        <a href="/help">Help</a>
+        <a href="/account">Your account</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="mailto:contact@dues.gg">contact@dues.gg</a>
+      </div>
+      <div class="fcol">
+        <b>Legal</b>
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </div>
+    <div class="footer-watermark" aria-hidden="true">
+      <span class="fw-base"></span><span class="fw-grad"></span>
+    </div>
+  </div>
+</footer>
+
+<script src="/sky.js?v=210" defer></script>
+<script>
+(function(){
+  'use strict';
+  var prm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* theme toggle (sun/moon): html[data-theme="light"] = day, absent = night */
+  var themeBtn = document.querySelector('[data-theme-toggle]');
+  var tintFrame = 0;
+  // Read from the stylesheet's own tokens rather than repeating their values
+  // here, so the tag a browser reads and the colour the page paints cannot
+  // drift apart. --ui-tint is the sky; --foot-edge is the colour the footer is
+  // SEEN to finish on — its last gradient stop composited with the .footer::after
+  // shade, not the nominal stop --foot-end, which is what leaves a seam — and it
+  // is what the bottom of the screen must report once the footer owns it. iOS
+  // uses ONE theme-color for the strips at both ends of the window, and by the
+  // time the footer is on screen it is the only thing on screen, so following
+  // it is right at both ends.
+  var tintWant = function(){
+    var d = document.documentElement;
+    var css = getComputedStyle(d);
+    var t = (css.getPropertyValue(d.hasAttribute('data-footer-near') ? '--foot-edge' : '--ui-tint') || '').trim();
+    return t || (d.getAttribute('data-theme') === 'light' ? '#70a3e6' : '#131b2d');
+  };
+
+  function syncThemeMeta(){
+    var tags = document.querySelectorAll('meta[name="theme-color"]');
+    if(!tintFrame && tags.length === 1 && tags[0].getAttribute('content') === tintWant()){ return; }
+    // iOS Safari re-reads theme-color when the tag is REMOVED and a new one
+    // is inserted as a SEPARATE mutation. Editing the content attribute does
+    // nothing, and replaceWith() is close enough to an edit that WebKit
+    // treats it the same way — which is why the band kept the old face after
+    // a toggle. Drop it, let that commit, then add the new one next frame.
+    //
+    // The removal is synchronous and the insert is two frames later, so a
+    // second tap inside that gap used to find nothing to remove and schedule
+    // a SECOND insert: two tags, and browsers obey the first in document
+    // order — which was the losing one. So: cancel any insert still pending,
+    // clear EVERY tag rather than the first, and read the wanted colour at
+    // insert time so a burst of taps settles on wherever it stopped.
+    for(var i = 0; i < tags.length; i++){ tags[i].remove(); }
+    if(tintFrame && window.cancelAnimationFrame){ cancelAnimationFrame(tintFrame); }
+    tintFrame = 0;
+    var add = function(){
+      tintFrame = 0;
+      var stale = document.querySelectorAll('meta[name="theme-color"]');
+      for(var j = 0; j < stale.length; j++){ stale[j].remove(); }
+      var meta = document.createElement('meta');
+      meta.setAttribute('name','theme-color');
+      meta.setAttribute('content', tintWant());
+      document.head.appendChild(meta);
+    };
+    if(window.requestAnimationFrame){
+      tintFrame = requestAnimationFrame(function(){ tintFrame = requestAnimationFrame(add); });
+    } else { add(); }
+  }
+  syncThemeMeta();
+  // the blind script fires this when the footer takes over the screen, or
+  // gives it back
+  window.addEventListener('dues:tint', syncThemeMeta);
+  window.addEventListener('pageshow', function(e){
+    if(!e.persisted){ return; }
+    var t = null; try{ t = sessionStorage.getItem('ripley-theme'); }catch(err){}
+    var d = document.documentElement;
+    if(t === 'dark'){ d.removeAttribute('data-theme'); }
+    else{ d.setAttribute('data-theme','light'); }
+    syncThemeMeta();
+  });
+  /* iOS repaints its status bar ONLY at first paint.
+     Safari 26 dropped theme-color and samples a fixed element's background
+     instead — and it takes that sample when the page first paints, then never
+     looks again. Nothing done from script moves it: not editing the meta tag,
+     not removing and re-adding it, not changing the sampled element's colour.
+     Three fixes aimed at those and all three failed for the same reason.
+     A fresh paint is the only thing that re-samples. The boot script at the
+     top of this file sets data-theme BEFORE first paint, so after a reload
+     Safari samples the face you actually chose. Scroll position is carried
+     across so the reload lands where you were.
+     iOS WebKit only — a UA test, not @supports, because Chromium also
+     answers to -webkit-touch-callout and desktop must not reload. */
+  var isIosWebKit = (function(){
+    var ua = navigator.userAgent || '';
+    var iOS = /iPhone|iPad|iPod/.test(ua)
+      || (/Mac/.test(navigator.platform || '') && navigator.maxTouchPoints > 1);
+    return iOS && /AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|Android/.test(ua);
+  })();
+  function repaintForStatusBar(){
+    if(!isIosWebKit){ return false; }
+    try{ sessionStorage.setItem('ripley-scroll', String(window.scrollY | 0)); }catch(e){}
+    location.reload();
+    return true;
+  }
+  (function restoreScroll(){
+    var raw = null;
+    try{ raw = sessionStorage.getItem('ripley-scroll'); sessionStorage.removeItem('ripley-scroll'); }catch(e){}
+    if(raw === null){ return; }
+    var y = parseInt(raw, 10) || 0;
+    if(!y){ return; }
+    if('scrollRestoration' in history){ history.scrollRestoration = 'manual'; }
+    var put = function(){ window.scrollTo(0, y); };
+    requestAnimationFrame(function(){ requestAnimationFrame(put); });
+    addEventListener('load', function(){
+      put();
+      // Hand it back. This branch runs only after the status-bar reload, and
+      // it used to leave scrollRestoration on 'manual' for the rest of the
+      // visit — so on iOS, one tap of the theme button meant every later
+      // reload and every Back from /pricing or the dashboard dumped the
+      // visitor at the top of a six-thousand-pixel page.
+      if('scrollRestoration' in history){ history.scrollRestoration = 'auto'; }
+    });
+  })();
+  if(themeBtn){
+    themeBtn.addEventListener('click', function(){
+      var d = document.documentElement;
+      var toDark = d.getAttribute('data-theme') === 'light';
+      if(toDark){ d.removeAttribute('data-theme'); }
+      else{ d.setAttribute('data-theme','light'); }
+      try{ sessionStorage.setItem('ripley-theme', toDark ? 'dark' : 'light'); }catch(e){}
+      syncThemeMeta();
+      repaintForStatusBar();
+    });
+  }
+  syncThemeMeta();
+
+  /* hero capture bar: any submit opens the dashboard */
+  var capture = document.getElementById('captureForm');
+  if(capture){
+    capture.addEventListener('submit', function(e){
+      e.preventDefault();
+      window.location.href = '/dashboard';
+    });
+  }
+
+  /* The nav scrim used to be written here too, at a threshold of 10, while the
+     blind script writes it at 8. Two owners for one class on one element, and
+     which one won was decided by listener registration order. The blind script
+     keeps it — it is the one that also has to fade the bar out. */
+
+  /* scroll reveal + chart draw */
+  var mrr = document.getElementById('mrr');
+  if(prm || !('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
+    if(mrr){ mrr.classList.add('drawn'); }
+  }else{
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    },{threshold:.15,rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+    var ioChart = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          mrr.classList.add('drawn');
+          ioChart.unobserve(mrr);
+        }
+      });
+    },{threshold:.4});
+    if(mrr){ ioChart.observe(mrr); }
+  }
+
+  /* calculator */
+  var price = document.getElementById('calcPrice');
+  var subs = document.getElementById('calcSubs');
+  var billing = document.getElementById('calcBilling');
+  var total = document.getElementById('calcTotal');
+  var suffix = document.getElementById('calcSuffix');
+  var count = document.getElementById('calcCount');
+  var caption = document.getElementById('calcCaption');
+  var projMonth = document.getElementById('projMonth');
+  var projHalf = document.getElementById('projHalf');
+  var projYear = document.getElementById('projYear');
+  var presetBtns = Array.prototype.slice.call(document.querySelectorAll('#calcPresets button'));
+  if(price && subs && billing && total && suffix){
+  function money(v){ return '$' + Math.round(v).toLocaleString('en-US'); }
+  function paintTrack(){
+    var pct = (subs.value - subs.min) / (subs.max - subs.min) * 100;
+    subs.style.setProperty('--pct', pct + '%');
+  }
+  function calc(){
+    var p = parseFloat(price.value);
+    if(!isFinite(p) || p < 0){ p = 0; }
+    var s = parseInt(subs.value, 10);
+    var yearly = billing.value === 'yearly';
+    var monthly = p * s;
+    var value = monthly * (yearly ? 12 : 1);
+    var rounded = Math.round(value / 10) * 10;
+    total.textContent = '$' + rounded.toLocaleString('en-US');
+    suffix.textContent = yearly ? '/year' : '/month';
+    if(count){ count.textContent = s.toLocaleString('en-US'); }
+    if(caption){ caption.textContent = s.toLocaleString('en-US') + ' members × $' + p.toFixed(2) + '/month'; }
+    if(projMonth){ projMonth.textContent = money(monthly); }
+    if(projHalf){ projHalf.textContent = money(monthly * 6); }
+    if(projYear){ projYear.textContent = money(monthly * 12); }
+    presetBtns.forEach(function(b){ b.classList.toggle('on', parseInt(b.dataset.subs, 10) === s); });
+    paintTrack();
+  }
+  presetBtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      subs.value = b.dataset.subs;
+      calc();
+    });
+  });
+  ['input','change'].forEach(function(ev){
+    price.addEventListener(ev, calc);
+    subs.addEventListener(ev, calc);
+    billing.addEventListener(ev, calc);
+  });
+  calc();
+  }
+
+  /* pricing billing toggle: swaps every card's real price from data attributes */
+  var togM = document.getElementById('togMonthly');
+  var togY = document.getElementById('togYearly');
+  var planCards = document.querySelectorAll('#pricing .plan');
+  if(togM && togY){
+  function setBilling(yearly){
+    togM.classList.toggle('on', !yearly);
+    togY.classList.toggle('on', yearly);
+    togM.setAttribute('aria-pressed', String(!yearly));
+    togY.setAttribute('aria-pressed', String(yearly));
+    planCards.forEach(function(card){
+      var fig = card.querySelector('.plan-price .serif');
+      var per = card.querySelector('.plan-price small');
+      var note = card.querySelector('.plan-note');
+      if(!fig){ return; }
+      fig.textContent = fig.getAttribute(yearly ? 'data-yearly' : 'data-monthly');
+      if(per){ per.textContent = yearly ? '/year' : '/month'; }
+      if(note){
+        note.textContent = note.getAttribute(yearly ? 'data-note-yearly' : 'data-note-monthly');
+        note.classList.toggle('is-deal', yearly && note.textContent === '2 months free');
+      }
+    });
+  }
+  togM.addEventListener('click', function(){ setBilling(false); });
+  togY.addEventListener('click', function(){ setBilling(true); });
+  }
+
+  /* accordion */
+  document.querySelectorAll('.acc-item').forEach(function(item){
+    var q = item.querySelector('.acc-q');
+    var a = item.querySelector('.acc-a');
+    if(item.classList.contains('open')){ a.style.height = 'auto'; }
+    q.addEventListener('click', function(){
+      var open = item.classList.contains('open');
+      if(open){
+        a.style.height = a.scrollHeight + 'px';
+        requestAnimationFrame(function(){ a.style.height = '0px'; });
+        item.classList.remove('open');
+        q.setAttribute('aria-expanded','false');
+      }else{
+        item.classList.add('open');
+        q.setAttribute('aria-expanded','true');
+        a.style.height = a.scrollHeight + 'px';
+        a.addEventListener('transitionend', function h(e){
+          if(e.propertyName === 'height' && item.classList.contains('open')){ a.style.height = 'auto'; }
+          a.removeEventListener('transitionend', h);
+        });
+        if(prm){ a.style.height = 'auto'; }
+      }
+    });
+  });
+
+  /* appearance toy: theme / accent / corners / type, previewed live */
+  var apptoy = document.getElementById('apptoy');
+  if(apptoy){
+    var payInk = function(hex){
+      var n = parseInt(hex.slice(1), 16);
+      var yiq = (((n >> 16) & 255) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000;
+      return yiq >= 150 ? '#101010' : '#fff';
+    };
+    var setPay = function(hex){
+      apptoy.style.setProperty('--pv-pay', hex);
+      apptoy.style.setProperty('--pv-payink', payInk(hex));
+    };
+    var pick = function(list, btn){
+      list.forEach(function(b){ b.classList.toggle('on', b === btn); });
+    };
+    var tiles = Array.prototype.slice.call(apptoy.querySelectorAll('.ttile'));
+    var dots = Array.prototype.slice.call(apptoy.querySelectorAll('.dot'));
+    tiles.forEach(function(t){
+      t.addEventListener('click', function(){
+        pick(tiles, t);
+        apptoy.style.setProperty('--pv-bg', t.dataset.bg);
+        apptoy.style.setProperty('--pv-panel', t.dataset.panel);
+        apptoy.style.setProperty('--pv-text', t.dataset.text);
+        setPay(t.dataset.pay);
+        dots.forEach(function(d){ d.classList.toggle('on', d.dataset.pay === t.dataset.pay); });
+      });
+    });
+    dots.forEach(function(d){
+      d.addEventListener('click', function(){ pick(dots, d); setPay(d.dataset.pay); });
+    });
+    var rad = document.getElementById('appRadius');
+    var radVal = document.getElementById('appRadiusVal');
+    function paintRad(){
+      var pct = (rad.value - rad.min) / (rad.max - rad.min) * 100;
+      rad.style.setProperty('--pct', pct + '%');
+      radVal.textContent = rad.value + 'px';
+      apptoy.style.setProperty('--pv-r', rad.value + 'px');
+    }
+    rad.addEventListener('input', paintRad);
+    paintRad();
+    var fonts = {
+      grotesk: 'var(--grotesk)',
+      serif: 'ui-serif,Georgia,serif',
+      mono: "ui-monospace,'SF Mono',Menlo,monospace"
+    };
+    var typeBtns = Array.prototype.slice.call(apptoy.querySelectorAll('#appType button'));
+    typeBtns.forEach(function(b){
+      b.addEventListener('click', function(){
+        pick(typeBtns, b);
+        apptoy.style.setProperty('--pv-font', fonts[b.dataset.font]);
+      });
+    });
+  }
+
+  /* discover drag-scroll */
+  var stores = document.getElementById('stores');
+  if(stores){
+  var isDown = false, startX = 0, startLeft = 0, moved = false;
+  stores.addEventListener('pointerdown', function(e){
+    if(e.pointerType !== 'mouse'){ return; }
+    isDown = true; moved = false;
+    startX = e.clientX; startLeft = stores.scrollLeft;
+  });
+  window.addEventListener('pointermove', function(e){
+    if(!isDown){ return; }
+    var dx = e.clientX - startX;
+    if(Math.abs(dx) > 4){
+      moved = true;
+      stores.classList.add('dragging');
+      stores.scrollLeft = startLeft - dx;
+    }
+  });
+  function endDrag(){
+    isDown = false;
+    stores.classList.remove('dragging');
+  }
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+  stores.addEventListener('dragstart', function(e){ e.preventDefault(); });
+  stores.addEventListener('click', function(e){
+    if(moved){ e.preventDefault(); moved = false; }
+  });
+  }
+})();
+</script>
+<script>
+(function(){
+  var nav = document.querySelector('.nav');
+  var sheet = document.querySelector('.sheet');
+  if(!nav || !sheet) return;
+  var html = document.documentElement;
+  var sky = document.querySelector('.hero-sky');
+  var footer = document.querySelector('.footer');
+  var phoneMq = window.matchMedia('(hover:none),(pointer:coarse),(max-width:639px)');
+  // the LARGE viewport height (toolbar collapsed), read from a 100lvh probe.
+  // The fit decision must not flap as iOS shows and hides its toolbar — and
+  // window.innerHeight does exactly that, with the footer sized close enough
+  // to the viewport that the old innerHeight-based check could flip mid-
+  // gesture and reflow the footer under the visitor's thumb. Falls back to
+  // innerHeight where lvh is unsupported (the probe measures 0).
+  // ONE probe, read in two units, because the fit needs both and they are the
+  // same number in every desktop engine — which is exactly why this kept
+  // passing a check and failing a phone. 100lvh is the viewport with iOS
+  // Safari's toolbars collapsed; 100svh is the viewport while they are showing.
+  // Reset to 0 before each read: in a browser that does not know the unit the
+  // assignment is simply dropped, and without the reset the probe would keep
+  // the previous value instead of falling through to innerHeight.
+  var probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;left:-9px;top:0;width:1px;pointer-events:none;visibility:hidden';
+  (document.body || html).appendChild(probe);
+  var probeAt = function(unit){
+    probe.style.height = '0px';
+    probe.style.height = '100' + unit;
+    var h = probe.getBoundingClientRect().height;
+    return h > 0 ? h : window.innerHeight;
+  };
+  var smallVh = function(){ return probeAt('svh'); };
+  var largeVh = function(){ return probeAt('lvh'); };
+
+  // The band at the foot of the footer that Safari's toolbar covers by design.
+  // Read off the element that declares it, so the stylesheet and this script
+  // cannot hold different opinions about how big it is — and so it picks up
+  // env(safe-area-inset-bottom), which is 34px on a notched iPhone and 0 in
+  // every desktop browser. That 34px is why the device and the emulator
+  // disagreed about whether this footer fits.
+  var reserve = function(){
+    var stage = footer.querySelector('.footer-stage');
+    var wm = footer.querySelector('.footer-watermark');
+    var r = stage ? parseFloat(getComputedStyle(stage).paddingBottom) || 0 : 0;
+    if(wm && getComputedStyle(wm).display !== 'none'){
+      r += parseFloat(getComputedStyle(wm).marginBottom) || 0;
+    }
+    return r;
+  };
+
+  var disarm = function(){
+    html.removeAttribute('data-blind');
+    // and the height that went with it. Nothing reads --footH unqualified
+    // today, but a stale pinned-footer height sitting on <html> for a footer
+    // that is no longer pinned is exactly the sort of thing that misleads the
+    // next person to open DevTools over this bug.
+    html.style.removeProperty('--footH');
+    // data-footer-near is NOT cleared here. It is what colours the ground and
+    // the tint band under the footer, and that has to be right whether or not
+    // the animation is on — a phone too short for the reveal still has a
+    // footer, and the strip beneath it still has to be the footer's colour.
+    // Clearing it here used to hand a disarmed phone a navy band under a blue
+    // footer for exactly as long as it took the next scroll event to fire.
+    if(sky){ sky.style.clipPath = ''; }
+  };
+
+  // TWO conditions, because the single one this replaces measured the wrong
+  // box. The old test was `offsetHeight <= svh - 24`, and it is wrong twice
+  // over: it charges the footer for a reserve that is deliberately below the
+  // small viewport, and it says nothing about whether the pinned footer's TOP
+  // lands on screen, which is the failure that actually looks broken.
+  //   1. the whole footer must fit the LAYOUT viewport. Pinned to bottom:0, a
+  //      taller one puts its own title above the top of the screen and the
+  //      reveal never completes.
+  //   2. its CONTENT — everything above the reserve — must clear the toolbar,
+  //      which is the small viewport.
+  var tryArm = function(){
+    var h = footer.offsetHeight;
+    if(h > largeVh() - 8){ return false; }
+    if(h - reserve() > smallVh() - 24){ return false; }
+    html.setAttribute('data-blind','');
+    html.style.setProperty('--footH', h + 'px');
+    return true;
+  };
+
+  // Tighten, then give up — never give up first. This effect has been reported
+  // broken three times, and every time the cause was the same: it does not
+  // fail when the footer outgrows the screen, it DISARMS, silently, and the
+  // page just stops doing the thing. A tier that compresses the footer and
+  // re-measures turns "switched itself off" into "got smaller", which is a
+  // thing someone can see and reason about.
+  var fit = function(){
+    if(!footer){ return; }
+    var tiers = ['data-foot-tight','data-foot-tighter','data-foot-tightest'];
+    var loosen = function(){ for(var i = 0; i < tiers.length; i++){ html.removeAttribute(tiers[i]); } };
+    loosen();
+    if(!phoneMq.matches){
+      // Desktop: measured IN FLOW, then pinned only if the whole footer fits
+      // the viewport. Not tryArm(): .footer-stage{min-height:100vh} makes the
+      // in-flow height equal the viewport exactly when it fits, and tryArm's
+      // slack would reject that. Tightening tiers before giving up.
+      var armDesk = function(){
+        html.removeAttribute('data-blind');
+        var hd = footer.offsetHeight;
+        if(hd <= largeVh()){ html.setAttribute('data-blind',''); html.style.setProperty('--footH', hd + 'px'); return true; }
+        return false;
+      };
+      if(armDesk()){ return; }
+      for(var t = 0; t < tiers.length; t++){
+        html.setAttribute(tiers[t], '');
+        if(armDesk()){ return; }
+      }
+      loosen();
+      disarm();
+      return;
+    }
+    if(tryArm()){ return; }
+    html.setAttribute('data-foot-tight','');
+    if(tryArm()){ return; }
+    html.removeAttribute('data-foot-tight');
+    disarm();
+  };
+  var on = function(){
+    nav.classList.toggle('scrolled', window.scrollY > 8);
+    // once the sheet's lip is on screen the blind is rising — fade the nav out
+    var bottom = sheet.getBoundingClientRect().bottom;
+    // THE VISIBLE viewport, for this one decision. Everything below works in
+    // the LAYOUT viewport, which is correct for the pin and the clip — they
+    // paint in that coordinate space. The nav is not a paint, it is a
+    // perception: it should go when the footer takes over the screen a person
+    // can SEE. On iOS those differ by the height of the toolbar, about 100px,
+    // and using the layout number for both is why the header disappears while
+    // you are still reading the last section and refuses to come back until
+    // you have scrolled a further 100px on the way up. That is the whole of
+    // "the scroll-up header is broken".
+    var seenVh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    // documentElement.clientHeight, NOT window.innerHeight. The clip uncovers
+    // a footer positioned by `position: fixed`, which resolves against the
+    // LAYOUT viewport; innerHeight tracks the VISUAL viewport and on iOS the
+    // two disagree for the length of a toolbar collapse. Measuring the clip in
+    // one coordinate space and painting the footer in another is what put a
+    // band of bare page ground between them.
+    var vh = document.documentElement.clientHeight || window.innerHeight;
+    // And only when a reveal is actually going to happen. On a handset too
+    // short for the blind the footer is an ordinary block at the end of the
+    // document — nothing rises, so hiding the header for a screen and a half
+    // costs the visitor their only way back up and buys nothing.
+    var willReveal = html.hasAttribute('data-blind');
+    var revealed = willReveal && bottom <= seenVh + 1;
+    html.toggleAttribute('data-footer-revealed', revealed);
+    // the pinned footer may only paint near the reveal (see the CSS gate).
+    // This threshold is deliberately LOOSER than the clip's below: the footer
+    // is pinned for a band before the sky is cut, never the other way round,
+    // so there is no ordering in which the cut lands on an unpinned footer.
+    // data-footer-near carries more than the pin now: the page ground, the
+    // bottom tint band and the theme-color meta all key off it, so a change
+    // has to be announced. Only on the transition — the meta tag is swapped by
+    // removing and re-inserting it, which is not something to do per scroll
+    // event.
+    var wasNear = html.hasAttribute('data-footer-near');
+    var isNear = bottom <= vh + 160;
+    html.toggleAttribute('data-footer-near', isNear);
+    if(isNear !== wasNear && typeof CustomEvent === 'function'){
+      dispatchEvent(new CustomEvent('dues:tint'));
+    }
+    if(sky){
+      // clip the fixed sky at the sheet's lip (canvas overshoots 160px below
+      // the viewport, and the lip's 40px bottom radius carries into the clip).
+      // Written unconditionally from the live geometry — no cached last-value
+      // guard — so no sequence of missed, coalesced or reordered events can
+      // leave a stale clip standing.
+      var v = html.hasAttribute('data-blind') ? Math.max(0, Math.round(vh - bottom)) : 0;
+      sky.style.clipPath = v > 0 ? 'inset(0 0 ' + (v + 160) + 'px 0 round 0 0 40px 40px)' : '';
+    }
+  };
+  // momentum scrolling and toolbar animations can swallow the final scroll
+  // event — always recompute once more after everything settles
+  var settle;
+  var onScroll = function(){ on(); clearTimeout(settle); settle = setTimeout(on, 160); };
+  var refresh = function(){ fit(); on(); };
+  addEventListener('scroll', onScroll, { passive:true });
+  addEventListener('resize', refresh);
+  addEventListener('load', refresh);
+  if(window.visualViewport){
+    // iOS moves the visual viewport on toolbar collapse/expand without
+    // reliably firing window resize — recompute so the clip never goes stale
+    visualViewport.addEventListener('resize', refresh);
+    visualViewport.addEventListener('scroll', onScroll);
+  }
+  if('ResizeObserver' in window && footer){
+    new ResizeObserver(refresh).observe(footer);
+  }
+  fit(); on();
+})();
+</script>
+<script>
+(function(){
+  var apply = function(){
+    var vv = window.visualViewport;
+    var h = Math.round(Math.max(window.innerHeight, vv ? vv.height : 0)) + 150;
+    var st = document.documentElement.style;
+    st.setProperty('--skyH', h + 'px');
+    st.setProperty('--skyM', (-h) + 'px');
+  };
+  apply();
+  addEventListener('resize', apply);
+  addEventListener('orientationchange', apply);
+  if(window.visualViewport){ window.visualViewport.addEventListener('resize', apply); }
+})();
+</script>
+</body>
+</html>

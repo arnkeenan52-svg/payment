@@ -1,0 +1,35 @@
+# Fly.io deployment for the Dues presence keeper ONLY.
+# The web app itself lives on Vercel; this is the one always-on process that
+# holds Discord's gateway socket so the bot reads Online.
+#
+#   fly launch --no-deploy --copy-config
+#   fly secrets set DISCORD_BOT_TOKEN=...
+#   fly deploy
+#
+# Deliberately no [http_service] block: this is a worker, not a web service,
+# so Fly never auto-stops it to save money. One machine only — a second one
+# on the same token fights the first for the gateway session.
+app = "dues-presence"
+primary_region = "arn"   # Stockholm, closest to Denmark
+
+[build]
+  dockerfile = "Dockerfile.presence"
+
+[env]
+  PRESENCE_TEXT = "dues.gg"
+  PRESENCE_TYPE = "3"      # 3 = Watching
+  PRESENCE_STATUS = "online"
+  # Welcome cards are off unless these two are set, and they are ids, not
+  # secrets — set them here or with `fly secrets set`, but set BOTH:
+  #   WELCOME_GUILD_ID    the Dues community server
+  #   WELCOME_CHANNEL_ID  the channel in it to post join cards to
+  # `npm run doctor:welcome` checks them, the intent and the permissions.
+
+[[vm]]
+  size = "shared-cpu-1x"
+  # 256mb is enough for presence alone (~60MB RSS), but rendering a card runs
+  # libvips: measured 145MB peak across a burst of six joins. An OOM kill here
+  # takes the gateway socket with it and the bot greys out, which is a worse
+  # trade than the extra 256MB costs.
+  memory = "512mb"
+  cpus = 1

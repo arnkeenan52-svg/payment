@@ -1,0 +1,1711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dues hero scenes</title>
+<!--
+  Authoring surface for the hero film's designed beats. NOT shipped: it is loaded
+  over file:// by scripts/record-hero.mjs and captured at deviceScaleFactor 2, so
+  a 1920x1080 layout lands as 3840x2160 native pixels.
+
+  WHY THIS EXISTS. The founder kept exactly two beats out of the old cut — the
+  opening title and the new-subscriber alerts — and cut every raw dashboard
+  screencast in between. Those two are the only beats that were composed motion
+  graphics rather than a cursor wandering a UI. That is the brief: the film has to
+  be designed, not recorded. This file is where the designed beats live.
+
+  EVERY ANIMATION IS DRIVEN BY window.__seek(t), NOT BY CSS OR requestAnimationFrame.
+  A screenshot takes far longer than a frame interval, so anything tied to wall
+  clock would desync and stutter. The recorder sets an explicit time, screenshots,
+  advances. The result is a perfect 30fps regardless of how slow capture is, and
+  the same t always produces the same pixels — so a re-shoot months from now is
+  frame-identical and the cut still lines up.
+-->
+<style>
+  /* Installed system-wide by the font pipeline (assets/fonts/README.md). Named
+     rather than @font-face'd because fontconfig already resolves them and
+     Chromium picks them up by family. */
+  :root {
+    --bg: #0a0a0a;
+    --panel: #101010;
+    --panel-2: #1d1d1d;
+    --edge: #232323;
+    --ink: #f5f5f4;
+    --dim: #9a9a94;
+    /* The REAL sale alert. src/services/stripe-events.js posts color: 0xffffff,
+       which Discord paints as the embed's left stripe — so the film shows white,
+       not green. #22c55e is not a product token: the monochrome rebrand replaced
+       --good with #ededed and the green survives only in the landing page's
+       savings calculator. Painting it here would advertise an embed Dues has
+       never sent. */
+    --good: #ffffff;
+    --well: #0c0c0c;
+    --raised: #141414;
+    --edge-hot: #3d3d3d;   /* every extruded side face. FLAT — see .side below */
+    --accent: #ededed;     /* the shipped primary. NOT green. */
+    --accent-ink: #0a0a0a;
+    --faint: #4a4a4a;
+    --blurple: #5865f2;
+    --stripe: #635bff;
+    --grotesk: 'Dues Grotesk', 'Space Grotesk', system-ui, sans-serif;
+    --sans: 'Dues Sans', 'DM Sans', system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1920px; height: 1080px;
+    background:
+      linear-gradient(50deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.02) 100%),
+      linear-gradient(140deg,
+        #0a0a0a 0%, #0a0a0a 12.2%, #121212 12.2%, #161616 31%,
+        #1a1a1a 47%, #1a1a1a 53%, #161616 71%, #121212 87.2%,
+        #0a0a0a 87.2%, #0a0a0a 100%);
+    color: var(--ink);
+    font-family: var(--sans);
+    overflow: hidden;
+    /* Screen recordings of dark UI show banding badly once compressed; the
+       browser's own subpixel AA also fights the encoder. Greyscale AA keeps
+       glyph edges clean through a 2:1 downscale. */
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { position: absolute; inset: 0; display: none; }
+  .stage.on { display: block; }
+
+  /* ── brand ──────────────────────────────────────────────────────────────── */
+  #brand .lockup {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 26px;
+    will-change: transform, opacity;
+  }
+  #brand .mark { display: flex; align-items: center; gap: 22px; }
+  #brand .mark img { height: 76px; width: auto; display: block; }
+  #brand .tag { font-size: 27px; letter-spacing: -0.01em; color: var(--dim); }
+  #brand .tag b { color: var(--ink); font-weight: 700; }
+
+  /* ── alerts ─────────────────────────────────────────────────────────────── */
+  #alerts .panel {
+    position: absolute; left: 50%; top: 50%;
+    width: 1080px;
+    transform: translate(-50%, -50%);
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 16px;
+    box-shadow: 0 60px 120px rgba(0,0,0,0.65);
+    overflow: hidden;
+    will-change: transform, opacity;
+  }
+  #alerts .chan {
+    display: flex; align-items: center; gap: 10px;
+    padding: 22px 30px;
+    border-bottom: 1px solid var(--edge);
+    font-family: var(--grotesk); font-weight: 700; font-size: 22px;
+  }
+  #alerts .chan i { font-style: normal; color: var(--dim); font-size: 26px; }
+  /* Fixed height, clipped. 626px is MEASURED, not guessed: it is the feed's
+     scrollHeight with all four cards laid out (4 x 145px card + 20/26 padding).
+     Fixed so the panel never resizes mid-shot — a container that grows as cards
+     land reads as a bug rather than as motion — and clipped so nothing can ride
+     up over the channel header, which an earlier scroll-lift version did. */
+  #alerts .feed { padding: 20px 30px 26px; height: 626px; overflow: hidden; }
+  #alerts .msg { display: flex; gap: 18px; padding: 14px 0; will-change: transform, opacity; }
+  #alerts .av {
+    width: 46px; height: 46px; border-radius: 50%; flex: none;
+    background: var(--panel-2); border: 1px solid var(--edge);
+    display: grid; place-items: center;
+    font-family: var(--grotesk); font-weight: 700; font-size: 20px; color: var(--ink);
+  }
+  #alerts .body { flex: 1; }
+  #alerts .who { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+  #alerts .who b { font-family: var(--grotesk); font-size: 19px; }
+  #alerts .bot {
+    background: #4d4d4d; color: #fff; font-size: 11px; font-weight: 700;
+    padding: 2px 6px; border-radius: 4px; letter-spacing: 0.06em;
+  }
+  #alerts .when { color: var(--dim); font-size: 15px; }
+  #alerts .embed {
+    background: var(--panel-2);
+    border-left: 4px solid var(--good);
+    border-radius: 5px;
+    padding: 15px 18px;
+  }
+  #alerts .embed strong { display: block; font-size: 19px; margin-bottom: 6px; }
+  #alerts .embed span { font-size: 17px; color: #c9cec7; }
+  #alerts .embed span em { font-style: normal; color: var(--ink); font-weight: 700; }
+
+  /* ── burst ──────────────────────────────────────────────────────────────── */
+  /* The beat the whole film is judged on. The adversarial pass measured the
+     reference's burst at ~4x the frame-delta of any other beat, sustained 2.0s,
+     and warned that a DARK pinwheel would get the film rejected a fifth time.
+     So the wedge cycle is [ink, bg, ink, blurple] — white is the accent in a
+     monochrome system, and the twelve --bg wedges cost nothing to paint
+     because they ARE the ground. */
+  #burst .stage-in { position: absolute; inset: 0; overflow: hidden; }
+  #burst .wheelwrap {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+    will-change: filter;
+  }
+  /* Fixed-size element with an animated mask radius, NOT a scaled 4600px div:
+     it keeps the painted area bounded to the frame instead of asking the
+     compositor to rasterise a surface three times the viewport. */
+  #burst .wheel {
+    position: absolute; width: 3400px; height: 3400px;
+    left: 50%; top: 50%; margin: -1700px 0 0 -1700px;
+    background: conic-gradient(from 0deg,
+      #f5f5f4 0deg 15deg, #0a0a0a 15deg 30deg, #f5f5f4 30deg 45deg, #5865f2 45deg 60deg,
+      #f5f5f4 60deg 75deg, #0a0a0a 75deg 90deg, #f5f5f4 90deg 105deg, #5865f2 105deg 120deg,
+      #f5f5f4 120deg 135deg, #0a0a0a 135deg 150deg, #f5f5f4 150deg 165deg, #5865f2 165deg 180deg,
+      #f5f5f4 180deg 195deg, #0a0a0a 195deg 210deg, #f5f5f4 210deg 225deg, #5865f2 225deg 240deg,
+      #f5f5f4 240deg 255deg, #0a0a0a 255deg 270deg, #f5f5f4 270deg 285deg, #5865f2 285deg 300deg,
+      #f5f5f4 300deg 315deg, #0a0a0a 315deg 330deg, #f5f5f4 330deg 345deg, #5865f2 345deg 360deg);
+    will-change: transform, -webkit-mask-image;
+  }
+  #burst .stars { position: absolute; inset: 0; will-change: transform; }
+  #burst .stars svg { position: absolute; overflow: visible; }
+  /* The chip is a SIBLING of .wheelwrap, never a descendant: the exit blurs the
+     wheel to 36px, and the whole point of the shot is a razor-sharp subject
+     against a destroyed world. */
+  #burst .depth { position: absolute; inset: 0; perspective: 2000px; }
+  #burst .group { position: absolute; inset: 0; transform-style: preserve-3d; }
+  #burst .chip, #burst .pill {
+    position: absolute; left: 50%; top: 50%;
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 26px; border-radius: 999px;
+    font-family: var(--grotesk); font-weight: 700; white-space: nowrap;
+    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.5);
+    will-change: transform, opacity;
+  }
+  #burst .chip {
+    background: var(--bg); border: 2px solid var(--ink); color: var(--ink);
+    font-size: 68px; padding: 26px 52px;
+  }
+  #burst .chip i { width: 24px; height: 24px; border-radius: 50%; background: #5865f2; display: block; }
+  #burst .pill { font-size: 29px; border: 0; padding: 17px 30px; }
+  #burst .bloom {
+    position: absolute; left: 50%; top: 50%; width: 900px; height: 900px;
+    margin: -450px 0 0 -450px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(245,245,244,0.9) 0%, rgba(245,245,244,0) 68%);
+    mix-blend-mode: screen; will-change: transform, opacity;
+  }
+
+  /* ── shared film furniture ──────────────────────────────────────────────── */
+  /* Titles. A title that arrives WITH a new scene shares that scene's blur; a
+     title that changes INSIDE a settled scene uses the per-glyph sweep. That is
+     a real distinction in the reference, not a stylistic choice. */
+  .title {
+    position: absolute; left: 0; right: 0; top: 118px;
+    text-align: center; font-family: var(--grotesk); font-weight: 700;
+    font-size: 72px; letter-spacing: -0.025em; color: var(--ink);
+    will-change: filter, opacity;
+  }
+  .title span { display: inline-block; white-space: pre; will-change: transform, opacity; }
+  .sub { position: absolute; left: 0; right: 0; text-align: center; color: var(--dim); font-size: 26px; }
+
+  /* Real extruded depth. NOT a box-shadow: the reference's side faces measure
+     row-wise luma sd 0.3-0.7, i.e. there is no lighting anywhere in this film,
+     and a shadow reads as a sticker stuck on the frame. */
+  .solid { transform-style: preserve-3d; }
+  .solid > .side {
+    position: absolute; inset: 0; background: var(--edge-hot);
+    border-radius: inherit;
+    transform: translateZ(-24px) translate(9px, 15px);
+    z-index: 0;
+  }
+  .solid > .face { position: absolute; inset: 0; border-radius: inherit; z-index: 1; }
+
+  .card { position: absolute; border-radius: 21px; will-change: transform, opacity; }
+  .card > .face { background: var(--panel); border: 1px solid var(--edge); }
+  .fieldrow { background: var(--panel-2); border-radius: 12px; overflow: hidden; }
+  .btn {
+    background: var(--accent); color: var(--accent-ink); border-radius: 12px;
+    font-family: var(--grotesk); font-weight: 700; text-align: center; overflow: hidden;
+  }
+  /* A designed prop, not an OS pointer — the reference's cursor is a large
+     stylised arrow that reads at a glance on a 1920 frame.
+     The drop-shadow is what separates it from the surface it is over: without
+     one it reads as a shape PAINTED ON the UI rather than a pointer above it,
+     and on the white Stripe slab and the Ivory storefront it all but vanishes
+     into the panel it is supposed to be clicking. */
+  .cursor {
+    position: absolute; width: 54px; height: 74px; will-change: transform; z-index: 40;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45));
+  }
+
+  /* THE PRESS MARK. A cursor that dips while the surface says nothing back is
+     the single most "animated slideshow" thing a UI film can do — and the
+     soundtrack puts a tick on exactly these frames, so there has to be
+     something to see when you hear it. One ring per press, gone in 0.42s,
+     well before the next beat. */
+  .ring {
+    position: absolute; width: 128px; height: 128px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.9);
+    opacity: 0; z-index: 39; pointer-events: none; will-change: transform, opacity;
+  }
+  /* A press mark takes its contrast from THE TARGET IT OPENS ON, not from the
+     page: the store's Create button is near-white on a dark card and the shop's
+     Pay button is near-black on a white page, so the two rings are opposite
+     colours. Each is also scaled to stay INSIDE its own button — a ring that
+     spills off the target crosses a luminance boundary and half of it
+     disappears, which is exactly how the first version read as broken. */
+  .ring.dark { border-color: rgba(10,10,10,0.72); }
+
+  /* ── 1 title ────────────────────────────────────────────────────────────── */
+  /* Frame 0 is BARE GROUND. The spec opened on a dead-still logo to make the
+     loop pixel-exact; the adversarial pass killed that — the reference's frame 0
+     is empty and its headline is already working by frame 2. A loop property
+     nobody can perceive is not worth the opening. */
+  #s-title .headline { top: 470px; font-size: 92px; }
+
+  /* ── 2 store ────────────────────────────────────────────────────────────── */
+  #s-store .wrap { position: absolute; inset: 0; perspective: 15000px; }
+  #s-store .card { width: 1452px; height: 660px; left: 234px; top: 300px; }
+  #s-store .steps { position: absolute; left: 60px; top: 92px; }
+  #s-store .step { display: flex; align-items: center; gap: 16px; margin-bottom: 34px; font-size: 25px; color: var(--dim); }
+  #s-store .step b { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+    border: 2px solid var(--edge-hot); font-size: 18px; color: var(--faint); }
+  #s-store .step.on b { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  #s-store .step.on { color: var(--ink); }
+  #s-store .body { position: absolute; left: 520px; top: 76px; right: 74px; }
+  #s-store h2 { font-family: var(--grotesk); font-size: 66px; letter-spacing: -0.02em; margin-bottom: 54px; }
+  #s-store .lab { font-size: 24px; color: var(--dim); margin-bottom: 30px; }
+  #s-store .fieldrow { height: 88px; display: flex; align-items: center; padding: 0 26px; font-size: 30px; color: var(--ink); }
+  #s-store .btn { margin-top: 56px; height: 86px; line-height: 86px; font-size: 30px; }
+
+  /* ── 3 stripe ───────────────────────────────────────────────────────────── */
+  /* POSE A, the "hero slab" — the film's only hard 3D. perspective 2600px and
+     rotateX(60deg), solved analytically from the reference's symmetric edge
+     slopes and trapezoid taper (theta is tight at 59.3-60.3deg).
+     THE FACE IS WHITE. The spec had it dark-on-dark; the adversarial pass
+     measured the reference sitting at Lmean 180-225 with 36-46% saturated pixels
+     and called a dark slab on a dark ground the reason the beat would die. This
+     is the real Dues lockup inverted, and it is exactly the reference's own
+     white-keycap-with-black-glyph. */
+  #s-stripe .rig { position: absolute; inset: 0; perspective: 2600px; }
+  #s-stripe .slab {
+    position: absolute; left: 736px; top: 372px; width: 448px; height: 448px;
+    border-radius: 38px; transform-style: preserve-3d; will-change: transform;
+  }
+  #s-stripe .slab .top {
+    position: absolute; inset: 0; border-radius: 38px; background: var(--ink);
+    display: grid; place-items: center;
+  }
+  #s-stripe .slab .top img { width: 250px; filter: invert(1); }
+  #s-stripe .slab .sidef {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 60px;
+    background: var(--ink); border-radius: 0 0 38px 38px;
+    transform-origin: bottom center; transform: rotateX(-90deg);
+  }
+  /* A hard-edged cone, fixed geometry — the reference's is a clip-path polygon,
+     not a soft radial, and softening it is what would make it read as a glow. */
+  #s-stripe .cone {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(245,245,244,0.16), rgba(245,245,244,0));
+    clip-path: polygon(246px 0, 1674px 0, 1130px 1080px, 790px 1080px);
+    will-change: opacity;
+  }
+  #s-stripe .rule { position: absolute; left: 0; top: 690px; height: 13px; background: var(--edge); }
+  #s-stripe .rule.l { right: 50%; transform-origin: right center; }
+  #s-stripe .rule.r { left: 50%; right: 0; transform-origin: left center; }
+  #s-stripe .comet { position: absolute; top: 690px; width: 180px; height: 13px; will-change: transform, opacity; }
+  #s-stripe .keyfield {
+    position: absolute; left: 660px; top: 872px; width: 600px; height: 74px;
+    background: var(--panel-2); border-radius: 12px; display: flex; align-items: center;
+    padding: 0 24px; font-size: 27px; color: var(--dim); font-family: var(--sans);
+  }
+  #s-stripe .fine { top: 812px; font-size: 25px; }
+
+  /* ── 4 product ──────────────────────────────────────────────────────────── */
+  #s-product .wrap { position: absolute; inset: 0; perspective: 15000px; }
+  #s-product .card { width: 1360px; height: 690px; left: 280px; top: 286px; }
+  #s-product .inner { position: absolute; inset: 0; padding: 70px 78px; }
+  #s-product h2 { font-family: var(--grotesk); font-size: 62px; letter-spacing: -0.02em; margin-bottom: 44px; }
+  #s-product .lab { font-size: 23px; color: var(--dim); margin-bottom: 14px; }
+  #s-product .fieldrow { height: 82px; display: flex; align-items: center; padding: 0 24px; font-size: 29px; margin-bottom: 34px; }
+  #s-product .prices { display: flex; gap: 26px; margin-bottom: 34px; }
+  #s-product .price { flex: 1; height: 82px; display: flex; align-items: center; gap: 18px; padding: 0 24px;
+    background: var(--panel-2); border-radius: 12px; font-size: 27px; }
+  #s-product .price b { font-family: var(--grotesk); font-size: 31px; }
+  #s-product .price span { color: var(--dim); font-size: 23px; margin-left: auto; }
+  #s-product .role { display: flex; align-items: center; gap: 16px; height: 82px; padding: 0 24px;
+    background: var(--panel-2); border-radius: 12px; font-size: 28px; width: 440px; }
+  #s-product .role i { width: 20px; height: 20px; border-radius: 50%; background: var(--blurple); display: block; }
+
+  /* ── 5 theme ────────────────────────────────────────────────────────────── */
+  /* The colour beat. It uses Dues' SIX SHIPPED store themes, not an invented
+     picker — which is what makes it both the film's chroma engine and true.
+     The sequence deliberately does NOT start on Midnight: Midnight's bg is
+     #0a0a0a, identical to the film's own ground, so the beat that exists to
+     prove 'the whole world changes colour' would have opened on a preview
+     invisible against the page behind it. */
+  #s-theme .panelL { position: absolute; left: 150px; top: 250px; width: 640px; }
+  #s-theme .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 46px; }
+  #s-theme .th {
+    height: 118px; border-radius: 14px; border: 3px solid var(--edge);
+    padding: 14px; display: flex; flex-direction: column; justify-content: space-between;
+  }
+  #s-theme .th u { display: block; height: 12px; border-radius: 6px; text-decoration: none; }
+  #s-theme .th em { font-style: normal; font-size: 19px; color: var(--dim); }
+  #s-theme .th.on { border-color: var(--ink); }
+  #s-theme .sliderlab { display: flex; justify-content: space-between; font-size: 23px; color: var(--dim); margin-bottom: 16px; }
+  #s-theme .track { height: 10px; border-radius: 5px; background: var(--panel-2); position: relative; }
+  #s-theme .thumb { position: absolute; top: -12px; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); }
+  /* The live store preview. Every colour on it is driven from the preset. */
+  #s-theme .prev {
+    position: absolute; right: 150px; top: 214px; width: 700px; height: 660px;
+    border-radius: 20px; overflow: hidden; border: 1px solid var(--edge);
+  }
+  #s-theme .prev .pv-in { position: absolute; inset: 0; padding: 44px; }
+  #s-theme .prev h3 { font-size: 40px; margin-bottom: 10px; }
+  #s-theme .prev .pv-sub { font-size: 21px; opacity: 0.62; margin-bottom: 36px; }
+  #s-theme .prev .pv-row { display: flex; align-items: center; padding: 26px; margin-bottom: 18px; }
+  #s-theme .prev .pv-row b { font-size: 27px; }
+  #s-theme .prev .pv-row span { margin-left: auto; font-size: 25px; opacity: 0.75; }
+  #s-theme .prev .pv-pay { height: 78px; line-height: 78px; text-align: center; font-size: 26px; font-weight: 700; margin-top: 12px; }
+
+  /* ── 6 storefront ───────────────────────────────────────────────────────── */
+  /* The film's ONE LIGHT ISLAND, and it is earned: the previous beat ended on
+     Ivory, a real preset a real seller clicked, so the buyer-facing page simply
+     IS that theme. The reference borrows its light ground; Dues' is a feature. */
+  #s-shop .rig { position: absolute; inset: 0; perspective: 2400px; }
+  #s-shop .win {
+    position: absolute; left: 400px; top: 150px; width: 1120px; height: 800px;
+    background: #faf9f7; color: #161616; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 60px 140px rgba(0,0,0,0.6); will-change: transform, opacity;
+  }
+  #s-shop .bar { height: 62px; background: #ffffff; border-bottom: 1px solid #e6e4df;
+    display: flex; align-items: center; gap: 10px; padding: 0 22px; }
+  #s-shop .dot { width: 13px; height: 13px; border-radius: 50%; background: #d9d6cf; }
+  #s-shop .url { margin-left: 18px; font-size: 20px; color: #8a8880; }
+  #s-shop .body2 { padding: 46px 58px; }
+  #s-shop h3 { font-size: 46px; margin-bottom: 10px; font-family: var(--grotesk); }
+  #s-shop .tag { font-size: 22px; color: #6d6b64; margin-bottom: 40px; }
+  #s-shop .row { display: flex; align-items: center; background: #ffffff; border: 1px solid #e6e4df;
+    border-radius: 14px; padding: 28px 30px; margin-bottom: 18px; }
+  #s-shop .row b { font-size: 29px; }
+  #s-shop .row i { font-style: normal; margin-left: 14px; font-size: 19px; color: #6d6b64; }
+  #s-shop .row span { margin-left: auto; font-size: 27px; }
+  #s-shop .pay { height: 84px; line-height: 84px; text-align: center; background: #161616; color: #faf9f7;
+    border-radius: 14px; font-family: var(--grotesk); font-weight: 700; font-size: 27px; margin-top: 30px; }
+
+  /* ── 9 endcard ──────────────────────────────────────────────────────────── */
+  /* Lockup PLUS product, not a bare lockup. The reference's own endcard carries
+     its wordmark in the upper third and a large tilted device mock filling the
+     lower two-thirds — and every asset the pairing needs already exists by the
+     time the film reaches this frame. */
+  #s-end .lock { position: absolute; left: 0; right: 0; top: 176px; text-align: center; }
+  #s-end .lock img { height: 96px; }
+  #s-end .lock .tag { margin-top: 22px; font-size: 27px; color: var(--dim); }
+  #s-end .lock .tag b { color: var(--ink); }
+  #s-end .rig { position: absolute; left: 0; right: 0; top: 470px; height: 610px; perspective: 2200px; }
+  #s-end .pair { position: absolute; inset: 0; transform-style: preserve-3d; }
+  #s-end .mock {
+    position: absolute; top: 0; width: 700px; height: 560px; border-radius: 18px; overflow: hidden;
+    border: 1px solid var(--edge);
+  }
+  #s-end .mock.dark { left: 210px; background: var(--panel); }
+  #s-end .mock.light { left: 1010px; background: #faf9f7; color: #161616; }
+  /* The pair carries REAL content, not blank slabs. Every element here is a
+     miniature of something the film already showed: the #sale-alerts panel from
+     scene 8 and the Ivory store card from scene 6. An endcard of two empty
+     rectangles says the product has nothing in it. */
+  #s-end .mock .hd { padding: 22px 28px; border-bottom: 1px solid var(--edge);
+    font-family: var(--grotesk); font-weight: 700; font-size: 24px; }
+  #s-end .mock.light .hd { border-bottom-color: #e6e4df; }
+  #s-end .mock .bd { padding: 24px 28px; }
+  #s-end .em { border-left: 4px solid #ffffff; background: var(--panel-2); border-radius: 5px;
+    padding: 14px 18px; margin-bottom: 18px; }
+  #s-end .em b { display: block; font-size: 20px; margin-bottom: 5px; }
+  #s-end .em span { font-size: 18px; color: #c9cec7; }
+  #s-end .em span u { text-decoration: none; color: var(--ink); font-weight: 700; }
+  #s-end .lrow { display: flex; align-items: center; background: #ffffff; border: 1px solid #e6e4df;
+    border-radius: 14px; padding: 22px 24px; margin-bottom: 16px; }
+  #s-end .lrow b { font-size: 24px; }
+  #s-end .lrow span { margin-left: auto; font-size: 22px; }
+  #s-end .lpay { height: 68px; line-height: 68px; text-align: center; background: #161616; color: #faf9f7;
+    border-radius: 14px; font-family: var(--grotesk); font-weight: 700; font-size: 22px; margin-top: 24px; }
+
+  /* ── film assembly ──────────────────────────────────────────────────────── */
+  /* In film mode every stage is mounted at once and driven by opacity and
+     transform, because a junction where both scenes are briefly present is the
+     entire difference between a transition and a cut. */
+  body.film .stage { display: block; opacity: 0; will-change: opacity, transform, filter; }
+  #wash {
+    position: fixed; inset: 0; background: var(--ink); opacity: 0;
+    pointer-events: none; z-index: 90;
+  }
+  /* THE GROUND'S LIGHTING, and the film's answer to "black and white can be
+     boring" without animating the background.
+     The ground plate stays pixel-identical frame to frame — that is deliberate,
+     it is why the encoder can spend its whole budget on the subject — so the
+     colour cannot come from the plate. It comes from ONE soft radial spill
+     sitting BEHIND every stage at around 8% opacity, which changes only when
+     the beat changes and is motivated by what the beat is: Stripe indigo under
+     the key, the live preset's own accent under the theming, blurple under the
+     burst. It is lighting, not decoration — the frame is coloured by the thing
+     in it. At 8% over a 0.55s ramp the per-frame change is far below anything
+     the encoder spends bits on. */
+  #tint {
+    position: absolute; inset: 0; opacity: 0;
+    pointer-events: none; z-index: 0;
+    will-change: opacity, background;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="brand">
+  <div class="lockup">
+    <div class="mark"><img src="../assets/dues-mark.png" alt="Dues" /></div>
+    <div class="tag">Sell Discord roles. <b>Keep every dollar.</b></div>
+  </div>
+</div>
+
+
+
+<div id="tint"></div>
+<div id="wash"></div>
+
+<div class="stage" id="s-title">
+  <div class="title headline" data-text="Sell Discord roles. Keep every dollar."></div>
+</div>
+
+<div class="stage" id="s-store">
+  <div class="wrap">
+    <div class="card solid">
+      <div class="side"></div>
+      <div class="face">
+      <div class="steps">
+        <div class="step on"><b>&#10003;</b>Invite the bot</div>
+        <div class="step"><b>2</b>Connect Stripe</div>
+        <div class="step"><b>3</b>Create a product</div>
+        <div class="step"><b>4</b>Pick the role</div>
+      </div>
+      <div class="body">
+        <h2>Name your store</h2>
+        <div class="lab">Store name</div>
+        <div class="fieldrow"><span class="iris">Dues Membership</span></div>
+        <div class="btn"><span class="iris">Create store</span></div>
+      </div>
+      </div>
+    </div>
+  </div>
+  <i class="ring dark"></i>
+  <svg class="cursor" viewBox="0 0 54 74"><path d="M4 2 48 40 28 42 38 66 28 70 18 46 4 58Z"
+    fill="#f5f5f4" stroke="#0a0a0a" stroke-width="3" stroke-linejoin="round"/></svg>
+</div>
+
+
+<div class="stage" id="s-stripe">
+  <div class="cone"></div>
+  <div class="title" data-text="Connect your own Stripe key"></div>
+  <div class="rule l"></div><div class="rule r"></div>
+  <div class="comet" id="cometL"></div><div class="comet" id="cometR"></div>
+  <div class="rig">
+    <div class="slab">
+      <div class="sidef"></div>
+      <div class="top"><img src="../assets/dues-mark.png" alt="" /></div>
+    </div>
+  </div>
+  <div class="sub fine">Payouts land in your Stripe account. Dues takes 0%.</div>
+  <div class="keyfield">rk_live_&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</div>
+</div>
+
+
+<div class="stage" id="s-product">
+  <div class="title" data-text="Create a product"></div>
+  <div class="wrap"><div class="card solid"><div class="side"></div><div class="face"><div class="inner">
+    <div class="lab">Product name</div>
+    <div class="fieldrow">VIP Access</div>
+    <div class="lab">Pricing</div>
+    <div class="prices">
+      <div class="price"><b>$49.99</b><span>One-time</span></div>
+      <div class="price"><b>$14.99</b><span>Monthly</span></div>
+    </div>
+    <div class="lab">Role it unlocks</div>
+    <div class="role"><i></i>@VIP</div>
+  </div></div></div></div>
+</div>
+
+<div class="stage" id="s-theme">
+  <div class="title" data-text="Customize your store"></div>
+  <div class="panelL">
+    <div class="tiles"></div>
+    <div class="sliderlab"><span>Corner radius</span><b id="radval">16px</b></div>
+    <div class="track"><div class="thumb"></div></div>
+  </div>
+  <div class="prev"><div class="pv-in">
+    <h3>Dues Membership</h3>
+    <div class="pv-sub">Premium roles, private channels and member-only drops.</div>
+    <div class="pv-row"><b>VIP Access</b><span>$49.99</span></div>
+    <div class="pv-row"><b>Signals Monthly</b><span>$14.99 / mo</span></div>
+    <div class="pv-pay">Pay with card</div>
+  </div></div>
+  <i class="ring"></i>
+  <svg class="cursor" viewBox="0 0 54 74"><path d="M4 2 48 40 28 42 38 66 28 70 18 46 4 58Z"
+    fill="#f5f5f4" stroke="#0a0a0a" stroke-width="3" stroke-linejoin="round"/></svg>
+</div>
+
+
+<div class="stage" id="s-shop">
+  <div class="rig"><div class="win">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="url">dues.gg/dues-membership</span></div>
+    <div class="body2">
+      <h3>Dues Membership</h3>
+      <div class="tag">Premium roles, private channels and member-only drops.</div>
+      <div class="row"><b>VIP Access</b><i>One-time</i><span>$49.99</span></div>
+      <div class="row"><b>Signals Monthly</b><i>Monthly</i><span>$14.99 / mo</span></div>
+      <div class="pay">Pay with card</div>
+    </div>
+  </div></div>
+  <i class="ring"></i>
+  <svg class="cursor" viewBox="0 0 54 74"><path d="M4 2 48 40 28 42 38 66 28 70 18 46 4 58Z"
+    fill="#f5f5f4" stroke="#0a0a0a" stroke-width="3" stroke-linejoin="round"/></svg>
+</div>
+
+<div class="stage" id="s-end">
+  <div class="lock">
+    <img src="../assets/dues-mark.png" alt="Dues" />
+    <div class="tag">Sell Discord roles. <b>Keep every dollar.</b></div>
+  </div>
+  <div class="rig"><div class="pair">
+    <div class="mock dark">
+      <div class="hd"># sale-alerts</div>
+      <div class="bd">
+        <div class="em"><b>New Subscriber!</b><span>@drift139 just bought Inner Circle &middot; <u>$79.99</u></span></div>
+        <div class="em"><b>New Subscriber!</b><span>@nova142 just bought VIP Access &middot; <u>$49.99</u></span></div>
+        <div class="em"><b>New Subscriber!</b><span>@halo151 just bought Signals Monthly &middot; <u>$14.99</u></span></div>
+      </div>
+    </div>
+    <div class="mock light">
+      <div class="hd">Dues Membership</div>
+      <div class="bd">
+        <div class="lrow"><b>VIP Access</b><span>$49.99</span></div>
+        <div class="lrow"><b>Signals Monthly</b><span>$14.99 / mo</span></div>
+        <div class="lpay">Pay with card</div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<div class="stage" id="burst">
+  <div class="stage-in">
+    <div class="wheelwrap"><div class="wheel"></div><div class="stars"></div></div>
+    <div class="bloom"></div>
+    <div class="depth"><div class="group">
+      <div class="chip"><i></i>@VIP</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="stage" id="alerts">
+  <div class="panel">
+    <div class="chan"><i>#</i> sale-alerts</div>
+    <div class="feed"></div>
+  </div>
+</div>
+
+<script>
+// ── timing helpers ────────────────────────────────────────────────────────────
+// One easing curve for the whole film. Mixing curves is what makes motion read as
+// assembled from parts; a single expressive out-curve reads as one hand.
+const outExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+// Progress of a segment that starts at `at` and runs for `dur`, eased.
+const seg = (t, at, dur, ease = outExpo) => ease(clamp01((t - at) / dur));
+const lerp = (a, b, p) => a + (b - a) * p;
+
+// THE IGNITION POINT. Three things have to agree on one pixel: where the shop
+// cursor presses, where its press-ring opens, and where the burst is born. They
+// were three separately typed numbers, and two of them said 954,726 — which is
+// seven pixels BELOW the pay button, so the film's biggest moment was ignited
+// by a click on empty storefront. This is the button's measured centre, and now
+// there is only one of it.
+const IGNITE = [960, 677];
+
+// ── scene: brand ──────────────────────────────────────────────────────────────
+// The title is the first thing anyone sees, so it cannot look like a slide. The
+// mark settles, the wordmark lifts with it, the line arrives a beat later, and
+// then the whole lockup keeps drifting almost imperceptibly so the frame is never
+// dead. A still title card is what makes a hero read as cheap.
+const BRAND = {
+  duration: 2.6,
+  apply(t) {
+    const lockup = document.querySelector('#brand .lockup');
+    const mark = document.querySelector('#brand .mark');
+    const tag = document.querySelector('#brand .tag');
+
+    const inMark = seg(t, 0.10, 0.85);
+    const inTag = seg(t, 0.55, 0.80);
+    // A drift this small is invisible as motion but keeps the compressor from
+    // seeing a frozen frame — and a frozen frame is what "cheap" looks like.
+    const drift = lerp(1.0, 1.018, clamp01(t / BRAND.duration));
+
+    lockup.style.transform = `translate(-50%, -50%) scale(${drift.toFixed(5)})`;
+    mark.style.opacity = inMark.toFixed(4);
+    mark.style.transform = `translateY(${lerp(16, 0, inMark).toFixed(3)}px)`;
+    tag.style.opacity = inTag.toFixed(4);
+    tag.style.transform = `translateY(${lerp(12, 0, inTag).toFixed(3)}px)`;
+  },
+};
+
+// ── scene: alerts ─────────────────────────────────────────────────────────────
+// The payoff beat: money landing in Discord. Cards arrive one at a time on a
+// steady pulse so it reads as events happening, not a list rendering. The feed
+// eases upward as it fills, which is what a real channel does and what makes the
+// shot feel live rather than staged.
+const SALES = [
+  { user: '@drift139', product: 'Inner Circle', price: '$79.99' },
+  { user: '@nova142', product: 'VIP Access', price: '$49.99' },
+  { user: '@halo151', product: 'Signals Monthly', price: '$14.99' },
+  { user: '@sirius147', product: 'VIP Access', price: '$49.99' },
+];
+const ALERT_AT = [0.45, 1.05, 1.65, 2.25]; // one every 0.60s — a heartbeat, not a burst
+
+const ALERTS = {
+  duration: 3.9,
+  build() {
+    const feed = document.querySelector('#alerts .feed');
+    feed.innerHTML = SALES.map((s) => `
+      <div class="msg">
+        <div class="av">D</div>
+        <div class="body">
+          <div class="who"><b>Dues</b><span class="bot">BOT</span><span class="when">Today</span></div>
+          <div class="embed">
+            <strong>New Subscriber!</strong>
+            <span>${s.user} just bought ${s.product} · <em>${s.price}</em></span>
+          </div>
+        </div>
+      </div>`).join('');
+  },
+  apply(t) {
+    const panel = document.querySelector('#alerts .panel');
+    const feed = document.querySelector('#alerts .feed');
+    const msgs = [...document.querySelectorAll('#alerts .msg')];
+
+    const inPanel = seg(t, 0, 0.5);
+    panel.style.opacity = inPanel.toFixed(4);
+    // The panel settles toward the camera rather than sliding in from an edge —
+    // an edge slide would imply a direction the next shot has to honour.
+    panel.style.transform = `translate(-50%, -50%) scale(${lerp(0.965, 1, inPanel).toFixed(5)})`;
+
+    let landed = 0;
+    msgs.forEach((m, i) => {
+      const p = seg(t, ALERT_AT[i], 0.55);
+      if (p > 0) landed = i + 1;
+      m.style.opacity = p.toFixed(4);
+      m.style.transform = `translateY(${lerp(22, 0, p).toFixed(3)}px)`;
+    });
+    // No scroll lift: the feed is sized for exactly these four, so each card
+    // lands in its own slot. An earlier version lifted the feed as it filled and
+    // drove the first card up behind the channel header — motion for its own
+    // sake, and broken motion at that.
+    void landed;
+    void feed;
+  },
+};
+
+
+// ── scene: burst ──────────────────────────────────────────────────────────────
+// Scene 7 of the film ("unlock"), authored here in scene-local time 0..1.85.
+// In the finished cut it starts at 14.45s.
+//
+// This is the beat the film is judged on. The teardown measured the reference's
+// burst at ~4x the frame-delta of any other beat, sustained for 2.0s, and the
+// adversarial pass was blunt: a DARK pinwheel "is the one that gets it rejected
+// a fifth time". Hence white wedges. In a monochrome system white IS the accent
+// (#f5f5f4 on #0a0a0a is 18.15:1), and the twelve --bg wedges are free because
+// they are simply the ground showing through.
+//
+// The three pills are what ACTUALLY happens in these seconds. An earlier draft
+// streamed '# vip-lounge', '# signals', 'general' — but Dues does not create,
+// configure or gate channels. It delivers a ROLE; what that role opens is the
+// server owner's own permission setup. Claiming otherwise would be the one
+// failure worse than boring.
+const PILLS = [
+  { label: 'Payment captured', bg: '#635bff', fg: '#ffffff', ang: -142, dist: 232 },
+  { label: '@VIP added', bg: '#5865f2', fg: '#ffffff', ang: -38, dist: 246 },
+  { label: 'Posted to #sale-alerts', bg: '#f5f5f4', fg: '#0a0a0a', ang: 96, dist: 238 },
+];
+const PILL_AT = [0.50, 0.66, 0.82];
+
+// Eight four-point stars on a fixed deterministic ring. The reference scatters
+// coral sparkles through its ray field and they are a real part of why the beat
+// reads as celebratory rather than merely fast. Hardcoded angles, never random:
+// the film must render identically forever.
+const STARS = [
+  [18, 300, 1.0], [64, 430, 0.62], [112, 355, 0.85], [158, 470, 0.5],
+  [206, 320, 0.95], [252, 445, 0.58], [298, 375, 0.78], [344, 495, 0.66],
+];
+
+const BURST = {
+  duration: 1.85,
+  build() {
+    const stars = document.querySelector('#burst .stars');
+    stars.innerHTML = STARS.map(([a, r, sc]) => {
+      const x = 960 + Math.cos((a * Math.PI) / 180) * r;
+      const y = 540 + Math.sin((a * Math.PI) / 180) * r;
+      const s = 46 * sc;
+      return `<svg style="left:${(x - s / 2).toFixed(1)}px;top:${(y - s / 2).toFixed(1)}px" width="${s}" height="${s}" viewBox="-50 -50 100 100">
+        <path d="M0-50C0-18-18 0-50 0-18 0 0 18 0 50 0 18 18 0 50 0 18 0 0-18 0-50Z" fill="#f5f5f4"/></svg>`;
+    }).join('');
+
+    const group = document.querySelector('#burst .group');
+    group.insertAdjacentHTML('beforeend', PILLS.map((p) => {
+      const x = Math.cos((p.ang * Math.PI) / 180) * p.dist;
+      const y = Math.sin((p.ang * Math.PI) / 180) * p.dist;
+      return `<div class="pill" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}"
+        style="background:${p.bg};color:${p.fg}">${p.label}</div>`;
+    }).join(''));
+  },
+  apply(t) {
+    const wrap = document.querySelector('#burst .wheelwrap');
+    const wheel = document.querySelector('#burst .wheel');
+    const stars = document.querySelector('#burst .stars');
+    const group = document.querySelector('#burst .group');
+    const chip = document.querySelector('#burst .chip');
+    const bloom = document.querySelector('#burst .bloom');
+
+    // GROWTH. A constant x3 ratio per source frame, masked rather than scaled.
+    // The feather is not decoration: the reference's first two frames have
+    // radially smeared ray tips, not a hard disc.
+    const radius = Math.min(2600, Math.pow(3, t * 25) * 8);
+    const feather = Math.max(40, radius * 0.16);
+    const mask = `radial-gradient(circle at 50% 50%, #000 0 ${(radius - feather).toFixed(1)}px, transparent ${radius.toFixed(1)}px)`;
+    wheel.style.webkitMaskImage = mask;
+    wheel.style.maskImage = mask;
+
+    // SPIN. Dead constant -128.7 deg/s from the first frame it exists to the
+    // last — measured sd 0.25 deg/frame over 40 samples. Any ease-in or
+    // ease-out here reads as a different, cheaper effect.
+    const spin = -128.7 * t;
+    wheel.style.transform = `rotate(${spin.toFixed(3)}deg)`;
+    stars.style.transform = `rotate(${spin.toFixed(3)}deg) scale(${(1 + 0.06 * Math.sin(t * 7.5)).toFixed(4)})`;
+
+    // IGNITION AT THE CURSOR, not at frame centre. The burst is born at the pay
+    // button and the camera pulls it to centre over 0.30s. Motivation is what
+    // separates this from a stock transition — so the birth point is IGNITE,
+    // the same constant the cursor presses, rather than a number that can drift
+    // away from the button it is supposed to be caused by.
+    const pull = seg(t, 0, 0.30);
+    wrap.style.transform =
+      `translate(${lerp(IGNITE[0] - 960, 0, pull).toFixed(2)}px, ${lerp(IGNITE[1] - 540, 0, pull).toFixed(2)}px)`;
+
+    // THE ONLY SPRING IN THE FILM. theta = A e^(-zwu) cos(wd u), z=0.27,
+    // w=5.5 rad/s, A=27deg, starting 0.123s in. Its acceptance test is three
+    // measured points: it crosses zero at film-time 14.87 and reaches its
+    // extremum of -11.0deg at 15.17. It crosses zero and comes BACK, so
+    // easeOutBack is not a substitute. Nothing else in the film overshoots.
+    const u = Math.max(0, t - 0.123);
+    const wd = 5.5 * Math.sqrt(1 - 0.27 * 0.27);
+    const theta = 27 * Math.exp(-0.27 * 5.5 * u) * Math.cos(wd * u);
+    const pop = seg(t, 0.02, 0.34);
+
+    // Chip and pills share ONE perspective group: the measured fact that the
+    // pills scale ~1.35x faster than the chip falls out of a single camera
+    // curve instead of three hand-tuned tracks.
+    const camZ = lerp(-260, 300, seg(t, 0.05, 1.25));
+    group.style.transform = `translateZ(${camZ.toFixed(1)}px)`;
+
+    const exit = seg(t, 1.62, 0.23, (x) => x); // linear: the swap must land hard
+    chip.style.opacity = pop.toFixed(4);
+    chip.style.transform =
+      `translate(-50%,-50%) rotate(${theta.toFixed(3)}deg) scale(${(lerp(0.35, 1, pop) * lerp(1, 0.79, exit)).toFixed(4)})`;
+
+    document.querySelectorAll('#burst .pill').forEach((el, i) => {
+      const p = seg(t, PILL_AT[i], 0.42);
+      const x = Number(el.dataset.x) * p;
+      const y = Number(el.dataset.y) * p;
+      el.style.opacity = (p * (1 - exit)).toFixed(4);
+      el.style.transform = `translate(-50%,-50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 550px) scale(${lerp(0.6, 1, p).toFixed(4)})`;
+    });
+
+    // EXIT. The blur lands on the WHEEL WRAPPER ONLY. The bloom and the blur
+    // must peak on the swap frame: one frame early or late, while readable ray
+    // structure survives, and it reads as a cut.
+    wrap.style.filter = exit > 0 ? `blur(${(36 * exit).toFixed(1)}px)` : 'none';
+    const bl = seg(t, 1.65, 0.10);
+    bloom.style.opacity = (bl * (1 - seg(t, 1.80, 0.05))).toFixed(4);
+    bloom.style.transform = `translate(-50%,-50%) scale(${lerp(0.2, 3, bl).toFixed(3)})`;
+  },
+};
+
+
+// ── shared helpers for the scene set ─────────────────────────────────────────
+const inQuint = (x) => x * x * x * x * x;
+const inQuad = (x) => x * x;
+const outQuad = (x) => 1 - (1 - x) * (1 - x);
+const inOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+// Extremely sharp middle: the reference's chip landing puts 80% of its travel
+// into 0.13s (measured per-frame displacement 3,0,3,6,18,54,135,48,15,6,0).
+const expoInOut = (x) =>
+  x === 0 ? 0 : x === 1 ? 1 : x < 0.5 ? Math.pow(2, 20 * x - 10) / 2 : (2 - Math.pow(2, -20 * x + 10)) / 2;
+
+// A softened outBack. The pointer arrives slightly PAST its target and settles
+// back, which is what a hand does; c1 is 0.85 rather than the textbook 1.70158
+// because a full back-ease on a 54px arrow reads as a bounce, not as a landing.
+const outBackSoft = (x) => (x >= 1 ? 1 : 1 + 1.85 * Math.pow(x - 1, 3) + 0.85 * Math.pow(x - 1, 2));
+
+// CURSOR TRAVEL. A quadratic Bezier whose control point is pushed along the
+// normal of the straight line, walked with ONE decelerating parameter.
+//
+// The version this replaces eased x on inQuad and y on outQuad. That does draw
+// an arc, but it leaves the pointer at MAXIMUM SPEED on the frame it arrives
+// and then stops it dead — no hand lands like that, and it is the detail that
+// made the moves read as keyframes rather than as movement. Here the path shape
+// and the speed curve are separate knobs: `bend` shapes the arc, the ease owns
+// the velocity, and because outBackSoft(1) is exactly 1 the pointer still lands
+// exactly on its target rather than near it.
+function arc(t, at, dur, from, to, bend = 0.12) {
+  const e = outBackSoft(clamp01((t - at) / dur));
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const cx = from[0] + dx * 0.5 - dy * bend;
+  const cy = from[1] + dy * 0.5 + dx * bend;
+  const m = 1 - e;
+  return [m * m * from[0] + 2 * m * e * cx + e * e * to[0],
+          m * m * from[1] + 2 * m * e * cy + e * e * to[1]];
+}
+
+// The centre of a live element, in stage coordinates. Waypoints are READ FROM
+// THE DOM rather than typed in, so the pointer cannot end up 30px off a button
+// because a padding changed six commits ago.
+function centre(sel, fx = 0.5, fy = 0.5) {
+  const r = document.querySelector(sel).getBoundingClientRect();
+  return [r.left + r.width * fx, r.top + r.height * fy];
+}
+
+// THE POINTER LEAVES BEFORE THE BEAT DOES.
+//
+// It did not, and the contact sheet showed exactly what that looks like: at
+// 3.50 the store card is halfway through becoming the Stripe slab and the
+// cursor is still sitting where the button used to be, fading in place. A hand
+// that finishes a click takes itself out of frame; one that dissolves over the
+// thing it just pressed reads as a bug in the render.
+//
+// Returns [dx, dy, opacity] to fold into the cursor's own transform.
+function curExit(t, at, dur, dirx, diry) {
+  const p = seg(t, at, dur, inQuad);
+  return [dirx * p, diry * p, 1 - clamp01((t - at - dur * 0.45) / (dur * 0.55))];
+}
+
+// A press: down fast on ease-in, back up slower on ease-out. Returns 0..1.
+const dip = (t, at, down = 0.067, up = 0.133) => seg(t, at, down, inQuad) - seg(t, at + down, up);
+
+// The expanding mark under a press. Fades on a 1.6 power so it is mostly gone
+// by the halfway point — a ring that lingers turns into a bullseye.
+function ring(el, t, at, x, y, scale = 1) {
+  const p = clamp01((t - at) / 0.42);
+  if (p <= 0 || p >= 1) { el.style.opacity = '0'; return; }
+  el.style.left = `${x.toFixed(0)}px`;
+  el.style.top = `${y.toFixed(0)}px`;
+  el.style.opacity = (0.62 * Math.pow(1 - p, 1.6)).toFixed(3);
+  el.style.transform = `translate(-50%,-50%) scale(${(scale * lerp(0.22, 1, outExpo(p))).toFixed(3)})`;
+}
+
+// Split a line into per-glyph spans ONCE. The sweep then only writes opacity and
+// transform, never innerHTML.
+// Titles carry their copy in data-text so a scene can render it either way.
+// Fill every one at build time: a scene using the whole-line blur never calls
+// sweep(), and before this ran those headlines rendered as nothing at all.
+function fillTitles() {
+  document.querySelectorAll('[data-text]').forEach((el) => {
+    if (!el.dataset.built && !el.textContent) el.textContent = el.dataset.text;
+  });
+}
+
+function glyphs(el) {
+  if (el.dataset.built) return [...el.children];
+  el.innerHTML = [...el.dataset.text].map((c) => `<span>${c === ' ' ? '&nbsp;' : c}</span>`).join('');
+  el.dataset.built = '1';
+  return [...el.children];
+}
+
+// THE FILM'S SIGNATURE MOVE. Each glyph arrives blurred and resolves, the front
+// sweeping left to right. The blur is ONE filter on the PARENT — never one per
+// span, which would be 40 composited layers per frame at 3840x2160.
+function sweep(el, t, at, per = 0.0123, dur = 0.082) {
+  const gs = glyphs(el);
+  let front = 0;
+  gs.forEach((g, i) => {
+    const p = clamp01((t - at - i * per) / dur);
+    front = Math.max(front, p);
+    g.style.opacity = p.toFixed(3);
+    g.style.transform = `translateY(${lerp(7, 0, outExpo(p)).toFixed(2)}px)`;
+  });
+  const whole = clamp01((t - at) / (per * gs.length + dur));
+  el.style.filter = whole < 1 ? `blur(${(6 * (1 - whole)).toFixed(2)}px)` : 'none';
+  return front;
+}
+
+// ── scene 1: title ────────────────────────────────────────────────────────────
+// Frame 0 is bare ground. The reference's own opening is empty for exactly two
+// frames and then works immediately; an earlier draft held a dead-still logo for
+// 0.45s to make the loop pixel-exact, which bought a property nobody watching can
+// perceive at the cost of the one moment everybody sees.
+const TITLE = {
+  stage: 's-title',
+  duration: 1.15,
+  apply(t) {
+    const h = document.querySelector('#s-title .headline');
+    sweep(h, t, 0.067);
+    // EXIT RAMP. inQuint, so terminal velocity is ~33px per 40ms and the audience
+    // is already reading "this is leaving" before the swap.
+    const out = seg(t, 0.45, 0.65, inQuint);
+    h.style.transform = `translateY(${lerp(0, -108, out).toFixed(2)}px) scale(${lerp(1, 1.04, out).toFixed(4)})`;
+    h.style.opacity = (1 - seg(t, 1.05, 0.10, (x) => x)).toFixed(3);
+  },
+};
+
+// ── scene 2: store ────────────────────────────────────────────────────────────
+// POSE B, the "document card": near-orthographic (perspective 15000px) with a
+// small rotateZ. Measured taper is only 4%, against pose A's 16% — the two poses
+// are structurally different and using one for both flattens the film.
+const STORE = {
+  stage: 's-store',
+  duration: 2.25,
+  apply(t) {
+    const card = document.querySelector('#s-store .card');
+    const cur = document.querySelector('#s-store .cursor');
+    const btn = document.querySelector('#s-store .btn');
+
+    // The card BLOWS OUT OF THE SEED left by the title's exit: one frame from
+    // nothing to 0.77, then it settles. It scales and rises — it never flips.
+    const grow = t < 0.001 ? 0 : lerp(0.77, 1, seg(t, 0.0, 0.33));
+    card.style.transform =
+      `translateY(${lerp(168, 0, seg(t, 0, 0.33)).toFixed(1)}px) rotateZ(-5.7deg) rotateY(1.6deg) scale(${grow.toFixed(4)})`;
+    card.style.opacity = t < 0.001 ? '0' : '1';
+
+    // IRIS. clip-path opening from the centre over a STATICALLY positioned label,
+    // which is provable in the reference: mid-open its field reads "iness Club".
+    const iris = (el, at, dur) => {
+      const p = seg(t, at, dur, inOutCubic);
+      el.style.clipPath = `inset(0 ${(46 * (1 - p)).toFixed(2)}% 0 ${(46 * (1 - p)).toFixed(2)}%)`;
+    };
+    iris(document.querySelector('#s-store .fieldrow'), 0.05, 0.60);
+    iris(document.querySelector('#s-store .btn'), 0.18, 0.62);
+
+    // CURSOR. Off-frame bottom-left to the button, on an arc that bows UPWARD
+    // (negative bend) — the pointer reaches over and comes down onto the
+    // target, which is the shape of the move a hand actually makes. It lands
+    // at 0.55 and waits, so the press is a separate event and not the tail of
+    // the travel.
+    //
+    // THE TARGET IS THE BUTTON'S MEASURED CENTRE, not a typed coordinate. The
+    // typed one was 1180,812 — about 110px low and right of the real button,
+    // so the pointer pressed empty card and the button answered anyway. The
+    // arrow's tip is its top-left corner, so the translate carries the tip
+    // inset and the POINT lands on the target rather than the box.
+    const bc0 = centre('#s-store .btn');
+    const [cx, cy] = arc(t, 0.05, 0.50, [-140, 1220], [bc0[0] - 4, bc0[1] - 2], -0.11);
+    // PRESS at 1.30. The cursor's dip is measurably deeper than the button's —
+    // keep the asymmetry, it is what sells the contact.
+    const press = dip(t, 1.30);
+    // Out of frame down-right once the click is done, and gone well before the
+    // card starts becoming the Stripe slab at 3.18.
+    const [ex, ey, eo] = curExit(t, 1.62, 0.46, 620, 470);
+    cur.style.opacity = eo.toFixed(3);
+    cur.style.transform =
+      `translate(${(cx + ex).toFixed(1)}px, ${(cy + ey).toFixed(1)}px) scale(${(1 - 0.21 * press).toFixed(4)})`;
+    btn.style.transform = `scale(${(1 - 0.146 * press).toFixed(4)})`;
+    // The button also LIGHTS as the pointer arrives. A target that does not
+    // acknowledge the cursor until it is struck reads as a still image with an
+    // arrow moving over it.
+    const hover = seg(t, 0.44, 0.18);
+    btn.style.filter = `brightness(${(1 - 0.08 * hover - 0.10 * press).toFixed(3)})`;
+    ring(document.querySelector('#s-store .ring'), t, 1.30, bc0[0], bc0[1], 1.15);
+  },
+};
+
+
+// ── scene 3: stripe ───────────────────────────────────────────────────────────
+const STRIPE_S = {
+  stage: 's-stripe',
+  duration: 2.2,
+  apply(t) {
+    const slab = document.querySelector('#s-stripe .slab');
+    const top = document.querySelector('#s-stripe .slab .top');
+    const sidef = document.querySelector('#s-stripe .slab .sidef');
+    const title = document.querySelector('#s-stripe .title');
+    const cone = document.querySelector('#s-stripe .cone');
+
+    // LANDS by continuing scene 2's rotation rather than being re-introduced.
+    // expoInOut with an extremely sharp middle: 80% of the travel in 0.13s,
+    // matching the reference's measured per-frame displacement curve.
+    const land = seg(t, 0, 0.45, expoInOut);
+    slab.style.transform =
+      `translateY(${lerp(-288, 0, land).toFixed(1)}px) rotateX(60deg) rotateZ(${lerp(14.5, 0, land).toFixed(2)}deg)`;
+
+    // A title arriving WITH a new scene shares that scene's blur — it does NOT
+    // use the per-glyph sweep, which is reserved for a title changing inside a
+    // settled scene. Blur is X-only, so it reads as speed rather than softness.
+    const tin = seg(t, 0.30, 0.17);
+    title.style.opacity = tin.toFixed(3);
+    title.style.filter = tin < 1 ? `blur(${(8 * (1 - tin)).toFixed(2)}px)` : 'none';
+
+    // The rule draws in from both sides with a DELIBERATE STAGGER and a SHARED
+    // LANDING: the left half starts earlier and travels slower, the right half
+    // starts later and travels twice as fast, so they arrive together. That is
+    // what reads as designed rather than symmetric-by-default.
+    const l = seg(t, 0.35, 0.20, inOutCubic);
+    const r = seg(t, 0.50, 0.10, inOutCubic);
+    document.querySelector('#s-stripe .rule.l').style.transform = `scaleX(${l.toFixed(4)})`;
+    document.querySelector('#s-stripe .rule.r').style.transform = `scaleX(${r.toFixed(4)})`;
+
+    // IGNITION. The slab's face and its extruded side lerp to Stripe indigo —
+    // the beat's only saturated hue, and the moment the rule stops being --edge.
+    const fire = seg(t, 0.97, 0.43);
+    const mixed = `color-mix(in srgb, #635bff ${(fire * 100).toFixed(1)}%, #f5f5f4)`;
+    top.style.background = mixed;
+    sidef.style.background = mixed;
+    document.querySelectorAll('#s-stripe .rule').forEach((el) => {
+      el.style.background = `color-mix(in srgb, #635bff ${(fire * 100).toFixed(1)}%, #232323)`;
+    });
+    cone.style.opacity = (seg(t, 0.25, 0.35) * (1 - seg(t, 1.85, 0.35))).toFixed(3);
+
+    // COMETS. One 180px gradient sliver per side running inward along the rule.
+    // The most alive-feeling 0.27s in the beat, and it costs nothing.
+    const c = seg(t, 0.60, 0.27, inOutCubic);
+    const fade = 1 - seg(t, 0.80, 0.07, (x) => x);
+    const cl = document.getElementById('cometL');
+    const cr = document.getElementById('cometR');
+    cl.style.background = 'linear-gradient(90deg, transparent, #635bff, transparent)';
+    cr.style.background = 'linear-gradient(90deg, transparent, #635bff, transparent)';
+    cl.style.transform = `translateX(${lerp(-200, 860, c).toFixed(1)}px)`;
+    cr.style.transform = `translateX(${lerp(1960, 880, c).toFixed(1)}px)`;
+    cl.style.opacity = cr.style.opacity = (c > 0 ? fade : 0).toFixed(3);
+
+    // PRESS. Asymmetric on purpose: 0.20s down on ease-in, a two-frame hold at
+    // the bottom, 0.17s back up on ease-out.
+    const dn = seg(t, 1.42, 0.20, inQuad);
+    const upP = seg(t, 1.69, 0.17);
+    slab.style.marginTop = `${(21 * (dn - upP)).toFixed(2)}px`;
+  },
+};
+
+
+// ── scene 4: product ──────────────────────────────────────────────────────────
+// The two price rows are the two REAL seeded products, VIP Access at $49.99
+// one-time and Signals Monthly at $14.99 monthly (scripts/seed-demo.mjs). An
+// earlier draft showed them as two variants of a single product at prices the
+// seed does not carry; the film may not quote a price Dues does not charge.
+const PRODUCT = {
+  stage: 's-product',
+  duration: 2.3,
+  apply(t) {
+    const card = document.querySelector('#s-product .card');
+    const title = document.querySelector('#s-product .title');
+    const land = seg(t, 0, 0.40);
+    card.style.transform =
+      `translateY(${lerp(120, 0, land).toFixed(1)}px) rotateZ(-4.2deg) rotateY(1.4deg) scale(${lerp(0.90, 1, land).toFixed(4)})`;
+    card.style.opacity = land.toFixed(3);
+    const tin = seg(t, 0.18, 0.20);
+    title.style.opacity = tin.toFixed(3);
+    title.style.filter = tin < 1 ? `blur(${(8 * (1 - tin)).toFixed(2)}px)` : 'none';
+
+    // Each row irises open on its own beat, so the card fills rather than
+    // appearing complete. Staggered by 0.11s — the reference never lands two
+    // sibling elements on the same frame.
+    const rows = document.querySelectorAll('#s-product .fieldrow, #s-product .price, #s-product .role');
+    rows.forEach((el, i) => {
+      const p = seg(t, 0.42 + i * 0.11, 0.44, inOutCubic);
+      el.style.clipPath = `inset(0 ${(46 * (1 - p)).toFixed(2)}% 0 ${(46 * (1 - p)).toFixed(2)}%)`;
+    });
+  },
+};
+
+// ── scene 5: theme ────────────────────────────────────────────────────────────
+// Dues' six SHIPPED store themes, values lifted from THEME_PRESETS in
+// public/dashboard.js. This is the film's chroma engine and it is true: the
+// reference invents a colour picker, Dues already has one.
+const THEMES6 = [
+  { key: 'midnight', name: 'Midnight', bg: '#0a0a0a', panel: '#101010', text: '#f5f5f4', accent: '#ededed', radius: 16, serif: false },
+  { key: 'ivory', name: 'Ivory', bg: '#faf9f7', panel: '#ffffff', text: '#161616', accent: '#161616', radius: 16, serif: false },
+  { key: 'blurple', name: 'Blurple', bg: '#0b0d1f', panel: '#131735', text: '#eceefc', accent: '#8b96f8', radius: 16, serif: false },
+  { key: 'emerald', name: 'Emerald', bg: '#071209', panel: '#0d2012', text: '#e9f6ec', accent: '#22c55e', radius: 16, serif: false },
+  { key: 'crimson', name: 'Crimson', bg: '#150a0d', panel: '#231016', text: '#f8ecee', accent: '#ef4466', radius: 12, serif: false },
+  { key: 'gold', name: 'Gold', bg: '#131008', panel: '#211b0e', text: '#f8f3e6', accent: '#f2b03c', radius: 8, serif: true },
+];
+const byKey = (k) => THEMES6.find((x) => x.key === k);
+
+// The sequence, and why it is this one. It does NOT open on Midnight: Midnight's
+// bg is #0a0a0a, the film's own ground, so the beat proving 'the whole world
+// recolours' would have started on a preview invisible against the page. Blurple
+// separates the preview from the ground immediately and puts saturated colour in
+// frame from the first moment. It ends on Ivory, which is the film's single
+// tonal inversion and its one light island — earned by the product rather than
+// borrowed, because it is a real preset a real seller can click.
+// BLUE -> BLACK -> WHITE. The film is held to blue, white and black: pure
+// monochrome goes flat, and blurple is the one saturated hue Dues can carry
+// truthfully, because it is Discord's. Crimson and Gold stay visible as TILES —
+// they are real presets and the grid would be a lie without them — but the big
+// preview never morphs to them, so no off-palette colour ever owns the frame.
+//
+// It also happens to be the strongest arc available: blue, then the drama of
+// dropping to black, then the film's single tonal inversion into white. Midnight
+// is safe as a MIDDLE beat even though it matches the film's own ground; as an
+// opener it would have been invisible.
+const THEME_SEQ = [
+  { at: 0.00, key: 'blurple' },
+  { at: 1.15, key: 'midnight' },
+  { at: 2.30, key: 'ivory' },
+];
+const MORPH = 0.40; // the recolour itself, measured off the reference
+
+// The product's real corner-radius slider (th-radius in dashboard.js, min 0
+// max 24). A preset-to-preset radius change is 16->12->8, which is invisible on
+// a 700px card; a full slider sweep is both visible and equally true.
+const RAD_AT = 2.85, RAD_DUR = 0.55, RAD_FROM = 16, RAD_TO = 0;
+
+// How much colour a hex actually carries: 0 for any grey, 1 for a pure hue.
+const saturation = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const mx = Math.max(r, g, b);
+  return mx === 0 ? 0 : (mx - Math.min(r, g, b)) / mx;
+};
+
+const mix = (a, b, p) => {
+  const h = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+  const [ar, ag, ab] = h(a); const [br, bg2, bb] = h(b);
+  const c = (x, y) => Math.round(lerp(x, y, p)).toString(16).padStart(2, '0');
+  return `#${c(ar, br)}${c(ag, bg2)}${c(ab, bb)}`;
+};
+
+// The theming beat's current accent, published for the ground light below: the
+// frame is lit by the colour the seller is choosing, live, rather than by a
+// colour someone typed next to it.
+let liveAccent = '#8b96f8';
+
+const THEME_SC = {
+  stage: 's-theme',
+  duration: 3.95,
+  build() {
+    document.querySelector('#s-theme .tiles').innerHTML = THEMES6.map((th) => `
+      <div class="th" data-k="${th.key}" style="background:${th.panel}">
+        <u style="background:${th.accent}"></u><em style="color:${th.text}">${th.name}</em>
+      </div>`).join('');
+  },
+  apply(t) {
+    // Resolve the preset as a continuous blend, so the recolour is one curve
+    // rather than four hard swaps.
+    let from = byKey(THEME_SEQ[0].key), to = from, p = 1, activeKey = THEME_SEQ[0].key;
+    for (let i = 0; i < THEME_SEQ.length; i += 1) {
+      const step = THEME_SEQ[i];
+      if (t >= step.at) {
+        from = i === 0 ? byKey(step.key) : byKey(THEME_SEQ[i - 1].key);
+        to = byKey(step.key);
+        p = i === 0 ? 1 : seg(t, step.at, MORPH, inOutCubic);
+        activeKey = step.key;
+      }
+    }
+    const bg = mix(from.bg, to.bg, p);
+    const panel = mix(from.panel, to.panel, p);
+    const text = mix(from.text, to.text, p);
+    const accent = mix(from.accent, to.accent, p);
+    // The pay button's label colour comes from the product's OWN formula
+    // (inkFor in dashboard.js): #0a0a0a when YIQ(accent) >= 150, else white.
+    const yiq = (() => {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(accent.slice(i, i + 2), 16));
+      return (r * 299 + g * 587 + b * 114) / 1000;
+    })();
+
+    // The ground light takes this preset's accent only in proportion to how
+    // saturated it actually is. Two of the three presets in the sequence are
+    // deliberately monochrome — Midnight's accent is #ededed and Ivory's is
+    // #161616 — and lighting the frame with those would flood it white or do
+    // nothing at all. A preset with no colour to give leaves the film's own
+    // blurple in place.
+    liveAccent = mix('#5865f2', accent, Math.min(1, saturation(accent) * 2.2));
+
+    const prev = document.querySelector('#s-theme .prev');
+    prev.style.background = bg;
+    prev.style.color = text;
+    prev.style.fontFamily = to.serif && p > 0.5 ? "'Liberation Serif', Georgia, serif" : 'var(--sans)';
+    const radius = t >= RAD_AT ? lerp(RAD_FROM, RAD_TO, seg(t, RAD_AT, RAD_DUR, inOutCubic)) : lerp(from.radius, to.radius, p);
+    prev.querySelectorAll('.pv-row').forEach((el) => {
+      el.style.background = panel;
+      el.style.borderRadius = `${radius.toFixed(1)}px`;
+    });
+    const pay = prev.querySelector('.pv-pay');
+    pay.style.background = accent;
+    pay.style.color = yiq >= 150 ? '#0a0a0a' : '#ffffff';
+    pay.style.borderRadius = `${radius.toFixed(1)}px`;
+
+    document.querySelectorAll('#s-theme .th').forEach((el) => {
+      el.classList.toggle('on', el.dataset.k === activeKey);
+    });
+
+    // The slider is only live during its own sweep; before that it sits at the
+    // active preset's real radius.
+    const rp = seg(t, RAD_AT, RAD_DUR, inOutCubic);
+    const shown = t >= RAD_AT ? lerp(RAD_FROM, RAD_TO, rp) : radius;
+    document.getElementById('radval').textContent = `${Math.round(shown)}px`;
+    document.querySelector('#s-theme .thumb').style.left = `${(shown / 24) * 100}%`;
+
+    // THE CURSOR ACTUALLY DOES THE WORK IN THIS SCENE.
+    //
+    // It used to be pinned to whichever tile was active, which meant it
+    // TELEPORTED across the grid on the two frames the preset changed — and
+    // then sat on a tile while the radius slider slid on its own. Two of the
+    // three things the pointer is supposed to be causing here it was not even
+    // touching. Now it travels between the tiles it clicks, then goes down to
+    // the slider, grabs the thumb and DRAGS it: every move in the beat has a
+    // hand on it.
+    //
+    // The clicks land 0.10s BEFORE each colour moves — cause then effect, the
+    // film's tightest rhythmic rule — and the soundtrack's ticks at 8.95,
+    // 10.10 and 10.75 are these three frames.
+    const cur = document.querySelector('#s-theme .cursor');
+    const pBlur = centre('#s-theme .th[data-k="blurple"]', 0.62, 0.66);
+    const pMid = centre('#s-theme .th[data-k="midnight"]', 0.62, 0.66);
+    const pIvo = centre('#s-theme .th[data-k="ivory"]', 0.62, 0.66);
+    // Read live, so once the drag starts the pointer rides the thumb for free.
+    const pThumb = centre('#s-theme .thumb');
+
+    // Each leg arrives ~0.03s before the press it belongs to. The last leg ends
+    // ON the thumb, and because the thumb's position is re-read every frame the
+    // pointer keeps tracking it all the way down the track.
+    let cp = pBlur;
+    if (t >= 2.35) cp = arc(t, 2.35, 0.47, pIvo, pThumb, -0.13);
+    else if (t >= 1.70) cp = arc(t, 1.70, 0.47, pMid, pIvo, 0.10);
+    else if (t >= 0.55) cp = arc(t, 0.55, 0.47, pBlur, pMid, 0.10);
+
+    // Two clicks, then a HELD grab. A dip-and-release on the slider would say
+    // "clicked it"; a drag is a button that stays down for the length of the
+    // move, and that is the difference between the pointer explaining the
+    // slider and merely being near it.
+    const grab = seg(t, RAD_AT, 0.06, inQuad) - seg(t, RAD_AT + RAD_DUR, 0.12);
+    const press = clamp01(dip(t, 1.05) + dip(t, 2.20) + grab);
+    // The drag releases at 3.40; the preview starts becoming the storefront at
+    // 3.73, so the pointer has exactly that gap to get out of the way.
+    const [ex, ey, eo] = curExit(t, 3.44, 0.40, -560, 520);
+    cur.style.opacity = eo.toFixed(3);
+    cur.style.transform =
+      `translate(${(cp[0] + ex).toFixed(1)}px, ${(cp[1] + ey).toFixed(1)}px) scale(${(1 - 0.20 * press).toFixed(4)})`;
+
+    // One mark per discrete click. The drag does not ring — it is one continuous
+    // contact, not three hundred of them.
+    const rg = document.querySelector('#s-theme .ring');
+    // Midnight's tile is near-black and Ivory's is white, so the mark flips
+    // with the tile it opens on.
+    rg.classList.toggle('dark', t >= 1.70);
+    if (t < 1.70) ring(rg, t, 1.05, pMid[0], pMid[1], 0.52);
+    else ring(rg, t, 2.20, pIvo[0], pIvo[1], 0.52);
+  },
+};
+
+
+// ── scene 6: storefront ───────────────────────────────────────────────────────
+const SHOP = {
+  stage: 's-shop',
+  duration: 2.15,
+  apply(t) {
+    const win = document.querySelector('#s-shop .win');
+    const cur = document.querySelector('#s-shop .cursor');
+    const pay = document.querySelector('#s-shop .pay');
+
+    // The window arrives by settling TOWARD the camera rather than sliding from
+    // an edge — an edge slide would imply a direction the burst then has to
+    // honour, and the burst ignites from a point.
+    const inn = seg(t, 0, 0.45);
+    win.style.opacity = inn.toFixed(3);
+    win.style.transform = `rotateX(${lerp(9, 0, inn).toFixed(2)}deg) scale(${lerp(0.90, 1, inn).toFixed(4)})`;
+
+    const rows = document.querySelectorAll('#s-shop .row, #s-shop .pay');
+    rows.forEach((el, i) => {
+      const p = seg(t, 0.34 + i * 0.10, 0.40);
+      el.style.opacity = p.toFixed(3);
+      el.style.transform = `translateY(${lerp(20, 0, p).toFixed(1)}px)`;
+    });
+
+    // The cursor lands on the pay button and presses at 1.72 — IGNITE is this
+    // button's centre and also where the burst is born, which is what makes the
+    // next beat read as caused rather than cut to. It arrives at 1.25 and holds
+    // for half a second: the loudest event in the film deserves a beat of
+    // stillness in front of it. The -4/-2 is the arrow's tip inset, so the
+    // POINT lands on IGNITE rather than the icon's top-left corner.
+    const [cx, cy] = arc(t, 0.70, 0.55, [1560, 1180], [IGNITE[0] - 4, IGNITE[1] - 2], -0.10);
+    const press = dip(t, 1.72, 0.07, 0.13);
+    const hover = seg(t, 1.20, 0.16);
+    // No exit flight here: the burst is born on this button 0.43s after the
+    // press and takes the whole frame, so the pointer fades where it pressed
+    // rather than dragging a dark arrow across a bright wedge field.
+    cur.style.opacity = (1 - seg(t, 1.88, 0.16, (x) => x)).toFixed(3);
+    cur.style.transform =
+      `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) scale(${(1 - 0.19 * press).toFixed(4)})`;
+    pay.style.scale = (1 - 0.05 * press).toFixed(4);
+    // Ivory's pay button is near-black on near-white, so it lightens on hover
+    // and darkens under the press — the opposite pair to the dark scenes, for
+    // the same reason: contrast has to come from what it is drawn on.
+    pay.style.filter = `brightness(${(1 + 0.16 * hover - 0.22 * press).toFixed(3)})`;
+    ring(document.querySelector('#s-shop .ring'), t, 1.72, IGNITE[0], IGNITE[1], 0.62);
+  },
+};
+
+// ── scene 9: endcard ──────────────────────────────────────────────────────────
+const ENDCARD = {
+  stage: 's-end',
+  duration: 1.4,
+  apply(t) {
+    const lock = document.querySelector('#s-end .lock');
+    const pair = document.querySelector('#s-end .pair');
+    const inn = seg(t, 0.05, 0.5);
+    lock.style.opacity = inn.toFixed(3);
+    lock.style.transform = `translateY(${lerp(26, 0, inn).toFixed(1)}px)`;
+    // The two mocks rise as ONE rigid pair on a shared tilt, so they read as a
+    // product family rather than two floating cards.
+    const rise = seg(t, 0.18, 0.62);
+    pair.style.opacity = rise.toFixed(3);
+    pair.style.transform =
+      `rotateX(${lerp(26, 17, rise).toFixed(2)}deg) rotateZ(-4deg) translateY(${lerp(120, 0, rise).toFixed(1)}px)`;
+  },
+};
+
+
+// ── the film ──────────────────────────────────────────────────────────────────
+// Nine beats on one 20.0s timeline. The whole point of this function is the
+// JUNCTIONS: ffmpeg finds zero hard cuts in the reference at threshold 0.10, and
+// four previous attempts at this video failed because they were assembled out of
+// crossfades between unrelated screens. A junction here is a transform, and
+// wherever possible one object is CARRIED THROUGH it so the eye never loses the
+// thread — the technique the teardown found in the reference ("the S chip is the
+// carry-over object and it never stops existing").
+const FILM = [
+  { key: 'title', el: 's-title', at: 0.00, dur: 1.15, sc: () => TITLE },
+  { key: 'store', el: 's-store', at: 1.15, dur: 2.25, sc: () => STORE },
+  { key: 'stripe', el: 's-stripe', at: 3.40, dur: 2.20, sc: () => STRIPE_S },
+  { key: 'product', el: 's-product', at: 5.60, dur: 2.30, sc: () => PRODUCT },
+  { key: 'theme', el: 's-theme', at: 7.90, dur: 3.95, sc: () => THEME_SC },
+  { key: 'shop', el: 's-shop', at: 11.85, dur: 2.15, sc: () => SHOP },
+  { key: 'burst', el: 'burst', at: 14.00, dur: 1.85, sc: () => BURST },
+  { key: 'alerts', el: 'alerts', at: 15.85, dur: 3.00, sc: () => ALERTS },
+  { key: 'endcard', el: 's-end', at: 18.85, dur: 1.15, sc: () => ENDCARD },
+];
+
+// CARRY-THROUGH. The teardown's single most important finding about the
+// reference: "the S chip is the carry-over object and it never stops existing".
+// A junction where one object visibly BECOMES the next scene's object reads as
+// one continuous move; two unrelated things crossfading reads as a cut with a
+// blur on it, which is what four earlier attempts at this video did.
+//
+// Each entry maps the outgoing scene's key element onto the incoming scene's key
+// element. Boxes are in the 1920x1080 layout space, centre and size, so the
+// transform is just the difference between two rectangles.
+// THE JUNCTIONS. Each entry names ONE object that visibly becomes another; the
+// geometry is deliberately absent, because typed geometry is what broke this.
+// The first version carried cx/cy/w for both ends and every one of them was a
+// guess about where an element would be at a moment its own scene was still
+// animating it — the alerts panel was landing 286px right and 487px low of
+// centre mid-carry, and the store card lost its 5.7deg tilt for the length of
+// the transition. The boxes are now MEASURED every frame instead.
+const CARRY = [
+  {
+    at: 3.40, dur: 0.42,
+    // The store card collapses into the Stripe slab. Same object, same rotation
+    // continuing — which is why scene 3 lands its slab with a rotateZ still
+    // running down to zero rather than appearing square.
+    from: '#s-store .card', to: '#s-stripe .slab',
+  },
+  {
+    at: 11.85, dur: 0.40,
+    // The clearest carry in the film: the live store preview the seller has just
+    // been theming IS the page the buyer lands on. It grows into the browser
+    // window rather than being replaced by it.
+    from: '#s-theme .prev', to: '#s-shop .win',
+  },
+  {
+    at: 15.85, dur: 0.40,
+    // The @VIP chip the burst was built around opens into the Discord channel
+    // the role was announced in. Without this the burst's full-frame wedges
+    // simply stopped and an empty panel appeared — measured as the film's
+    // worst undesigned junction at 0.249, and the only place the eye had
+    // nothing to follow.
+    from: '#burst .chip', to: '#alerts .panel',
+  },
+  {
+    at: 18.85, dur: 0.38,
+    // The #sale-alerts panel shrinks into its own place on the endcard, so the
+    // last beat is assembled out of the film rather than cut to.
+    from: '#alerts .panel', to: '#s-end .mock.dark',
+  },
+];
+
+function baseT(el) {
+  if (el.style.transform) return el.style.transform;
+  const css = getComputedStyle(el).transform;
+  return css && css !== 'none' ? css : '';
+}
+
+// MEASURE THE PROJECTION, DO NOT MODEL IT.
+//
+// A carry has to move an element's VISUAL centre a known number of SCREEN
+// pixels, and two things get in the way of just writing that number down.
+//
+//   1. Perspective. The burst's @VIP chip sits at translateZ(300) under a
+//      2000px camera, so 100 local pixels of translate land as appreciably
+//      more than 100 on screen. A carry computed in screen pixels overshoots
+//      and keeps going — the chip flew to the top-left corner.
+//   2. Off-centre origins. Anything centred with translate(-50%,-50%) — the
+//      chip, the alerts panel — has its visual centre sitting on its layout
+//      box's TOP-LEFT corner, so a scale about 'center center' swings it
+//      hundreds of pixels across the frame.
+//
+// Both are solved by probing rather than by a table of special cases, and the
+// origin is deliberately NOT moved to fix (2): several carry elements have a
+// rotation in their own transform, and moving the origin would change how that
+// rotation renders. The offset is compensated for in the translate instead.
+//
+// Two probes: a unit translate gives the projection gain, and a scale of 2
+// gives (visual centre - origin) directly, since d = (s-1)(c-O). The film is
+// rendered by seeking and never in real time, so the extra layout reads are
+// free.
+function project(el, base) {
+  el.style.transformOrigin = 'center center';
+  const b0 = el.getBoundingClientRect();
+  const cx = b0.left + b0.width / 2;
+  const cy = b0.top + b0.height / 2;
+  el.style.transform = `translate(100px, 100px) ${base}`;
+  const b1 = el.getBoundingClientRect();
+  el.style.transform = `scale(2) ${base}`;
+  const b2 = el.getBoundingClientRect();
+  el.style.transform = base;
+  const gx = (b1.left + b1.width / 2 - cx) / 100;
+  const gy = (b1.top + b1.height / 2 - cy) / 100;
+  return {
+    // A hidden or degenerate element measures as zero; fall back to 1:1 rather
+    // than dividing by it.
+    gx: Math.abs(gx) > 0.01 ? gx : 1,
+    gy: Math.abs(gy) > 0.01 ? gy : 1,
+    ox: b2.left + b2.width / 2 - cx,
+    oy: b2.top + b2.height / 2 - cy,
+    cx,
+    cy,
+  };
+}
+
+// Place `el` so its visual centre lands (dx, dy) screen pixels from where it is
+// now, at scale s. Solved from  c' = O + M.T + s(c - O).
+function carryTo(el, base, P, dx, dy, s) {
+  el.style.transform =
+    `translate(${((dx + (1 - s) * P.ox) / P.gx).toFixed(2)}px, ${((dy + (1 - s) * P.oy) / P.gy).toFixed(2)}px)`
+    + ` scale(${s.toFixed(4)}) ${base}`;
+}
+
+// THE GROUND LIGHT. One key per beat: colour, where the spill sits, and how
+// strong it is. Motivated every time — Stripe's own indigo under the key beat,
+// the live preset's accent under the theming, blurple under the burst — and
+// deliberately weak elsewhere, so the two beats that ARE about colour are the
+// two the frame visibly warms for.
+//
+// `c: null` means "whatever the theming beat is currently showing".
+const TINT = [
+  { at: 0.00, c: '#5865f2', x: 50, y: 44, a: 0.045 },
+  { at: 1.15, c: '#5865f2', x: 34, y: 62, a: 0.050 },
+  { at: 3.40, c: '#635bff', x: 50, y: 56, a: 0.150 },
+  { at: 5.60, c: '#5865f2', x: 46, y: 52, a: 0.055 },
+  { at: 7.90, c: null, x: 74, y: 50, a: 0.130 },
+  { at: 11.85, c: '#5865f2', x: 50, y: 52, a: 0.045 },
+  { at: 14.00, c: '#5865f2', x: 50, y: 50, a: 0.110 },
+  { at: 15.85, c: '#5865f2', x: 50, y: 50, a: 0.055 },
+  { at: 18.85, c: '#5865f2', x: 50, y: 62, a: 0.060 },
+];
+
+function tintAt(t) {
+  let i = 0;
+  for (let j = 0; j < TINT.length; j += 1) if (t >= TINT[j].at) i = j;
+  const cur = TINT[i];
+  const prv = i === 0 ? cur : TINT[i - 1];
+  // The light leads the cut slightly — it starts moving 0.18s before the beat
+  // it belongs to, so the frame is already the right colour when the beat
+  // arrives rather than catching up afterwards.
+  const p = i === 0 ? 1 : seg(t, cur.at - 0.18, 0.55, inOutCubic);
+  const cc = cur.c || liveAccent;
+  const pc = prv.c || liveAccent;
+  return {
+    c: mix(pc, cc, p),
+    x: lerp(prv.x, cur.x, p),
+    y: lerp(prv.y, cur.y, p),
+    a: lerp(prv.a, cur.a, p),
+  };
+}
+
+const FILM_SCENE = {
+  stage: null,
+  duration: 20.0,
+  build() {
+    document.body.classList.add('film');
+    FILM.forEach((b) => {
+      const sc = b.sc();
+      if (sc.build) sc.build();
+    });
+  },
+  apply(t) {
+    const wash = document.getElementById('wash');
+
+    // J3 (stripe -> product) is the film's signature junction and the one the
+    // adversarial pass corrected: the reference's mean luma travels 44 -> 216
+    // while chroma DIPS to a minimum mid-travel, which is the unmistakable
+    // signature of a bright DESATURATING wash. Washing to --bg, as the spec
+    // originally had it, would have been the same gesture with its meaning
+    // inverted. On a near-black film a white wash is a harder cut of light than
+    // it is on the reference's cream — which is the point.
+    const washUp = seg(t, 5.32, 0.20, inQuad);
+    const washDn = seg(t, 5.52, 0.33);
+    wash.style.opacity = (0.88 * (washUp - washDn)).toFixed(4);
+
+    // Every carry element's transform is cleared BEFORE the scenes run, so that
+    // when the carry reads a base transform it reads either the value this
+    // frame's apply() just wrote or the element's CSS — never last frame's
+    // carry output, which would compound into a runaway every frame.
+    CARRY.forEach((c) => {
+      [c.from, c.to].forEach((sel) => {
+        const e = document.querySelector(sel);
+        if (!e) return;
+        e.style.transform = '';
+        // Opacity and z-index are cleared for the same reason, and for one more:
+        // this engine's entire promise is that the same t produces the same
+        // pixels. A carry that leaves opacity 0 behind on the alerts panel makes
+        // the frame depend on which t was rendered before it.
+        e.style.opacity = '';
+        e.style.zIndex = '';
+      });
+    });
+
+    // Which beats are inside a carry, so the generic exit does not fight it.
+    const carrying = new Set();
+    CARRY.forEach((c) => {
+      if (t >= c.at - c.dur && t <= c.at + c.dur) { carrying.add(c.from); carrying.add(c.to); }
+    });
+
+    FILM.forEach((b) => {
+      const el = document.getElementById(b.el);
+      const sc = b.sc();
+      const end = b.at + b.dur;
+      const live = t >= b.at - 0.45 && t <= end + 0.45;
+      if (!live) { el.style.opacity = '0'; return; }
+
+      sc.apply(clamp01((t - b.at) / b.dur) * b.dur);
+
+      // Entry and exit. Deliberately NOT a symmetric crossfade: an incoming beat
+      // is already fully opaque by the time the outgoing one starts leaving, so
+      // the two are never both half-visible — which is what a dissolve looks
+      // like, and what the reference never does.
+      const inCarry = [...carrying].some((sel) => el.contains(document.querySelector(sel)));
+
+      // A beat whose junction is carried gets a LONGER exit, because it can
+      // afford one: the carried object has already arrived and is holding the
+      // eye, so whatever is left of the outgoing beat can leave slowly behind
+      // it. The burst is the case this exists for — its wedges cover the whole
+      // frame, and dropping them in 0.20s was the film's largest undesigned
+      // per-frame change even with the @VIP chip carrying perfectly.
+      const inn = seg(t, b.at - 0.10, 0.18, (x) => x);
+      const out = seg(t, end - 0.06, inCarry ? 0.34 : 0.20, (x) => x);
+      el.style.opacity = Math.max(0, inn - out).toFixed(4);
+
+      // A scene that freezes and fades reads as a slide; one that accelerates
+      // out reads as a camera. Suppressed where a carry is doing the work.
+      el.style.transform = out > 0 && !inCarry ? `scale(${(1 + 0.055 * out).toFixed(4)})` : 'none';
+      el.style.filter = out > 0 && !inCarry ? `blur(${(9 * out).toFixed(2)}px)` : 'none';
+    });
+
+    // The ground light, after the scenes so the theming beat's accent is this
+    // frame's value and not the previous one's. The falloff goes to the SAME
+    // hue at zero alpha rather than to `transparent`, which in a gradient
+    // interpolates through transparent black and leaves a grey halo.
+    const ti = tintAt(t);
+    const tint = document.getElementById('tint');
+    tint.style.background =
+      `radial-gradient(1180px 760px at ${ti.x.toFixed(1)}% ${ti.y.toFixed(1)}%, ${ti.c} 0%, ${ti.c}00 70%)`;
+    tint.style.opacity = ti.a.toFixed(4);
+
+    // THE CARRIES. Run last, so they compose on top of whatever the generic
+    // pass and each scene's own apply() have already written this frame.
+    //
+    // Two rules, and the first version of this code broke both.
+    //
+    // MEASURE, DO NOT TYPE. Both boxes are read from the live DOM every frame.
+    // The typed geometry it replaces was a guess about where an element would
+    // be at a moment its own scene was still moving it, and every guess was
+    // wrong by between 30 and 490 pixels.
+    //
+    // COMPOSE, DO NOT REPLACE. A carry element almost always carries a
+    // transform of its own — the store card's -5.7deg tilt, the shop window's
+    // rotateX, the alerts panel's centring translate — and writing over it
+    // DELETED that transform for the length of the junction, which is precisely
+    // when the eye is locked on the object. The carry's translate and scale go
+    // in FRONT of the element's own transform, so the object keeps being
+    // itself while it moves.
+    CARRY.forEach((c) => {
+      const a = document.querySelector(c.from);
+      const bEl = document.querySelector(c.to);
+      if (!a || !bEl) return;
+      const p = seg(t, c.at - c.dur * 0.55, c.dur, inOutCubic);
+      if (p <= 0 || p >= 1) return;
+      // The incoming element sits above the outgoing one for the whole carry, so
+      // the handoff never depends on document order.
+      bEl.style.zIndex = '60';
+      a.style.zIndex = '59';
+
+      // Both elements are probed BEFORE either is written, so neither
+      // measurement can see the other's carry transform.
+      const ba = baseT(a);
+      const bb = baseT(bEl);
+      const PA = project(a, ba);
+      const PB = project(bEl, bb);
+      const ra = a.getBoundingClientRect();
+      const rb = bEl.getBoundingClientRect();
+      if (!ra.width || !rb.width) return;
+      const dx = PB.cx - PA.cx;
+      const dy = PB.cy - PA.cy;
+      const k = rb.width / ra.width;
+
+      // Outgoing: travel all the way onto the incoming element's rectangle.
+      carryTo(a, ba, PA, dx * p, dy * p, lerp(1, k, p));
+      a.style.opacity = (1 - clamp01((p - 0.52) / 0.26)).toFixed(3);
+      a.parentElement.style.opacity = '1';
+
+      // Incoming: arrive FROM the outgoing element's rectangle, so for the frames
+      // where both exist they occupy the same box and the swap is invisible.
+      carryTo(bEl, bb, PB, -dx * (1 - p), -dy * (1 - p), lerp(1 / k, 1, p));
+      bEl.style.opacity = clamp01((p - 0.46) / 0.24).toFixed(3);
+      bEl.parentElement.style.opacity = '1';
+    });
+  },
+};
+
+const SCENES = { brand: BRAND, title: TITLE, store: STORE, stripe: STRIPE_S, product: PRODUCT, theme: THEME_SC, shop: SHOP, burst: BURST, alerts: ALERTS, endcard: ENDCARD, film: FILM_SCENE };
+
+const name = new URLSearchParams(location.search).get('scene') || 'brand';
+const scene = SCENES[name];
+if (!scene) {
+  document.body.innerHTML = `<pre style="color:#f5f5f4;padding:40px;font:20px monospace">
+unknown scene "${name}" — known: ${Object.keys(SCENES).join(', ')}</pre>`;
+} else {
+  if (scene.stage !== null) {
+    const stageEl = document.getElementById(scene.stage || name);
+    if (!stageEl) throw new Error(`scene "${name}" declares stage "${scene.stage || name}", which is not in the document`);
+    stageEl.classList.add('on');
+  }
+  fillTitles();
+  if (scene.build) scene.build();
+  scene.apply(0);
+}
+
+// The recorder's whole contract with this page.
+window.__scene = name;
+window.__duration = scene ? scene.duration : 0;
+window.__seek = (t) => {
+  if (!scene) return false;
+  scene.apply(Number(t));
+  return true;
+};
+// Set once the fonts AND every image have resolved. Fonts alone was not enough:
+// frame 0's subject is assets/dues-mark.png and frame 0 becomes the LCP poster, so
+// seeking before it decodes ships a poster with a hole where the logo goes.
+window.__ready = false;
+Promise.all([
+  document.fonts.ready,
+  ...[...document.images].map((i) => i.decode().catch(() => {})),
+]).then(() => { window.__ready = true; });
+</script>
+</body>
+</html>

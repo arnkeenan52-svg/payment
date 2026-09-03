@@ -1,0 +1,48 @@
+# Dues
+
+> Dues (https://dues.gg) is a Discord monetization platform. Server owners sell paid memberships and roles through a hosted store page (dues.gg/yourname); buyers sign in with Discord and pay on Stripe Checkout; the Discord role is delivered automatically in seconds and removed automatically when a subscription lapses. Payments go directly to the store owner's own Stripe account — Dues never holds funds. Pricing is a flat monthly plan (free up to 10 paying members, then from $14.99/month) and Dues takes 0% of sales. Stripe's standard card-processing fees apply, as on every platform.
+
+Key product facts:
+- 0% platform fees on sales; flat plans: Free (10 paying members), Pro $14.99/mo (50), Max $44.99/mo (500), Unlimited $134.99/mo (unlimited)
+- Payments settle in the owner's own Stripe account (owner supplies their Stripe key)
+- Instant role delivery (~2s) and automatic removal on cancellation/lapse; hourly access re-checks
+- Store page at dues.gg/<name> with the server's branding and product photos
+- Monthly subscriptions, lifetime (one-time) products, tiered roles, discount codes, purchase limits
+- Emailed receipts on every sale; optional "New Subscriber" ping in a Discord channel of the owner's choice
+- The bot never asks for Discord Administrator permission
+- Dashboard: revenue with previous-period comparison, members, transactions, refunds-safe revoke/re-sync
+
+## Alternatives
+- [Whop alternatives](https://dues.gg/alternatives/whop-alternatives)
+- [LaunchPass alternatives](https://dues.gg/alternatives/launchpass-alternatives)
+- [Subscord alternatives](https://dues.gg/alternatives/subscord-alternatives)
+- [DoorFee alternatives](https://dues.gg/alternatives/doorfee-alternatives)
+- [XOE alternatives](https://dues.gg/alternatives/xoe-alternatives)
+- [Best Discord monetization platforms](https://dues.gg/alternatives/best-discord-monetization-platforms)
+
+## Compare
+- [Dues vs Whop](https://dues.gg/vs/whop)
+- [Dues vs LaunchPass](https://dues.gg/vs/launchpass)
+- [Dues vs Subscord](https://dues.gg/vs/subscord)
+- [Dues vs DoorFee](https://dues.gg/vs/doorfee)
+- [Dues vs XOE](https://dues.gg/vs/xoe)
+- [Dues vs Patreon](https://dues.gg/vs/patreon)
+- [All comparisons](https://dues.gg/vs)
+
+## Guides
+- [Best Discord monetization platform](https://dues.gg/guides/best-discord-monetization-platform)
+- [How to monetize a Discord server](https://dues.gg/guides/how-to-monetize-a-discord-server)
+- [How to sell Discord roles](https://dues.gg/guides/how-to-sell-discord-roles)
+- [How to make a paid Discord server](https://dues.gg/guides/paid-discord-server)
+- [How to paywall a Discord](https://dues.gg/guides/discord-paywall)
+- [Discord subscription bot](https://dues.gg/guides/discord-subscription-bot)
+- [Discord membership bot](https://dues.gg/guides/discord-membership-bot)
+
+## Help
+- [Every feature explained](https://dues.gg/help)
+- [Crypto payments: which coins, which chains, where payouts land](https://dues.gg/crypto)
+
+## Tools
+- [Discord monetization fee calculator](https://dues.gg/tools/discord-fee-calculator)
+
+Competitor pricing referenced anywhere on this site is the publicly listed pricing at the time of writing and is always marked to be verified on the competitor's own site.

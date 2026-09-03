@@ -1,0 +1,62 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:'Space Grotesk';src:url('file:///home/user/payment/discord-paygate/public/spacegrotesk-latin.woff2') format('woff2');font-weight:100 1000;}
+@font-face{font-family:'DM Sans';src:url('file:///home/user/payment/discord-paygate/public/dmsans-latin.woff2') format('woff2');font-weight:100 1000;}
+html,body{margin:0;background:#000}
+.b{position:relative;width:1360px;height:480px;overflow:hidden;background:#0a0a0a;
+   font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased}
+
+/* Discord composites this: the bot avatar covers x 32-354 below y 315, and the
+   overflow button sits around x 1197-1306 / y 48-163. Both stay empty here. */
+.tex{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,0.05) 1.6px,transparent 1.6px);
+     background-size:30px 30px;
+     -webkit-mask-image:linear-gradient(120deg,#000 0%,rgba(0,0,0,0.4) 55%,transparent 85%)}
+.glow{position:absolute;width:900px;height:900px;left:-300px;top:-520px;border-radius:50%;
+     background:radial-gradient(circle,rgba(255,255,255,0.08),transparent 60%)}
+.bloom{position:absolute;right:-40px;top:60px;width:620px;height:460px;border-radius:50%;
+     background:radial-gradient(circle,rgba(88,101,242,0.20),transparent 66%);filter:blur(26px)}
+.vig{position:absolute;inset:0;background:radial-gradient(130% 100% at 46% 44%,transparent 50%,rgba(0,0,0,0.5) 100%)}
+
+.left{position:absolute;left:84px;top:50px;z-index:5}
+.lock{display:flex;align-items:center;gap:18px}
+.lock .mk{width:50px;height:50px;display:block;flex:none}
+.wm{font-family:'Space Grotesk',sans-serif;font-size:44px;font-weight:600;letter-spacing:-0.028em;color:#fff;line-height:1}
+.rule{width:1px;height:28px;background:#303030;margin:0 4px}
+.dom{font-size:20px;font-weight:600;color:#7a7a7a;padding-top:3px}
+h1{font-family:'Space Grotesk',sans-serif;margin:22px 0 0;font-size:64px;line-height:1.02;
+   letter-spacing:-0.04em;font-weight:700;color:#fff}
+.sub{margin:20px 0 0;font-size:27px;font-weight:500;line-height:1.15;color:#9e9e9e}
+.sub b{color:#fff;font-weight:700}
+
+/* one chip per step of the product, at a size that survives Discord's rescale */
+.flow{position:absolute;right:84px;top:168px;z-index:5;display:flex;flex-direction:column;align-items:flex-end;gap:20px}
+.c{display:inline-flex;align-items:center;gap:13px;border-radius:999px;padding:15px 27px;
+   font-size:30px;font-weight:700;letter-spacing:-0.015em;white-space:nowrap}
+.c svg{flex:none}
+.c-paid{color:#6ee7a2;background:rgba(34,197,94,0.13);border:1.5px solid rgba(34,197,94,0.42)}
+.c-role{color:#fff;background:#5865f2;box-shadow:0 16px 40px -12px rgba(88,101,242,0.7)}
+.c-role2{color:#aeb6ff;background:rgba(88,101,242,0.14);border:1.5px solid rgba(88,101,242,0.5)}
+.dot{width:11px;height:11px;border-radius:50%;background:currentColor;display:block}
+.hair{position:absolute;left:0;right:0;bottom:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.16) 30%,rgba(255,255,255,0.16) 72%,transparent)}
+</style></head><body><div class="b">
+  <div class="tex"></div><div class="glow"></div><div class="bloom"></div><div class="vig"></div>
+
+  <div class="left">
+    <div class="lock">
+      <svg class="mk" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path fill="#fff" d="M6 57L33 57L40 43L13 43Z"/><path fill="#fff" d="M15 39L42 39L49 25L22 25Z"/><path fill="#fff" d="M24 21L51 21L58 7L31 7Z"/></svg>
+      <span class="wm">Ripley</span>
+      <span class="rule"></span>
+      <span class="dom">ripleybot.com</span>
+    </div>
+    <h1>Sell access to<br />your Discord.</h1>
+    <p class="sub"><b>0% platform fees.</b> You keep every dollar.</p>
+  </div>
+
+  <div class="flow">
+    <span class="c c-paid"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>$49.99 paid</span>
+    <span class="c c-role"><i class="dot"></i>@VIP added</span>
+    <span class="c c-role2"><i class="dot"></i>@Signals added</span>
+  </div>
+
+  <div class="hair"></div>
+</div></body></html>

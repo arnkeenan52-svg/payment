@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- viewport-fit=cover is what makes env(safe-area-inset-*) non-zero. Without
+       it the page cannot reserve room for Safari's bottom bar, and the pay
+       button ends up underneath it. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <!-- og:begin — replaced per store by api/store-page.js so link previews
+       (Discord/Twitter/iMessage) carry the store's name and product photo.
+       Unfurlers never run JS; only server-rendered tags count. -->
+  <title>Checkout — Dues</title>
+  <meta name="description" content="Secure checkout for Discord communities — pay once, roles delivered in seconds." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Dues" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="Checkout — Dues" />
+  <meta property="og:description" content="Secure checkout for Discord communities — pay once, roles delivered in seconds." />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@duesdiscord" />
+  <meta name="twitter:title" content="Checkout — Dues" />
+  <meta name="twitter:description" content="Secure checkout for Discord communities — pay once, roles delivered in seconds." />
+  <meta name="robots" content="noindex" />
+  <!-- og:end -->
+  <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="stylesheet" href="/styles.css?v=210" />
+</head>
+<body>
+  <i class="ui-tint" aria-hidden="true"></i>
+  <i class="ui-tint-b" aria-hidden="true"></i>
+  <header class="top">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/dues.png?v=210" alt="Dues" height="20" /></a>
+    </div>
+    <div id="account" class="account"></div>
+  </header>
+
+  <main class="checkout">
+    <!-- Everything below is drawn by app.js. With scripts off the page is a
+         header, a footer and an empty order card — say why, not nothing. -->
+    <noscript><p class="callout">Checkout needs JavaScript enabled — turn it on for this site and reload.</p></noscript>
+    <!-- The store's overall page: banner, identity and every product as a
+         card. app.js shows this when the store has more than one product and
+         no ?plan deep link; picking a card slides into the checkout below. -->
+    <section class="shop" id="shop" hidden>
+      <div class="shop-col" id="shop-col">
+
+        <!-- The banner is ALWAYS in the layout, even with nothing uploaded:
+             the identity block hangs off its bottom edge, so a collapsing
+             slot left the avatar floating over the page. Square and flush to
+             the rails on purpose. -->
+        <div class="shop-hero no-banner" id="shop-hero">
+          <!-- referrerpolicy: a pasted banner points at a host of the SELLER's
+               choosing, and a buyer's visit is not ours to report to it. -->
+          <img class="shop-banner media-fade" id="shop-banner" alt="" hidden referrerpolicy="no-referrer" onerror="this.hidden = true" onload="this.classList.add('loaded')" />
+          <video class="shop-banner media-fade" id="shop-banner-video" hidden autoplay muted loop playsinline disablepictureinpicture referrerpolicy="no-referrer" aria-hidden="true" onerror="this.hidden = true" onloadeddata="this.classList.add('loaded')"></video>
+          <!-- no src attribute: src="" resolves to the page URL, so the browser fetched
+               the whole document again as an image on every load. app.js sets it. -->
+          <!-- A CDN miss (blocked network, a hash the seller just replaced) must fall back to
+               the letter placeholder, not leave a 96px hole: .media-fade keeps a failed image
+               at opacity 0. The failed url is remembered so re-renders do not re-show it. -->
+          <img class="logo shop-avatar media-fade" id="shop-icon" alt="" width="96" height="96" hidden onload="this.classList.add('loaded')" onerror="this.dataset.failed = this.getAttribute('src'); this.hidden = true; document.getElementById('shop-icon-ph').hidden = false" />
+          <span class="shop-avatar shop-avatar-ph" id="shop-icon-ph" hidden aria-hidden="true"></span>
+        </div>
+
+        <div class="shop-head">
+          <div class="shop-titlebar">
+            <h1 class="shop-name" id="shop-name">&nbsp;</h1>
+            <div class="shop-actions">
+              <button type="button" class="shop-icon-btn" id="shop-share" hidden aria-label="Share this store — copies the link">
+                <svg class="ss-share" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+                <svg class="ss-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>
+                <span class="shop-share-tip" role="status">Link copied</span>
+              </button>
+              <button type="button" class="shop-btn shop-follow" id="shop-follow" hidden aria-pressed="false">
+                <span class="f-off">Follow</span><span class="f-on">Following</span><span class="f-un">Unfollow</span>
+              </button>
+              <button type="button" class="shop-btn shop-join" id="shop-join">Join</button>
+            </div>
+          </div>
+          <!-- The rating sits directly under the name, where the reference
+               puts it. It renders ONLY from real rows: no reviews means this
+               stays hidden rather than showing an empty widget. -->
+          <button type="button" class="shop-rating" id="shop-rating" hidden>
+            <span class="shop-rating-star" aria-hidden="true">&#9733;</span>
+            <span class="shop-rating-num" id="shop-rating-num"></span>
+            <span class="shop-rating-count" id="shop-rating-count"></span>
+          </button>
+          <p class="shop-desc" id="shop-desc" hidden><span id="shop-desc-text"></span></p>
+          <!-- Outside the clamped paragraph: inside it, a long description pushed the
+               button onto the third line, which the clamp clipped away. -->
+          <button type="button" class="shop-desc-more" id="shop-desc-more" hidden>&#8230; see more</button>
+          <!-- ONE metadata row, the way the reference has it: where this is
+               (the Discord server), the seller's own links, and the seller's
+               own claim about who is behind the store. Three separate lines is
+               what made this block read as a stack of leftovers.
+               The children keep their ids and their old classes so a browser
+               still holding the previous store.html renders them as it did. -->
+          <div class="shop-meta" id="shop-meta" hidden>
+            <p class="shop-sub" id="shop-sub" hidden></p>
+            <div class="shop-metaline" id="shop-metaline"></div>
+            <p class="shop-creator" id="shop-creator" hidden>Created by <span class="shop-cr-face" id="shop-creator-face" aria-hidden="true"></span><b id="shop-creator-name"></b></p>
+          </div>
+          <p class="shop-joined" id="shop-joined" hidden></p>
+          <div class="shop-roleline" id="shop-roleline" hidden></div>
+        </div>
+
+        <!-- Two sections, and the bar only earns its place when both exist:
+             app.js hides the whole nav for a store with no About, because a
+             lone "Products" tab is a control with nothing to switch to. -->
+        <nav class="shop-tabs" id="shop-tabs" aria-label="Store sections">
+          <button type="button" class="shop-tab active" data-tab="products">Products</button>
+          <button type="button" class="shop-tab" data-tab="reviews" id="shop-tab-reviews" hidden>Reviews</button>
+          <button type="button" class="shop-tab" data-tab="about" id="shop-tab-about" hidden>About</button>
+        </nav>
+
+        <div class="shop-pane" id="shop-pane-products">
+          <h2 class="shop-sec">Products</h2>
+          <div class="shop-grid" id="shop-grid"></div>
+          <p class="shop-empty" id="shop-empty" hidden>Nothing is for sale here yet &#8212; check back soon.</p>
+        </div>
+
+        <section class="shop-pane" id="shop-pane-reviews" hidden>
+          <div class="shop-rvhead">
+            <h2 class="shop-sec" id="shop-rv-sec">Reviews</h2>
+            <div class="shop-rvscore" id="shop-rvscore" hidden>
+              <span class="shop-rvscore-star" aria-hidden="true">&#9733;</span>
+              <b id="shop-rvscore-num"></b>
+              <span id="shop-rvscore-count"></span>
+            </div>
+          </div>
+          <!-- The buyer's own review lives at the top: written, or the
+               invitation to write one. Only ever shown to someone the server
+               says may write — the button never appears as a tease. -->
+          <div class="shop-rvmine" id="shop-rvmine" hidden></div>
+          <div class="shop-rvlist" id="shop-rvlist"></div>
+          <p class="shop-empty" id="shop-rvempty" hidden>No reviews yet.</p>
+          <button type="button" class="shop-rvmore" id="shop-rvmore" hidden>Show more reviews</button>
+        </section>
+
+        <section class="shop-about shop-pane" id="shop-about-box" hidden>
+          <div class="shop-team" id="shop-team" hidden>
+            <h2 class="shop-sec" id="shop-team-head">Team</h2>
+            <div class="shop-team-grid" id="shop-team-grid"></div>
+          </div>
+          <h2 class="shop-sec" id="shop-about-head" hidden>About</h2>
+          <div id="shop-about"></div>
+        </section>
+
+      </div>
+    </section>
+
+    <section class="panel order-card">
+      <button type="button" class="shop-back" id="back-to-shop" hidden>&larr; All products</button>
+      <span class="order-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Secure checkout</span>
+      <h1 class="order-title">Confirm Order</h1>
+      <p class="order-sub">You are about to purchase the following product:</p>
+
+      <div class="order-product">
+        <div class="op-left">
+          <img class="op-thumb media-fade" id="product-shot" alt="" hidden referrerpolicy="no-referrer" onerror="this.hidden = true" onload="this.classList.add('loaded')" />
+          <span class="op-name" id="plan-name">&nbsp;</span>
+        </div>
+        <span class="op-price" id="price">&nbsp;</span>
+        <div class="op-server">
+          <img class="logo op-server-icon" src="" alt="" width="34" height="34" hidden onerror="this.dataset.failed = this.getAttribute('src'); this.hidden = true" />
+          <span class="op-server-meta"><strong id="server-name" hidden></strong><span class="op-server-kind">Discord Server</span></span>
+        </div>
+      </div>
+
+      <div class="order-roles" id="roles-box" hidden>
+        <span class="order-roles-label">Discord Roles Included:</span>
+        <span class="chips" id="roles-chips"></span>
+      </div>
+
+      <p class="tagline" id="plan-desc"></p>
+      <div id="notice"></div>
+
+      <p class="label" id="options-label">Your order</p>
+      <div id="options"></div>
+
+      <p class="label" id="methods-label">Payment method</p>
+      <div class="methods" id="methods"></div>
+
+      <section class="pay-panel" id="pay-panel">
+        <h2 id="pay-title">Pay with Card</h2>
+        <p class="pay-sub" id="pay-sub">Secure payment processed by Stripe</p>
+        <details class="order-extra" id="discount-field" hidden>
+          <summary id="discount-summary">Have a discount code?</summary>
+          <div class="order-extra-body">
+            <span class="discount-row">
+              <input id="discount-code" type="text" maxlength="32" placeholder="LAUNCH20" spellcheck="false" autocomplete="off" style="text-transform:uppercase" aria-label="Discount code" />
+              <button type="button" class="apply-btn" id="discount-apply">Apply</button>
+            </span>
+            <p class="discount-msg" id="discount-msg" role="status"></p>
+          </div>
+        </details>
+        <div class="totals" id="totals" hidden>
+          <div class="tot-row"><span>Subtotal</span><span id="tot-sub"></span></div>
+          <div class="tot-row tot-save" id="tot-save-row" hidden><span id="tot-save-label">Discount</span><span id="tot-save"></span></div>
+          <div class="tot-div" aria-hidden="true"></div>
+          <div class="tot-row tot-final"><span>Total</span><strong id="tot-final"></strong></div>
+        </div>
+        <!-- Crypto: the coin picker, then the address the buyer sends to.
+             Both live inside the order card rather than on a hosted page —
+             the money goes straight to the seller's wallet, so there is no
+             third-party checkout to hand the buyer off to. -->
+        <div class="coinpick" id="coinpick" hidden>
+          <p class="coinpick-label">Pay with</p>
+          <div class="coinpick-grid" id="coinpick-grid"></div>
+          <p class="coinpick-msg" id="coinpick-msg" role="status"></p>
+        </div>
+        <div id="cta-area"></div>
+        <div class="cryptopay" id="cryptopay" hidden>
+          <!-- The QR is rendered by the server (src/lib/qr.js) and encodes the
+               bare address, never a URI with the amount folded in — wallets
+               disagree about those and a misparsed amount is a short payment.
+               It is deliberately absent on memo chains, where a scan would
+               drop the tag and the payment could not be credited. -->
+          <div class="cpay-qr" id="cryptopay-qr" hidden></div>
+          <p class="cpay-warn" id="cryptopay-warn"></p>
+          <p class="cpay-memo" id="cryptopay-memo" hidden>This network needs a memo/tag. Send it with the payment or it cannot be matched to your order: <code id="cryptopay-memo-value"></code></p>
+          <p class="cpay-lab">Address</p>
+          <div class="cpay-box">
+            <code id="cryptopay-address"></code>
+            <button type="button" class="cpay-copy" id="cryptopay-copy" aria-label="Copy the payment address">
+              <svg class="cc-copy" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <svg class="cc-done" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>
+            </button>
+          </div>
+          <p class="cpay-lab">Amount to send</p>
+          <div class="cpay-box cpay-amt">
+            <span class="cpay-coin" id="cryptopay-coin"></span>
+            <code id="cryptopay-amount"></code>
+            <button type="button" class="cpay-copy" id="cryptopay-copy-amount" aria-label="Copy the amount to send">
+              <svg class="cc-copy" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <svg class="cc-done" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>
+            </button>
+          </div>
+          <p class="cpay-lab cpay-lab-left">Status</p>
+          <div class="cpay-status" id="cryptopay-status">
+            <span class="cpay-spin" aria-hidden="true"></span>
+            <span id="cryptopay-status-text" role="status">Waiting for your payment&#8230;</span>
+            <b class="cpay-clock" id="cryptopay-clock" hidden></b>
+          </div>
+          <!-- The exit. This screen has no pay button by design and the method
+               tiles are hidden while an order is open, so it is the only
+               control on it that goes anywhere. -->
+          <button type="button" class="cpay-cancel" id="cryptopay-cancel">Cancel and pay another way</button>
+          <p class="cpay-cancel-note">A payment you have already sent still counts &#8212; it is credited when the network confirms it.</p>
+        </div>
+        <p class="redirect-note" id="redirect-note"></p>
+        <div class="trust-row" id="trust-row"></div>
+      </section>
+    </section>
+
+    <div id="error-slot"></div>
+  </main>
+
+  <footer>
+    <span class="powered-label">Checkout powered by:</span>
+    <img class="powered-mark" src="/dues.png?v=210" alt="Dues" height="18" />
+    <a class="powered-community" href="/api/community" rel="noopener">Join the Dues community</a>
+  </footer>
+
+  <script src="/app.js?v=210"></script>
+</body>
+</html>

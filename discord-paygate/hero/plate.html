@@ -1,0 +1,47 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Dues film — the plate</title>
+<style>
+/* THE PLATE. One static image, reused at both ends of the film.
+   Built the way the reference builds its coral plate: ONE CHANNEL HELD NEARLY
+   FIXED while the other two swing. Theirs pins R to 0xEE-0xF5 while G and B
+   travel 0x9F-0xE6, which is what gives a mesh gradient real chroma without
+   ever going muddy. Ours pins B (Dues is a blurple brand) and swings R and G.
+   Measured target: luma ~215, saturation ~0.20, against the reference plate's
+   214.5 / 0.177. */
+/* Stop values chosen against MEASURED saturation, not by eye. The first pass
+   measured luma 225.6 / sat 0.120 — bright enough but half the chroma of the
+   reference plate. The cream stops were the problem: #F4F5FF carries sat 0.043
+   and was covering most of the frame. Deepening the blurple end and pulling the
+   cream back to a narrow band is what buys the chroma:
+     #8E99F5 sat 0.420   #A7B0F7 sat 0.331   #C2C8FA sat 0.230
+     #DCDEFB sat 0.124   #EFF1FF sat 0.063
+   The reference does the same thing with its own hue — deep #EE9F9A at 0.353
+   against a cream band at 0.078, averaging 0.177. */
+:root{
+  --p1:#DDDEF5; --p2:#C4C9F0; --p3:#AAB1E9; --p4:#929BE2; --cream:#F0F1FC;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden}
+body{
+  background:
+    radial-gradient(46% 34% at 86% 5%,   var(--cream) 0%, rgba(240,241,252,0) 58%),
+    radial-gradient(58% 48% at 10% 96%,  var(--p3) 0%, rgba(170,177,233,0) 60%),
+    radial-gradient(78% 70% at 4% 46%,   var(--p4) 0%, rgba(146,155,226,0) 62%),
+    radial-gradient(82% 72% at 98% 94%,  var(--p4) 0%, rgba(146,155,226,0) 58%),
+    linear-gradient(122deg, var(--p4) 0%, var(--p2) 30%, var(--cream) 50%, var(--p1) 68%, var(--p3) 100%);
+}
+/* Two faint swoosh arcs, exactly as the reference overlays on its plate. They
+   give the eye something to hold without moving. */
+.sw{position:absolute;border-radius:50%;border:1px solid rgba(120,132,240,0.10);}
+.sw.a{left:-16%;top:-38%;width:96%;height:150%;transform:rotate(-13deg)}
+.sw.b{left:34%;top:-24%;width:104%;height:158%;transform:rotate(9deg)}
+/* THE DITHER, and it is STATIC. Measured: temporal grain narrows the widest
+   band to 12px but costs 8-17x the bitrate, because noise that differs every
+   frame is noise the encoder must pay for in full. One fixed tile costs a
+   fraction of that and still cuts the widest band by a third. */
+#dither{position:fixed;inset:0;opacity:0.055;pointer-events:none;mix-blend-mode:overlay}
+</style></head>
+<body>
+<div class="sw a"></div><div class="sw b"></div>
+<svg id="dither"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
+</body></html>

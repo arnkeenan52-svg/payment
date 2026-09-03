@@ -1,0 +1,148 @@
+{
+  "cleanUrls": true,
+  "crons": [
+    {
+      "path": "/api/cron/reconcile",
+      "schedule": "0 * * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/s/:slug",
+      "destination": "/api/store-page?store=:slug"
+    },
+    {
+      "source": "/vs",
+      "destination": "/vs/index.html"
+    },
+    {
+      "source": "/tools",
+      "destination": "/tools/index.html"
+    },
+    {
+      "source": "/use-cases",
+      "destination": "/use-cases/index.html"
+    },
+    {
+      "source": "/guides",
+      "destination": "/guides/index.html"
+    },
+    {
+      "source": "/alternatives",
+      "destination": "/alternatives/index.html"
+    },
+    {
+      "source": "/discover",
+      "destination": "/discover.html"
+    },
+    {
+      "source": "/webhooks/stripe/:storeid",
+      "destination": "/api/webhooks/stripe?store=:storeid"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/pricing.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/help",
+      "destination": "/help.html"
+    },
+    {
+      "source": "/crypto",
+      "destination": "/crypto.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/receipt",
+      "destination": "/receipt.html"
+    },
+    {
+      "source": "/account",
+      "destination": "/account.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/auth/login",
+      "destination": "/api/auth/login"
+    },
+    {
+      "source": "/auth/callback",
+      "destination": "/api/auth/callback"
+    },
+    {
+      "source": "/auth/logout",
+      "destination": "/api/auth/logout"
+    },
+    {
+      "source": "/webhooks/stripe",
+      "destination": "/api/webhooks/stripe"
+    },
+    {
+      "source": "/webhooks/coinbase",
+      "destination": "/api/webhooks/coinbase"
+    },
+    {
+      "source": "/webhooks/nowpayments",
+      "destination": "/api/webhooks/nowpayments"
+    },
+    {
+      "source": "/:slug",
+      "destination": "/api/store-page?store=:slug"
+    },
+    {
+      "source": "/:slug/:product",
+      "destination": "/api/store-page?store=:slug&product=:product"
+    }
+  ],
+  "functions": {
+    "api/webhooks/stripe.js": {
+      "maxDuration": 60
+    },
+    "api/webhooks/coinbase.js": {
+      "maxDuration": 60
+    },
+    "api/webhooks/nowpayments.js": {
+      "maxDuration": 60
+    },
+    "api/cron/reconcile.js": {
+      "maxDuration": 60
+    },
+    "api/checkout/crypto.js": {
+      "maxDuration": 60
+    },
+    "api/admin/store.js": {
+      "maxDuration": 60
+    },
+    "api/store-page.js": {
+      "includeFiles": "public/store.html"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "(www\\.)?ripleybot\\.com"
+        }
+      ],
+      "destination": "https://dues.gg/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/store/:slug",
+      "destination": "/:slug",
+      "permanent": false
+    }
+  ]
+}

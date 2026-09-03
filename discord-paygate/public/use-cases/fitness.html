@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#70a3e6" />
+  <title>Sell Your Coaching Community on Discord — Dues</title>
+  <meta name="description" content="Turn your fitness coaching Discord into a paid membership with 0% platform fees and automatic role delivery." />
+  <link rel="canonical" href="https://dues.gg/use-cases/fitness" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Sell Your Coaching Community on Discord — Dues" />
+  <meta property="og:description" content="Turn your fitness coaching Discord into a paid membership with 0% platform fees and automatic role delivery." />
+  <meta property="og:image" content="https://dues.gg/og-card.jpg?v=210" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="The Dues homepage: a bright daytime sky with the headline 'Monetize your community.' and a field for claiming a store link" />
+  <!-- site_name draws the brand pill X lays over a large-image card and the
+       line Discord prints above the title; without it every one of these pages
+       unfurls as a bare screenshot from an unnamed domain. -->
+  <meta property="og:site_name" content="Dues" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:url" content="https://dues.gg/use-cases/fitness" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@duesdiscord" />
+  <meta name="twitter:creator" content="@duesdiscord" />
+  <meta name="twitter:image" content="https://dues.gg/og-card.jpg?v=210" />
+  <meta name="twitter:image:alt" content="The Dues homepage: a bright daytime sky with the headline 'Monetize your community.' and a field for claiming a store link" />
+  <!-- Icons, all four at STABLE urls with no ?v= on them: Google caches the
+       search-result favicon by URL and re-crawls it rarely, so a version query
+       that moves on every ship hands it a URL it has never seen instead of the
+       one it already holds. Sizes are what favicon.ico IS — 48 and 96, built
+       by scripts/gen-favicon-ico.mjs, which reads its output back and carries
+       the rule as Google states it: square, at least 8x8, larger than 48x48
+       recommended. -->
+  <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="stylesheet" href="/styles.css?v=210" />
+  <style>
+/* day-sky theme — overrides the monochrome tokens in styles.css (all states) */
+:root, :root[data-theme='light'], :root[data-theme='dark'] {
+  color-scheme: light;
+  --bg: #f4f8fd;
+  /* iOS paints the strips behind its own bars by sampling a fixed element at
+     each viewport edge — .ui-tint and .ui-tint-b in styles.css. This page is
+     SKY at the top and PAPER below, so the two edges are different colours,
+     and the single value they used to share is what put a band of sky blue
+     under a near-white footer at the bottom of all 48 of these pages. */
+  --ui-tint: #70a3e6;
+  --ui-tint-b: #f4f8fd;
+  --panel: rgba(255,255,255,.62);
+  --panel-hover: rgba(255,255,255,.86);
+  --edge: rgba(255,255,255,.75);
+  --edge-selected: rgba(15,22,38,.32);
+  --ink: #0f1626;
+  --dim: #43506a;
+  --accent: #5865f2;
+  --accent-hot: #4752e8;
+  --accent-ink: #ffffff;
+  --well: rgba(255,255,255,.5);
+  --raised: rgba(255,255,255,.72);
+  --hairline: rgba(15,22,38,.08);
+  --hairline-2: rgba(15,22,38,.12);
+  --edge-hot: rgba(15,22,38,.28);
+  --active-fill: rgba(255,255,255,.92);
+  --faint: #8fa0bd;
+  --solid: #5865f2;
+  --solid-ink: #ffffff;
+  --blurple: #5865f2;
+  --blurple-text: #424cbd;
+  --good: #15803d;
+  --bad: #c43c3c;
+  --money: #15803d;
+  --amber: #9a6207;
+}
+/* the Discord-native landing block re-declares the dark surface tokens under
+   html:not([data-theme='light']) body.home — out-specify it back to day */
+body.home,
+html:not([data-theme='light']) body.home,
+html[data-theme='light'] body.home {
+  --bg: #f4f8fd;
+  --panel: rgba(255,255,255,.62);
+  --panel-hover: rgba(255,255,255,.86);
+  --well: rgba(255,255,255,.5);
+  --raised: rgba(255,255,255,.72);
+  --edge: rgba(255,255,255,.75);
+  --edge-hot: rgba(15,22,38,.28);
+  --hairline: rgba(15,22,38,.08);
+  --hairline-2: rgba(15,22,38,.12);
+  --active-fill: rgba(255,255,255,.92);
+  --ink: #0f1626;
+  --dim: #43506a;
+  --faint: #8fa0bd;
+  --brand-text: #4a54d6;
+}
+/* static day ground: sky at the top, paper below; html stays sky so iOS
+   chrome and overscroll blend */
+html, html[data-theme='light'], html[data-theme='dark'] { background: #70a3e6; }
+/* styles.css carries html[data-theme='light'] body at (0,1,2), which
+   out-specifies a bare body selector however late this sheet comes. The sky
+   here was flattened to a solid --bg the moment a visitor had ever tapped
+   the toggle on the landing. Match that specificity and the ground stays.
+   No backticks in this comment: the generator emits it from inside a
+   template literal, where one would end the string. */
+body, body.home, html[data-theme='light'] body {
+  background: linear-gradient(180deg, #70a3e6 0%, #adceed 420px, #f4f8fd 820px, #f4f8fd 100%);
+  color: var(--ink);
+}
+/* frosted white glass panels */
+.panel, body.home .panel {
+  background: rgba(255,255,255,.62);
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 18px;
+  box-shadow: 0 18px 40px -18px rgba(40,60,120,.25);
+}
+/* nav: white glass over the sky (also when a scroll listener adds .scrolled) */
+.top, body.home .top,
+html:not([data-theme='light']) body.home .top.scrolled,
+html[data-theme='light'] body.home .top.scrolled {
+  background: rgba(255,255,255,.55);
+  border-bottom: 1px solid rgba(255,255,255,.65);
+}
+/* the wordmark ships as a white PNG — always invert it on the day ground */
+.platform-mark, .powered-mark { filter: invert(1); }
+/* these pages are day-only: no theme toggle */
+.theme-btn { display: none; }
+/* blurple pill buttons */
+.btn-fill, .btn-blurple { background: #5865f2; color: #ffffff; border-radius: 999px; }
+.btn-fill:hover, .btn-blurple:hover { filter: none; background: #4752e8; }
+.btn-pill, .btn-secondary { border-radius: 999px; }
+/* big headings sit a touch lighter on the sky */
+h1, .xhero h1, .section-title { font-weight: 600; }
+/* hero copy sits on the deepest sky — needs near-ink, not 60% ink */
+.xhero .hero-sub, .seo-hero .hero-sub, .disc-hero .hero-sub { color: rgba(15,22,38,.82); }
+body.home .disc-hero .kicker { color: rgba(15,22,38,.72); }
+/* hairlines that only existed as white-on-dark need real ink now */
+.cmp-table th { border-bottom-color: rgba(15,22,38,.2); }
+.disc-meta { border-top-color: rgba(15,22,38,.12); }
+/* footnotes need real muted ink, not a transparent mix */
+.calc-note, .footer-disclaimer { color: #66748f; }
+.calc-bar-sub { color: rgba(15,22,38,.55); }
+/* links read blurple everywhere — the TEXT blurple. #5865f2 is 4.3:1 on the
+   paper and ~3.1:1 where the sky still tints the ground. --blurple-text is
+   the darkest shade that still reads as blurple: #424cbd measures 6.6:1 on
+   the paper and 5.0:1 on the bluest band a prose link sits on (the top of
+   /guides/discord-monetization-ideas, ground #c4dcf3 — where #4753c9 was
+   4.4). Same for every other blurple-on-paper text: card CTAs, the "Dues"
+   table column and the calculator readouts, which styles.css paints with
+   --accent. */
+.guide-body a { color: var(--blurple-text); }
+.alt-card .seo-card-cta a { color: var(--blurple-text); }
+.seo-card-cta, .cmp-table th:nth-child(2), .calc-label output { color: var(--blurple-text); }
+/* …and the four styles.css rules that paint TEXT with --accent, which on
+   these pages IS the button blurple: the prose links inside a legal/help
+   card and an FAQ answer, the tick-list links, and the step numerals on the
+   use-case pages. They were missed because the sweep above listed the
+   selectors this generator writes, not the ones styles.css already applies:
+   measured on the served pages, /help's "dashboard" link, /terms' "account
+   page", /vs/*'s "fee calculator" and /use-cases/*'s 1-2-3 numerals were all
+   still #5865f2, 4.3:1 on the paper. */
+.legal a, .faq-item a, .seo-ticks a, .seo-step-num { color: var(--blurple-text); }
+/* "our product" chip on the alternatives lists */
+.alt-ours { background: #5865f2; color: #ffffff; }
+/* search box as glass (discover) */
+.search-box { background: rgba(255,255,255,.62); border-color: rgba(255,255,255,.75); }
+</style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Dues","item":"https://dues.gg/"},{"@type":"ListItem","position":2,"name":"Use cases","item":"https://dues.gg/use-cases"},{"@type":"ListItem","position":3,"name":"Fitness & Coaching","item":"https://dues.gg/use-cases/fitness"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can I sell one-off programs too?","acceptedAnswer":{"@type":"Answer","text":"Yes — products can be one-time purchases with lifetime access, or time-boxed memberships."}},{"@type":"Question","name":"Do buyers need to be in my server first?","acceptedAnswer":{"@type":"Answer","text":"No. Buyers who are not in the server yet are pulled in automatically with their role attached."}},{"@type":"Question","name":"What do receipts look like?","acceptedAnswer":{"@type":"Answer","text":"Every buyer gets a clean membership-confirmation email automatically after checkout."}}]}</script>
+  <script src="/theme.js?v=210"></script>
+</head>
+<body class="home seo-page">
+<i class="ui-tint" aria-hidden="true"></i>
+<i class="ui-tint-b" aria-hidden="true"></i>
+
+  <header class="top xoe-nav">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/dues.png?v=210" alt="Dues" height="20" /></a>
+    </div>
+    <nav class="top-center" aria-label="Main">
+      <a class="nav-link" href="/discover">Discover</a>
+      <a class="nav-link" href="/pricing">Pricing</a>
+      <a class="nav-link" href="/vs">Compare</a>
+      <a class="nav-link" href="/tools">Tools</a>
+    </nav>
+    <div class="top-right">
+      <div class="account"><a class="btn-fill" href="/dashboard">Start free</a></div>
+      <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
+  </header>
+  <main class="landing">
+
+    <section class="xhero seo-hero">
+      <div class="hero-inner">
+        <h1>Sell Your Coaching Community on Discord</h1>
+        <p class="hero-sub">Programming channels, check-in threads, form review, accountability groups: coaching happens in Discord already. Dues adds the paywall. Members pay on a hosted checkout and get their client role in seconds.</p>
+        <p><a class="btn-fill btn-hero" href="/dashboard">Start free <span aria-hidden="true">→</span></a></p>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow">
+        <h2 class="section-title center">How it works</h2>
+        <ol class="seo-steps"><li class="panel"><span class="seo-step-num">1</span><strong>Connect your server</strong><p>Sign in with Discord, pick your server, and add the Dues bot.</p></li><li class="panel"><span class="seo-step-num">2</span><strong>Create your products</strong><p>Name, price, photo, and the role each product unlocks — built in the dashboard, no Stripe dashboard needed.</p></li><li class="panel"><span class="seo-step-num">3</span><strong>Share your link</strong><p>Your store lives at dues.gg/yourname. Buyers pay on Stripe and get their role in seconds.</p></li></ol>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow">
+        <h2 class="section-title center">Built for fitness &amp; coaching</h2>
+        <ul class="tick-list seo-ticks"><li><strong>Client-only channels</strong> — Map each membership to a role that unlocks your coaching channels.</li><li><strong>Subscriptions that renew</strong> — Monthly billing through Stripe, cancellations handled automatically.</li><li><strong>A store page that looks like you</strong> — Your server name, icon and product photos on your own link.</li>
+          <li><strong>0% platform fees</strong> — Dues charges a flat plan and never takes a cut of your sales.</li>
+        </ul>
+      </div>
+    </section>
+    <section class="xsection">
+      <div class="wrap narrow">
+        <h2 class="section-title center">Frequently asked</h2>
+        <div class="faq">
+          <details class="panel faq-item"><summary>Can I sell one-off programs too?</summary><p>Yes — products can be one-time purchases with lifetime access, or time-boxed memberships.</p></details>
+          <details class="panel faq-item"><summary>Do buyers need to be in my server first?</summary><p>No. Buyers who are not in the server yet are pulled in automatically with their role attached.</p></details>
+          <details class="panel faq-item"><summary>What do receipts look like?</summary><p>Every buyer gets a clean membership-confirmation email automatically after checkout.</p></details>
+        </div>
+      </div></section>
+
+    <section class="xsection">
+      <div class="wrap narrow center">
+        <h2 class="section-title">Start selling with 0% platform fees</h2>
+        <p class="section-sub">Free for your first 10 paying members — no card required.</p>
+        <p><a class="btn-fill btn-hero" href="/dashboard">Start free <span aria-hidden="true">→</span></a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer cols seo-footer">
+    <div class="footer-brand">
+      <img class="powered-mark" src="/dues.png?v=210" alt="Dues" height="16" />
+      <span class="footer-copy">© Dues</span>
+    </div>
+    <nav class="footer-col"><span class="footer-head">Product</span>
+      <a href="/discover">Discover stores</a><a href="/pricing">Plans</a><a href="/pricing">Pricing</a><a href="/help">FAQ</a>
+      <a href="/help">Help</a><a href="/crypto">Crypto payments</a><a href="/dashboard">Dashboard</a><a href="/account">Your account</a>
+      <a href="https://discord.gg/G6yjsX5qbB" rel="noopener">Community Discord</a><a href="mailto:contact@dues.gg">contact@dues.gg</a></nav>
+    <nav class="footer-col"><span class="footer-head">Compare</span>
+      <a href="/vs/whop">Dues vs Whop</a><a href="/vs/launchpass">Dues vs LaunchPass</a>
+      <a href="/vs/subscord">Dues vs Subscord</a><a href="/vs/doorfee">Dues vs DoorFee</a>
+      <a href="/vs/xoe">Dues vs XOE</a><a href="/vs/patreon">Dues vs Patreon</a>
+      <a href="/vs/memberful">Dues vs Memberful</a><a href="/vs/gumroad">Dues vs Gumroad</a>
+      <a href="/vs/ko-fi">Dues vs Ko-fi</a><a href="/vs/buymeacoffee">Dues vs Buy Me a Coffee</a>
+      <a href="/vs/upgrade-chat">Dues vs Upgrade.Chat</a><a href="/vs/mighty-networks">Dues vs Mighty Networks</a>
+      <a href="/vs">All comparisons</a>
+      <a href="/alternatives/best-discord-monetization-platforms">Best platforms</a>
+      <a href="/alternatives/whop-alternatives">Whop alternatives</a>
+      <a href="/alternatives">All alternatives</a></nav>
+    <nav class="footer-col"><span class="footer-head">Guides</span>
+      <a href="/guides/best-discord-monetization-platform">Best platform to use</a>
+      <a href="/guides/how-to-monetize-a-discord-server">Monetize a Discord server</a>
+      <a href="/guides/how-to-sell-discord-roles">Sell Discord roles</a>
+      <a href="/guides/discord-paywall">Paywall a Discord</a>
+      <a href="/guides/discord-membership-bot">Discord membership bots</a>
+      <a href="/guides">All guides</a></nav>
+    <nav class="footer-col"><span class="footer-head">Tools</span>
+      <a href="/tools/discord-fee-calculator">Discord fee calculator</a>
+      <a href="/tools/whop-fee-calculator">Whop fee calculator</a>
+      <a href="/tools/launchpass-fee-calculator">LaunchPass fee calculator</a>
+      <a href="/tools/patreon-fee-calculator">Patreon fee calculator</a>
+      <a href="/tools">All calculators</a></nav>
+    <nav class="footer-col"><span class="footer-head">Use cases</span>
+      <a href="/use-cases/trading">Trading signals</a><a href="/use-cases/sports-betting">Sports picks</a>
+      <a href="/use-cases/fitness">Fitness coaching</a><a href="/use-cases/reselling">Cook groups</a>
+      <a href="/use-cases/ecommerce">Ecommerce mentorship</a><a href="/use-cases/exclusive-content">Exclusive content</a>
+      <a href="/use-cases">All use cases</a></nav>
+    <nav class="footer-col"><span class="footer-head">Legal</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
+    <p class="footer-disclaimer">Not affiliated with Discord Inc. or any platform compared here. Competitor pricing as publicly listed — verify on their sites. Payments are processed by Stripe on each store owner’s own account.</p>
+  </footer>
+</body>
+</html>

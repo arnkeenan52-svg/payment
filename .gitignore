@@ -1,0 +1,9 @@
+node_modules/
+.claude/skills/
+.env
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+__pycache__/
+*.pyc
+*.log

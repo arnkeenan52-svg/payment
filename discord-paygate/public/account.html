@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#131b2d" />
+  <title>My Account — Dues</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.ico" sizes="48x48 96x96" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="stylesheet" href="/styles.css?v=210" />
+  <style>
+    /* Navy night retheme — colors only. Remaps the old "Dues black" monochrome
+       tokens from styles.css onto the brand's navy system (the landing page's
+       night :root). Scoped to the dark face; html[data-theme="light"] keeps the
+       stylesheet's own light values untouched. */
+    html:not([data-theme='light']) {
+      --bg: #101827;                       /* page ground */
+      --panel: #182338;                    /* raised panels / cards */
+      --panel-hover: #1e2b45;
+      --edge: rgba(148, 163, 190, 0.16);   /* hairline borders */
+      --edge-selected: #5865f2;            /* selection rings: blurple */
+      --ink: #f2f5fa;                      /* primary text */
+      --dim: #b7c1d4;                      /* secondary text */
+      --accent: #5865f2;                   /* blurple replaces the white action color */
+      --accent-hot: #4752e8;
+      --accent-ink: #ffffff;
+      --well: #131b2d;                     /* deeper insets */
+      --raised: #1c2740;
+      --hairline: rgba(148, 163, 190, 0.10);
+      --hairline-2: rgba(148, 163, 190, 0.14);
+      --edge-hot: rgba(148, 163, 190, 0.32);
+      --active-fill: #223050;
+      --faint: #94a0b5;                    /* muted */
+      --solid: #5865f2;                    /* white primary fills -> blurple */
+      --solid-ink: #ffffff;
+      --good: #3ddc84;                     /* positive money green */
+      --money: #3ddc84;
+    }
+    html:not([data-theme='light']) ::selection { background: rgba(88, 101, 242, 0.45); color: #f2f5fa; }
+
+    /* Light face: a white ground. It was the day sky — a #70a3e6 → #eaf2fb
+       gradient running down the page with a blue-tinted palette on top of it.
+       The fade was decoration the app did not need, and it made every grey in
+       the interface faintly blue. So: white page, white panels separated by
+       their border, and neutral greys underneath. The night face below is
+       deliberately untouched. */
+    html[data-theme='light'] {
+      --bg: #ffffff;
+      --panel: #ffffff;
+      --panel-hover: #f6f7f9;
+      --edge: #e3e5ea;
+      --edge-selected: #5865f2;
+      --ink: #0f1626;
+      --dim: #57606f;
+      --accent: #5865f2;
+      --accent-hot: #4752e8;
+      --accent-ink: #ffffff;
+      --well: #f4f5f7;
+      --raised: #fafbfc;
+      --hairline: #ececf0;
+      --hairline-2: #e3e5ea;
+      --edge-hot: #c3c7d0;
+      /* the chosen chip of a segmented control: white lifted off the grey well */
+      --active-fill: #ffffff;
+      --faint: #949aa6;
+      --solid: #5865f2;
+      --solid-ink: #ffffff;
+      --good: #177245;
+      --money: #177245;
+    }
+    html[data-theme='light'] body { background: #ffffff; }
+    /* the strip that paints the iOS status bar matches the page ground */
+    html[data-theme='light'] { --ui-tint: #ffffff; }
+    html:not([data-theme='light']) { --ui-tint: #131b2d; }
+    /* night ground matches the night homepage sky: #131b2d melting into navy */
+    html:not([data-theme='light']) body { background: linear-gradient(180deg, #131b2d 0%, #101827 420px) fixed; }
+    html[data-theme='light'] ::selection { background: rgba(88, 101, 242, 0.25); color: #0f1626; }
+
+    /* primary action pill: the mono grey fill becomes the brand blurple,
+       matching the landing's sign-in pill (body.home .account .btn-pill) */
+    html:not([data-theme='light']) .btn-pill { background: var(--blurple); border-color: transparent; color: #ffffff; }
+    html:not([data-theme='light']) .btn-pill:hover { background: #4752e8; filter: none; }
+    /* literal monochrome / off-palette colors in styles.css, remapped */
+    html:not([data-theme='light']) .pay-btn:hover:not(:disabled) { background: #4752e8; }
+    html:not([data-theme='light']) .btn-blurple:hover { background: #4752e8; }
+    html:not([data-theme='light']) .error-actions .dismiss:hover { background: var(--active-fill); }
+    /* focus rings: blurple (the blurple pay/primary buttons keep their legible pale ring) */
+    html:not([data-theme='light']) .btn-fill:focus-visible,
+    html:not([data-theme='light']) .btn-secondary:focus-visible,
+    html:not([data-theme='light']) .powered-community:focus-visible { outline-color: #5865f2; }
+  </style>
+  <script src="/theme.js?v=210"></script>
+</head>
+<body>
+<i class="ui-tint" aria-hidden="true"></i>
+  <header class="top">
+    <div class="top-left">
+      <a href="/"><img class="platform-mark" src="/dues.png?v=210" alt="Dues" height="20" /></a>
+    </div>
+    <div class="top-right">
+      <div id="account" class="account"></div>
+      <button class="theme-btn" data-theme-toggle aria-label="Switch color theme"><svg class="tb-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4L19 19M19 5l-1.6 1.6M6.6 17.4L5 19"/></svg><svg class="tb-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
+  </header>
+
+  <main class="checkout">
+    <noscript><p class="callout">This page needs JavaScript enabled — turn it on for this site and reload.</p></noscript>
+    <div class="brand">
+      <h1>My account</h1>
+      <p class="tagline">Your membership, and the tools to keep it healthy.</p>
+    </div>
+    <div id="content"></div>
+  </main>
+
+  <footer>
+    <span class="powered-label">Powered by:</span>
+    <img class="powered-mark" src="/dues.png?v=210" alt="Dues" height="18" />
+  </footer>
+
+  <script src="/account.js?v=210"></script>
+</body>
+</html>

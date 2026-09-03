@@ -1,0 +1,727 @@
+/* Dues seller dashboard — the design system, applied.
+   ==========================================================================
+
+   WHY THIS FILE EXISTS SEPARATELY, AND WHY EVERY SELECTOR STARTS body.app
+   -----------------------------------------------------------------------
+   public/styles.css is shared by 52 pages: the buyer checkout, every seller's
+   storefront, the receipt, /account, /discover and the generated SEO pages.
+   Restyling `.panel`, `.chip`, `.field` or `.btn-secondary` in there would
+   reach all of them. So none of this is in there.
+
+   `class="app"` exists on dashboard.html and nowhere else in the repo, and no
+   JavaScript writes it at runtime. Every rule below is prefixed with it, so a
+   storefront cannot match one of these selectors even though it uses the same
+   class names. dash.css is linked from dashboard.html alone; store.html links
+   only /styles.css, and api/store-page.js server-renders the buyer storefront
+   from that same file. The Appearance preview iframe loads `/<slug>`, which
+   routes through the storefront path, so dash.css does not cross that boundary
+   either.
+
+   `public/styles.css` is not edited by this change. Zero lines. That is a
+   checkable gate, not an intention.
+
+   RINGS VS BORDERS — a fidelity cost taken on purpose
+   --------------------------------------------------
+   The reference system draws every outline as `box-shadow: inset 0 0 0 1px`
+   on an ::after, because its components carry no border. Ours do: `.panel` is
+   `border: 1px solid var(--edge)` and that 1px sits in the box model on ~40
+   classes. Converting to true rings would shrink every panel by 2px and reflow
+   the app. So borders stay borders, their colour is re-tokened to --d-stroke,
+   and the elevation ladder is applied as the shadow layers that sit on top —
+   each level minus its leading ring layer, which our border already supplies.
+
+   SPECIFICITY
+   -----------
+   `body.app .x` is (0,2,1). Plain `.x` in styles.css is (0,1,0) and loses.
+   But styles.css also carries ~19 two-class rules — `.card-head .btn-secondary`
+   (0,2,0), `.row-actions .btn-ghost`, `.set-foot .btn-pill`, `.bill-toggle
+   .seg-btn` and friends — which are (0,2,0) and ALSO lose to body.app. That is
+   the right way round, but it means any of those whose properties this file
+   touches must be re-asserted here on purpose rather than silently dropped.
+   The ones that matter are re-asserted inline, each with a note.
+
+   Audited two-class rules in styles.css at time of writing:
+     :884 .wiz-actions .btn-pill/.btn-secondary      :1587 .set-foot .btn-pill/.btn-secondary
+     :925 .share-row .btn-secondary                  :1766 .bill-toggle .seg-btn
+     :987 .card-head .btn-secondary                  :2651 .admin-head .btn-secondary
+     :1018 .picker-user .btn-ghost                   :2773 .appearance-foot .btn-pill
+     :1075 .hero-ctas .btn-pill/.btn-secondary       :2831 .disc-empty .btn-pill
+     :1078 .row-actions .btn-ghost                   :3121 .tm-actions .btn-ghost
+     :1294 .tier-card .btn-pill/.btn-secondary       :3288 .dc-actions .btn-secondary/.btn-ghost
+     :1473 .check-list .btn-ghost                    :4110 .lock-note .btn-pill
+     :1522 .order-roles .chip  (checkout only — not reachable from body.app)
+   ========================================================================== */
+
+/* ── accent indirection ─────────────────────────────────────────────────────
+   One variable remapped, every component follows. A seller's custom accent
+   (dashboardPrefs.accent) already writes --accent; this maps it onto the
+   system's step roles so the primary button, active tab, chart line, sparkline,
+   delta chip and every focus ring move together instead of one at a time.
+
+   --acc-11 is the TEXT step and is deliberately used at only three sites:
+   dashboardPrefs.accent is validated as /^#[0-9a-f]{6}$/i and nothing else, so
+   an arbitrary hue has no contrast floor. Status colours stay on the fixed
+   green/red/amber tokens for exactly that reason. */
+body.app,
+body.app .appshell {
+  --a-9: var(--accent, var(--acc-9));
+  --a-10: var(--acc-10);
+  --a-11: var(--acc-11);
+  --a-contrast: var(--acc-contrast);
+  --a-surface: var(--acc-surface);
+}
+
+/* ── 1. panel / card ───────────────────────────────────────────────────── */
+body.app .panel,
+body.app .table-panel,
+body.app .chart-card {
+  border-color: var(--d-stroke);
+  border-radius: var(--r-6);
+  box-shadow: var(--el-2);
+}
+/* One padding for the two cards that sit side by side in the same 2fr/1fr
+   grid. They were 18px and 16/18px — almost, but not quite, alike. */
+body.app .chart-card,
+body.app .table-panel { padding: var(--s-5); }
+body.app .chart-tip { border-radius: var(--r-5); box-shadow: var(--el-3); }
+
+/* ── 2. buttons ────────────────────────────────────────────────────────────
+   Size 3 (40px) is the default; the ladder's radius is height / 3.4.
+   `:active` moves padding, never transform — a transform on a button inside a
+   scrolling table drags the row with it on touch. */
+body.app .btn-pill,
+body.app .btn-secondary,
+body.app .btn-blurple,
+body.app .btn-ghost,
+body.app .btn-danger {
+  border-radius: var(--rc-3);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-2);
+  line-height: var(--lh-2);
+  letter-spacing: var(--ls-2);
+  transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+}
+body.app .btn-pill { background: var(--a-9); border-color: transparent; color: var(--a-contrast); }
+body.app .btn-pill:hover:not(:disabled) { background: var(--a-10); filter: none; }
+body.app .btn-pill:active:not(:disabled) { padding-top: calc(var(--s-2) + 2px); padding-bottom: calc(var(--s-2) - 2px); transform: none; }
+body.app .btn-secondary { background: var(--d-fill); border-color: var(--d-stroke); color: var(--d-a12); }
+body.app .btn-secondary:hover { background: var(--d-hover); border-color: var(--d-stroke-strong); }
+body.app .btn-secondary:active { transform: none; }
+/* Ghost loses its border. `border: 1px solid var(--edge)` on every ghost is
+   what turns a row's action column into a wall of little boxes. */
+body.app .btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--d-a11);
+  border-radius: var(--rc-2);
+}
+body.app .btn-ghost:hover { background: var(--d-fill); color: var(--d-a12); border-color: transparent; }
+body.app .btn-danger { color: var(--bad-11); border-color: var(--d-stroke); background: transparent; }
+body.app .btn-danger:hover { background: var(--bad-surface); border-color: var(--bad-9); }
+/* Re-assertions. These two-class rules in styles.css are (0,2,0) and lose to
+   body.app, so the sizes they set have to be restated or the buttons they
+   shrink would come back full size. */
+body.app .row-actions .btn-ghost { font-size: var(--fs-1); padding: 0 var(--s-3); min-height: var(--h-2); border-radius: var(--rc-2); }
+body.app .tm-actions .btn-ghost { padding: 0 var(--s-2); min-height: var(--h-2); }
+body.app .card-head .btn-secondary { font-size: var(--fs-1); padding: 0 var(--s-3); min-height: var(--h-2); }
+body.app .set-foot .btn-pill, body.app .set-foot .btn-secondary { width: auto; min-height: var(--h-3); padding: 0 var(--s-4); font-size: var(--fs-2); }
+body.app .check-list .btn-ghost { margin-left: auto; flex: none; }
+body.app .picker-user .btn-ghost { margin-left: auto; }
+body.app .dc-actions .btn-secondary, body.app .dc-actions .btn-ghost { width: auto; flex: none; }
+body.app .lock-note .btn-pill, body.app .disc-empty .btn-pill, body.app .appearance-foot .btn-pill { width: auto; }
+body.app .admin-head .btn-secondary { width: auto; }
+body.app .wiz-actions .btn-pill, body.app .wiz-actions .btn-secondary { min-height: var(--h-4); }
+body.app .tier-card .btn-pill, body.app .tier-card .btn-secondary { width: 100%; justify-content: center; min-height: var(--h-3); }
+/* [hidden] is a UA rule with no specificity and everything above beats it. */
+body.app .btn-pill[hidden], body.app .btn-secondary[hidden], body.app .btn-blurple[hidden],
+body.app .btn-ghost[hidden], body.app .btn-danger[hidden] { display: none; }
+
+/* ── 3. inputs ─────────────────────────────────────────────────────────── */
+body.app .field-label { font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--fw-medium); color: var(--d-a11); letter-spacing: 0; text-transform: none; }
+body.app .field-help { font-size: var(--fs-1); line-height: var(--lh-1); color: var(--d-muted); }
+/* The live address check speaks through this line, so its state colours have
+   to out-specify the muted default above — (0,2,1) beats (0,2,0), which is why
+   `.field-help.ok` alone silently lost and every verdict rendered grey. */
+body.app .field-help.ok { color: var(--a-11, var(--accent)); }
+body.app .field-help.bad { color: var(--bad-11); }
+
+/* The dashboard's own three faces: light, navy, black, as small ground
+   swatches in the same shape as the accent row above them. Deliberately NOT
+   the shape of the store-theme tiles a screen away — those are big pictures
+   of a checkout in a 3-up grid with names underneath, because they are the
+   buyer's theme and this is the seller's. Two controls that changed different
+   things used to look alike; now they do not. */
+body.app .dc-faces { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+body.app .dc-face {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  padding: 6px 12px 6px 6px; min-height: var(--h-2);
+  border: 1px solid var(--d-stroke); border-radius: var(--rc-2);
+  background: var(--d-fill); color: var(--d-a11);
+  font-size: var(--fs-1); font-weight: var(--fw-medium); cursor: pointer;
+}
+body.app .dc-face:hover { background: var(--d-hover); border-color: var(--d-stroke-strong); }
+body.app .dc-face.active { border-color: var(--a-9); color: var(--d-a12); background: var(--acc-surface); }
+body.app .dc-face:focus-visible { outline: 2px solid var(--a-9); outline-offset: 2px; }
+/* A swatch of the real thing: the ground with a panel sitting on it, which is
+   the only part of a face a two-colour chip can honestly show. */
+body.app .dc-face-chip {
+  flex: none; width: 26px; height: 20px; border-radius: 5px;
+  border: 1px solid var(--d-stroke); display: inline-flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 3px; overflow: hidden;
+}
+body.app .dc-face-chip i { display: block; width: 16px; height: 8px; border-radius: 2px 2px 0 0; }
+
+/* The store theme's own line, under its label: the two pickers are named for
+   who sees them, and neither is left to be guessed from context. */
+body.app .th-block-help { margin: -2px 0 0; }
+
+/* Accent as TEXT. The note beside the billing interval toggle painted itself
+   var(--accent) — #5865f2 — which is a FILL colour: it measures 3.41:1 on the
+   navy panel it sits on, under the 4.5:1 floor, and the ramp already has an
+   accent text step that clears it on all three faces (7.35:1 navy, 6.31:1
+   white). Same reason the .field-help.ok rule two screens up uses --acc-11. */
+body.app .bt-free { color: var(--acc-11); }
+
+body.app .field input,
+body.app .field select,
+body.app .field textarea,
+body.app .search-box,
+body.app .store-switch {
+  min-height: var(--h-3);
+  border-radius: var(--rc-3);
+  border-color: var(--d-stroke);
+  background: var(--d-fill);
+  color: var(--d-a12);
+  font-size: var(--fs-2);
+  line-height: var(--lh-2);
+}
+body.app .field input:hover,
+body.app .field select:hover,
+body.app .field textarea:hover { border-color: var(--d-stroke-strong); }
+body.app .field input:focus-visible,
+body.app .field select:focus-visible,
+body.app .field textarea:focus-visible,
+body.app .search-box:focus-within {
+  outline: 2px solid var(--a-9);
+  outline-offset: -1px;
+  border-color: var(--a-9);
+}
+body.app .field-err { font-size: var(--fs-1); line-height: var(--lh-1); color: var(--bad-11); }
+body.app .field[hidden] { display: none; }
+
+/* ── 4. data tables ────────────────────────────────────────────────────────
+   Not one <th> or <td> is added, removed or reordered by this file. The
+   nth-child column-priority block in styles.css is positional and it is the
+   phone contract; it stays exactly as correct as it is today, by construction. */
+body.app .data-table th {
+  font-size: var(--fs-1);
+  line-height: var(--lh-1);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--d-muted);
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--d-table-border);
+}
+body.app .data-table td {
+  font-size: var(--fs-2);
+  line-height: var(--lh-2);
+  padding: var(--s-3);
+  border-color: var(--d-table-border);
+  /* white-space: nowrap is inherited from styles.css ON PURPOSE — it is what
+     makes .table-scroll scroll instead of the page. */
+}
+body.app .data-table tbody tr:hover { background: var(--d-fill); }
+/* min-width: 0 on the middle slot is load-bearing: without it, truncation
+   silently does nothing inside a flex row, and that is the single most common
+   cause of a table blowing out its container. */
+body.app .prod-cell { gap: var(--s-3); }
+body.app .prod-cell > :not(.prod-thumb) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+body.app .prod-thumb { width: 40px; height: 40px; border-radius: var(--rc-3); }
+
+/* ── 5. chips / badges ─────────────────────────────────────────────────────
+   Collapses the two conflicting base .chip declarations in styles.css for the
+   dashboard only. The checkout's role chips are untouched. */
+body.app .chip,
+body.app .chip-good,
+body.app .chip-warn,
+body.app .chip-off,
+body.app .chip-code,
+body.app .delta {
+  padding: 2px var(--s-2);
+  border-radius: var(--r-3);
+  font-size: var(--fs-1);
+  line-height: var(--lh-1);
+  font-weight: var(--fw-medium);
+  border: none;
+  letter-spacing: 0;
+}
+body.app .chip-good { background: var(--ok-surface); color: var(--ok-11); }
+body.app .chip-warn { background: var(--warn-surface); color: var(--warn-11); }
+body.app .chip-off { background: var(--d-fill); color: var(--d-a11); }
+body.app .chip-code { background: transparent; border: 1px solid var(--d-stroke); color: var(--d-a12); }
+body.app .delta.up { color: var(--ok-11); background: var(--ok-surface); }
+body.app .delta.down { color: var(--bad-11); background: var(--bad-surface); }
+body.app .delta.flat { color: var(--d-a9); background: var(--d-fill); }
+
+/* ── 6. segmented control ──────────────────────────────────────────────────
+   A padded track with the thumb on ::before. Outer radius 8 with 4px padding
+   gives inner 6 — the system's nesting rule. */
+body.app .seg {
+  /* height comes from the track's own padding plus the button inside it, not
+     from a fixed number. Pinning 40px while styles.css keeps a 1px border and
+     the buttons keep their own padding left the content 2px taller than the
+     box that clips it, so the row was quietly cropping itself. */
+  min-height: var(--h-3);
+  align-items: center;
+  background: var(--d-fill);
+  border-radius: var(--r-4);
+  padding: var(--s-1);
+  border: none;
+  gap: 0;
+  overflow: visible;
+}
+body.app .seg-btn {
+  position: relative;
+  min-height: var(--h-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--r-3);
+  padding: 0 var(--s-2);
+  font-size: var(--fs-2);
+  line-height: var(--lh-2);
+  font-weight: var(--fw-medium);
+  color: var(--d-a9);
+  min-width: 0;
+}
+body.app .seg-btn:hover { color: var(--d-a11); }
+body.app .seg-btn.active { color: var(--d-a12); background: transparent; }
+body.app .seg-btn.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--d-seg-thumb);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .05), 0 2px 4px rgba(0, 0, 0, .05);
+  z-index: -1;
+}
+/* Billing's toggle re-adds a border and a min-width at styles.css:1766 and
+   would fight the padded track. Restated here rather than left to a tie. */
+body.app .bill-toggle .seg-btn { border: none; min-width: 84px; border-radius: var(--r-3); }
+body.app .bill-toggle .seg-btn.active { background: transparent; color: var(--d-a12); }
+
+/* ── 7. the revenue chart's axis labels ────────────────────────────────────
+   These used to be <text> inside the SVG, where they were scaled by
+   (rendered width / 920) and so rendered at 2.9px on a phone. They are HTML
+   now, at real pixels, positioned from the same geometry the line is drawn
+   from — pctX/pctY in revenueChart — so a label still sits under the gridline
+   it annotates at every width. */
+/* The x labels get a real row of their own UNDER the svg rather than sharing
+   the viewBox's 20-unit bottom band. That band is 10.5% of the chart's height,
+   which on a 390px phone is about six pixels — a 12px label placed in it is
+   struck through by the baseline it is supposed to sit beneath. The y labels
+   keep a layer that matches the svg's own box exactly, because their positions
+   are percentages of it. */
+body.app .rev-wrap { position: relative; padding-bottom: 18px; }
+body.app .rev-y { position: absolute; top: 0; left: 0; right: 0; bottom: 18px; pointer-events: none; }
+body.app .rev-x { position: absolute; left: 0; right: 0; bottom: 0; height: 18px; pointer-events: none; }
+body.app .rev-y span,
+body.app .rev-x span {
+  position: absolute;
+  font-size: var(--fs-1);
+  line-height: var(--lh-1);
+  color: var(--d-muted);
+  white-space: nowrap;
+}
+/* y ticks hang off the left gutter, vertically centred on their gridline */
+body.app .rev-y span { right: calc(100% - 44 / 920 * 100% + 8px); transform: translateY(-50%); }
+/* The gutter above is a PERCENTAGE of chart width (padL/W = 4.78%), which is
+   ~33px at 1440 and only ~15px at 390 — and the rule then subtracts a further
+   8px, leaving 7px for a label like "$0.5". The "$" was being sliced in half by
+   the card's own border. Below 760px the ticks left-align in a real pixel
+   gutter instead, and the plot is pushed clear of them. Not solved by shrinking
+   the font: "$12.5k", and any currency whose symbol is wider than "$", would
+   only break it again. */
+@media (max-width: 760px) {
+  body.app .rev-y span { right: auto; left: 0; text-align: left; }
+  body.app .rev-wrap { padding-left: 34px; }
+  body.app .rev-y { left: 0; right: auto; width: 34px; }
+  body.app .rev-x { left: 34px; }
+}
+/* x ticks sit under the plot, centred on their bucket — except the two ends.
+   The first bucket's centre is only 6.2% across, so a centred label there
+   reaches back into the y-axis gutter and collides with the $0 tick; the last
+   one runs off the right edge the same way. Anchoring the ends inward is the
+   ordinary axis treatment and it is what keeps both readable. */
+body.app .rev-x span { top: 2px; transform: translateX(-50%); }
+body.app .rev-x span:first-child { transform: none; }
+body.app .rev-x span:last-child { transform: translateX(-100%); }
+body.app .rev-peak {
+  position: absolute;
+  transform: translate(-50%, -170%);
+  font-size: var(--fs-1);
+  line-height: var(--lh-1);
+  font-weight: var(--fw-semibold);
+  color: var(--d-a12);
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* The entrance animation and its reduced-motion override lived on
+   `.rev-chart .peak`, which no longer exists. Re-declared for the element
+   that replaced it, or the peak label would simply appear with no arrival. */
+body.app .rev-peak { opacity: 0; animation: rev-area 0.5s ease-out 0.8s forwards; }
+@media (prefers-reduced-motion: reduce) {
+  body.app .rev-peak { opacity: 1; animation: none; }
+}
+
+/* ── 8. tables that can actually be scrolled ───────────────────────────────
+   Two things were true of every data table before this. On a touch device
+   with overlay scrollbars nothing indicated it scrolled sideways at all, and
+   a keyboard user could not scroll it in any way — the container had no
+   tabindex, so it could not take focus, and arrow keys went to the page
+   (WCAG 2.1.1). The markup change is attributes only: tabindex, role and
+   label on the existing wrapper. Not one cell was added, removed or moved.
+
+   The fade is the same idiom the section nav already earned, so the two
+   scrollable things on the page indicate it the same way. */
+body.app .table-scroll { scrollbar-width: thin; }
+body.app .table-scroll:focus-visible { outline: 2px solid var(--a-9); outline-offset: -2px; border-radius: var(--r-4); }
+/* A 40px ramp to full transparency is the right affordance for a section nav
+   made of words and the WRONG one for a right-aligned number. Measured at 390:
+   the Amount column sat entirely inside the ramp, so "$500.00" rendered as a
+   ghosted "$50" at about 2.8:1 — and a faded "$50" does not read as truncation,
+   it reads as a plausible wrong number, which is worse than showing nothing.
+   The same happened to Price on Products and to the word "Delete" on Discounts,
+   which is 34px wide and vanished whole.
+
+   So: half the ramp, stop short of full transparency, and never let it start
+   over the last column — scroll-padding keeps a scrolled-to-end table clear of
+   it entirely. The affordance survives; the number is always readable. */
+body.app .table-scroll { scroll-padding-inline-end: 20px; }
+body.app .table-scroll.scroll-more {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), rgba(0, 0, 0, .35));
+  mask-image: linear-gradient(to right, #000 calc(100% - 20px), rgba(0, 0, 0, .35));
+}
+
+/* ── the phone record card ────────────────────────────────────────────────
+   A DESKTOP TABLE SHRUNK IS NOT A PHONE TABLE. The previous attempt here was
+   `table-layout: fixed` plus `max-width: 0` on the first column, on the theory
+   that the first cell just needed permission to be narrow. It was granted, and
+   the result is the bug the owner photographed: at 390px the Products name was
+   squeezed to nothing and disappeared, while `white-space: nowrap` (inherited
+   from styles.css, and the thing that makes .table-scroll scroll at all) kept
+   every other cell at its full intrinsic width — so "$25.00" painted itself on
+   top of "+ Option", "Link", the active toggle and "Edit", all in the same
+   pixels. Transactions did the same with the product name under the amount,
+   and the platform Stores table stacked five fields into one line.
+
+   Five columns cannot be made to fit in 390px. So below 760px a row stops
+   being a row: each <tr> becomes a card, each <td> a labelled line, and the
+   actions get a wrapped row of their own underneath, which is also the first
+   time a seller can hit Revoke or Delete on a phone without a mis-tap. The
+   label comes from the cell's data-th, which dashboard.js writes from the same
+   string as the <th> — generated content is announced by screen readers, so
+   the labels survive the loss of the table grid.
+
+   Desktop is untouched: everything here is inside the query. */
+@media (max-width: 760px) {
+  body.app .data-table,
+  body.app .data-table tbody,
+  body.app .data-table tr,
+  body.app .data-table th,
+  body.app .data-table td { display: block; }
+  /* The header row's words move onto the cells, one per line. */
+  body.app .data-table thead { display: none; }
+  body.app .data-table tr {
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid var(--d-table-border);
+  }
+  body.app .data-table tr:last-child { border-bottom: none; }
+  body.app .data-table td {
+    padding: 0;
+    border: none;
+    /* The whole collision, in one declaration. */
+    white-space: normal;
+    /* And a wallet address or a Discord id has no space in it to break at, so
+       it would push the card wider than the phone all by itself. */
+    overflow-wrap: anywhere;
+  }
+  /* The first cell is the row's title: no label, full width, and the one line
+     allowed to carry weight. */
+  body.app .data-table td:first-child {
+    font-size: var(--fs-2);
+    line-height: var(--lh-2);
+    font-weight: var(--fw-medium);
+    color: var(--d-a12);
+  }
+  /* …except the product cell, which keeps its thumbnail beside the name. */
+  body.app .data-table td.prod-cell { display: flex; align-items: center; gap: var(--s-3); }
+  body.app .data-table td.prod-cell > :not(.prod-thumb) { white-space: normal; overflow: visible; }
+  /* Every other cell: the label in a fixed gutter, the value beside it. The
+     gutter is a hanging indent rather than a grid column, because a cell's
+     contents are not one thing — "One-time · lifetime · <strong>ended</strong>"
+     and "VIP Access<span class=row-when>Aug 28</span>" are two and three boxes,
+     and grid would have made each of them a separate cell of its own and dealt
+     them down the column one per line. An indent lets them stay a sentence. */
+  body.app .data-table td[data-th] {
+    display: block;
+    padding-left: 84px;
+    text-indent: -84px;
+    margin-top: var(--s-1);
+  }
+  body.app .data-table td[data-th]::before {
+    content: attr(data-th);
+    display: inline-block;
+    width: 84px;
+    text-indent: 0;
+    font-size: var(--fs-1);
+    line-height: var(--lh-2);
+    color: var(--d-muted);
+    vertical-align: baseline;
+  }
+  /* The hanging indent is inherited, and a block child (.row-when) would take
+     it as a real -84px of its own and start outside the card. */
+  body.app .data-table td[data-th] > * { text-indent: 0; }
+  /* A cell with nothing in it must not leave a labelled blank line — the
+     platform Users table has three of those per row. */
+  body.app .data-table td[data-th]:empty { display: none; }
+  /* Money stays tabular but stops hugging a right edge that no longer exists. */
+  body.app .data-table td.num { text-align: left; }
+  /* The actions, as a real row of targets. */
+  body.app .data-table td.row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: var(--s-2);
+    margin-top: var(--s-2);
+  }
+  body.app .data-table td.row-actions:empty { display: none; }
+  body.app .data-table .btn-ghost,
+  body.app .row-actions .btn-ghost { padding: 0 10px; min-height: 36px; }
+  /* Column priority, restated. styles.css hides these below 640px at (0,2,1),
+     which loses to everything above — so each one is restated here at (0,4,2),
+     one class more than the `td[data-th]` rules it has to beat. Same columns,
+     same reasons: Date and the raw Discord id are already said by .row-when
+     and the handle, and Billing/Members/Revenue/Scope/Expires/Products are the
+     desktop's detail, not the phone's. A product row on a phone is a name, a
+     price, an on/off and its four actions. */
+  body.app .data-table.t-pay td:nth-child(5),
+  body.app .data-table.t-pay td:nth-child(6),
+  body.app .data-table.t-pay td:first-child .dim,
+  body.app .data-table.t-products td:nth-child(3),
+  body.app .data-table.t-products td:nth-child(4),
+  body.app .data-table.t-products td:nth-child(5),
+  body.app .data-table.t-disc td:nth-child(3),
+  body.app .data-table.t-disc td:nth-child(5),
+  body.app .data-table.t-members td:nth-child(2),
+  body.app .data-table.t-members td:first-child .dim,
+  /* The platform tables print a 19-digit Discord id beside every handle. On a
+     phone that is half a line of digits nobody reads and the only thing still
+     wide enough to make the card scroll sideways. The handle identifies the
+     account; the id is on the desktop. */
+  body.app .data-table.t-stores td:nth-child(2) .dim,
+  body.app .data-table.t-users td:first-child .dim { display: none; }
+  /* .row-when is the date, printed under the product name. It is a block at
+     ≤640 in styles.css; the card wants it at ≤760 too. */
+  body.app .row-when { display: block; font-size: var(--fs-1); line-height: var(--lh-1); color: var(--d-muted); margin-top: 2px; }
+  /* An empty-state row ("No stores yet.") is one plain line, not a title. */
+  body.app .data-table td[colspan] { font-weight: var(--fw-regular); color: var(--d-muted); }
+  body.app .chart-card,
+  body.app .table-panel { padding: var(--s-4); }
+}
+
+/* ── 9. the type ramp, applied ─────────────────────────────────────────────
+   One size ladder across all nine sections. Before this the dashboard carried
+   18 / 15.5 / 15 / 12.5 / 12 / 11.5 / 11 as separate hand-set numbers, which
+   is what made nine screens look like nine weeks of work. */
+body.app .sec-title { font-size: var(--fs-5); line-height: var(--lh-5); letter-spacing: var(--ls-5); font-weight: var(--fw-semibold); margin: 0 0 var(--s-4); }
+body.app .card-head h3,
+body.app .set-head h3 { font-size: var(--fs-3); line-height: var(--lh-3); letter-spacing: var(--ls-3); font-weight: var(--fw-semibold); }
+body.app .card-sub { font-size: var(--fs-1); line-height: var(--lh-1); color: var(--d-muted); }
+
+/* Stat tiles. Two edits carry most of the change:
+
+   The label loses its uppercase and its 0.05em tracking. The reference system
+   never sets UI text in caps, and this was the loudest place the dashboard
+   broke that — four shouted words across the top of the first screen a seller
+   sees.
+
+   The value drops from 800 to 600. 800 is not on the weight ladder at all,
+   and this is the biggest number on the page, so it is the single
+   highest-leverage line in this file. */
+body.app .stat-grid { gap: var(--s-4); margin-bottom: var(--s-4); }
+body.app .stat-label {
+  font-size: var(--fs-1);
+  line-height: var(--lh-1);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--d-muted);
+}
+body.app .stat-value { font-size: var(--fs-6); line-height: var(--lh-6); letter-spacing: var(--ls-6); font-weight: var(--fw-semibold); }
+body.app .stat-sub { font-size: var(--fs-1); line-height: var(--lh-1); color: var(--d-muted); }
+body.app .stat-ic { color: var(--d-muted); }
+body.app .stat-grid > .panel { padding: var(--s-4); border-radius: var(--r-6); box-shadow: var(--el-2); }
+/* The platform-admin view is a fourth, structurally different page and would
+   read as broken next to the rest if it kept its own stat treatment. Its
+   gap:1px-over-a-background hairline trick becomes real gaps between tiles,
+   so there is ONE stat treatment in the product rather than two. */
+body.app .ck-stats,
+body.app .admin-stats { gap: var(--s-4); background: transparent; }
+body.app .ck-stat,
+body.app .admin-stat { border: 1px solid var(--d-stroke); border-radius: var(--r-6); padding: var(--s-4); box-shadow: var(--el-2); }
+body.app .ck-num { font-size: var(--fs-6); line-height: var(--lh-6); font-weight: var(--fw-semibold); font-family: var(--font-body); }
+body.app .ck-lab { font-size: var(--fs-1); line-height: var(--lh-1); color: var(--d-muted); text-transform: none; letter-spacing: 0; }
+
+/* Settings cards: the head, body and foot share one inset instead of three
+   different ones. margin-inline rather than a new wrapper, so every one of the
+   ten `.set-card > …` selectors in styles.css still matches. */
+body.app .set-head { padding: var(--s-5) var(--s-5) 0; }
+/* Same inversion as styles.css: every child takes the inset, the full-bleed
+   ones opt out. See the note there for what the old allowlist cost. */
+body.app .set-card > * { margin-inline: var(--s-5); }
+body.app .set-card > .set-head,
+body.app .set-card > .set-foot,
+body.app .set-card > table,
+body.app .set-card > .tbl-wrap,
+body.app .set-card > .tbl-scroll { margin-inline: 0; }
+body.app .set-card > .field,
+body.app .set-card > .share-row,
+body.app .set-card > .field-err,
+body.app .set-card > .key-scopes,
+body.app .set-card > #billing-body { margin-inline: var(--s-5); margin-top: var(--s-3); }
+/* Two 84px interval buttons plus the "2 months free" note need more than the
+   250px a 320px phone leaves inside the card, and .set-card hides overflow, so
+   the note was sliced at the card edge. Wrapping puts it on its own row there
+   and changes nothing where it fits. */
+body.app #billing-body .bill-toggle { flex-wrap: wrap; }
+body.app .set-foot { padding: var(--s-3) var(--s-5); border-top: 1px solid var(--d-stroke); background: var(--d-fill); }
+body.app .settings-stack { gap: var(--s-5); }
+body.app .chart-grid { gap: var(--s-5); }
+
+/* The rail. 240px, 40px items at radius 14 — the one exception to the
+   height/3.4 rule, and the reference system's own. */
+body.app .side-item {
+  border-radius: var(--rc-4);
+  font-size: var(--fs-2);
+  line-height: var(--lh-2);
+  font-weight: var(--fw-medium);
+  color: var(--d-a11);
+}
+body.app .side-item:hover { background: var(--d-fill); color: var(--d-a12); }
+body.app .side-item.active { background: var(--d-hover); color: var(--d-a12); }
+body.app .side-item svg { width: 16px; height: 16px; }
+
+/* Near-zero motion is the system's position and it is also the right one for
+   a tool someone uses every day: state changes are instant, and motion is
+   spent only on disclosure and loading. */
+@media (prefers-reduced-motion: reduce) {
+  body.app *, body.app *::before, body.app *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* ── the section strip fades at whichever end has more to reach ────────────
+   styles.css already masks the right edge; this adds the left, and the pair
+   so both can be active at once. Without the left one the strip's usual state
+   — auto-scrolled to centre the active tab — chops the previous tab's word in
+   half at full opacity. */
+@media (max-width: 860px) {
+  body.app .sidebar.scroll-back:not(.scroll-more) {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 44px);
+    mask-image: linear-gradient(to right, transparent, #000 44px);
+  }
+  body.app .sidebar.scroll-back.scroll-more {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+  }
+}
+
+/* ── the customize card's button was welded to the card's bottom edge ──────
+   Its border and the card's landed on the same pixel row, so the card looked
+   sliced rather than closed. The other set-cards get their inset from the
+   margin-inline block above; this body was not in that list. */
+body.app .set-card > .dc-body { margin-inline: var(--s-5); margin-top: var(--s-3); }
+body.app .set-card > .dc-body:last-child { margin-bottom: var(--s-5); }
+
+/* ── the phone's own edges ─────────────────────────────────────────────────
+   dashboard.html now ships `viewport-fit=cover`, so the page paints into the
+   notch and the home-indicator strip instead of being letterboxed away from
+   them. That is the only way to fill the screen, and also the way to end up
+   with the wordmark under the clock — which is what four of the owner's five
+   screenshots show — unless the insets are then paid back. They are, on every
+   edge of the shell.
+
+   `env(…, 0px)` is a no-op on a desktop and on any engine without support, so
+   not one of these declarations moves anything but a phone. The header also
+   becomes sticky at the width where the layout is already a different shape:
+   at that point it is a 44px bar, it is the only way back to the account menu,
+   and a page scrolled under a transparent one puts a table row under the
+   status bar. It stays exactly as it was on a desktop. */
+body.app .top {
+  padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  padding-left: calc(28px + env(safe-area-inset-left, 0px));
+  padding-right: calc(28px + env(safe-area-inset-right, 0px));
+}
+body.app .app-main {
+  padding-left: calc(22px + env(safe-area-inset-left, 0px));
+  padding-right: calc(22px + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 860px) {
+  body.app .top {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    /* Opaque, not tinted: a translucent bar over a scrolling table is how the
+       status bar ended up reading two lines of text at once. */
+    background: var(--bg);
+  }
+  /* The section strip is the widest thing on the page here, so it pays the
+     side insets too or its first tab hides behind a rounded corner. */
+  body.app .sidebar {
+    padding-left: calc(12px + env(safe-area-inset-left, 0px));
+    padding-right: calc(12px + env(safe-area-inset-right, 0px));
+  }
+}
+@media (max-width: 760px) {
+  body.app .top {
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  }
+  /* The revenue card's head is the one that is not a title plus a button:
+     .chart-side is `width: 100%` at these widths, and in a nowrap flex row
+     that squeezed the subtitle to nothing and left "This period against the
+     previous 30 days" painted straight across the legend. It wraps; every
+     other card head keeps the one-row shape styles.css chose for it, with the
+     action holding the top-right corner. */
+  body.app #rev-card .card-head { flex-wrap: wrap; }
+}
+
+/* The platform stat tiles are the only ones that hold currency: "US$706.87"
+   sets at the value size in about 120px, and a two-column grid inside the
+   admin wrap's own padding leaves 105px on a 320px phone — so the tile, which
+   hides its overflow to draw the hairline grid, ate the last digits and
+   reported a smaller number than the owner has. One column below 420px. */
+@media (max-width: 420px) {
+  body.app .admin-stats { grid-template-columns: 1fr; }
+}
+
+/* The one instruction in the setup that has to happen in Discord rather than
+   here. It reads as a note among notes otherwise, and it is the difference
+   between a working store and a picker full of greyed-out roles. */
+body.app .wiz-note {
+  margin-top: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: 10px;
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--accent);
+  background: var(--well);
+}
+body.app .wiz-note strong { color: var(--d-a12); }

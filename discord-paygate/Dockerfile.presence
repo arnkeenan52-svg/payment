@@ -1,0 +1,75 @@
+# The Dues bot worker — the one piece of Dues that cannot be serverless.
+#
+# Discord paints a bot "Online" only while it holds an open gateway WebSocket,
+# and a Vercel function cannot hold one. This image runs that socket, and
+# optionally posts a branded welcome card when someone joins (set
+# WELCOME_CHANNEL_ID). Nothing else: no database, no Stripe, no HTTP surface
+# beyond an optional health endpoint. Role delivery and payments keep running
+# on Vercel whether this is up or not.
+#
+# Debian slim rather than Alpine: sharp ships prebuilt binaries for glibc that
+# "just work", where musl builds have historically needed compiling from
+# source. The size difference is not worth the deploy-day surprise.
+FROM node:22-slim
+
+# fontconfig is what librsvg (inside sharp) consults to resolve font families.
+# Without it the card still renders — but in a fallback face, which looks
+# broken rather than failing loudly.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends fontconfig \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Brand fonts, installed system-wide so fontconfig can find them by family
+# name ("Dues Grotesk" / "Dues Sans"). These are static instances cut from the
+# site's variable fonts; see assets/fonts/README.md.
+COPY assets/fonts/*.ttf /usr/share/fonts/dues/
+RUN fc-cache -f >/dev/null
+
+# Only the manifest first, so the dependency layer caches independently of
+# source changes. --omit=dev keeps the web app's test tooling out of the image.
+#
+# Which is exactly why sharp has to stay in "dependencies" in package.json: the
+# card renderer imports it at runtime, and a devDependency simply is not here.
+# It has been moved to devDependencies once already ("sharp is a build tool"),
+# and the only symptom was welcome cards going quiet — every join threw
+# "Cannot find package 'sharp'" in a log nobody reads. scripts/e2e-test.js
+# pins the manifest against that.
+COPY package.json package-lock.json* ./
+RUN npm install --omit=dev --no-audit --no-fund
+
+# The real Dues lockup, composited onto every card, plus the cloud grounds the
+# sky theme reads at render time. welcome-card.js resolves them relative to
+# itself (../../assets), so they have to land at /app/assets — unlike the
+# fonts above, which fontconfig finds system-wide. Missing grounds no longer
+# kill the card (it falls back to the flat brand color), but the whole point
+# is the clouds — keep these in step with THEMES in welcome-card.js.
+COPY assets/dues-mark.png assets/sky-night-card.jpg assets/sky-day-card.jpg ./assets/
+
+COPY scripts/presence.js ./scripts/presence.js
+COPY src/lib/welcome-card.js ./src/lib/welcome-card.js
+
+# The standing-message poster and its texts. CMD never touches these — the worker runs
+# presence.js and nothing else — but they are here so the rules can be posted
+# and re-posted from Railway's web console, which executes inside this
+# container. That is the only place the bot token already exists, so it is the
+# one route where updating the rules requires nobody to handle the credential.
+#
+# The alternative was a local checkout plus `railway run`, which needs a
+# terminal the server owner does not have. Weighed against that: this adds two
+# text files, runs only when a human types the command, is dry without
+# --confirm, and its entire blast radius is one message in one channel. Anyone
+# who can reach this console already has DISCORD_BOT_TOKEN, which is strictly
+# more powerful than the script.
+#
+# Rules changes are recurring, not one-off, so this stays.
+#
+#   npm run post -- rules                 # dry run, sends nothing
+#   npm run post -- rules --confirm       # post or update
+COPY scripts/post-message.mjs ./scripts/post-message.mjs
+COPY content ./content
+
+ENV NODE_ENV=production
+# DISCORD_BOT_TOKEN is injected as a secret by the host, never baked in.
+CMD ["node", "scripts/presence.js"]

@@ -1,0 +1,15 @@
+[
+  {
+    "id": "membership",
+    "name": "Premium",
+    "description": "All courses lifetime",
+    "descriptionHighlight": null,
+    "roleNames": ["@Premium"],
+    "priceUsd": 59.99,
+    "interval": "lifetime",
+    "lifetime": true,
+    "durationDays": null,
+    "stripePriceId": "price_1U5g5I7182NnwaoPY3WxIm9T",
+    "roleIds": ["1200000000000000101"]
+  }
+]
